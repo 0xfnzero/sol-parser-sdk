@@ -3,6 +3,7 @@ pub mod common;
 pub mod core;
 pub mod instr;    // 指令解析器
 pub mod logs;     // 日志解析器
+pub mod merge;    // 事件合并器
 // 已合并到 streaming 模块中
 pub mod utils;
 

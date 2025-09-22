@@ -3,7 +3,7 @@
 //! 提供完整的交易解析能力，支持指令和日志数据合并
 
 use crate::core::events::*;
-use crate::core::event_mergers::merge_instruction_and_log_events;
+use crate::merge::merge_instruction_and_log_events;
 use solana_sdk::{pubkey::Pubkey, signature::Signature};
 
 /// 主要解析函数 - 解析完整交易并返回所有 DEX 事件

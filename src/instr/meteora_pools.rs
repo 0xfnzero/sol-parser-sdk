@@ -115,7 +115,7 @@ fn parse_swap_instruction(
     Some(DexEvent::MeteoraPoolsSwap(MeteoraPoolsSwapEvent {
         metadata,
         in_amount,
-        out_amount: 0, // 从日志中获取
+        out_amount: minimum_out_amount, // 先用指令中的最小值，日志会覆盖实际值
         trade_fee: 0, // 从日志中获取
         protocol_fee: 0, // 从日志中获取
         host_fee: 0, // 从日志中获取
@@ -146,8 +146,8 @@ fn parse_add_liquidity_instruction(
     Some(DexEvent::MeteoraPoolsAddLiquidity(MeteoraPoolsAddLiquidityEvent {
         metadata,
         lp_mint_amount: pool_token_amount,
-        token_a_amount: 0, // 从日志中获取
-        token_b_amount: 0, // 从日志中获取
+        token_a_amount: maximum_token_a_amount, // 先用指令中的最大值，日志会覆盖实际值
+        token_b_amount: maximum_token_b_amount, // 先用指令中的最大值，日志会覆盖实际值
     }))
 }
 
@@ -175,8 +175,8 @@ fn parse_remove_liquidity_instruction(
     Some(DexEvent::MeteoraPoolsRemoveLiquidity(MeteoraPoolsRemoveLiquidityEvent {
         metadata,
         lp_unmint_amount: pool_token_amount,
-        token_a_out_amount: 0, // 从日志中获取
-        token_b_out_amount: 0, // 从日志中获取
+        token_a_out_amount: minimum_token_a_amount, // 先用指令中的最小值，日志会覆盖实际值
+        token_b_out_amount: minimum_token_b_amount, // 先用指令中的最小值，日志会覆盖实际值
     }))
 }
 

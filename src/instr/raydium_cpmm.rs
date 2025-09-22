@@ -76,7 +76,7 @@ fn parse_swap_base_in_instruction(
         pool,
         user: get_account(accounts, 1).unwrap_or_default(),
         amount_in,
-        amount_out: 0, // 将从日志填充
+        amount_out: minimum_amount_out, // 先赋值为minimum_amount_out，logs会覆盖
         is_base_input: true,
     }))
 }
@@ -103,7 +103,7 @@ fn parse_swap_base_out_instruction(
         metadata,
         pool,
         user: get_account(accounts, 1).unwrap_or_default(),
-        amount_in: 0, // 将从日志填充
+        amount_in: maximum_amount_in, // 先赋值为maximum_amount_in，logs会覆盖
         amount_out,
         is_base_input: false,
     }))
@@ -165,8 +165,8 @@ fn parse_deposit_instruction(
         pool,
         user: get_account(accounts, 1).unwrap_or_default(),
         lp_token_amount,
-        token0_amount: 0, // 将从日志填充
-        token1_amount: 0, // 将从日志填充
+        token0_amount: maximum_token_0_amount, // 先赋值为maximum，logs会覆盖
+        token1_amount: maximum_token_1_amount, // 先赋值为maximum，logs会覆盖
     }))
 }
 
@@ -196,7 +196,7 @@ fn parse_withdraw_instruction(
         pool,
         user: get_account(accounts, 1).unwrap_or_default(),
         lp_token_amount,
-        token0_amount: 0, // 将从日志填充
-        token1_amount: 0, // 将从日志填充
+        token0_amount: minimum_token_0_amount, // 先赋值为minimum，logs会覆盖
+        token1_amount: minimum_token_1_amount, // 先赋值为minimum，logs会覆盖
     }))
 }

@@ -197,19 +197,19 @@ fn parse_open_position_instruction(
     let tick_upper_index = read_u32_le(data, offset)? as i32;
     offset += 4;
 
-    let tick_array_lower_start_index = read_u32_le(data, offset)? as i32;
+    let _tick_array_lower_start_index = read_u32_le(data, offset)? as i32;
     offset += 4;
 
-    let tick_array_upper_start_index = read_u32_le(data, offset)? as i32;
+    let _tick_array_upper_start_index = read_u32_le(data, offset)? as i32;
     offset += 4;
 
     let liquidity = read_u64_le(data, offset)? as u128;
     offset += 8;
 
-    let amount_0_max = read_u64_le(data, offset)?;
+    let _amount_0_max = read_u64_le(data, offset)?;
     offset += 8;
 
-    let amount_1_max = read_u64_le(data, offset)?;
+    let _amount_1_max = read_u64_le(data, offset)?;
 
     let pool = get_account(accounts, 0)?;
     let metadata = create_metadata(signature, slot, block_time, pool);

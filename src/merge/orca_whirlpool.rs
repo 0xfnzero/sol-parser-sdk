@@ -14,11 +14,13 @@ pub fn merge_orca_whirlpool_swap_events(
     if merged.whirlpool == Pubkey::default() && instruction_event.whirlpool != Pubkey::default() {
         merged.whirlpool = instruction_event.whirlpool;
     }
-    if merged.token_vault_a == Pubkey::default() && instruction_event.token_vault_a != Pubkey::default() {
-        merged.token_vault_a = instruction_event.token_vault_a;
+
+    // 用指令数据填充交易金额信息（如果日志中没有）
+    if merged.input_amount == 0 && instruction_event.input_amount > 0 {
+        merged.input_amount = instruction_event.input_amount;
     }
-    if merged.token_vault_b == Pubkey::default() && instruction_event.token_vault_b != Pubkey::default() {
-        merged.token_vault_b = instruction_event.token_vault_b;
+    if merged.output_amount == 0 && instruction_event.output_amount > 0 {
+        merged.output_amount = instruction_event.output_amount;
     }
 
     merged

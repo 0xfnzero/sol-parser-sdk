@@ -68,7 +68,7 @@ fn parse_trade_instruction(
         pool_state,
         user: get_account(accounts, 1).unwrap_or_default(),
         amount_in,
-        amount_out: 0, // 将从日志填充
+        amount_out: amount_out_min, // 先用指令中的最小值，日志会覆盖实际值
         is_buy: true, // 默认为买入，实际值从日志确定
         trade_direction: TradeDirection::Buy,
         exact_in: true,

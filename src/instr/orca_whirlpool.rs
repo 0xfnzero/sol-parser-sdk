@@ -170,10 +170,14 @@ fn parse_swap_instruction(
         metadata,
         whirlpool,
         a_to_b,
-        pre_sqrt_price: 0, // 从日志中获取
+        pre_sqrt_price: sqrt_price_limit, // 从指令获取初始值，日志会覆盖
         post_sqrt_price: 0, // 从日志中获取
         input_amount: if amount_specified_is_input { amount } else { 0 },
-        output_amount: if !amount_specified_is_input { amount } else { 0 },
+        output_amount: if !amount_specified_is_input {
+            amount
+        } else {
+            other_amount_threshold // 使用阈值作为初始值，日志会覆盖
+        },
         input_transfer_fee: 0, // 从日志中获取
         output_transfer_fee: 0, // 从日志中获取
         lp_fee: 0, // 从日志中获取
@@ -210,8 +214,8 @@ fn parse_increase_liquidity_instruction(
         tick_lower_index: 0, // 从日志中获取
         tick_upper_index: 0, // 从日志中获取
         liquidity: liquidity_amount,
-        token_a_amount: 0, // 从日志中获取
-        token_b_amount: 0, // 从日志中获取
+        token_a_amount: token_max_a, // 从指令获取最大值，日志会覆盖实际值
+        token_b_amount: token_max_b, // 从指令获取最大值，日志会覆盖实际值
         token_a_transfer_fee: 0, // 从日志中获取
         token_b_transfer_fee: 0, // 从日志中获取
     }))
@@ -246,8 +250,8 @@ fn parse_decrease_liquidity_instruction(
         tick_lower_index: 0, // 从日志中获取
         tick_upper_index: 0, // 从日志中获取
         liquidity: liquidity_amount,
-        token_a_amount: 0, // 从日志中获取
-        token_b_amount: 0, // 从日志中获取
+        token_a_amount: token_min_a, // 从指令获取最小值，日志会覆盖实际值
+        token_b_amount: token_min_b, // 从指令获取最小值，日志会覆盖实际值
         token_a_transfer_fee: 0, // 从日志中获取
         token_b_transfer_fee: 0, // 从日志中获取
     }))

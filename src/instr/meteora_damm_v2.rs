@@ -172,7 +172,7 @@ fn parse_swap_instruction(
         start_bin_id: 0, // 从日志中获取
         end_bin_id: 0, // 从日志中获取
         amount_in,
-        amount_out: 0, // 从日志中获取
+        amount_out: min_amount_out, // 先用指令中的最小值，日志会覆盖实际值
         swap_for_y: false, // 从日志中获取
         fee: 0, // 从日志中获取
         protocol_fee: 0, // 从日志中获取
