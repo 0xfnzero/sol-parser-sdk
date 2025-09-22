@@ -106,7 +106,7 @@ pub fn create_event_metadata(
         signature,
         slot,
         block_time,
-        block_time_ms: block_time.map(|ts| ts * 1000),
+        block_time_ms: block_time,
         program_id,
         outer_index: 0,
         inner_index: None,
@@ -208,19 +208,19 @@ pub fn parse_all_events(
             match discriminator {
                 discriminators::TRADE => {
                     if let Some(raw) = parse_raw_event::<RawBonkTradeEvent>(&program_data, discriminators::TRADE) {
-                        let event = convert_to_trade_event(raw, signature, slot, block_time.clone());
+                        let event = convert_to_trade_event(raw, signature, slot, block_time);
                         events.push(DexEvent::BonkTrade(event));
                     }
                 }
                 discriminators::POOL_CREATE => {
                     if let Some(raw) = parse_raw_event::<RawBonkPoolCreateEvent>(&program_data, discriminators::POOL_CREATE) {
-                        let event = convert_to_pool_create_event(raw, signature, slot, block_time.clone());
+                        let event = convert_to_pool_create_event(raw, signature, slot, block_time);
                         events.push(DexEvent::BonkPoolCreate(event));
                     }
                 }
                 discriminators::MIGRATE_AMM => {
                     if let Some(raw) = parse_raw_event::<RawBonkMigrateAmmEvent>(&program_data, discriminators::MIGRATE_AMM) {
-                        let event = convert_to_migrate_amm_event(raw, signature, slot, block_time.clone());
+                        let event = convert_to_migrate_amm_event(raw, signature, slot, block_time);
                         events.push(DexEvent::BonkMigrateAmm(event));
                     }
                 }
@@ -258,6 +258,168 @@ pub fn parse_simple_bonk_event(
         });
     }
     None
+}
+
+/// 检查是否是 Bonk 日志
+#[inline(always)]
+pub fn is_bonk_log(log: &str) -> bool {
+    log.contains(BONK_PROGRAM_ID) || log.contains("Program data:")
+}
+
+/// 从日志字符串解析 Bonk 事件
+pub fn parse_bonk_from_log_string(
+    log: &str,
+    signature: Signature,
+    slot: u64,
+    block_time: Option<i64>,
+) -> Option<DexEvent> {
+    if !is_bonk_log(log) {
+        return None;
+    }
+
+    // 提取程序数据
+    if let Some(data_str) = extract_program_data_str(log) {
+        // 使用标准库解码 base64
+        use base64::{Engine as _, engine::general_purpose};
+        if let Ok(data) = general_purpose::STANDARD.decode(data_str) {
+            return parse_bonk_log_event(&data, signature, slot, block_time);
+        }
+    }
+
+    None
+}
+
+/// 解析 Bonk 日志事件
+fn parse_bonk_log_event(
+    data: &[u8],
+    signature: Signature,
+    slot: u64,
+    block_time: Option<i64>,
+) -> Option<DexEvent> {
+    if data.len() < 8 {
+        return None;
+    }
+
+    let discriminator = &data[..8];
+    match discriminator {
+        d if d == discriminators::TRADE => parse_bonk_trade_log(&data[8..], signature, slot, block_time),
+        d if d == discriminators::POOL_CREATE => parse_bonk_pool_create_log(&data[8..], signature, slot, block_time),
+        d if d == discriminators::MIGRATE_AMM => parse_bonk_migrate_log(&data[8..], signature, slot, block_time),
+        _ => None,
+    }
+}
+
+/// 解析 Bonk 交易日志
+fn parse_bonk_trade_log(
+    data: &[u8],
+    signature: Signature,
+    slot: u64,
+    block_time: Option<i64>,
+) -> Option<DexEvent> {
+    match RawBonkTradeEvent::try_from_slice(data) {
+        Ok(raw_log) => {
+            Some(DexEvent::BonkTrade(BonkTradeEvent {
+                metadata: EventMetadata {
+                    signature,
+                    slot,
+                    block_time,
+                    block_time_ms: block_time,
+                    program_id: std::str::FromStr::from_str(BONK_PROGRAM_ID).unwrap_or_default(),
+                    outer_index: 0,
+                    inner_index: None,
+                    transaction_index: None,
+                    recv_us: 0,
+                    handle_us: 0,
+                },
+                pool_state: raw_log.pool_state,
+                user: raw_log.user,
+                amount_in: raw_log.amount_in,
+                amount_out: raw_log.amount_out,
+                is_buy: raw_log.is_buy,
+                trade_direction: if raw_log.is_buy { TradeDirection::Buy } else { TradeDirection::Sell },
+                exact_in: raw_log.exact_in,
+            }))
+        }
+        Err(_) => None,
+    }
+}
+
+/// 解析 Bonk 池创建日志
+fn parse_bonk_pool_create_log(
+    data: &[u8],
+    signature: Signature,
+    slot: u64,
+    block_time: Option<i64>,
+) -> Option<DexEvent> {
+    match RawBonkPoolCreateEvent::try_from_slice(data) {
+        Ok(raw_log) => {
+            Some(DexEvent::BonkPoolCreate(BonkPoolCreateEvent {
+                metadata: EventMetadata {
+                    signature,
+                    slot,
+                    block_time,
+                    block_time_ms: block_time,
+                    program_id: std::str::FromStr::from_str(BONK_PROGRAM_ID).unwrap_or_default(),
+                    outer_index: 0,
+                    inner_index: None,
+                    transaction_index: None,
+                    recv_us: 0,
+                    handle_us: 0,
+                },
+                base_mint_param: BaseMintParam {
+                    symbol: "BONK".to_string(),
+                    name: "Bonk Pool".to_string(),
+                    uri: "https://bonk.com".to_string(),
+                    decimals: 5,
+                },
+                pool_state: raw_log.pool_state,
+                creator: raw_log.creator,
+            }))
+        }
+        Err(_) => None,
+    }
+}
+
+/// 解析 Bonk AMM 迁移日志
+fn parse_bonk_migrate_log(
+    data: &[u8],
+    signature: Signature,
+    slot: u64,
+    block_time: Option<i64>,
+) -> Option<DexEvent> {
+    match RawBonkMigrateAmmEvent::try_from_slice(data) {
+        Ok(raw_log) => {
+            Some(DexEvent::BonkMigrateAmm(BonkMigrateAmmEvent {
+                metadata: EventMetadata {
+                    signature,
+                    slot,
+                    block_time,
+                    block_time_ms: block_time,
+                    program_id: std::str::FromStr::from_str(BONK_PROGRAM_ID).unwrap_or_default(),
+                    outer_index: 0,
+                    inner_index: None,
+                    transaction_index: None,
+                    recv_us: 0,
+                    handle_us: 0,
+                },
+                old_pool: raw_log.old_pool,
+                new_pool: raw_log.new_pool,
+                user: raw_log.user,
+                liquidity_amount: raw_log.liquidity_amount,
+            }))
+        }
+        Err(_) => None,
+    }
+}
+
+/// 从日志中提取 base64 编码的程序数据字符串
+fn extract_program_data_str(log: &str) -> Option<&str> {
+    if let Some(start) = log.find("Program data: ") {
+        let data_start = start + "Program data: ".len();
+        Some(log[data_start..].trim())
+    } else {
+        None
+    }
 }
 
 #[cfg(test)]

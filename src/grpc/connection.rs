@@ -2,7 +2,7 @@ use std::time::Duration;
 use tonic::transport::channel::ClientTlsConfig;
 use yellowstone_grpc_client::{GeyserGrpcClient, Interceptor};
 use crate::common::AnyResult;
-use crate::streaming::common::constants::{
+use crate::common::constants::{
     DEFAULT_CONNECT_TIMEOUT, DEFAULT_REQUEST_TIMEOUT, DEFAULT_MAX_DECODING_MESSAGE_SIZE
 };
 

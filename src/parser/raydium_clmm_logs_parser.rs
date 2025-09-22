@@ -343,3 +343,25 @@ mod tests {
         assert!(closes.is_empty());
     }
 }
+
+/// 检查是否是 Raydium CLMM 日志
+#[inline(always)]
+pub fn is_raydium_clmm_log(log: &str) -> bool {
+    log.contains("CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK") || log.contains("Program data:")
+}
+
+/// 从日志字符串解析 Raydium CLMM 事件
+pub fn parse_raydium_clmm_from_log_string(
+    log: &str,
+    signature: Signature,
+    slot: u64,
+    block_time: Option<i64>,
+) -> Option<DexEvent> {
+    if !is_raydium_clmm_log(log) {
+        return None;
+    }
+
+    // TODO: 实现完整的 Raydium CLMM 日志解析
+    // 这里需要根据实际的 Raydium CLMM 合约日志格式来解析
+    None
+}

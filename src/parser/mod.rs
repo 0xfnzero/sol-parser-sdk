@@ -1,51 +1,57 @@
-//! 优化的事件解析器
+//! 简化的事件解析器模块
 //!
-//! 设计目标：
-//! - 简化架构，移除过度设计
-//! - 提升性能，减少动态分配
-//! - 解耦DEX实现，便于维护和扩展
-//! - 函数式设计，避免复杂的trait系统
-//! - 扁平化目录结构，避免过度嵌套
+//! 每个DEX使用清晰的两文件架构：
+//! - dex_ix_parser.rs - 指令解析器（主解析器，会调用日志解析器）
+//! - dex_logs_parser.rs - 日志解析器（被指令解析器调用）
+//! - 最终事件数据是两者结合的结果
 
-// 核心模块 - 只保留必要的
+// 核心模块
 pub mod events;          // 事件定义
 pub mod events_parser;   // 简化的事件解析器
 pub mod event_dispatcher;// 简单的事件分发器
-pub mod simple_example;  // 使用示例
 
-// DEX 特定的函数式解析器
-pub mod pumpfun;         // PumpFun DEX 解析器
-pub mod bonk;            // Bonk DEX 解析器
-pub mod pumpswap;        // PumpSwap DEX 解析器
-// TODO: 添加 Raydium 解析器
-// pub mod raydium_clmm;    // Raydium CLMM DEX 解析器
-// pub mod raydium_cpmm;    // Raydium CPMM DEX 解析器
+// PumpFun DEX 解析器
+pub mod pumpfun_ix_parser;    // PumpFun 指令解析器（主解析器）
+pub mod pumpfun_logs_parser;  // PumpFun 日志解析器
 
-// 函数式架构演示
-pub mod functional_demo; // 演示函数式DEX解析器的使用
+// Bonk DEX 解析器
+pub mod bonk_ix_parser;       // Bonk 指令解析器（主解析器）
+pub mod bonk_logs_parser;     // Bonk 日志解析器
 
-// 性能对比测试
-#[cfg(test)]
-pub mod performance_comparison; // 对比单次循环vs多次循环的性能
+// PumpSwap DEX 解析器
+pub mod pumpswap_ix_parser;   // PumpSwap 指令解析器（主解析器）
+pub mod pumpswap_logs_parser; // PumpSwap 日志解析器
 
-// 重命名验证测试
-#[cfg(test)]
-pub mod rename_test; // 验证重命名后功能正常
+// Raydium CLMM DEX 解析器
+pub mod raydium_clmm_ix_parser;   // Raydium CLMM 指令解析器（主解析器）
+pub mod raydium_clmm_logs_parser; // Raydium CLMM 日志解析器
 
-#[cfg(feature = "benchmarks")]
-pub mod performance;   // 性能测试
+// Raydium CPMM DEX 解析器
+pub mod raydium_cpmm_ix_parser;   // Raydium CPMM 指令解析器（主解析器）
+pub mod raydium_cpmm_logs_parser; // Raydium CPMM 日志解析器
 
-// 注意：移除了以下复杂和重复的模块：
-// - unified_parser.rs (复杂的两阶段解析器，被简单的 event_dispatcher 替代)
-// - callbacks.rs (复杂回调系统)
-// - core.rs (被 simple_parser 替代)
-// - parser_*.rs (各DEX独立解析器，已整合到 simple_parser)
-// - examples.rs, usage_example.rs (重复示例)
-// - benchmarks.rs (重复基准测试)
-// - tests.rs (使用旧回调系统的测试)
+// 其他现有模块（保持兼容性）
+pub mod instruction_parser;
+pub mod log_parser;
+pub mod unified_parser;
+// 保留原有文件以确保兼容性
+pub mod pumpfun;
+pub mod bonk;
+pub mod pumpswap;
+pub mod raydium_clmm;
+pub mod raydium_cpmm;
 
-// 主要导出 - 只导出用户需要的简单接口
-pub use events::*;  // 所有事件类型定义（包括 DexEvent）
+// 主要导出
+pub use events::*;
 pub use events_parser::{SimpleEventParser, SimpleEventListener, DexEvent};
 pub use event_dispatcher::EventDispatcher;
-pub use simple_example::{SimpleTradeMonitor, TradeStats, TokenInfo};
+
+// 兼容性类型
+pub type ParsedEvent = DexEvent;
+
+// DEX解析器导出 - 使用新的命名
+pub use pumpfun_ix_parser as pumpfun_ix;
+pub use bonk_ix_parser as bonk_ix;
+pub use pumpswap_ix_parser as pumpswap_ix;
+pub use raydium_clmm_ix_parser as raydium_clmm_ix;
+pub use raydium_cpmm_ix_parser as raydium_cpmm_ix;

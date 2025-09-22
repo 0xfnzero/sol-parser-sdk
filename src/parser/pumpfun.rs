@@ -8,7 +8,7 @@
 use borsh::BorshDeserialize;
 use solana_sdk::pubkey::Pubkey;
 use solana_sdk::signature::Signature;
-use prost_types::Timestamp;
+// use prost_types::Timestamp;
 use crate::parser::events::*;
 
 /// PumpFun discriminator 常量
@@ -78,7 +78,8 @@ pub fn is_pumpfun_program(log: &str) -> bool {
 pub fn extract_program_data(log: &str) -> Option<Vec<u8>> {
     if let Some(data_start) = log.find("Program data: ") {
         let data_part = &log[data_start + 14..];
-        base64::decode(data_part.trim()).ok()
+        use base64::{Engine as _, engine::general_purpose};
+        general_purpose::STANDARD.decode(data_part.trim()).ok()
     } else {
         None
     }
@@ -105,7 +106,7 @@ pub fn parse_raw_event<T: BorshDeserialize>(data: &[u8], expected_discriminator:
 pub fn create_event_metadata(
     signature: Signature,
     slot: u64,
-    block_time: Option<Timestamp>,
+    block_time: Option<i64>,
     program_id: Pubkey,
 ) -> EventMetadata {
     let current_time = std::time::SystemTime::now()
@@ -117,7 +118,7 @@ pub fn create_event_metadata(
         signature,
         slot,
         block_time,
-        block_time_ms: block_time.as_ref().map(|ts| ts.seconds * 1000 + ts.nanos as i64 / 1_000_000),
+        block_time_ms: block_time.map(|ts| ts * 1000),
         program_id,
         outer_index: 0,
         inner_index: None,
@@ -134,7 +135,7 @@ pub fn convert_to_create_event(
     raw: RawPumpFunCreateEvent,
     signature: Signature,
     slot: u64,
-    block_time: Option<Timestamp>,
+    block_time: Option<i64>,
 ) -> PumpFunCreateTokenEvent {
     let metadata = create_event_metadata(signature, slot, block_time, raw.mint);
 
@@ -151,6 +152,9 @@ pub fn convert_to_create_event(
         virtual_sol_reserves: raw.virtual_sol_reserves,
         real_token_reserves: raw.real_token_reserves,
         token_total_supply: raw.token_total_supply,
+        timestamp: raw.timestamp,
+        mint_authority: Pubkey::default(),
+        associated_bonding_curve: Pubkey::default(),
     }
 }
 
@@ -159,7 +163,7 @@ pub fn convert_to_trade_event(
     raw: RawPumpFunTradeEvent,
     signature: Signature,
     slot: u64,
-    block_time: Option<Timestamp>,
+    block_time: Option<i64>,
 ) -> PumpFunTradeEvent {
     let metadata = create_event_metadata(signature, slot, block_time, raw.mint);
 
@@ -175,6 +179,33 @@ pub fn convert_to_trade_event(
         virtual_token_reserves: raw.virtual_token_reserves,
         real_sol_reserves: raw.real_sol_reserves,
         real_token_reserves: raw.real_token_reserves,
+        fee_recipient: raw.fee_recipient,
+        fee_basis_points: raw.fee_basis_points,
+        fee: raw.fee,
+        creator: raw.creator,
+        creator_fee_basis_points: raw.creator_fee_basis_points,
+        creator_fee: raw.creator_fee,
+        total_unclaimed_tokens: 0,
+        total_claimed_tokens: 0,
+        current_sol_volume: 0,
+        timestamp: raw.timestamp,
+        last_update_timestamp: raw.timestamp,
+        track_volume: false,
+        max_sol_cost: 0,
+        min_sol_output: 0,
+        amount: raw.token_amount,
+        is_bot: false,
+        is_dev_create_token_trade: false,
+        global: Pubkey::default(),
+        associated_bonding_curve: Pubkey::default(),
+        associated_user: Pubkey::default(),
+        system_program: Pubkey::default(),
+        token_program: Pubkey::default(),
+        creator_vault: Pubkey::default(),
+        event_authority: Pubkey::default(),
+        program: Pubkey::default(),
+        global_volume_accumulator: Pubkey::default(),
+        user_volume_accumulator: Pubkey::default(),
     }
 }
 
@@ -183,7 +214,7 @@ pub fn convert_to_complete_event(
     raw: RawPumpFunCompleteEvent,
     signature: Signature,
     slot: u64,
-    block_time: Option<Timestamp>,
+    block_time: Option<i64>,
 ) -> PumpFunCompleteTokenEvent {
     let metadata = create_event_metadata(signature, slot, block_time, raw.mint);
 
@@ -200,7 +231,7 @@ pub fn parse_all_events(
     logs: &[String],
     signature: Signature,
     slot: u64,
-    block_time: Option<Timestamp>,
+    block_time: Option<i64>,
 ) -> Vec<DexEvent> {
     let mut events = Vec::new();
 

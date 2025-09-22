@@ -9,15 +9,14 @@
 use borsh::BorshDeserialize;
 use solana_sdk::pubkey::Pubkey;
 use solana_sdk::signature::Signature;
-// use prost_types::Timestamp;
 use crate::parser::events::*;
 
 /// Raydium CPMM discriminator 常量
 pub mod discriminators {
     pub const SWAP: [u8; 8] = [1, 2, 3, 4, 5, 6, 7, 8];
-    pub const CREATE_POOL: [u8; 8] = [9, 10, 11, 12, 13, 14, 15, 16];
-    pub const ADD_LIQUIDITY: [u8; 8] = [17, 18, 19, 20, 21, 22, 23, 24];
-    pub const REMOVE_LIQUIDITY: [u8; 8] = [25, 26, 27, 28, 29, 30, 31, 32];
+    pub const INITIALIZE: [u8; 8] = [9, 10, 11, 12, 13, 14, 15, 16];
+    pub const DEPOSIT: [u8; 8] = [17, 18, 19, 20, 21, 22, 23, 24];
+    pub const WITHDRAW: [u8; 8] = [25, 26, 27, 28, 29, 30, 31, 32];
 }
 
 /// Raydium CPMM 程序 ID
@@ -128,7 +127,7 @@ pub fn create_event_metadata(
         signature,
         slot,
         block_time,
-        block_time_ms: block_time.map(|ts| ts * 1000),
+        block_time_ms: block_time,
         program_id,
         outer_index: 0,
         inner_index: None,
@@ -148,12 +147,12 @@ pub fn parse_swap_event(
     logs.iter()
         .filter_map(|log| extract_program_data(log))
         .filter_map(|data| parse_raw_event::<RawRaydiumCpmmSwapEvent>(&data, discriminators::SWAP))
-        .map(|raw| convert_to_swap_event(raw, signature, slot, block_time.clone()))
+        .map(|raw| convert_to_swap_event(raw, signature, slot, block_time))
         .collect()
 }
 
 /// 解析 Raydium CPMM 池创建事件 - 纯函数
-pub fn parse_create_pool_event(
+pub fn parse_initialize_event(
     logs: &[String],
     signature: Signature,
     slot: u64,
@@ -161,13 +160,13 @@ pub fn parse_create_pool_event(
 ) -> Vec<RaydiumCpmmInitializeEvent> {
     logs.iter()
         .filter_map(|log| extract_program_data(log))
-        .filter_map(|data| parse_raw_event::<RawRaydiumCpmmInitializeEvent>(&data, discriminators::CREATE_POOL))
-        .map(|raw| convert_to_create_pool_event(raw, signature, slot, block_time.clone()))
+        .filter_map(|data| parse_raw_event::<RawRaydiumCpmmInitializeEvent>(&data, discriminators::INITIALIZE))
+        .map(|raw| convert_to_initialize_event(raw, signature, slot, block_time))
         .collect()
 }
 
 /// 解析 Raydium CPMM 流动性添加事件 - 纯函数
-pub fn parse_add_liquidity_event(
+pub fn parse_deposit_event(
     logs: &[String],
     signature: Signature,
     slot: u64,
@@ -175,13 +174,13 @@ pub fn parse_add_liquidity_event(
 ) -> Vec<RaydiumCpmmDepositEvent> {
     logs.iter()
         .filter_map(|log| extract_program_data(log))
-        .filter_map(|data| parse_raw_event::<RawRaydiumCpmmDepositEvent>(&data, discriminators::ADD_LIQUIDITY))
-        .map(|raw| convert_to_add_liquidity_event(raw, signature, slot, block_time.clone()))
+        .filter_map(|data| parse_raw_event::<RawRaydiumCpmmDepositEvent>(&data, discriminators::DEPOSIT))
+        .map(|raw| convert_to_deposit_event(raw, signature, slot, block_time))
         .collect()
 }
 
 /// 解析 Raydium CPMM 流动性移除事件 - 纯函数
-pub fn parse_remove_liquidity_event(
+pub fn parse_withdraw_event(
     logs: &[String],
     signature: Signature,
     slot: u64,
@@ -189,8 +188,8 @@ pub fn parse_remove_liquidity_event(
 ) -> Vec<RaydiumCpmmWithdrawEvent> {
     logs.iter()
         .filter_map(|log| extract_program_data(log))
-        .filter_map(|data| parse_raw_event::<RawRaydiumCpmmWithdrawEvent>(&data, discriminators::REMOVE_LIQUIDITY))
-        .map(|raw| convert_to_remove_liquidity_event(raw, signature, slot, block_time.clone()))
+        .filter_map(|data| parse_raw_event::<RawRaydiumCpmmWithdrawEvent>(&data, discriminators::WITHDRAW))
+        .map(|raw| convert_to_withdraw_event(raw, signature, slot, block_time))
         .collect()
 }
 
@@ -214,7 +213,7 @@ pub fn convert_to_swap_event(
 }
 
 /// 转换为 Raydium CPMM 池创建事件 - 纯函数
-pub fn convert_to_create_pool_event(
+pub fn convert_to_initialize_event(
     raw: RawRaydiumCpmmInitializeEvent,
     signature: Signature,
     slot: u64,
@@ -232,7 +231,7 @@ pub fn convert_to_create_pool_event(
 }
 
 /// 转换为 Raydium CPMM 流动性添加事件 - 纯函数
-pub fn convert_to_add_liquidity_event(
+pub fn convert_to_deposit_event(
     raw: RawRaydiumCpmmDepositEvent,
     signature: Signature,
     slot: u64,
@@ -251,7 +250,7 @@ pub fn convert_to_add_liquidity_event(
 }
 
 /// 转换为 Raydium CPMM 流动性移除事件 - 纯函数
-pub fn convert_to_remove_liquidity_event(
+pub fn convert_to_withdraw_event(
     raw: RawRaydiumCpmmWithdrawEvent,
     signature: Signature,
     slot: u64,
@@ -286,12 +285,12 @@ pub fn parse_all_events(
         return (vec![], vec![], vec![], vec![]);
     }
 
-    let swap_events = parse_swap_event(&cpmm_logs, signature, slot, block_time.clone());
-    let create_pool_events = parse_create_pool_event(&cpmm_logs, signature, slot, block_time.clone());
-    let add_liquidity_events = parse_add_liquidity_event(&cpmm_logs, signature, slot, block_time.clone());
-    let remove_liquidity_events = parse_remove_liquidity_event(&cpmm_logs, signature, slot, block_time);
+    let swap_events = parse_swap_event(&cpmm_logs, signature, slot, block_time);
+    let initialize_events = parse_initialize_event(&cpmm_logs, signature, slot, block_time);
+    let deposit_events = parse_deposit_event(&cpmm_logs, signature, slot, block_time);
+    let withdraw_events = parse_withdraw_event(&cpmm_logs, signature, slot, block_time);
 
-    (swap_events, create_pool_events, add_liquidity_events, remove_liquidity_events)
+    (swap_events, initialize_events, deposit_events, withdraw_events)
 }
 
 /// 计算 CPMM 价格 - 基于储备比例
@@ -413,7 +412,7 @@ mod tests {
     #[test]
     fn test_empty_logs() {
         let empty_logs: Vec<String> = vec![];
-        let (swaps, creates, adds, removes) = parse_all_events(
+        let (swaps, initializes, deposits, withdraws) = parse_all_events(
             &empty_logs,
             Signature::default(),
             0,
@@ -421,8 +420,30 @@ mod tests {
         );
 
         assert!(swaps.is_empty());
-        assert!(creates.is_empty());
-        assert!(adds.is_empty());
-        assert!(removes.is_empty());
+        assert!(initializes.is_empty());
+        assert!(deposits.is_empty());
+        assert!(withdraws.is_empty());
     }
+}
+
+/// 检查是否是 Raydium CPMM 日志
+#[inline(always)]
+pub fn is_raydium_cpmm_log(log: &str) -> bool {
+    log.contains("CPMMoo8L3F4NbTegBCKVNunggL7H1ZpdTHKxQB5qKP1C") || log.contains("Program data:")
+}
+
+/// 从日志字符串解析 Raydium CPMM 事件
+pub fn parse_raydium_cpmm_from_log_string(
+    log: &str,
+    signature: Signature,
+    slot: u64,
+    block_time: Option<i64>,
+) -> Option<DexEvent> {
+    if !is_raydium_cpmm_log(log) {
+        return None;
+    }
+
+    // TODO: 实现完整的 Raydium CPMM 日志解析
+    // 这里需要根据实际的 Raydium CPMM 合约日志格式来解析
+    None
 }

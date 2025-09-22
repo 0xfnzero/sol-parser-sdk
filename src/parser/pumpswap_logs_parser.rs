@@ -251,6 +251,28 @@ pub fn is_large_pumpswap_trade(sol_amount: u64) -> bool {
     sol_amount >= 500_000_000 // 0.5 SOL 及以上
 }
 
+/// 检查是否是 PumpSwap 日志
+#[inline(always)]
+pub fn is_pumpswap_log(log: &str) -> bool {
+    log.contains(PUMPSWAP_PROGRAM_ID) || log.contains("Program data:")
+}
+
+/// 从日志字符串解析 PumpSwap 事件
+pub fn parse_pumpswap_from_log_string(
+    log: &str,
+    signature: Signature,
+    slot: u64,
+    block_time: Option<i64>,
+) -> Option<DexEvent> {
+    if !is_pumpswap_log(log) {
+        return None;
+    }
+
+    // TODO: 实现完整的 PumpSwap 日志解析
+    // 这里需要根据实际的 PumpSwap 合约日志格式来解析
+    None
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

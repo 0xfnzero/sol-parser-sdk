@@ -3,9 +3,9 @@
 //! 替代复杂的 unified_parser，提供简洁的事件分发功能
 
 use solana_sdk::signature::Signature;
-use prost_types::Timestamp;
+// use prost_types::Timestamp;
 use crate::parser::events::DexEvent;
-use crate::parser::{pumpfun, bonk, pumpswap};
+use crate::parser::{pumpfun_ix_parser, bonk_ix_parser, pumpswap_ix_parser};
 
 /// 简单的事件分发器
 pub struct EventDispatcher;
@@ -16,14 +16,15 @@ impl EventDispatcher {
         logs: &[String],
         signature: Signature,
         slot: u64,
-        block_time: Option<Timestamp>,
+        block_time: Option<i64>,
     ) -> Vec<DexEvent> {
         let mut all_events = Vec::new();
 
         // 并行调用各个 DEX 解析器，每个内部都是单次循环
-        all_events.extend(pumpfun::parse_all_events(logs, signature, slot, block_time.clone()));
-        all_events.extend(bonk::parse_all_events(logs, signature, slot, block_time.clone()));
-        all_events.extend(pumpswap::parse_all_events(logs, signature, slot, block_time.clone()));
+        // TODO: Implement log parsing for instruction parsers
+        // all_events.extend(pumpfun_instructions::parse_all_events(logs, signature, slot, block_time.clone()));
+        // all_events.extend(bonk_instructions::parse_all_events(logs, signature, slot, block_time.clone()));
+        // all_events.extend(pumpswap_instructions::parse_all_events(logs, signature, slot, block_time.clone()));
 
         // TODO: 添加 Raydium CLMM 和 CPMM 解析器
         // all_events.extend(raydium_clmm::parse_all_events(logs, signature, slot, block_time.clone()));
@@ -37,18 +38,21 @@ impl EventDispatcher {
         logs: &[String],
         signature: Signature,
         slot: u64,
-        block_time: Option<Timestamp>,
+        block_time: Option<i64>,
         program_id: &str,
     ) -> Vec<DexEvent> {
         match program_id {
-            pumpfun::PUMPFUN_PROGRAM_ID => {
-                pumpfun::parse_all_events(logs, signature, slot, block_time)
+            pumpfun_ix_parser::PROGRAM_ID => {
+                // TODO: Implement log parsing for instruction parsers
+                Vec::new()
             }
-            bonk::BONK_PROGRAM_ID => {
-                bonk::parse_all_events(logs, signature, slot, block_time)
+            bonk_ix_parser::PROGRAM_ID => {
+                // TODO: Implement log parsing for instruction parsers
+                Vec::new()
             }
-            pumpswap::PUMPSWAP_PROGRAM_ID => {
-                pumpswap::parse_all_events(logs, signature, slot, block_time)
+            pumpswap_ix_parser::PUMPSWAP_PROGRAM_ID => {
+                // TODO: Implement log parsing for instruction parsers
+                Vec::new()
             }
             _ => {
                 // 未知程序，返回错误事件
@@ -62,27 +66,30 @@ impl EventDispatcher {
         logs: &[String],
         signature: Signature,
         slot: u64,
-        block_time: Option<Timestamp>,
+        block_time: Option<i64>,
     ) -> Vec<DexEvent> {
-        pumpfun::parse_all_events(logs, signature, slot, block_time)
+        // TODO: Implement log parsing for instruction parsers
+        Vec::new()
     }
 
     pub fn parse_bonk_events(
         logs: &[String],
         signature: Signature,
         slot: u64,
-        block_time: Option<Timestamp>,
+        block_time: Option<i64>,
     ) -> Vec<DexEvent> {
-        bonk::parse_all_events(logs, signature, slot, block_time)
+        // TODO: Implement log parsing for instruction parsers
+        Vec::new()
     }
 
     pub fn parse_pumpswap_events(
         logs: &[String],
         signature: Signature,
         slot: u64,
-        block_time: Option<Timestamp>,
+        block_time: Option<i64>,
     ) -> Vec<DexEvent> {
-        pumpswap::parse_all_events(logs, signature, slot, block_time)
+        // TODO: Implement log parsing for instruction parsers
+        Vec::new()
     }
 }
 
@@ -117,7 +124,7 @@ mod tests {
             Signature::default(),
             0,
             None,
-            pumpfun::PUMPFUN_PROGRAM_ID,
+            pumpfun_instructions::PROGRAM_ID,
         );
 
         assert!(events.len() >= 0);

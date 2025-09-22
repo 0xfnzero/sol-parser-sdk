@@ -8,8 +8,8 @@
 
 use crate::parser::events::*;
 use crate::parser::event_dispatcher::EventDispatcher;
-use crate::parser::{pumpfun, bonk, pumpswap};
-use prost_types::Timestamp;
+use crate::parser::{pumpfun_ix_parser, bonk_ix_parser, pumpswap_ix_parser, pumpfun};
+// use prost_types::Timestamp;
 use solana_sdk::signature::Signature;
 
 /// 使用统一的 DexEvent 枚举 - 已定义在 events.rs 中
@@ -28,13 +28,13 @@ pub mod program_ids {
 /// DEX 类型识别 - 纯函数
 pub fn identify_dex_from_logs(logs: &[String]) -> Option<&'static str> {
     for log in logs {
-        if pumpfun::is_pumpfun_program(log) {
+        if log.contains(pumpfun_ix_parser::PROGRAM_ID) {
             return Some(program_ids::PUMPFUN);
         }
-        if bonk::is_bonk_program(log) {
+        if log.contains(bonk_ix_parser::PROGRAM_ID) {
             return Some(program_ids::BONK);
         }
-        if pumpswap::is_pumpswap_program(log) {
+        if log.contains(pumpswap_ix_parser::PUMPSWAP_PROGRAM_ID) {
             return Some(program_ids::PUMPSWAP);
         }
         // TODO: 添加 Raydium CLMM 和 CPMM 解析器后，启用这些检查
@@ -61,7 +61,7 @@ impl SimpleEventParser {
         logs: &[String],
         signature: Signature,
         slot: u64,
-        block_time: Option<Timestamp>,
+        block_time: Option<i64>,
     ) -> Vec<DexEvent> {
         // 使用简化的事件分发器
         EventDispatcher::parse_all_dex_events(logs, signature, slot, block_time)
@@ -72,7 +72,7 @@ impl SimpleEventParser {
         logs: &[String],
         signature: Signature,
         slot: u64,
-        block_time: Option<Timestamp>,
+        block_time: Option<i64>,
         program_id: &str,
     ) -> Vec<DexEvent> {
         EventDispatcher::parse_by_program_id(logs, signature, slot, block_time, program_id)
@@ -80,27 +80,32 @@ impl SimpleEventParser {
 
     /// 计算代币价格 (以 SOL 为单位) - 纯函数
     pub fn calculate_token_price_in_sol(event: &PumpFunTradeEvent) -> Option<f64> {
-        pumpfun::calculate_token_price_in_sol(event)
+        // TODO: Implement price calculation
+        Some(0.0)
     }
 
     /// 判断是否是大额交易 - 纯函数
     pub fn is_large_trade(event: &PumpFunTradeEvent) -> bool {
-        pumpfun::is_large_trade(event)
+        // TODO: Implement large trade detection
+        false
     }
 
     /// 获取当前代币的市值 - 纯函数
     pub fn get_market_cap_in_sol(event: &PumpFunTradeEvent) -> f64 {
-        pumpfun::get_market_cap_in_sol(event)
+        // TODO: Implement market cap calculation
+        0.0
     }
 
     /// 计算 PumpSwap 价格影响 - 纯函数
     pub fn calculate_pumpswap_price_impact(event: &PumpSwapBuyEvent) -> f64 {
-        pumpswap::calculate_price_impact(event)
+        // TODO: Implement price impact calculation
+        0.0
     }
 
     /// 判断是否是大额 PumpSwap 交易 - 纯函数
     pub fn is_large_pumpswap_trade(sol_amount: u64) -> bool {
-        pumpswap::is_large_pumpswap_trade(sol_amount)
+        // TODO: Implement large trade detection
+        false
     }
 
     // TODO: 添加 Raydium CLMM 和 CPMM 解析器后，启用这些函数
@@ -119,7 +124,7 @@ impl SimpleEventParser {
         logs: &[String],
         signature: Signature,
         slot: u64,
-        block_time: Option<Timestamp>,
+        block_time: Option<i64>,
     ) -> Vec<DexEvent> {
         Self::dispatch_dex_parsing(logs, signature, slot, block_time)
     }
@@ -163,7 +168,7 @@ impl SimpleEventListener {
     }
 
     /// 从日志处理所有事件 - 使用函数式调度器
-    pub fn process_logs(&self, logs: &[String], signature: Signature, slot: u64, block_time: Option<Timestamp>) {
+    pub fn process_logs(&self, logs: &[String], signature: Signature, slot: u64, block_time: Option<i64>) {
         let all_events = SimpleEventParser::dispatch_dex_parsing(logs, signature, slot, block_time);
         self.handle_events(all_events);
     }

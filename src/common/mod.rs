@@ -11,3 +11,6 @@ pub use metrics::*;
 pub use constants::*;
 pub use subscription::*;
 pub use simd_utils::*;
+
+// 常用类型别名
+pub type AnyResult<T> = Result<T, Box<dyn std::error::Error + Send + Sync>>;
