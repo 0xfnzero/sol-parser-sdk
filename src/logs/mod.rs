@@ -8,6 +8,10 @@ pub mod pumpfun;
 pub mod pumpswap;
 pub mod raydium_clmm;
 pub mod raydium_cpmm;
+pub mod raydium_amm_v4;
+pub mod orca_whirlpool;
+pub mod meteora_pools;
+pub mod meteora_damm_v2;
 
 // 重新导出主要解析函数
 pub use bonk::parse_log as parse_bonk_log;
@@ -15,6 +19,10 @@ pub use pumpfun::parse_log as parse_pumpfun_log;
 pub use pumpswap::parse_log as parse_pumpswap_log;
 pub use raydium_clmm::parse_log as parse_raydium_clmm_log;
 pub use raydium_cpmm::parse_log as parse_raydium_cpmm_log;
+pub use raydium_amm_v4::parse_log as parse_raydium_amm_v4_log;
+pub use orca_whirlpool::parse_log as parse_orca_whirlpool_log;
+pub use meteora_pools::parse_log as parse_meteora_pools_log;
+pub use meteora_damm_v2::parse_log as parse_meteora_damm_v2_log;
 
 // 重新导出工具函数
 pub use utils::*;
@@ -62,6 +70,34 @@ pub fn parse_log_unified(
     // Raydium CPMM
     if raydium_cpmm::is_raydium_cpmm_log(log) {
         if let Some(event) = parse_raydium_cpmm_log(log, signature, slot, block_time) {
+            return Some(event);
+        }
+    }
+
+    // Raydium AMM V4
+    if raydium_amm_v4::is_raydium_amm_v4_log(log) {
+        if let Some(event) = parse_raydium_amm_v4_log(log, signature, slot, block_time) {
+            return Some(event);
+        }
+    }
+
+    // Orca Whirlpool
+    if orca_whirlpool::is_orca_whirlpool_log(log) {
+        if let Some(event) = parse_orca_whirlpool_log(log, signature, slot, block_time) {
+            return Some(event);
+        }
+    }
+
+    // Meteora Pools
+    if meteora_pools::is_meteora_pools_log(log) {
+        if let Some(event) = parse_meteora_pools_log(log, signature, slot, block_time) {
+            return Some(event);
+        }
+    }
+
+    // Meteora DAMM V2
+    if meteora_damm_v2::is_meteora_damm_v2_log(log) {
+        if let Some(event) = parse_meteora_damm_v2_log(log, signature, slot, block_time) {
             return Some(event);
         }
     }

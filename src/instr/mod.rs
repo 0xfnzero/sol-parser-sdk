@@ -8,6 +8,10 @@ pub mod pumpfun;
 pub mod pumpswap;
 pub mod raydium_clmm;
 pub mod raydium_cpmm;
+pub mod raydium_amm_v4;
+pub mod orca_whirlpool;
+pub mod meteora_pools;
+pub mod meteora_damm_v2;
 
 // 重新导出主要解析函数
 pub use bonk::parse_instruction as parse_bonk_instruction;
@@ -15,6 +19,10 @@ pub use pumpfun::parse_instruction as parse_pumpfun_instruction;
 pub use pumpswap::parse_instruction as parse_pumpswap_instruction;
 pub use raydium_clmm::parse_instruction as parse_raydium_clmm_instruction;
 pub use raydium_cpmm::parse_instruction as parse_raydium_cpmm_instruction;
+pub use raydium_amm_v4::parse_instruction as parse_raydium_amm_v4_instruction;
+pub use orca_whirlpool::parse_instruction as parse_orca_whirlpool_instruction;
+pub use meteora_pools::parse_instruction as parse_meteora_pools_instruction;
+pub use meteora_damm_v2::parse_instruction as parse_meteora_damm_v2_instruction;
 
 // 重新导出工具函数
 pub use utils::*;
@@ -56,6 +64,26 @@ pub fn parse_instruction_unified(
     // Raydium CPMM
     if program_id.to_string() == raydium_cpmm::PROGRAM_ID {
         return parse_raydium_cpmm_instruction(instruction_data, accounts, signature, slot, block_time);
+    }
+
+    // Raydium AMM V4
+    if program_id.to_string() == raydium_amm_v4::PROGRAM_ID {
+        return parse_raydium_amm_v4_instruction(instruction_data, accounts, signature, slot, block_time);
+    }
+
+    // Orca Whirlpool
+    if program_id.to_string() == orca_whirlpool::PROGRAM_ID {
+        return parse_orca_whirlpool_instruction(instruction_data, accounts, signature, slot, block_time);
+    }
+
+    // Meteora Pools
+    if program_id.to_string() == meteora_pools::PROGRAM_ID {
+        return parse_meteora_pools_instruction(instruction_data, accounts, signature, slot, block_time);
+    }
+
+    // Meteora DAMM V2
+    if program_id.to_string() == meteora_damm_v2::PROGRAM_ID {
+        return parse_meteora_damm_v2_instruction(instruction_data, accounts, signature, slot, block_time);
     }
 
     None

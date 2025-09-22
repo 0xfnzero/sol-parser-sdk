@@ -53,6 +53,40 @@ pub fn read_u16_le(data: &[u8], offset: usize) -> Option<u16> {
     Some(u16::from_le_bytes(data[offset..offset + 2].try_into().ok()?))
 }
 
+/// 从指令数据中读取 u8
+pub fn read_u8(data: &[u8], offset: usize) -> Option<u8> {
+    data.get(offset).copied()
+}
+
+/// 从指令数据中读取 i32（小端序）
+pub fn read_i32_le(data: &[u8], offset: usize) -> Option<i32> {
+    if data.len() < offset + 4 {
+        return None;
+    }
+    Some(i32::from_le_bytes(data[offset..offset + 4].try_into().ok()?))
+}
+
+/// 从指令数据中读取 u128（小端序）
+pub fn read_u128_le(data: &[u8], offset: usize) -> Option<u128> {
+    if data.len() < offset + 16 {
+        return None;
+    }
+    Some(u128::from_le_bytes(data[offset..offset + 16].try_into().ok()?))
+}
+
+/// 从指令数据中读取布尔值
+pub fn read_bool(data: &[u8], offset: usize) -> Option<bool> {
+    data.get(offset).map(|&b| b != 0)
+}
+
+/// 从指令数据中读取公钥
+pub fn read_pubkey(data: &[u8], offset: usize) -> Option<Pubkey> {
+    if data.len() < offset + 32 {
+        return None;
+    }
+    Pubkey::try_from(&data[offset..offset + 32]).ok()
+}
+
 /// 从账户列表中获取账户
 pub fn get_account(accounts: &[Pubkey], index: usize) -> Option<Pubkey> {
     accounts.get(index).copied()

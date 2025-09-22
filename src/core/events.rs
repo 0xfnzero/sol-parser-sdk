@@ -535,6 +535,149 @@ pub struct RaydiumAmmWithdrawPnlEvent {
     pub user: Pubkey,
 }
 
+// ====================== Raydium AMM V4 Events ======================
+
+/// Raydium AMM V4 Swap Event
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RaydiumAmmV4SwapEvent {
+    pub metadata: EventMetadata,
+    // base in
+    pub amount_in: u64,
+    pub minimum_amount_out: u64,
+    // base out
+    pub max_amount_in: u64,
+    pub amount_out: u64,
+
+    pub token_program: Pubkey,
+    pub amm: Pubkey,
+    pub amm_authority: Pubkey,
+    pub amm_open_orders: Pubkey,
+    pub amm_target_orders: Option<Pubkey>,
+    pub pool_coin_token_account: Pubkey,
+    pub pool_pc_token_account: Pubkey,
+    pub serum_program: Pubkey,
+    pub serum_market: Pubkey,
+    pub serum_bids: Pubkey,
+    pub serum_asks: Pubkey,
+    pub serum_event_queue: Pubkey,
+    pub serum_coin_vault_account: Pubkey,
+    pub serum_pc_vault_account: Pubkey,
+    pub serum_vault_signer: Pubkey,
+    pub user_source_token_account: Pubkey,
+    pub user_destination_token_account: Pubkey,
+    pub user_source_owner: Pubkey,
+}
+
+/// Raydium AMM V4 Deposit Event
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RaydiumAmmV4DepositEvent {
+    pub metadata: EventMetadata,
+    pub max_coin_amount: u64,
+    pub max_pc_amount: u64,
+    pub base_side: u64,
+
+    pub token_program: Pubkey,
+    pub amm: Pubkey,
+    pub amm_authority: Pubkey,
+    pub amm_open_orders: Pubkey,
+    pub amm_target_orders: Pubkey,
+    pub lp_mint_address: Pubkey,
+    pub pool_coin_token_account: Pubkey,
+    pub pool_pc_token_account: Pubkey,
+    pub serum_market: Pubkey,
+    pub user_coin_token_account: Pubkey,
+    pub user_pc_token_account: Pubkey,
+    pub user_lp_token_account: Pubkey,
+    pub user_owner: Pubkey,
+    pub serum_event_queue: Pubkey,
+}
+
+/// Raydium AMM V4 Initialize2 Event
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RaydiumAmmV4Initialize2Event {
+    pub metadata: EventMetadata,
+    pub nonce: u8,
+    pub open_time: u64,
+    pub init_pc_amount: u64,
+    pub init_coin_amount: u64,
+
+    pub token_program: Pubkey,
+    pub spl_associated_token_account: Pubkey,
+    pub system_program: Pubkey,
+    pub rent: Pubkey,
+    pub amm: Pubkey,
+    pub amm_authority: Pubkey,
+    pub amm_open_orders: Pubkey,
+    pub lp_mint: Pubkey,
+    pub coin_mint: Pubkey,
+    pub pc_mint: Pubkey,
+    pub pool_coin_token_account: Pubkey,
+    pub pool_pc_token_account: Pubkey,
+    pub pool_withdraw_queue: Pubkey,
+    pub amm_target_orders: Pubkey,
+    pub pool_temp_lp: Pubkey,
+    pub serum_program: Pubkey,
+    pub serum_market: Pubkey,
+    pub user_wallet: Pubkey,
+    pub user_token_coin: Pubkey,
+    pub user_token_pc: Pubkey,
+    pub user_lp_token_account: Pubkey,
+}
+
+/// Raydium AMM V4 Withdraw Event
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RaydiumAmmV4WithdrawEvent {
+    pub metadata: EventMetadata,
+    pub amount: u64,
+
+    pub token_program: Pubkey,
+    pub amm: Pubkey,
+    pub amm_authority: Pubkey,
+    pub amm_open_orders: Pubkey,
+    pub amm_target_orders: Pubkey,
+    pub lp_mint_address: Pubkey,
+    pub pool_coin_token_account: Pubkey,
+    pub pool_pc_token_account: Pubkey,
+    pub pool_withdraw_queue: Pubkey,
+    pub pool_temp_lp_token_account: Pubkey,
+    pub serum_program: Pubkey,
+    pub serum_market: Pubkey,
+    pub serum_coin_vault_account: Pubkey,
+    pub serum_pc_vault_account: Pubkey,
+    pub serum_vault_signer: Pubkey,
+    pub user_lp_token_account: Pubkey,
+    pub user_coin_token_account: Pubkey,
+    pub user_pc_token_account: Pubkey,
+    pub user_owner: Pubkey,
+    pub serum_event_queue: Pubkey,
+    pub serum_bids: Pubkey,
+    pub serum_asks: Pubkey,
+}
+
+/// Raydium AMM V4 Withdraw PnL Event
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RaydiumAmmV4WithdrawPnlEvent {
+    pub metadata: EventMetadata,
+
+    pub token_program: Pubkey,
+    pub amm: Pubkey,
+    pub amm_config: Pubkey,
+    pub amm_authority: Pubkey,
+    pub amm_open_orders: Pubkey,
+    pub pool_coin_token_account: Pubkey,
+    pub pool_pc_token_account: Pubkey,
+    pub coin_pnl_token_account: Pubkey,
+    pub pc_pnl_token_account: Pubkey,
+    pub pnl_owner: Pubkey,
+    pub amm_target_orders: Pubkey,
+    pub serum_program: Pubkey,
+    pub serum_market: Pubkey,
+    pub serum_event_queue: Pubkey,
+    pub serum_coin_vault_account: Pubkey,
+    pub serum_pc_vault_account: Pubkey,
+    pub serum_vault_signer: Pubkey,
+}
+
 // ====================== Account Events ======================
 
 /// Bonk Pool State Account Event
@@ -849,6 +992,244 @@ pub struct TokenInfoEvent {
     pub supply: u64,
 }
 
+// ====================== Orca Whirlpool Events ======================
+
+/// Orca Whirlpool Swap Event
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct OrcaWhirlpoolSwapEvent {
+    pub metadata: EventMetadata,
+    pub whirlpool: Pubkey,
+    pub a_to_b: bool,
+    pub pre_sqrt_price: u128,
+    pub post_sqrt_price: u128,
+    pub input_amount: u64,
+    pub output_amount: u64,
+    pub input_transfer_fee: u64,
+    pub output_transfer_fee: u64,
+    pub lp_fee: u64,
+    pub protocol_fee: u64,
+}
+
+/// Orca Whirlpool Liquidity Increased Event
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct OrcaWhirlpoolLiquidityIncreasedEvent {
+    pub metadata: EventMetadata,
+    pub whirlpool: Pubkey,
+    pub position: Pubkey,
+    pub tick_lower_index: i32,
+    pub tick_upper_index: i32,
+    pub liquidity: u128,
+    pub token_a_amount: u64,
+    pub token_b_amount: u64,
+    pub token_a_transfer_fee: u64,
+    pub token_b_transfer_fee: u64,
+}
+
+/// Orca Whirlpool Liquidity Decreased Event
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct OrcaWhirlpoolLiquidityDecreasedEvent {
+    pub metadata: EventMetadata,
+    pub whirlpool: Pubkey,
+    pub position: Pubkey,
+    pub tick_lower_index: i32,
+    pub tick_upper_index: i32,
+    pub liquidity: u128,
+    pub token_a_amount: u64,
+    pub token_b_amount: u64,
+    pub token_a_transfer_fee: u64,
+    pub token_b_transfer_fee: u64,
+}
+
+/// Orca Whirlpool Pool Initialized Event
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct OrcaWhirlpoolPoolInitializedEvent {
+    pub metadata: EventMetadata,
+    pub whirlpool: Pubkey,
+    pub whirlpools_config: Pubkey,
+    pub token_mint_a: Pubkey,
+    pub token_mint_b: Pubkey,
+    pub tick_spacing: u16,
+    pub token_program_a: Pubkey,
+    pub token_program_b: Pubkey,
+    pub decimals_a: u8,
+    pub decimals_b: u8,
+    pub initial_sqrt_price: u128,
+}
+
+// ====================== Meteora Pools Events ======================
+
+/// Meteora Pools Swap Event
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MeteoraPoolsSwapEvent {
+    pub metadata: EventMetadata,
+    pub in_amount: u64,
+    pub out_amount: u64,
+    pub trade_fee: u64,
+    pub protocol_fee: u64,
+    pub host_fee: u64,
+}
+
+/// Meteora Pools Add Liquidity Event
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MeteoraPoolsAddLiquidityEvent {
+    pub metadata: EventMetadata,
+    pub lp_mint_amount: u64,
+    pub token_a_amount: u64,
+    pub token_b_amount: u64,
+}
+
+/// Meteora Pools Remove Liquidity Event
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MeteoraPoolsRemoveLiquidityEvent {
+    pub metadata: EventMetadata,
+    pub lp_unmint_amount: u64,
+    pub token_a_out_amount: u64,
+    pub token_b_out_amount: u64,
+}
+
+/// Meteora Pools Bootstrap Liquidity Event
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MeteoraPoolsBootstrapLiquidityEvent {
+    pub metadata: EventMetadata,
+    pub lp_mint_amount: u64,
+    pub token_a_amount: u64,
+    pub token_b_amount: u64,
+    pub pool: Pubkey,
+}
+
+/// Meteora Pools Pool Created Event
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MeteoraPoolsPoolCreatedEvent {
+    pub metadata: EventMetadata,
+    pub lp_mint: Pubkey,
+    pub token_a_mint: Pubkey,
+    pub token_b_mint: Pubkey,
+    pub pool_type: u8,
+    pub pool: Pubkey,
+}
+
+/// Meteora Pools Set Pool Fees Event
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MeteoraPoolsSetPoolFeesEvent {
+    pub metadata: EventMetadata,
+    pub trade_fee_numerator: u64,
+    pub trade_fee_denominator: u64,
+    pub protocol_trade_fee_numerator: u64,
+    pub protocol_trade_fee_denominator: u64,
+    pub pool: Pubkey,
+}
+
+// ====================== Meteora DAMM V2 Events ======================
+
+/// Meteora DAMM V2 Swap Event
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MeteoraDammV2SwapEvent {
+    pub metadata: EventMetadata,
+    pub lb_pair: Pubkey,
+    pub from: Pubkey,
+    pub start_bin_id: i32,
+    pub end_bin_id: i32,
+    pub amount_in: u64,
+    pub amount_out: u64,
+    pub swap_for_y: bool,
+    pub fee: u64,
+    pub protocol_fee: u64,
+    pub fee_bps: u128,
+    pub host_fee: u64,
+}
+
+/// Meteora DAMM V2 Add Liquidity Event
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MeteoraDammV2AddLiquidityEvent {
+    pub metadata: EventMetadata,
+    pub lb_pair: Pubkey,
+    pub from: Pubkey,
+    pub position: Pubkey,
+    pub amounts: [u64; 2],
+    pub active_bin_id: i32,
+}
+
+/// Meteora DAMM V2 Remove Liquidity Event
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MeteoraDammV2RemoveLiquidityEvent {
+    pub metadata: EventMetadata,
+    pub lb_pair: Pubkey,
+    pub from: Pubkey,
+    pub position: Pubkey,
+    pub amounts: [u64; 2],
+    pub active_bin_id: i32,
+}
+
+/// Meteora DAMM V2 Initialize Pool Event
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MeteoraDammV2InitializePoolEvent {
+    pub metadata: EventMetadata,
+    pub lb_pair: Pubkey,
+    pub bin_step: u16,
+    pub token_x: Pubkey,
+    pub token_y: Pubkey,
+}
+
+/// Meteora DAMM V2 Create Position Event
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MeteoraDammV2CreatePositionEvent {
+    pub metadata: EventMetadata,
+    pub lb_pair: Pubkey,
+    pub position: Pubkey,
+    pub owner: Pubkey,
+}
+
+/// Meteora DAMM V2 Close Position Event
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MeteoraDammV2ClosePositionEvent {
+    pub metadata: EventMetadata,
+    pub position: Pubkey,
+    pub owner: Pubkey,
+}
+
+/// Meteora DAMM V2 Claim Position Fee Event
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MeteoraDammV2ClaimPositionFeeEvent {
+    pub metadata: EventMetadata,
+    pub lb_pair: Pubkey,
+    pub position: Pubkey,
+    pub owner: Pubkey,
+    pub fee_x: u64,
+    pub fee_y: u64,
+}
+
+/// Meteora DAMM V2 Initialize Reward Event
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MeteoraDammV2InitializeRewardEvent {
+    pub metadata: EventMetadata,
+    pub lb_pair: Pubkey,
+    pub reward_mint: Pubkey,
+    pub funder: Pubkey,
+    pub reward_index: u64,
+    pub reward_duration: u64,
+}
+
+/// Meteora DAMM V2 Fund Reward Event
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MeteoraDammV2FundRewardEvent {
+    pub metadata: EventMetadata,
+    pub lb_pair: Pubkey,
+    pub funder: Pubkey,
+    pub reward_index: u64,
+    pub amount: u64,
+}
+
+/// Meteora DAMM V2 Claim Reward Event
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MeteoraDammV2ClaimRewardEvent {
+    pub metadata: EventMetadata,
+    pub lb_pair: Pubkey,
+    pub position: Pubkey,
+    pub owner: Pubkey,
+    pub reward_index: u64,
+    pub total_reward: u64,
+}
+
 // ====================== 统一的 DEX 事件枚举 ======================
 
 /// 统一的 DEX 事件枚举 - 参考 sol-dex-shreds 的做法
@@ -891,6 +1272,39 @@ pub enum DexEvent {
     RaydiumCpmmDeposit(RaydiumCpmmDepositEvent),
     RaydiumCpmmWithdraw(RaydiumCpmmWithdrawEvent),
     RaydiumCpmmInitialize(RaydiumCpmmInitializeEvent),
+
+    // Raydium AMM V4 事件
+    RaydiumAmmV4Swap(RaydiumAmmV4SwapEvent),
+    RaydiumAmmV4Deposit(RaydiumAmmV4DepositEvent),
+    RaydiumAmmV4Initialize2(RaydiumAmmV4Initialize2Event),
+    RaydiumAmmV4Withdraw(RaydiumAmmV4WithdrawEvent),
+    RaydiumAmmV4WithdrawPnl(RaydiumAmmV4WithdrawPnlEvent),
+
+    // Orca Whirlpool 事件
+    OrcaWhirlpoolSwap(OrcaWhirlpoolSwapEvent),
+    OrcaWhirlpoolLiquidityIncreased(OrcaWhirlpoolLiquidityIncreasedEvent),
+    OrcaWhirlpoolLiquidityDecreased(OrcaWhirlpoolLiquidityDecreasedEvent),
+    OrcaWhirlpoolPoolInitialized(OrcaWhirlpoolPoolInitializedEvent),
+
+    // Meteora Pools 事件
+    MeteoraPoolsSwap(MeteoraPoolsSwapEvent),
+    MeteoraPoolsAddLiquidity(MeteoraPoolsAddLiquidityEvent),
+    MeteoraPoolsRemoveLiquidity(MeteoraPoolsRemoveLiquidityEvent),
+    MeteoraPoolsBootstrapLiquidity(MeteoraPoolsBootstrapLiquidityEvent),
+    MeteoraPoolsPoolCreated(MeteoraPoolsPoolCreatedEvent),
+    MeteoraPoolsSetPoolFees(MeteoraPoolsSetPoolFeesEvent),
+
+    // Meteora DAMM V2 事件
+    MeteoraDammV2Swap(MeteoraDammV2SwapEvent),
+    MeteoraDammV2AddLiquidity(MeteoraDammV2AddLiquidityEvent),
+    MeteoraDammV2RemoveLiquidity(MeteoraDammV2RemoveLiquidityEvent),
+    MeteoraDammV2InitializePool(MeteoraDammV2InitializePoolEvent),
+    MeteoraDammV2CreatePosition(MeteoraDammV2CreatePositionEvent),
+    MeteoraDammV2ClosePosition(MeteoraDammV2ClosePositionEvent),
+    MeteoraDammV2ClaimPositionFee(MeteoraDammV2ClaimPositionFeeEvent),
+    MeteoraDammV2InitializeReward(MeteoraDammV2InitializeRewardEvent),
+    MeteoraDammV2FundReward(MeteoraDammV2FundRewardEvent),
+    MeteoraDammV2ClaimReward(MeteoraDammV2ClaimRewardEvent),
 
     // 账户事件
     TokenAccount(TokenAccountEvent),

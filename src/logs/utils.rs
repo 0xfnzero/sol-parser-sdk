@@ -56,6 +56,19 @@ pub fn read_u128_le(data: &[u8], offset: usize) -> Option<u128> {
     Some(u128::from_le_bytes(data[offset..offset + 16].try_into().ok()?))
 }
 
+/// 从字节数组中读取 u16（小端序）
+pub fn read_u16_le(data: &[u8], offset: usize) -> Option<u16> {
+    if data.len() < offset + 2 {
+        return None;
+    }
+    Some(u16::from_le_bytes(data[offset..offset + 2].try_into().ok()?))
+}
+
+/// 从字节数组中读取 u8
+pub fn read_u8(data: &[u8], offset: usize) -> Option<u8> {
+    data.get(offset).copied()
+}
+
 /// 从字节数组中读取 Pubkey（32字节）
 pub fn read_pubkey(data: &[u8], offset: usize) -> Option<Pubkey> {
     if data.len() < offset + 32 {
@@ -115,9 +128,33 @@ pub fn create_metadata(
     }
 }
 
+/// 创建默认事件元数据的通用函数（不需要程序ID）
+pub fn create_metadata_default(
+    signature: Signature,
+    slot: u64,
+    block_time: Option<i64>,
+) -> EventMetadata {
+    let current_time = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_micros() as i64;
+
+    EventMetadata {
+        signature,
+        slot,
+        block_time,
+        block_time_ms: block_time.map(|ts| ts * 1000),
+        program_id: Pubkey::default(), // 使用默认值
+        outer_index: 0,
+        inner_index: None,
+        transaction_index: None,
+        recv_us: current_time,
+        handle_us: current_time,
+    }
+}
+
 /// 文本回退解析工具
 pub mod text_parser {
-    use super::*;
 
     /// 从文本中提取数字
     pub fn extract_number_from_text(text: &str, field: &str) -> Option<u64> {
