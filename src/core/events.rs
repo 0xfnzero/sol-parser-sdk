@@ -132,6 +132,41 @@ pub struct PumpFunCompleteTokenEvent {
     pub bonding_curve: Pubkey,
 }
 
+/// PumpFun Migrate Event
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PumpFunMigrateEvent {
+    pub metadata: EventMetadata,
+    pub user: Pubkey,
+    pub mint: Pubkey,
+    pub mint_amount: u64,
+    pub sol_amount: u64,
+    pub pool_migration_fee: u64,
+    pub bonding_curve: Pubkey,
+    pub timestamp: i64,
+    pub pool: Pubkey,
+    // 额外账户信息（用于指令解析）
+    pub global: Pubkey,
+    pub withdraw_authority: Pubkey,
+    pub associated_bonding_curve: Pubkey,
+    pub system_program: Pubkey,
+    pub token_program: Pubkey,
+    pub pump_amm: Pubkey,
+    pub pool_authority: Pubkey,
+    pub pool_authority_mint_account: Pubkey,
+    pub pool_authority_wsol_account: Pubkey,
+    pub amm_global_config: Pubkey,
+    pub wsol_mint: Pubkey,
+    pub lp_mint: Pubkey,
+    pub user_pool_token_account: Pubkey,
+    pub pool_base_token_account: Pubkey,
+    pub pool_quote_token_account: Pubkey,
+    pub token_2022_program: Pubkey,
+    pub associated_token_program: Pubkey,
+    pub pump_amm_event_authority: Pubkey,
+    pub event_authority: Pubkey,
+    pub program: Pubkey,
+}
+
 /// PumpFun Create Token Event - 增强版本，集成旧版本的完整字段
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PumpFunCreateTokenEvent {
@@ -395,6 +430,16 @@ pub struct RaydiumClmmDecreaseLiquidityEvent {
     pub liquidity: u128,
     pub amount0_min: u64,
     pub amount1_min: u64,
+}
+
+/// Raydium CLMM Collect Fee Event
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RaydiumClmmCollectFeeEvent {
+    pub metadata: EventMetadata,
+    pub pool_state: Pubkey,
+    pub position_nft_mint: Pubkey,
+    pub amount_0: u64,
+    pub amount_1: u64,
 }
 
 /// Raydium CLMM Create Pool Event
@@ -813,6 +858,7 @@ pub enum DexEvent {
     PumpFunCreate(PumpFunCreateTokenEvent),
     PumpFunTrade(PumpFunTradeEvent),
     PumpFunComplete(PumpFunCompleteTokenEvent),
+    PumpFunMigrate(PumpFunMigrateEvent),
 
     // Bonk 事件
     BonkTrade(BonkTradeEvent),
@@ -838,6 +884,7 @@ pub enum DexEvent {
     RaydiumClmmClosePosition(RaydiumClmmClosePositionEvent),
     RaydiumClmmIncreaseLiquidity(RaydiumClmmIncreaseLiquidityEvent),
     RaydiumClmmDecreaseLiquidity(RaydiumClmmDecreaseLiquidityEvent),
+    RaydiumClmmCollectFee(RaydiumClmmCollectFeeEvent),
 
     // Raydium CPMM 事件
     RaydiumCpmmSwap(RaydiumCpmmSwapEvent),
