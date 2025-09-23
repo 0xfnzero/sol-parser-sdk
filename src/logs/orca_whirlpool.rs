@@ -107,7 +107,7 @@ fn parse_traded_event(
 
     let protocol_fee = read_u64_le(data, offset)?;
 
-    let metadata = create_metadata(signature, slot, block_time, whirlpool);
+    let metadata = create_metadata_simple(signature, slot, block_time, whirlpool);
 
     Some(DexEvent::OrcaWhirlpoolSwap(OrcaWhirlpoolSwapEvent {
         metadata,
@@ -177,7 +177,7 @@ fn parse_liquidity_increased_event(
 
     let token_b_transfer_fee = read_u64_le(data, offset)?;
 
-    let metadata = create_metadata(signature, slot, block_time, whirlpool);
+    let metadata = create_metadata_simple(signature, slot, block_time, whirlpool);
 
     Some(DexEvent::OrcaWhirlpoolLiquidityIncreased(OrcaWhirlpoolLiquidityIncreasedEvent {
         metadata,
@@ -228,7 +228,7 @@ fn parse_liquidity_decreased_event(
 
     let token_b_transfer_fee = read_u64_le(data, offset)?;
 
-    let metadata = create_metadata(signature, slot, block_time, whirlpool);
+    let metadata = create_metadata_simple(signature, slot, block_time, whirlpool);
 
     Some(DexEvent::OrcaWhirlpoolLiquidityDecreased(OrcaWhirlpoolLiquidityDecreasedEvent {
         metadata,
@@ -282,7 +282,7 @@ fn parse_pool_initialized_event(
 
     let initial_sqrt_price = read_u128_le(data, offset)?;
 
-    let metadata = create_metadata(signature, slot, block_time, whirlpool);
+    let metadata = create_metadata_simple(signature, slot, block_time, whirlpool);
 
     Some(DexEvent::OrcaWhirlpoolPoolInitialized(OrcaWhirlpoolPoolInitializedEvent {
         metadata,

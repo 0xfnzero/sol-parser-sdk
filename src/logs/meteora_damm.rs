@@ -20,8 +20,8 @@ pub mod discriminators {
     pub const CLAIM_REWARD_EVENT: [u8; 8] = [218, 86, 147, 200, 235, 188, 215, 231];
 }
 
-/// 判断是否为 Meteora DAMM V2 日志
-pub fn is_meteora_damm_v2_log(log: &str) -> bool {
+/// 判断是否为 Meteora DAMM 日志
+pub fn is_meteora_damm_log(log: &str) -> bool {
     log.contains("Program data: ") &&
     (log.contains("Program log: Instruction:") || log.contains("meteora") || log.contains("LB"))
 }
@@ -134,7 +134,7 @@ fn parse_swap_event(
 
     let host_fee = read_u64_le(data, offset)?;
 
-    let metadata = create_metadata(signature, slot, block_time, lb_pair);
+    let metadata = create_metadata_simple(signature, slot, block_time, lb_pair);
 
     Some(DexEvent::MeteoraDammV2Swap(MeteoraDammV2SwapEvent {
         metadata,
@@ -178,7 +178,7 @@ fn parse_add_liquidity_event(
 
     let active_bin_id = read_i32_le(data, offset)?;
 
-    let metadata = create_metadata(signature, slot, block_time, lb_pair);
+    let metadata = create_metadata_simple(signature, slot, block_time, lb_pair);
 
     Some(DexEvent::MeteoraDammV2AddLiquidity(MeteoraDammV2AddLiquidityEvent {
         metadata,
@@ -216,7 +216,7 @@ fn parse_remove_liquidity_event(
 
     let active_bin_id = read_i32_le(data, offset)?;
 
-    let metadata = create_metadata(signature, slot, block_time, lb_pair);
+    let metadata = create_metadata_simple(signature, slot, block_time, lb_pair);
 
     Some(DexEvent::MeteoraDammV2RemoveLiquidity(MeteoraDammV2RemoveLiquidityEvent {
         metadata,
@@ -248,7 +248,7 @@ fn parse_initialize_pool_event(
 
     let token_y = read_pubkey(data, offset)?;
 
-    let metadata = create_metadata(signature, slot, block_time, lb_pair);
+    let metadata = create_metadata_simple(signature, slot, block_time, lb_pair);
 
     Some(DexEvent::MeteoraDammV2InitializePool(MeteoraDammV2InitializePoolEvent {
         metadata,
@@ -276,7 +276,7 @@ fn parse_create_position_event(
 
     let owner = read_pubkey(data, offset)?;
 
-    let metadata = create_metadata(signature, slot, block_time, lb_pair);
+    let metadata = create_metadata_simple(signature, slot, block_time, lb_pair);
 
     Some(DexEvent::MeteoraDammV2CreatePosition(MeteoraDammV2CreatePositionEvent {
         metadata,
@@ -300,7 +300,7 @@ fn parse_close_position_event(
 
     let owner = read_pubkey(data, offset)?;
 
-    let metadata = create_metadata(signature, slot, block_time, position);
+    let metadata = create_metadata_simple(signature, slot, block_time, position);
 
     Some(DexEvent::MeteoraDammV2ClosePosition(MeteoraDammV2ClosePositionEvent {
         metadata,
@@ -332,7 +332,7 @@ fn parse_claim_position_fee_event(
 
     let fee_y = read_u64_le(data, offset)?;
 
-    let metadata = create_metadata(signature, slot, block_time, lb_pair);
+    let metadata = create_metadata_simple(signature, slot, block_time, lb_pair);
 
     Some(DexEvent::MeteoraDammV2ClaimPositionFee(MeteoraDammV2ClaimPositionFeeEvent {
         metadata,
@@ -367,7 +367,7 @@ fn parse_initialize_reward_event(
 
     let reward_duration = read_u64_le(data, offset)?;
 
-    let metadata = create_metadata(signature, slot, block_time, lb_pair);
+    let metadata = create_metadata_simple(signature, slot, block_time, lb_pair);
 
     Some(DexEvent::MeteoraDammV2InitializeReward(MeteoraDammV2InitializeRewardEvent {
         metadata,
@@ -399,7 +399,7 @@ fn parse_fund_reward_event(
 
     let amount = read_u64_le(data, offset)?;
 
-    let metadata = create_metadata(signature, slot, block_time, lb_pair);
+    let metadata = create_metadata_simple(signature, slot, block_time, lb_pair);
 
     Some(DexEvent::MeteoraDammV2FundReward(MeteoraDammV2FundRewardEvent {
         metadata,
@@ -433,7 +433,7 @@ fn parse_claim_reward_event(
 
     let total_reward = read_u64_le(data, offset)?;
 
-    let metadata = create_metadata(signature, slot, block_time, lb_pair);
+    let metadata = create_metadata_simple(signature, slot, block_time, lb_pair);
 
     Some(DexEvent::MeteoraDammV2ClaimReward(MeteoraDammV2ClaimRewardEvent {
         metadata,

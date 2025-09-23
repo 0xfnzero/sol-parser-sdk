@@ -16,8 +16,8 @@ pub mod discriminators {
     pub const SET_POOL_FEES_EVENT: [u8; 8] = [245, 26, 198, 164, 88, 18, 75, 9];
 }
 
-/// 判断是否为 Meteora Pools 日志
-pub fn is_meteora_pools_log(log: &str) -> bool {
+/// 判断是否为 Meteora AMM 日志
+pub fn is_meteora_amm_log(log: &str) -> bool {
     log.contains("Program data: ") &&
     (log.contains("Program log: Instruction:") || log.contains("meteora"))
 }
@@ -187,7 +187,7 @@ fn parse_bootstrap_liquidity_event(
 
     let pool = read_pubkey(data, offset)?;
 
-    let metadata = create_metadata(signature, slot, block_time, pool);
+    let metadata = create_metadata_simple(signature, slot, block_time, pool);
 
     Some(DexEvent::MeteoraPoolsBootstrapLiquidity(MeteoraPoolsBootstrapLiquidityEvent {
         metadata,
@@ -221,7 +221,7 @@ fn parse_pool_created_event(
 
     let pool = read_pubkey(data, offset)?;
 
-    let metadata = create_metadata(signature, slot, block_time, pool);
+    let metadata = create_metadata_simple(signature, slot, block_time, pool);
 
     Some(DexEvent::MeteoraPoolsPoolCreated(MeteoraPoolsPoolCreatedEvent {
         metadata,
@@ -256,7 +256,7 @@ fn parse_set_pool_fees_event(
 
     let pool = read_pubkey(data, offset)?;
 
-    let metadata = create_metadata(signature, slot, block_time, pool);
+    let metadata = create_metadata_simple(signature, slot, block_time, pool);
 
     Some(DexEvent::MeteoraPoolsSetPoolFees(MeteoraPoolsSetPoolFeesEvent {
         metadata,

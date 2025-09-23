@@ -93,10 +93,7 @@ pub mod discriminators {
     pub const FUND_REWARD: [u8; 8] = [104, 233, 237, 122, 199, 191, 121, 85];
 }
 
-/// Meteora DAMM V2 程序 ID (为了向后兼容保留字符串版本)
-pub const PROGRAM_ID: &str = "LBUZKhRxPF3XUpBCjp4YzTKgLccjZhTSDM9YuVaPwxo";
-
-/// Meteora DAMM V2 程序 ID (优化版本 - 使用 Pubkey 常量)
+/// Meteora DAMM 程序 ID
 pub const PROGRAM_ID_PUBKEY: Pubkey = program_ids::METEORA_DAMM_V2_PROGRAM_ID;
 
 /// 主要的 Meteora DAMM V2 指令解析函数
@@ -167,7 +164,7 @@ fn parse_swap_instruction(
 
     let lb_pair = get_account(accounts, 0)?;
     let user = get_account(accounts, 7)?;
-    let metadata = create_metadata(signature, slot, block_time, lb_pair);
+    let metadata = create_metadata_simple(signature, slot, block_time, lb_pair);
 
     Some(DexEvent::MeteoraDammV2Swap(MeteoraDammV2SwapEvent {
         metadata,
@@ -207,7 +204,7 @@ fn parse_add_liquidity_instruction(
     let lb_pair = get_account(accounts, 0)?;
     let position = get_account(accounts, 1)?;
     let user = get_account(accounts, 2)?;
-    let metadata = create_metadata(signature, slot, block_time, lb_pair);
+    let metadata = create_metadata_simple(signature, slot, block_time, lb_pair);
 
     Some(DexEvent::MeteoraDammV2AddLiquidity(MeteoraDammV2AddLiquidityEvent {
         metadata,
@@ -234,7 +231,7 @@ fn parse_remove_liquidity_instruction(
     let lb_pair = get_account(accounts, 0)?;
     let position = get_account(accounts, 1)?;
     let user = get_account(accounts, 2)?;
-    let metadata = create_metadata(signature, slot, block_time, lb_pair);
+    let metadata = create_metadata_simple(signature, slot, block_time, lb_pair);
 
     Some(DexEvent::MeteoraDammV2RemoveLiquidity(MeteoraDammV2RemoveLiquidityEvent {
         metadata,
@@ -264,7 +261,7 @@ fn parse_initialize_lb_pair_instruction(
     let lb_pair = get_account(accounts, 0)?;
     let token_x = get_account(accounts, 2)?;
     let token_y = get_account(accounts, 3)?;
-    let metadata = create_metadata(signature, slot, block_time, lb_pair);
+    let metadata = create_metadata_simple(signature, slot, block_time, lb_pair);
 
     Some(DexEvent::MeteoraDammV2InitializePool(MeteoraDammV2InitializePoolEvent {
         metadata,
@@ -286,7 +283,7 @@ fn parse_initialize_position_instruction(
     let lb_pair = get_account(accounts, 0)?;
     let position = get_account(accounts, 1)?;
     let owner = get_account(accounts, 2)?;
-    let metadata = create_metadata(signature, slot, block_time, lb_pair);
+    let metadata = create_metadata_simple(signature, slot, block_time, lb_pair);
 
     Some(DexEvent::MeteoraDammV2CreatePosition(MeteoraDammV2CreatePositionEvent {
         metadata,
@@ -306,7 +303,7 @@ fn parse_close_position_instruction(
 ) -> Option<DexEvent> {
     let position = get_account(accounts, 0)?;
     let owner = get_account(accounts, 1)?;
-    let metadata = create_metadata(signature, slot, block_time, position);
+    let metadata = create_metadata_simple(signature, slot, block_time, position);
 
     Some(DexEvent::MeteoraDammV2ClosePosition(MeteoraDammV2ClosePositionEvent {
         metadata,
@@ -326,7 +323,7 @@ fn parse_claim_position_fee_instruction(
     let lb_pair = get_account(accounts, 0)?;
     let position = get_account(accounts, 1)?;
     let owner = get_account(accounts, 2)?;
-    let metadata = create_metadata(signature, slot, block_time, lb_pair);
+    let metadata = create_metadata_simple(signature, slot, block_time, lb_pair);
 
     Some(DexEvent::MeteoraDammV2ClaimPositionFee(MeteoraDammV2ClaimPositionFeeEvent {
         metadata,
@@ -356,7 +353,7 @@ fn parse_initialize_reward_instruction(
     let lb_pair = get_account(accounts, 0)?;
     let reward_mint = get_account(accounts, 1)?;
     let funder = get_account(accounts, 2)?;
-    let metadata = create_metadata(signature, slot, block_time, lb_pair);
+    let metadata = create_metadata_simple(signature, slot, block_time, lb_pair);
 
     Some(DexEvent::MeteoraDammV2InitializeReward(MeteoraDammV2InitializeRewardEvent {
         metadata,
@@ -385,7 +382,7 @@ fn parse_fund_reward_instruction(
 
     let lb_pair = get_account(accounts, 0)?;
     let funder = get_account(accounts, 1)?;
-    let metadata = create_metadata(signature, slot, block_time, lb_pair);
+    let metadata = create_metadata_simple(signature, slot, block_time, lb_pair);
 
     Some(DexEvent::MeteoraDammV2FundReward(MeteoraDammV2FundRewardEvent {
         metadata,
@@ -411,7 +408,7 @@ fn parse_claim_reward_instruction(
     let lb_pair = get_account(accounts, 0)?;
     let position = get_account(accounts, 1)?;
     let owner = get_account(accounts, 2)?;
-    let metadata = create_metadata(signature, slot, block_time, lb_pair);
+    let metadata = create_metadata_simple(signature, slot, block_time, lb_pair);
 
     Some(DexEvent::MeteoraDammV2ClaimReward(MeteoraDammV2ClaimRewardEvent {
         metadata,

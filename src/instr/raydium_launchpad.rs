@@ -14,10 +14,7 @@ pub mod discriminators {
     pub const MIGRATE_AMM: [u8; 8] = [3, 4, 5, 6, 7, 8, 9, 10];
 }
 
-/// Bonk 程序 ID (为了向后兼容保留字符串版本)
-pub const PROGRAM_ID: &str = "DjVE6JNiYqPL2QXyCUUh8rNjHrbz9hXHNYt99MQ59qw1";
-
-/// Bonk 程序 ID (优化版本 - 使用 Pubkey 常量)
+/// Raydium Launchpad 程序 ID
 pub const PROGRAM_ID_PUBKEY: Pubkey = program_ids::BONK_PROGRAM_ID;
 
 /// 主要的 Bonk 指令解析函数
@@ -65,7 +62,7 @@ fn parse_trade_instruction(
     let amount_out_min = read_u64_le(data, offset)?;
 
     let pool_state = get_account(accounts, 0)?;
-    let metadata = create_metadata(signature, slot, block_time, pool_state);
+    let metadata = create_metadata_simple(signature, slot, block_time, pool_state);
 
     Some(DexEvent::BonkTrade(BonkTradeEvent {
         metadata,
@@ -88,7 +85,7 @@ fn parse_pool_create_instruction(
     block_time: Option<i64>,
 ) -> Option<DexEvent> {
     let pool_state = get_account(accounts, 0)?;
-    let metadata = create_metadata(signature, slot, block_time, pool_state);
+    let metadata = create_metadata_simple(signature, slot, block_time, pool_state);
 
     Some(DexEvent::BonkPoolCreate(BonkPoolCreateEvent {
         metadata,
@@ -116,7 +113,7 @@ fn parse_migrate_amm_instruction(
     let liquidity_amount = read_u64_le(data, offset)?;
 
     let old_pool = get_account(accounts, 0)?;
-    let metadata = create_metadata(signature, slot, block_time, old_pool);
+    let metadata = create_metadata_simple(signature, slot, block_time, old_pool);
 
     Some(DexEvent::BonkMigrateAmm(BonkMigrateAmmEvent {
         metadata,

@@ -59,10 +59,7 @@ pub mod discriminators {
     pub const CREATE_POOL: [u8; 8] = [95, 180, 10, 172, 84, 174, 232, 40];
 }
 
-/// Meteora Pools 程序 ID (为了向后兼容保留字符串版本)
-pub const PROGRAM_ID: &str = "Eo7WjKq67rjJQSZxS6z3YkapzY3eMj6Xy8X5EQVn5UaB";
-
-/// Meteora Pools 程序 ID (优化版本 - 使用 Pubkey 常量)
+/// Meteora AMM 程序 ID
 pub const PROGRAM_ID_PUBKEY: Pubkey = program_ids::METEORA_POOLS_PROGRAM_ID;
 
 /// 主要的 Meteora Pools 指令解析函数
@@ -114,7 +111,7 @@ fn parse_swap_instruction(
     let minimum_out_amount = read_u64_le(data, offset)?;
 
     let pool = get_account(accounts, 0)?;
-    let metadata = create_metadata(signature, slot, block_time, pool);
+    let metadata = create_metadata_simple(signature, slot, block_time, pool);
 
     Some(DexEvent::MeteoraPoolsSwap(MeteoraPoolsSwapEvent {
         metadata,
@@ -145,7 +142,7 @@ fn parse_add_liquidity_instruction(
     let maximum_token_b_amount = read_u64_le(data, offset)?;
 
     let pool = get_account(accounts, 0)?;
-    let metadata = create_metadata(signature, slot, block_time, pool);
+    let metadata = create_metadata_simple(signature, slot, block_time, pool);
 
     Some(DexEvent::MeteoraPoolsAddLiquidity(MeteoraPoolsAddLiquidityEvent {
         metadata,
@@ -174,7 +171,7 @@ fn parse_remove_liquidity_instruction(
     let minimum_token_b_amount = read_u64_le(data, offset)?;
 
     let pool = get_account(accounts, 0)?;
-    let metadata = create_metadata(signature, slot, block_time, pool);
+    let metadata = create_metadata_simple(signature, slot, block_time, pool);
 
     Some(DexEvent::MeteoraPoolsRemoveLiquidity(MeteoraPoolsRemoveLiquidityEvent {
         metadata,
@@ -218,7 +215,7 @@ fn parse_create_pool_instruction(
     let token_a_mint = get_account(accounts, 8)?;
     let token_b_mint = get_account(accounts, 9)?;
     let lp_mint = get_account(accounts, 4)?;
-    let metadata = create_metadata(signature, slot, block_time, pool);
+    let metadata = create_metadata_simple(signature, slot, block_time, pool);
 
     Some(DexEvent::MeteoraPoolsPoolCreated(MeteoraPoolsPoolCreatedEvent {
         metadata,

@@ -16,8 +16,8 @@ pub mod discriminators {
 /// Bonk 程序 ID
 pub const PROGRAM_ID: &str = "DjVE6JNiYqPL2QXyCUUh8rNjHrbz9hXHNYt99MQ59qw1";
 
-/// 检查日志是否来自 Bonk 程序
-pub fn is_bonk_log(log: &str) -> bool {
+/// 检查日志是否来自 Raydium Launchpad 程序
+pub fn is_raydium_launchpad_log(log: &str) -> bool {
     log.contains(&format!("Program {} invoke", PROGRAM_ID)) ||
     log.contains(&format!("Program {} success", PROGRAM_ID)) ||
     log.contains("bonk") || log.contains("Bonk")
@@ -30,7 +30,7 @@ pub fn parse_log(
     slot: u64,
     block_time: Option<i64>,
 ) -> Option<DexEvent> {
-    if !is_bonk_log(log) {
+    if !is_raydium_launchpad_log(log) {
         return None;
     }
 
@@ -98,7 +98,7 @@ fn parse_trade_event(
 
     let exact_in = read_bool(data, offset)?;
 
-    let metadata = create_metadata(signature, slot, block_time, pool_state);
+    let metadata = create_metadata_simple(signature, slot, block_time, pool_state);
 
     Some(DexEvent::BonkTrade(BonkTradeEvent {
         metadata,
@@ -138,7 +138,7 @@ fn parse_pool_create_event(
 
     let _initial_liquidity_b = read_u64_le(data, offset)?;
 
-    let metadata = create_metadata(signature, slot, block_time, pool_state);
+    let metadata = create_metadata_simple(signature, slot, block_time, pool_state);
 
     Some(DexEvent::BonkPoolCreate(BonkPoolCreateEvent {
         metadata,
@@ -173,7 +173,7 @@ fn parse_migrate_amm_event(
 
     let liquidity_amount = read_u64_le(data, offset)?;
 
-    let metadata = create_metadata(signature, slot, block_time, old_pool);
+    let metadata = create_metadata_simple(signature, slot, block_time, old_pool);
 
     Some(DexEvent::BonkMigrateAmm(BonkMigrateAmmEvent {
         metadata,
@@ -217,7 +217,7 @@ fn parse_trade_from_text(
 ) -> Option<DexEvent> {
     use super::utils::text_parser::*;
 
-    let metadata = create_metadata(signature, slot, block_time, Pubkey::default());
+    let metadata = create_metadata_simple(signature, slot, block_time, Pubkey::default());
     let is_buy = detect_trade_type(log).unwrap_or(true);
 
     Some(DexEvent::BonkTrade(BonkTradeEvent {
@@ -239,7 +239,7 @@ fn parse_pool_create_from_text(
     slot: u64,
     block_time: Option<i64>,
 ) -> Option<DexEvent> {
-    let metadata = create_metadata(signature, slot, block_time, Pubkey::default());
+    let metadata = create_metadata_simple(signature, slot, block_time, Pubkey::default());
 
     Some(DexEvent::BonkPoolCreate(BonkPoolCreateEvent {
         metadata,
@@ -263,7 +263,7 @@ fn parse_migrate_from_text(
 ) -> Option<DexEvent> {
     use super::utils::text_parser::*;
 
-    let metadata = create_metadata(signature, slot, block_time, Pubkey::default());
+    let metadata = create_metadata_simple(signature, slot, block_time, Pubkey::default());
 
     Some(DexEvent::BonkMigrateAmm(BonkMigrateAmmEvent {
         metadata,

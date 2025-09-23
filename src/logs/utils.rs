@@ -114,7 +114,7 @@ pub fn read_bool(data: &[u8], offset: usize) -> Option<bool> {
 }
 
 /// 创建事件元数据的通用函数
-pub fn create_metadata(
+pub fn create_metadata_simple(
     signature: Signature,
     slot: u64,
     block_time: Option<i64>,
@@ -128,14 +128,9 @@ pub fn create_metadata(
     EventMetadata {
         signature,
         slot,
-        block_time,
-        block_time_ms: block_time.map(|ts| ts * 1000),
-        program_id,
-        outer_index: 0,
-        inner_index: None,
-        transaction_index: None,
-        recv_us: current_time,
-        handle_us: current_time,
+        tx_index: 0,
+        block_time_us: block_time.unwrap_or(0) * 1_000_000,
+        grpc_recv_us: current_time,
     }
 }
 
@@ -153,14 +148,9 @@ pub fn create_metadata_default(
     EventMetadata {
         signature,
         slot,
-        block_time,
-        block_time_ms: block_time.map(|ts| ts * 1000),
-        program_id: Pubkey::default(), // 使用默认值
-        outer_index: 0,
-        inner_index: None,
-        transaction_index: None,
-        recv_us: current_time,
-        handle_us: current_time,
+        tx_index: 0,
+        block_time_us: block_time.unwrap_or(0) * 1_000_000,
+        grpc_recv_us: current_time,
     }
 }
 

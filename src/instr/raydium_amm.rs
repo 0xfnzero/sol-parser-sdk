@@ -43,10 +43,7 @@ pub mod discriminators {
     pub const WITHDRAW_PNL: u8 = 7;
 }
 
-/// Raydium AMM V4 程序 ID (为了向后兼容保留字符串版本)
-pub const PROGRAM_ID: &str = "675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8";
-
-/// Raydium AMM V4 程序 ID (优化版本 - 使用 Pubkey 常量)
+/// Raydium AMM 程序 ID
 pub const PROGRAM_ID_PUBKEY: Pubkey = program_ids::RAYDIUM_AMM_V4_PROGRAM_ID;
 
 /// 主要的 Raydium AMM V4 指令解析函数
@@ -103,7 +100,7 @@ fn parse_swap_base_in_instruction(
     let minimum_amount_out = read_u64_le(data, offset)?;
 
     let amm = get_account(accounts, 1)?;
-    let metadata = create_metadata(signature, slot, block_time, amm);
+    let metadata = create_metadata_simple(signature, slot, block_time, amm);
 
     Some(DexEvent::RaydiumAmmV4Swap(RaydiumAmmV4SwapEvent {
         metadata,
@@ -148,7 +145,7 @@ fn parse_swap_base_out_instruction(
     let amount_out = read_u64_le(data, offset)?;
 
     let amm = get_account(accounts, 1)?;
-    let metadata = create_metadata(signature, slot, block_time, amm);
+    let metadata = create_metadata_simple(signature, slot, block_time, amm);
 
     Some(DexEvent::RaydiumAmmV4Swap(RaydiumAmmV4SwapEvent {
         metadata,
@@ -196,7 +193,7 @@ fn parse_deposit_instruction(
     let base_side = read_u64_le(data, offset)?;
 
     let amm = get_account(accounts, 1)?;
-    let metadata = create_metadata(signature, slot, block_time, amm);
+    let metadata = create_metadata_simple(signature, slot, block_time, amm);
 
     Some(DexEvent::RaydiumAmmV4Deposit(RaydiumAmmV4DepositEvent {
         metadata,
@@ -231,7 +228,7 @@ fn parse_withdraw_instruction(
     let amount = read_u64_le(data, 0)?;
 
     let amm = get_account(accounts, 1)?;
-    let metadata = create_metadata(signature, slot, block_time, amm);
+    let metadata = create_metadata_simple(signature, slot, block_time, amm);
 
     Some(DexEvent::RaydiumAmmV4Withdraw(RaydiumAmmV4WithdrawEvent {
         metadata,
@@ -283,7 +280,7 @@ fn parse_initialize2_instruction(
     let init_coin_amount = read_u64_le(data, offset)?;
 
     let amm = get_account(accounts, 4)?;
-    let metadata = create_metadata(signature, slot, block_time, amm);
+    let metadata = create_metadata_simple(signature, slot, block_time, amm);
 
     Some(DexEvent::RaydiumAmmV4Initialize2(RaydiumAmmV4Initialize2Event {
         metadata,
@@ -324,7 +321,7 @@ fn parse_withdraw_pnl_instruction(
     block_time: Option<i64>,
 ) -> Option<DexEvent> {
     let amm = get_account(accounts, 1)?;
-    let metadata = create_metadata(signature, slot, block_time, amm);
+    let metadata = create_metadata_simple(signature, slot, block_time, amm);
 
     Some(DexEvent::RaydiumAmmV4WithdrawPnl(RaydiumAmmV4WithdrawPnlEvent {
         metadata,

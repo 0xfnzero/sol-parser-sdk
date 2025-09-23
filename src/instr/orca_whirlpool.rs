@@ -104,10 +104,7 @@ pub mod discriminators {
     pub const TWO_HOP_SWAP_V2: [u8; 8] = [186, 143, 209, 29, 254, 2, 194, 117];
 }
 
-/// Orca Whirlpool 程序 ID (为了向后兼容保留字符串版本)
-pub const PROGRAM_ID: &str = "whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc";
-
-/// Orca Whirlpool 程序 ID (优化版本 - 使用 Pubkey 常量)
+/// Orca Whirlpool 程序 ID
 pub const PROGRAM_ID_PUBKEY: Pubkey = program_ids::ORCA_WHIRLPOOL_PROGRAM_ID;
 
 /// 主要的 Orca Whirlpool 指令解析函数
@@ -168,7 +165,7 @@ fn parse_swap_instruction(
     let a_to_b = read_bool(data, offset)?;
 
     let whirlpool = get_account(accounts, 1)?;
-    let metadata = create_metadata(signature, slot, block_time, whirlpool);
+    let metadata = create_metadata_simple(signature, slot, block_time, whirlpool);
 
     Some(DexEvent::OrcaWhirlpoolSwap(OrcaWhirlpoolSwapEvent {
         metadata,
@@ -227,7 +224,7 @@ fn parse_increase_liquidity_instruction(
 
     let whirlpool = get_account(accounts, 1)?;
     let position = get_account(accounts, 3)?;
-    let metadata = create_metadata(signature, slot, block_time, whirlpool);
+    let metadata = create_metadata_simple(signature, slot, block_time, whirlpool);
 
     Some(DexEvent::OrcaWhirlpoolLiquidityIncreased(OrcaWhirlpoolLiquidityIncreasedEvent {
         metadata,
@@ -263,7 +260,7 @@ fn parse_decrease_liquidity_instruction(
 
     let whirlpool = get_account(accounts, 1)?;
     let position = get_account(accounts, 3)?;
-    let metadata = create_metadata(signature, slot, block_time, whirlpool);
+    let metadata = create_metadata_simple(signature, slot, block_time, whirlpool);
 
     Some(DexEvent::OrcaWhirlpoolLiquidityDecreased(OrcaWhirlpoolLiquidityDecreasedEvent {
         metadata,
@@ -298,7 +295,7 @@ fn parse_initialize_pool_instruction(
     let whirlpools_config = get_account(accounts, 2)?;
     let token_mint_a = get_account(accounts, 3)?;
     let token_mint_b = get_account(accounts, 4)?;
-    let metadata = create_metadata(signature, slot, block_time, whirlpool);
+    let metadata = create_metadata_simple(signature, slot, block_time, whirlpool);
 
     Some(DexEvent::OrcaWhirlpoolPoolInitialized(OrcaWhirlpoolPoolInitializedEvent {
         metadata,

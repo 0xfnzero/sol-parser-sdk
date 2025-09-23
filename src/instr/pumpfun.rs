@@ -14,10 +14,7 @@ pub mod discriminators {
     pub const SELL: [u8; 8] = [51, 230, 133, 164, 1, 127, 131, 173];
 }
 
-/// PumpFun 程序 ID (为了向后兼容保留字符串版本)
-pub const PROGRAM_ID: &str = "6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P";
-
-/// PumpFun 程序 ID (优化版本 - 使用 Pubkey 常量)
+/// PumpFun 程序 ID
 pub const PROGRAM_ID_PUBKEY: Pubkey = program_ids::PUMPFUN_PROGRAM_ID;
 
 /// 主要的 PumpFun 指令解析函数
@@ -58,7 +55,7 @@ fn parse_create_instruction(
     block_time: Option<i64>,
 ) -> Option<DexEvent> {
     let mint = get_account(accounts, 0)?;
-    let metadata = create_metadata(signature, slot, block_time, mint);
+    let metadata = create_metadata_simple(signature, slot, block_time, mint);
 
     Some(DexEvent::PumpFunCreate(PumpFunCreateTokenEvent {
         metadata,
@@ -89,7 +86,7 @@ fn parse_buy_instruction(
     let max_sol_cost = read_u64_le(data, offset)?;
 
     let mint = get_account(accounts, 2)?; // mint is at index 2
-    let metadata = create_metadata(signature, slot, block_time, mint);
+    let metadata = create_metadata_simple(signature, slot, block_time, mint);
 
     Some(DexEvent::PumpFunTrade(PumpFunTradeEvent {
         metadata,
@@ -106,17 +103,9 @@ fn parse_buy_instruction(
         real_sol_reserves: 0, // 将从日志填充
         real_token_reserves: 0, // 将从日志填充
         fee_recipient: Pubkey::default(), // 将从日志填充
-        fee_basis_points: 0, // 将从日志填充
-        fee: 0, // 将从日志填充
         creator: Pubkey::default(), // 将从日志填充
-        creator_fee_basis_points: 0, // 将从日志填充
-        creator_fee: 0, // 将从日志填充
-        track_volume: false, // 将从日志填充
-
-        // 指令参数
-        amount,
-        max_sol_cost,
-        min_sol_output: 0, // buy指令没有此参数
+        current_sol_volume: 0, // 将从日志填充
+        last_update_timestamp: block_time.unwrap_or(0), // 将从日志填充
 
         // 指令账户字段 - 从account_filler填充
         global: Pubkey::default(),
@@ -142,7 +131,7 @@ fn parse_sell_instruction(
     let min_sol_output = read_u64_le(data, offset)?;
 
     let mint = get_account(accounts, 2)?; // mint is at index 2
-    let metadata = create_metadata(signature, slot, block_time, mint);
+    let metadata = create_metadata_simple(signature, slot, block_time, mint);
 
     Some(DexEvent::PumpFunTrade(PumpFunTradeEvent {
         metadata,
@@ -159,17 +148,9 @@ fn parse_sell_instruction(
         real_sol_reserves: 0, // 将从日志填充
         real_token_reserves: 0, // 将从日志填充
         fee_recipient: Pubkey::default(), // 将从日志填充
-        fee_basis_points: 0, // 将从日志填充
-        fee: 0, // 将从日志填充
         creator: Pubkey::default(), // 将从日志填充
-        creator_fee_basis_points: 0, // 将从日志填充
-        creator_fee: 0, // 将从日志填充
-        track_volume: false, // 将从日志填充
-
-        // 指令参数
-        amount,
-        max_sol_cost: 0, // sell指令没有此参数
-        min_sol_output,
+        current_sol_volume: 0, // 将从日志填充
+        last_update_timestamp: block_time.unwrap_or(0), // 将从日志填充
 
         // 指令账户字段 - 从account_filler填充
         global: Pubkey::default(),

@@ -20,8 +20,8 @@ pub mod discriminators {
 /// Raydium AMM V4 程序 ID
 pub const PROGRAM_ID: &str = "675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8";
 
-/// 检查是否是 Raydium AMM V4 日志
-pub fn is_raydium_amm_v4_log(log: &str) -> bool {
+/// 检查是否是 Raydium AMM 日志
+pub fn is_raydium_amm_log(log: &str) -> bool {
     log.contains(PROGRAM_ID) ||
     log.contains("RaydiumAmmV4") ||
     log.contains("raydium_amm_v4") ||
@@ -41,7 +41,7 @@ pub fn parse_log(
     slot: u64,
     block_time: Option<i64>,
 ) -> Option<DexEvent> {
-    if !is_raydium_amm_v4_log(log) {
+    if !is_raydium_amm_log(log) {
         return None;
     }
 
@@ -112,7 +112,7 @@ fn parse_swap_base_in_event(
 
     let minimum_amount_out = read_u64_le(data, offset)?;
 
-    let metadata = create_metadata(signature, slot, block_time, amm);
+    let metadata = create_metadata_simple(signature, slot, block_time, amm);
 
     Some(DexEvent::RaydiumAmmV4Swap(RaydiumAmmV4SwapEvent {
         metadata,
@@ -161,7 +161,7 @@ fn parse_swap_base_out_event(
 
     let amount_out = read_u64_le(data, offset)?;
 
-    let metadata = create_metadata(signature, slot, block_time, amm);
+    let metadata = create_metadata_simple(signature, slot, block_time, amm);
 
     Some(DexEvent::RaydiumAmmV4Swap(RaydiumAmmV4SwapEvent {
         metadata,
@@ -213,7 +213,7 @@ fn parse_deposit_event(
 
     let base_side = read_u64_le(data, offset)?;
 
-    let metadata = create_metadata(signature, slot, block_time, amm);
+    let metadata = create_metadata_simple(signature, slot, block_time, amm);
 
     Some(DexEvent::RaydiumAmmV4Deposit(RaydiumAmmV4DepositEvent {
         metadata,
@@ -254,7 +254,7 @@ fn parse_withdraw_event(
 
     let amount = read_u64_le(data, offset)?;
 
-    let metadata = create_metadata(signature, slot, block_time, amm);
+    let metadata = create_metadata_simple(signature, slot, block_time, amm);
 
     Some(DexEvent::RaydiumAmmV4Withdraw(RaydiumAmmV4WithdrawEvent {
         metadata,
@@ -310,7 +310,7 @@ fn parse_initialize2_event(
 
     let init_coin_amount = read_u64_le(data, offset)?;
 
-    let metadata = create_metadata(signature, slot, block_time, amm);
+    let metadata = create_metadata_simple(signature, slot, block_time, amm);
 
     Some(DexEvent::RaydiumAmmV4Initialize2(RaydiumAmmV4Initialize2Event {
         metadata,
@@ -356,7 +356,7 @@ fn parse_withdraw_pnl_event(
 
     let pnl_owner = read_pubkey(data, offset)?;
 
-    let metadata = create_metadata(signature, slot, block_time, amm);
+    let metadata = create_metadata_simple(signature, slot, block_time, amm);
 
     Some(DexEvent::RaydiumAmmV4WithdrawPnl(RaydiumAmmV4WithdrawPnlEvent {
         metadata,
@@ -430,7 +430,7 @@ fn parse_swap_log_fallback(
         .unwrap_or(0);
 
     let default_pubkey = Pubkey::default();
-    let metadata = create_metadata(signature, slot, block_time, default_pubkey);
+    let metadata = create_metadata_simple(signature, slot, block_time, default_pubkey);
 
     Some(DexEvent::RaydiumAmmV4Swap(RaydiumAmmV4SwapEvent {
         metadata,
@@ -479,7 +479,7 @@ fn parse_deposit_log_fallback(
         .unwrap_or(0);
 
     let default_pubkey = Pubkey::default();
-    let metadata = create_metadata(signature, slot, block_time, default_pubkey);
+    let metadata = create_metadata_simple(signature, slot, block_time, default_pubkey);
 
     Some(DexEvent::RaydiumAmmV4Deposit(RaydiumAmmV4DepositEvent {
         metadata,
@@ -514,7 +514,7 @@ fn parse_withdraw_log_fallback(
         .unwrap_or(0);
 
     let default_pubkey = Pubkey::default();
-    let metadata = create_metadata(signature, slot, block_time, default_pubkey);
+    let metadata = create_metadata_simple(signature, slot, block_time, default_pubkey);
 
     Some(DexEvent::RaydiumAmmV4Withdraw(RaydiumAmmV4WithdrawEvent {
         metadata,

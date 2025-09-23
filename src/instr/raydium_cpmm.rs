@@ -16,10 +16,7 @@ pub mod discriminators {
     pub const WITHDRAW: [u8; 8] = [183, 18, 70, 156, 148, 109, 161, 34];
 }
 
-/// Raydium CPMM 程序 ID (为了向后兼容保留字符串版本)
-pub const PROGRAM_ID: &str = "CPMMoo8L3F4NbTegBCKVNunggL7H1ZpdTHKxQB5qKP1C";
-
-/// Raydium CPMM 程序 ID (优化版本 - 使用 Pubkey 常量)
+/// Raydium CPMM 程序 ID
 pub const PROGRAM_ID_PUBKEY: Pubkey = program_ids::RAYDIUM_CPMM_PROGRAM_ID;
 
 /// 主要的 Raydium CPMM 指令解析函数
@@ -73,7 +70,7 @@ fn parse_swap_base_in_instruction(
     let minimum_amount_out = read_u64_le(data, offset)?;
 
     let pool = get_account(accounts, 0)?;
-    let metadata = create_metadata(signature, slot, block_time, pool);
+    let metadata = create_metadata_simple(signature, slot, block_time, pool);
 
     Some(DexEvent::RaydiumCpmmSwap(RaydiumCpmmSwapEvent {
         metadata,
@@ -123,7 +120,7 @@ fn parse_swap_base_out_instruction(
     let amount_out = read_u64_le(data, offset)?;
 
     let pool = get_account(accounts, 0)?;
-    let metadata = create_metadata(signature, slot, block_time, pool);
+    let metadata = create_metadata_simple(signature, slot, block_time, pool);
 
     Some(DexEvent::RaydiumCpmmSwap(RaydiumCpmmSwapEvent {
         metadata,
@@ -176,7 +173,7 @@ fn parse_initialize_instruction(
     let open_time = read_u64_le(data, offset)?;
 
     let pool = get_account(accounts, 0)?;
-    let metadata = create_metadata(signature, slot, block_time, pool);
+    let metadata = create_metadata_simple(signature, slot, block_time, pool);
 
     Some(DexEvent::RaydiumCpmmInitialize(RaydiumCpmmInitializeEvent {
         metadata,
@@ -206,7 +203,7 @@ fn parse_deposit_instruction(
     let maximum_token_1_amount = read_u64_le(data, offset)?;
 
     let pool = get_account(accounts, 0)?;
-    let metadata = create_metadata(signature, slot, block_time, pool);
+    let metadata = create_metadata_simple(signature, slot, block_time, pool);
 
     Some(DexEvent::RaydiumCpmmDeposit(RaydiumCpmmDepositEvent {
         metadata,
@@ -237,7 +234,7 @@ fn parse_withdraw_instruction(
     let minimum_token_1_amount = read_u64_le(data, offset)?;
 
     let pool = get_account(accounts, 0)?;
-    let metadata = create_metadata(signature, slot, block_time, pool);
+    let metadata = create_metadata_simple(signature, slot, block_time, pool);
 
     Some(DexEvent::RaydiumCpmmWithdraw(RaydiumCpmmWithdrawEvent {
         metadata,

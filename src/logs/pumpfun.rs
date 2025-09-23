@@ -126,7 +126,7 @@ fn parse_create_event(
 
     let token_total_supply = read_u64_le(data, offset)?;
 
-    let metadata = create_metadata(signature, slot, block_time, mint);
+    let metadata = create_metadata_simple(signature, slot, block_time, mint);
 
     Some(DexEvent::PumpFunCreate(PumpFunCreateTokenEvent {
         metadata,
@@ -202,7 +202,7 @@ fn parse_trade_event(
     // 根据最新IDL TradeEvent，还有track_volume字段
     let track_volume = read_bool(data, offset).unwrap_or(false);
 
-    let metadata = create_metadata(signature, slot, block_time, mint);
+    let metadata = create_metadata_simple(signature, slot, block_time, mint);
 
     Some(DexEvent::PumpFunTrade(PumpFunTradeEvent {
         metadata,
@@ -219,17 +219,9 @@ fn parse_trade_event(
         real_sol_reserves,
         real_token_reserves,
         fee_recipient,
-        fee_basis_points,
-        fee,
         creator,
-        creator_fee_basis_points,
-        creator_fee,
-        track_volume,
-
-        // 指令参数字段
-        amount: token_amount,
-        max_sol_cost: 0,
-        min_sol_output: 0,
+        current_sol_volume: 0,
+        last_update_timestamp: timestamp,
 
         // 指令账户字段 - 默认值，由account_filler填充
         global: Pubkey::default(),
@@ -256,7 +248,7 @@ fn parse_complete_event(
 
     let bonding_curve = read_pubkey(data, offset)?;
 
-    let metadata = create_metadata(signature, slot, block_time, mint);
+    let metadata = create_metadata_simple(signature, slot, block_time, mint);
 
     Some(DexEvent::PumpFunComplete(PumpFunCompleteTokenEvent {
         metadata,
@@ -298,7 +290,7 @@ fn parse_migrate_event(
 
     let pool = read_pubkey(data, offset)?;
 
-    let metadata = create_metadata(signature, slot, block_time, mint);
+    let metadata = create_metadata_simple(signature, slot, block_time, mint);
 
     Some(DexEvent::PumpFunMigrate(PumpFunMigrateEvent {
         metadata,
@@ -370,7 +362,7 @@ fn parse_create_from_text(
 ) -> Option<DexEvent> {
     use super::utils::text_parser::*;
 
-    let metadata = create_metadata(signature, slot, block_time, Pubkey::default());
+    let metadata = create_metadata_simple(signature, slot, block_time, Pubkey::default());
 
     Some(DexEvent::PumpFunCreate(PumpFunCreateTokenEvent {
         metadata,
@@ -394,7 +386,7 @@ fn parse_trade_from_text(
 ) -> Option<DexEvent> {
     use super::utils::text_parser::*;
 
-    let metadata = create_metadata(signature, slot, block_time, Pubkey::default());
+    let metadata = create_metadata_simple(signature, slot, block_time, Pubkey::default());
     let is_buy = detect_trade_type(log).unwrap_or(true);
 
     Some(DexEvent::PumpFunTrade(PumpFunTradeEvent {
@@ -412,17 +404,9 @@ fn parse_trade_from_text(
         real_sol_reserves: 0,
         real_token_reserves: 0,
         fee_recipient: Pubkey::default(),
-        fee_basis_points: 0,
-        fee: 0,
         creator: Pubkey::default(),
-        creator_fee_basis_points: 0,
-        creator_fee: 0,
-        track_volume: false,
-
-        // 指令参数字段
-        amount: extract_number_from_text(log, "amount").unwrap_or(1_000_000_000),
-        max_sol_cost: 0,
-        min_sol_output: 0,
+        current_sol_volume: 0,
+        last_update_timestamp: block_time.unwrap_or(0),
 
         // 指令账户字段
         global: Pubkey::default(),
@@ -439,7 +423,7 @@ fn parse_complete_from_text(
     slot: u64,
     block_time: Option<i64>,
 ) -> Option<DexEvent> {
-    let metadata = create_metadata(signature, slot, block_time, Pubkey::default());
+    let metadata = create_metadata_simple(signature, slot, block_time, Pubkey::default());
 
     Some(DexEvent::PumpFunComplete(PumpFunCompleteTokenEvent {
         metadata,
@@ -458,7 +442,7 @@ fn parse_migrate_from_text(
 ) -> Option<DexEvent> {
     use super::utils::text_parser::*;
 
-    let metadata = create_metadata(signature, slot, block_time, Pubkey::default());
+    let metadata = create_metadata_simple(signature, slot, block_time, Pubkey::default());
 
     Some(DexEvent::PumpFunMigrate(PumpFunMigrateEvent {
         metadata,

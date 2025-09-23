@@ -11,16 +11,10 @@ use solana_sdk::{pubkey::Pubkey, signature::Signature};
 pub struct EventMetadata {
     pub signature: Signature,
     pub slot: u64,
-    pub block_time: Option<i64>,
-    pub block_time_ms: Option<i64>,
-    pub program_id: Pubkey,
-    pub outer_index: i64,
-    pub inner_index: Option<i64>,
-    pub transaction_index: Option<u64>,
-    pub recv_us: i64,
-    pub handle_us: i64,
+    pub tx_index: u64,
+    pub block_time_us: i64,
+    pub grpc_recv_us: i64,
 }
-
 
 /// Block Meta Event
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -80,7 +74,6 @@ pub struct BonkMigrateAmmEvent {
 /// 字段来源标记:
 /// - [EVENT]: 来自原始IDL事件定义，由程序日志直接解析获得
 /// - [INSTRUCTION]: 来自指令解析，用于补充事件缺失的上下文信息
-/// PumpFun Trade Event - 基于官方IDL定义
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PumpFunTradeEvent {
     pub metadata: EventMetadata,
@@ -97,17 +90,14 @@ pub struct PumpFunTradeEvent {
     pub real_sol_reserves: u64,
     pub real_token_reserves: u64,
     pub fee_recipient: Pubkey,
-    pub fee_basis_points: u64,
-    pub fee: u64,
     pub creator: Pubkey,
-    pub creator_fee_basis_points: u64,
-    pub creator_fee: u64,
-    pub track_volume: bool,
+    pub current_sol_volume: u64,
+    pub last_update_timestamp: i64,
 
     // === 指令参数字段 ===
-    pub amount: u64,                     // buy/sell.args.amount
-    pub max_sol_cost: u64,               // buy.args.maxSolCost
-    pub min_sol_output: u64,             // sell.args.minSolOutput
+    // pub amount: u64,                     // buy/sell.args.amount
+    // pub max_sol_cost: u64,               // buy.args.maxSolCost
+    // pub min_sol_output: u64,             // sell.args.minSolOutput
 
     // === 指令账户字段 ===
     pub global: Pubkey,                  // 0: global
@@ -1273,6 +1263,92 @@ pub struct MeteoraDammV2ClaimRewardEvent {
     pub total_reward: u64,
 }
 
+/// Meteora DLMM Swap Event
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MeteoraDlmmSwapEvent {
+    pub metadata: EventMetadata,
+    pub pool: Pubkey,
+    pub from: Pubkey,
+    pub start_bin_id: i32,
+    pub end_bin_id: i32,
+    pub amount_in: u64,
+    pub amount_out: u64,
+    pub swap_for_y: bool,
+    pub fee: u64,
+    pub protocol_fee: u64,
+    pub host_fee: u64,
+}
+
+/// Meteora DLMM Add Liquidity Event
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MeteoraDlmmAddLiquidityEvent {
+    pub metadata: EventMetadata,
+    pub pool: Pubkey,
+    pub from: Pubkey,
+    pub liquidity_minted: u64,
+    pub amounts: Vec<u64>,
+}
+
+/// Meteora DLMM Remove Liquidity Event
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MeteoraDlmmRemoveLiquidityEvent {
+    pub metadata: EventMetadata,
+    pub pool: Pubkey,
+    pub from: Pubkey,
+    pub liquidity_burned: u64,
+    pub amounts: Vec<u64>,
+}
+
+/// Meteora DLMM Initialize Pool Event
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MeteoraDlmmInitializePoolEvent {
+    pub metadata: EventMetadata,
+    pub pool: Pubkey,
+    pub creator: Pubkey,
+    pub active_bin_id: i32,
+    pub bin_step: u16,
+}
+
+/// Meteora DLMM Initialize Bin Array Event
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MeteoraDlmmInitializeBinArrayEvent {
+    pub metadata: EventMetadata,
+    pub pool: Pubkey,
+    pub bin_array: Pubkey,
+    pub index: i64,
+}
+
+/// Meteora DLMM Create Position Event
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MeteoraDlmmCreatePositionEvent {
+    pub metadata: EventMetadata,
+    pub pool: Pubkey,
+    pub position: Pubkey,
+    pub owner: Pubkey,
+    pub lower_bin_id: i32,
+    pub width: u32,
+}
+
+/// Meteora DLMM Close Position Event
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MeteoraDlmmClosePositionEvent {
+    pub metadata: EventMetadata,
+    pub pool: Pubkey,
+    pub position: Pubkey,
+    pub owner: Pubkey,
+}
+
+/// Meteora DLMM Claim Fee Event
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MeteoraDlmmClaimFeeEvent {
+    pub metadata: EventMetadata,
+    pub pool: Pubkey,
+    pub position: Pubkey,
+    pub owner: Pubkey,
+    pub fee_x: u64,
+    pub fee_y: u64,
+}
+
 // ====================== 统一的 DEX 事件枚举 ======================
 
 /// 统一的 DEX 事件枚举 - 参考 sol-dex-shreds 的做法
@@ -1348,6 +1424,16 @@ pub enum DexEvent {
     MeteoraDammV2InitializeReward(MeteoraDammV2InitializeRewardEvent),
     MeteoraDammV2FundReward(MeteoraDammV2FundRewardEvent),
     MeteoraDammV2ClaimReward(MeteoraDammV2ClaimRewardEvent),
+
+    // Meteora DLMM 事件
+    MeteoraDlmmSwap(MeteoraDlmmSwapEvent),
+    MeteoraDlmmAddLiquidity(MeteoraDlmmAddLiquidityEvent),
+    MeteoraDlmmRemoveLiquidity(MeteoraDlmmRemoveLiquidityEvent),
+    MeteoraDlmmInitializePool(MeteoraDlmmInitializePoolEvent),
+    MeteoraDlmmInitializeBinArray(MeteoraDlmmInitializeBinArrayEvent),
+    MeteoraDlmmCreatePosition(MeteoraDlmmCreatePositionEvent),
+    MeteoraDlmmClosePosition(MeteoraDlmmClosePositionEvent),
+    MeteoraDlmmClaimFee(MeteoraDlmmClaimFeeEvent),
 
     // 账户事件
     TokenAccount(TokenAccountEvent),

@@ -14,10 +14,7 @@ pub mod discriminators {
     pub const CREATE_POOL: [u8; 8] = [233, 146, 209, 142, 207, 104, 64, 188];
 }
 
-/// PumpSwap 程序 ID (为了向后兼容保留字符串版本)
-pub const PROGRAM_ID: &str = "6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P";
-
-/// PumpSwap 程序 ID (优化版本 - 使用 Pubkey 常量)
+/// Pump AMM 程序 ID
 pub const PROGRAM_ID_PUBKEY: Pubkey = program_ids::PUMPSWAP_PROGRAM_ID;
 
 /// 主要的 PumpSwap 指令解析函数
@@ -65,7 +62,7 @@ fn parse_buy_instruction(
     let slippage = read_u16_le(data, offset)?;
 
     let token_mint = get_account(accounts, 0)?;
-    let metadata = create_metadata(signature, slot, block_time, token_mint);
+    let metadata = create_metadata_simple(signature, slot, block_time, token_mint);
 
     Some(DexEvent::PumpSwapBuy(PumpSwapBuyEvent {
         metadata,
@@ -95,7 +92,7 @@ fn parse_sell_instruction(
     let slippage = read_u16_le(data, offset)?;
 
     let token_mint = get_account(accounts, 0)?;
-    let metadata = create_metadata(signature, slot, block_time, token_mint);
+    let metadata = create_metadata_simple(signature, slot, block_time, token_mint);
 
     Some(DexEvent::PumpSwapSell(PumpSwapSellEvent {
         metadata,
@@ -125,7 +122,7 @@ fn parse_create_pool_instruction(
     let initial_token_reserve = read_u64_le(data, offset)?;
 
     let token_mint = get_account(accounts, 0)?;
-    let metadata = create_metadata(signature, slot, block_time, token_mint);
+    let metadata = create_metadata_simple(signature, slot, block_time, token_mint);
 
     Some(DexEvent::PumpSwapCreatePool(PumpSwapCreatePoolEvent {
         metadata,

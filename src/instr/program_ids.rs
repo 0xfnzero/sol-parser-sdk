@@ -34,3 +34,6 @@ pub const METEORA_POOLS_PROGRAM_ID: Pubkey = pubkey!("Eo7WjKq67rjJQSZxS6z3YkapzY
 
 /// Meteora DAMM V2 program ID as Pubkey constant
 pub const METEORA_DAMM_V2_PROGRAM_ID: Pubkey = pubkey!("LBUZKhRxPF3XUpBCjp4YzTKgLccjZhTSDM9YuVaPwxo");
+
+/// Meteora DLMM program ID as Pubkey constant
+pub const METEORA_DLMM_PROGRAM_ID: Pubkey = pubkey!("LBUZKhRxPF3XUpBCjp4YzTKgLccjZhTSDM9YuVaPwxo");

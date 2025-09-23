@@ -106,7 +106,7 @@ fn parse_swap_base_in_event(
 
     let is_base_input = read_bool(data, offset)?;
 
-    let metadata = create_metadata(signature, slot, block_time, pool_state);
+    let metadata = create_metadata_simple(signature, slot, block_time, pool_state);
 
     Some(DexEvent::RaydiumCpmmSwap(RaydiumCpmmSwapEvent {
         metadata,
@@ -165,7 +165,7 @@ fn parse_swap_base_out_event(
 
     let is_base_output = read_bool(data, offset)?;
 
-    let metadata = create_metadata(signature, slot, block_time, pool_state);
+    let metadata = create_metadata_simple(signature, slot, block_time, pool_state);
 
     Some(DexEvent::RaydiumCpmmSwap(RaydiumCpmmSwapEvent {
         metadata,
@@ -224,7 +224,7 @@ fn parse_create_pool_event(
 
     let initial_amount_1 = read_u64_le(data, offset)?;
 
-    let metadata = create_metadata(signature, slot, block_time, pool_state);
+    let metadata = create_metadata_simple(signature, slot, block_time, pool_state);
 
     Some(DexEvent::RaydiumCpmmInitialize(RaydiumCpmmInitializeEvent {
         metadata,
@@ -258,7 +258,7 @@ fn parse_deposit_event(
 
     let token_1_amount = read_u64_le(data, offset)?;
 
-    let metadata = create_metadata(signature, slot, block_time, pool_state);
+    let metadata = create_metadata_simple(signature, slot, block_time, pool_state);
 
     Some(DexEvent::RaydiumCpmmDeposit(RaydiumCpmmDepositEvent {
         metadata,
@@ -293,7 +293,7 @@ fn parse_withdraw_event(
 
     let token_1_amount = read_u64_le(data, offset)?;
 
-    let metadata = create_metadata(signature, slot, block_time, pool_state);
+    let metadata = create_metadata_simple(signature, slot, block_time, pool_state);
 
     Some(DexEvent::RaydiumCpmmWithdraw(RaydiumCpmmWithdrawEvent {
         metadata,
@@ -348,7 +348,7 @@ fn parse_swap_base_in_from_text(
 ) -> Option<DexEvent> {
     use super::utils::text_parser::*;
 
-    let metadata = create_metadata(signature, slot, block_time, Pubkey::default());
+    let metadata = create_metadata_simple(signature, slot, block_time, Pubkey::default());
 
     Some(DexEvent::RaydiumCpmmSwap(RaydiumCpmmSwapEvent {
         metadata,
@@ -390,7 +390,7 @@ fn parse_swap_base_out_from_text(
 ) -> Option<DexEvent> {
     use super::utils::text_parser::*;
 
-    let metadata = create_metadata(signature, slot, block_time, Pubkey::default());
+    let metadata = create_metadata_simple(signature, slot, block_time, Pubkey::default());
 
     Some(DexEvent::RaydiumCpmmSwap(RaydiumCpmmSwapEvent {
         metadata,
@@ -432,7 +432,7 @@ fn parse_create_pool_from_text(
 ) -> Option<DexEvent> {
     use super::utils::text_parser::*;
 
-    let metadata = create_metadata(signature, slot, block_time, Pubkey::default());
+    let metadata = create_metadata_simple(signature, slot, block_time, Pubkey::default());
 
     Some(DexEvent::RaydiumCpmmInitialize(RaydiumCpmmInitializeEvent {
         metadata,
@@ -452,7 +452,7 @@ fn parse_deposit_from_text(
 ) -> Option<DexEvent> {
     use super::utils::text_parser::*;
 
-    let metadata = create_metadata(signature, slot, block_time, Pubkey::default());
+    let metadata = create_metadata_simple(signature, slot, block_time, Pubkey::default());
 
     Some(DexEvent::RaydiumCpmmDeposit(RaydiumCpmmDepositEvent {
         metadata,
@@ -473,7 +473,7 @@ fn parse_withdraw_from_text(
 ) -> Option<DexEvent> {
     use super::utils::text_parser::*;
 
-    let metadata = create_metadata(signature, slot, block_time, Pubkey::default());
+    let metadata = create_metadata_simple(signature, slot, block_time, Pubkey::default());
 
     Some(DexEvent::RaydiumCpmmWithdraw(RaydiumCpmmWithdrawEvent {
         metadata,

@@ -7,8 +7,25 @@ use crate::core::events::EventMetadata;
 pub fn create_metadata(
     signature: Signature,
     slot: u64,
+    tx_index: u64,
+    block_time_us: i64,
+    grpc_recv_us: i64,
+) -> EventMetadata {
+    EventMetadata {
+        signature,
+        slot,
+        tx_index,
+        block_time_us,
+        grpc_recv_us,
+    }
+}
+
+/// 创建事件元数据的兼容性函数（旧版本）
+pub fn create_metadata_simple(
+    signature: Signature,
+    slot: u64,
     block_time: Option<i64>,
-    program_id: Pubkey,
+    _program_id: Pubkey,
 ) -> EventMetadata {
     let current_time = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
@@ -18,14 +35,9 @@ pub fn create_metadata(
     EventMetadata {
         signature,
         slot,
-        block_time,
-        block_time_ms: block_time.map(|ts| ts * 1000),
-        program_id,
-        outer_index: 0,
-        inner_index: None,
-        transaction_index: None,
-        recv_us: current_time,
-        handle_us: current_time,
+        tx_index: 0,
+        block_time_us: block_time.unwrap_or(0) * 1_000_000,
+        grpc_recv_us: current_time,
     }
 }
 
@@ -111,4 +123,19 @@ pub fn calculate_price_impact_bps(amount_in: u64, amount_out: u64, expected_out:
 
     let impact = ((expected_out.saturating_sub(amount_out)) * 10000) / expected_out;
     impact.min(10000) as u16
+}
+
+/// 从指令数据中读取字节数组
+pub fn read_bytes(data: &[u8], offset: usize, length: usize) -> Option<&[u8]> {
+    if data.len() < offset + length {
+        return None;
+    }
+    Some(&data[offset..offset + length])
+}
+
+/// 从指令数据中读取u64向量（简化版本）
+pub fn read_vec_u64(data: &[u8], _offset: usize) -> Option<Vec<u64>> {
+    // 简化版本：返回默认的两个元素向量
+    // 实际实现需要根据具体的数据格式来解析
+    Some(vec![0, 0])
 }

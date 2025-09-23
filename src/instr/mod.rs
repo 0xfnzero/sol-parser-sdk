@@ -4,26 +4,28 @@
 
 pub mod utils;
 pub mod program_ids;
-pub mod bonk;
+pub mod raydium_launchpad;
 pub mod pumpfun;
-pub mod pumpswap;
+pub mod pump_amm;
 pub mod raydium_clmm;
 pub mod raydium_cpmm;
-pub mod raydium_amm_v4;
+pub mod raydium_amm;
 pub mod orca_whirlpool;
-pub mod meteora_pools;
-pub mod meteora_damm_v2;
+pub mod meteora_amm;
+pub mod meteora_damm;
+pub mod meteora_dlmm;
 
 // 重新导出主要解析函数
-pub use bonk::parse_instruction as parse_bonk_instruction;
+pub use raydium_launchpad::parse_instruction as parse_raydium_launchpad_instruction;
 pub use pumpfun::parse_instruction as parse_pumpfun_instruction;
-pub use pumpswap::parse_instruction as parse_pumpswap_instruction;
+pub use pump_amm::parse_instruction as parse_pump_amm_instruction;
 pub use raydium_clmm::parse_instruction as parse_raydium_clmm_instruction;
 pub use raydium_cpmm::parse_instruction as parse_raydium_cpmm_instruction;
-pub use raydium_amm_v4::parse_instruction as parse_raydium_amm_v4_instruction;
+pub use raydium_amm::parse_instruction as parse_raydium_amm_instruction;
 pub use orca_whirlpool::parse_instruction as parse_orca_whirlpool_instruction;
-pub use meteora_pools::parse_instruction as parse_meteora_pools_instruction;
-pub use meteora_damm_v2::parse_instruction as parse_meteora_damm_v2_instruction;
+pub use meteora_amm::parse_instruction as parse_meteora_amm_instruction;
+pub use meteora_damm::parse_instruction as parse_meteora_damm_instruction;
+pub use meteora_dlmm::parse_instruction as parse_meteora_dlmm_instruction;
 
 // 重新导出工具函数
 pub use utils::*;
@@ -54,9 +56,9 @@ pub fn parse_instruction_unified(
         return parse_pumpfun_instruction(instruction_data, accounts, signature, slot, block_time);
     }
 
-    // Raydium AMM V4 (高频)
+    // Raydium AMM (高频)
     if *program_id == RAYDIUM_AMM_V4_PROGRAM_ID {
-        return parse_raydium_amm_v4_instruction(instruction_data, accounts, signature, slot, block_time);
+        return parse_raydium_amm_instruction(instruction_data, accounts, signature, slot, block_time);
     }
 
     // Raydium CLMM
@@ -74,24 +76,29 @@ pub fn parse_instruction_unified(
         return parse_raydium_cpmm_instruction(instruction_data, accounts, signature, slot, block_time);
     }
 
-    // Meteora DAMM V2
+    // Meteora DAMM
     if *program_id == METEORA_DAMM_V2_PROGRAM_ID {
-        return parse_meteora_damm_v2_instruction(instruction_data, accounts, signature, slot, block_time);
+        return parse_meteora_damm_instruction(instruction_data, accounts, signature, slot, block_time);
     }
 
-    // Bonk
+    // Meteora DLMM
+    if *program_id == METEORA_DLMM_PROGRAM_ID {
+        return parse_meteora_dlmm_instruction(instruction_data, accounts, signature, slot, block_time);
+    }
+
+    // Raydium Launchpad
     if *program_id == BONK_PROGRAM_ID {
-        return parse_bonk_instruction(instruction_data, accounts, signature, slot, block_time);
+        return parse_raydium_launchpad_instruction(instruction_data, accounts, signature, slot, block_time);
     }
 
-    // PumpSwap
+    // Pump AMM
     if *program_id == PUMPSWAP_PROGRAM_ID {
-        return parse_pumpswap_instruction(instruction_data, accounts, signature, slot, block_time);
+        return parse_pump_amm_instruction(instruction_data, accounts, signature, slot, block_time);
     }
 
-    // Meteora Pools
+    // Meteora AMM
     if *program_id == METEORA_POOLS_PROGRAM_ID {
-        return parse_meteora_pools_instruction(instruction_data, accounts, signature, slot, block_time);
+        return parse_meteora_amm_instruction(instruction_data, accounts, signature, slot, block_time);
     }
 
     None

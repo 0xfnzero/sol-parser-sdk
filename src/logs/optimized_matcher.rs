@@ -34,14 +34,15 @@ pub mod program_id_strings {
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum LogType {
     PumpFun,
-    Bonk,
-    PumpSwap,
+    RaydiumLaunchpad,
+    PumpAmm,
     RaydiumClmm,
     RaydiumCpmm,
-    RaydiumAmmV4,
+    RaydiumAmm,
     OrcaWhirlpool,
-    MeteoraPool,
-    MeteoraDammV2,
+    MeteoraAmm,
+    MeteoraDamm,
+    MeteoraDlmm,
     Unknown,
 }
 
@@ -61,9 +62,9 @@ pub fn detect_log_type(log: &str) -> LogType {
         return LogType::PumpFun;
     }
 
-    // Raydium AMM V4 - 高频
+    // Raydium AMM - 高频
     if log.contains(program_id_strings::RAYDIUM_AMM_V4_ID) {
-        return LogType::RaydiumAmmV4;
+        return LogType::RaydiumAmm;
     }
 
     // Raydium CLMM
@@ -76,10 +77,10 @@ pub fn detect_log_type(log: &str) -> LogType {
         return LogType::RaydiumCpmm;
     }
 
-    // Bonk
+    // Raydium Launchpad
     if log.contains(program_id_strings::BONK_ID) ||
        (log.contains("bonk") && log.contains(program_id_strings::PROGRAM_DATA)) {
-        return LogType::Bonk;
+        return LogType::RaydiumLaunchpad;
     }
 
     // Orca Whirlpool
@@ -87,19 +88,24 @@ pub fn detect_log_type(log: &str) -> LogType {
         return LogType::OrcaWhirlpool;
     }
 
-    // Meteora DAMM V2
+    // Meteora DAMM
     if log.contains("meteora") && log.contains("LB") {
-        return LogType::MeteoraDammV2;
+        return LogType::MeteoraDamm;
     }
 
-    // Meteora Pools
+    // Meteora DLMM
+    if log.contains("meteora") && log.contains("DLMM") {
+        return LogType::MeteoraDlmm;
+    }
+
+    // Meteora AMM
     if log.contains("meteora") && log.contains(program_id_strings::PROGRAM_DATA) {
-        return LogType::MeteoraPool;
+        return LogType::MeteoraAmm;
     }
 
-    // PumpSwap (与 PumpFun 相似)
+    // Pump AMM (与 PumpFun 相似)
     if log.contains("pumpswap") || log.contains("PumpSwap") {
-        return LogType::PumpSwap;
+        return LogType::PumpAmm;
     }
 
     LogType::Unknown
@@ -119,14 +125,15 @@ pub fn parse_log_optimized(
     // 根据类型直接调用相应的解析器，避免重复检查
     match log_type {
         LogType::PumpFun => crate::logs::parse_pumpfun_log(log, signature, slot, block_time),
-        LogType::Bonk => crate::logs::parse_bonk_log(log, signature, slot, block_time),
-        LogType::PumpSwap => crate::logs::parse_pumpswap_log(log, signature, slot, block_time),
+        LogType::RaydiumLaunchpad => crate::logs::parse_raydium_launchpad_log(log, signature, slot, block_time),
+        LogType::PumpAmm => crate::logs::parse_pump_amm_log(log, signature, slot, block_time),
         LogType::RaydiumClmm => crate::logs::parse_raydium_clmm_log(log, signature, slot, block_time),
         LogType::RaydiumCpmm => crate::logs::parse_raydium_cpmm_log(log, signature, slot, block_time),
-        LogType::RaydiumAmmV4 => crate::logs::parse_raydium_amm_v4_log(log, signature, slot, block_time),
+        LogType::RaydiumAmm => crate::logs::parse_raydium_amm_log(log, signature, slot, block_time),
         LogType::OrcaWhirlpool => crate::logs::parse_orca_whirlpool_log(log, signature, slot, block_time),
-        LogType::MeteoraPool => crate::logs::parse_meteora_pools_log(log, signature, slot, block_time),
-        LogType::MeteoraDammV2 => crate::logs::parse_meteora_damm_v2_log(log, signature, slot, block_time),
+        LogType::MeteoraAmm => crate::logs::parse_meteora_amm_log(log, signature, slot, block_time),
+        LogType::MeteoraDamm => crate::logs::parse_meteora_damm_log(log, signature, slot, block_time),
+        LogType::MeteoraDlmm => crate::logs::parse_meteora_dlmm_log(log, signature, slot, block_time),
         LogType::Unknown => None,
     }
 }

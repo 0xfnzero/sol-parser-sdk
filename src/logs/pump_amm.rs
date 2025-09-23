@@ -16,8 +16,8 @@ pub mod discriminators {
 /// PumpSwap 程序 ID
 pub const PROGRAM_ID: &str = "6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P";
 
-/// 检查日志是否来自 PumpSwap 程序
-pub fn is_pumpswap_log(log: &str) -> bool {
+/// 检查日志是否来自 Pump AMM 程序
+pub fn is_pump_amm_log(log: &str) -> bool {
     log.contains(&format!("Program {} invoke", PROGRAM_ID)) ||
     log.contains(&format!("Program {} success", PROGRAM_ID)) ||
     log.contains("pumpswap") || log.contains("PumpSwap")
@@ -30,7 +30,7 @@ pub fn parse_log(
     slot: u64,
     block_time: Option<i64>,
 ) -> Option<DexEvent> {
-    if !is_pumpswap_log(log) {
+    if !is_pump_amm_log(log) {
         return None;
     }
 
@@ -95,7 +95,7 @@ fn parse_buy_event(
 
     let pool_state = read_pubkey(data, offset)?;
 
-    let metadata = create_metadata(signature, slot, block_time, token_mint);
+    let metadata = create_metadata_simple(signature, slot, block_time, token_mint);
 
     Some(DexEvent::PumpSwapBuy(PumpSwapBuyEvent {
         metadata,
@@ -132,7 +132,7 @@ fn parse_sell_event(
 
     let pool_state = read_pubkey(data, offset)?;
 
-    let metadata = create_metadata(signature, slot, block_time, token_mint);
+    let metadata = create_metadata_simple(signature, slot, block_time, token_mint);
 
     Some(DexEvent::PumpSwapSell(PumpSwapSellEvent {
         metadata,
@@ -169,7 +169,7 @@ fn parse_create_pool_event(
 
     let initial_token_reserve = read_u64_le(data, offset)?;
 
-    let metadata = create_metadata(signature, slot, block_time, token_mint);
+    let metadata = create_metadata_simple(signature, slot, block_time, token_mint);
 
     Some(DexEvent::PumpSwapCreatePool(PumpSwapCreatePoolEvent {
         metadata,
@@ -215,7 +215,7 @@ fn parse_buy_from_text(
 ) -> Option<DexEvent> {
     use super::utils::text_parser::*;
 
-    let metadata = create_metadata(signature, slot, block_time, Pubkey::default());
+    let metadata = create_metadata_simple(signature, slot, block_time, Pubkey::default());
 
     Some(DexEvent::PumpSwapBuy(PumpSwapBuyEvent {
         metadata,
@@ -238,7 +238,7 @@ fn parse_sell_from_text(
 ) -> Option<DexEvent> {
     use super::utils::text_parser::*;
 
-    let metadata = create_metadata(signature, slot, block_time, Pubkey::default());
+    let metadata = create_metadata_simple(signature, slot, block_time, Pubkey::default());
 
     Some(DexEvent::PumpSwapSell(PumpSwapSellEvent {
         metadata,
@@ -261,7 +261,7 @@ fn parse_create_pool_from_text(
 ) -> Option<DexEvent> {
     use super::utils::text_parser::*;
 
-    let metadata = create_metadata(signature, slot, block_time, Pubkey::default());
+    let metadata = create_metadata_simple(signature, slot, block_time, Pubkey::default());
 
     Some(DexEvent::PumpSwapCreatePool(PumpSwapCreatePoolEvent {
         metadata,
