@@ -23,19 +23,8 @@ pub fn is_meteora_amm_log(log: &str) -> bool {
 }
 
 /// 主要的 Meteora Pools 日志解析函数
-pub fn parse_log(
-    log: &str,
-    signature: Signature,
-    slot: u64,
-    block_time: Option<i64>,
-) -> Option<DexEvent> {
-    // 尝试结构化解析
-    if let Some(event) = parse_structured_log(log, signature, slot, block_time) {
-        return Some(event);
-    }
-
-    // 尝试文本解析作为备选
-    parse_text_log(log, signature, slot, block_time)
+pub fn parse_log(log: &str, signature: Signature, slot: u64, block_time: Option<i64>, grpc_recv_us: i64) -> Option<DexEvent> {
+    parse_structured_log(log, signature, slot, block_time, grpc_recv_us)
 }
 
 /// 解析结构化日志（基于 discriminator）
@@ -44,6 +33,7 @@ fn parse_structured_log(
     signature: Signature,
     slot: u64,
     block_time: Option<i64>,
+    grpc_recv_us: i64,
 ) -> Option<DexEvent> {
     let program_data = extract_program_data(log)?;
 
@@ -56,22 +46,22 @@ fn parse_structured_log(
 
     match discriminator {
         discriminators::SWAP_EVENT => {
-            parse_swap_event(data, signature, slot, block_time)
+            parse_swap_event(data, signature, slot, block_time, grpc_recv_us)
         },
         discriminators::ADD_LIQUIDITY_EVENT => {
-            parse_add_liquidity_event(data, signature, slot, block_time)
+            parse_add_liquidity_event(data, signature, slot, block_time, grpc_recv_us)
         },
         discriminators::REMOVE_LIQUIDITY_EVENT => {
-            parse_remove_liquidity_event(data, signature, slot, block_time)
+            parse_remove_liquidity_event(data, signature, slot, block_time, grpc_recv_us)
         },
         discriminators::BOOTSTRAP_LIQUIDITY_EVENT => {
-            parse_bootstrap_liquidity_event(data, signature, slot, block_time)
+            parse_bootstrap_liquidity_event(data, signature, slot, block_time, grpc_recv_us)
         },
         discriminators::POOL_CREATED_EVENT => {
-            parse_pool_created_event(data, signature, slot, block_time)
+            parse_pool_created_event(data, signature, slot, block_time, grpc_recv_us)
         },
         discriminators::SET_POOL_FEES_EVENT => {
-            parse_set_pool_fees_event(data, signature, slot, block_time)
+            parse_set_pool_fees_event(data, signature, slot, block_time, grpc_recv_us)
         },
         _ => None,
     }
@@ -83,6 +73,7 @@ fn parse_swap_event(
     signature: Signature,
     slot: u64,
     block_time: Option<i64>,
+    grpc_recv_us: i64,
 ) -> Option<DexEvent> {
     let mut offset = 0;
 
@@ -95,7 +86,7 @@ fn parse_swap_event(
     let trade_fee = read_u64_le(data, offset)?;
     offset += 8;
 
-    let protocol_fee = read_u64_le(data, offset)?;
+    let admin_fee = read_u64_le(data, offset)?;
     offset += 8;
 
     let host_fee = read_u64_le(data, offset)?;
@@ -108,7 +99,7 @@ fn parse_swap_event(
         in_amount,
         out_amount,
         trade_fee,
-        protocol_fee,
+        admin_fee,
         host_fee,
     }))
 }
@@ -119,6 +110,7 @@ fn parse_add_liquidity_event(
     signature: Signature,
     slot: u64,
     block_time: Option<i64>,
+    grpc_recv_us: i64,
 ) -> Option<DexEvent> {
     let mut offset = 0;
 
@@ -146,6 +138,7 @@ fn parse_remove_liquidity_event(
     signature: Signature,
     slot: u64,
     block_time: Option<i64>,
+    grpc_recv_us: i64,
 ) -> Option<DexEvent> {
     let mut offset = 0;
 
@@ -173,6 +166,7 @@ fn parse_bootstrap_liquidity_event(
     signature: Signature,
     slot: u64,
     block_time: Option<i64>,
+    grpc_recv_us: i64,
 ) -> Option<DexEvent> {
     let mut offset = 0;
 
@@ -187,7 +181,7 @@ fn parse_bootstrap_liquidity_event(
 
     let pool = read_pubkey(data, offset)?;
 
-    let metadata = create_metadata_simple(signature, slot, block_time, pool);
+    let metadata = create_metadata_simple(signature, slot, block_time, pool, grpc_recv_us);
 
     Some(DexEvent::MeteoraPoolsBootstrapLiquidity(MeteoraPoolsBootstrapLiquidityEvent {
         metadata,
@@ -204,6 +198,7 @@ fn parse_pool_created_event(
     signature: Signature,
     slot: u64,
     block_time: Option<i64>,
+    grpc_recv_us: i64,
 ) -> Option<DexEvent> {
     let mut offset = 0;
 
@@ -221,7 +216,7 @@ fn parse_pool_created_event(
 
     let pool = read_pubkey(data, offset)?;
 
-    let metadata = create_metadata_simple(signature, slot, block_time, pool);
+    let metadata = create_metadata_simple(signature, slot, block_time, pool, grpc_recv_us);
 
     Some(DexEvent::MeteoraPoolsPoolCreated(MeteoraPoolsPoolCreatedEvent {
         metadata,
@@ -239,6 +234,7 @@ fn parse_set_pool_fees_event(
     signature: Signature,
     slot: u64,
     block_time: Option<i64>,
+    grpc_recv_us: i64,
 ) -> Option<DexEvent> {
     let mut offset = 0;
 
@@ -248,22 +244,22 @@ fn parse_set_pool_fees_event(
     let trade_fee_denominator = read_u64_le(data, offset)?;
     offset += 8;
 
-    let protocol_trade_fee_numerator = read_u64_le(data, offset)?;
+    let owner_trade_fee_numerator = read_u64_le(data, offset)?;
     offset += 8;
 
-    let protocol_trade_fee_denominator = read_u64_le(data, offset)?;
+    let owner_trade_fee_denominator = read_u64_le(data, offset)?;
     offset += 8;
 
     let pool = read_pubkey(data, offset)?;
 
-    let metadata = create_metadata_simple(signature, slot, block_time, pool);
+    let metadata = create_metadata_simple(signature, slot, block_time, pool, grpc_recv_us);
 
     Some(DexEvent::MeteoraPoolsSetPoolFees(MeteoraPoolsSetPoolFeesEvent {
         metadata,
         trade_fee_numerator,
         trade_fee_denominator,
-        protocol_trade_fee_numerator,
-        protocol_trade_fee_denominator,
+        owner_trade_fee_numerator,
+        owner_trade_fee_denominator,
         pool,
     }))
 }

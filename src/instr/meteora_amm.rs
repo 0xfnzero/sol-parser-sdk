@@ -68,6 +68,7 @@ pub fn parse_instruction(
     accounts: &[Pubkey],
     signature: Signature,
     slot: u64,
+    tx_index: Option<u64>,
     block_time: Option<i64>,
 ) -> Option<DexEvent> {
     if instruction_data.len() < 8 {
@@ -80,16 +81,16 @@ pub fn parse_instruction(
 
     match instruction_type {
         MeteoraPoolsInstruction::Swap => {
-            parse_swap_instruction(data, accounts, signature, slot, block_time)
+            parse_swap_instruction(data, accounts, signature, slot, tx_index, block_time)
         },
         MeteoraPoolsInstruction::AddLiquidity => {
-            parse_add_liquidity_instruction(data, accounts, signature, slot, block_time)
+            parse_add_liquidity_instruction(data, accounts, signature, slot, tx_index, block_time)
         },
         MeteoraPoolsInstruction::RemoveLiquidity => {
-            parse_remove_liquidity_instruction(data, accounts, signature, slot, block_time)
+            parse_remove_liquidity_instruction(data, accounts, signature, slot, tx_index, block_time)
         },
         MeteoraPoolsInstruction::CreatePool => {
-            parse_create_pool_instruction(data, accounts, signature, slot, block_time)
+            parse_create_pool_instruction(data, accounts, signature, slot, tx_index, block_time)
         },
         _ => None, // 其他指令暂不解析
     }
@@ -101,6 +102,7 @@ fn parse_swap_instruction(
     accounts: &[Pubkey],
     signature: Signature,
     slot: u64,
+    tx_index: Option<u64>,
     block_time: Option<i64>,
 ) -> Option<DexEvent> {
     let mut offset = 0;
@@ -111,14 +113,14 @@ fn parse_swap_instruction(
     let minimum_out_amount = read_u64_le(data, offset)?;
 
     let pool = get_account(accounts, 0)?;
-    let metadata = create_metadata_simple(signature, slot, block_time, pool);
+    let metadata = create_metadata_simple(signature, slot, tx_index, block_time, pool);
 
     Some(DexEvent::MeteoraPoolsSwap(MeteoraPoolsSwapEvent {
         metadata,
         in_amount,
         out_amount: minimum_out_amount, // 先用指令中的最小值，日志会覆盖实际值
         trade_fee: 0, // 从日志中获取
-        protocol_fee: 0, // 从日志中获取
+        admin_fee: 0, // 从日志中获取
         host_fee: 0, // 从日志中获取
     }))
 }
@@ -129,6 +131,7 @@ fn parse_add_liquidity_instruction(
     accounts: &[Pubkey],
     signature: Signature,
     slot: u64,
+    tx_index: Option<u64>,
     block_time: Option<i64>,
 ) -> Option<DexEvent> {
     let mut offset = 0;
@@ -142,7 +145,7 @@ fn parse_add_liquidity_instruction(
     let maximum_token_b_amount = read_u64_le(data, offset)?;
 
     let pool = get_account(accounts, 0)?;
-    let metadata = create_metadata_simple(signature, slot, block_time, pool);
+    let metadata = create_metadata_simple(signature, slot, tx_index, block_time, pool);
 
     Some(DexEvent::MeteoraPoolsAddLiquidity(MeteoraPoolsAddLiquidityEvent {
         metadata,
@@ -158,6 +161,7 @@ fn parse_remove_liquidity_instruction(
     accounts: &[Pubkey],
     signature: Signature,
     slot: u64,
+    tx_index: Option<u64>,
     block_time: Option<i64>,
 ) -> Option<DexEvent> {
     let mut offset = 0;
@@ -171,7 +175,7 @@ fn parse_remove_liquidity_instruction(
     let minimum_token_b_amount = read_u64_le(data, offset)?;
 
     let pool = get_account(accounts, 0)?;
-    let metadata = create_metadata_simple(signature, slot, block_time, pool);
+    let metadata = create_metadata_simple(signature, slot, tx_index, block_time, pool);
 
     Some(DexEvent::MeteoraPoolsRemoveLiquidity(MeteoraPoolsRemoveLiquidityEvent {
         metadata,
@@ -187,6 +191,7 @@ fn parse_create_pool_instruction(
     accounts: &[Pubkey],
     signature: Signature,
     slot: u64,
+    tx_index: Option<u64>,
     block_time: Option<i64>,
 ) -> Option<DexEvent> {
     let mut offset = 0;
@@ -215,7 +220,7 @@ fn parse_create_pool_instruction(
     let token_a_mint = get_account(accounts, 8)?;
     let token_b_mint = get_account(accounts, 9)?;
     let lp_mint = get_account(accounts, 4)?;
-    let metadata = create_metadata_simple(signature, slot, block_time, pool);
+    let metadata = create_metadata_simple(signature, slot, tx_index, block_time, pool);
 
     Some(DexEvent::MeteoraPoolsPoolCreated(MeteoraPoolsPoolCreatedEvent {
         metadata,

@@ -102,6 +102,7 @@ pub fn parse_instruction(
     accounts: &[Pubkey],
     signature: Signature,
     slot: u64,
+    tx_index: Option<u64>,
     block_time: Option<i64>,
 ) -> Option<DexEvent> {
     if instruction_data.len() < 8 {
@@ -114,34 +115,34 @@ pub fn parse_instruction(
 
     match instruction_type {
         MeteoraDammV2Instruction::Swap => {
-            parse_swap_instruction(data, accounts, signature, slot, block_time)
+            parse_swap_instruction(data, accounts, signature, slot, tx_index, block_time)
         },
         MeteoraDammV2Instruction::AddLiquidity => {
-            parse_add_liquidity_instruction(data, accounts, signature, slot, block_time)
+            parse_add_liquidity_instruction(data, accounts, signature, slot, tx_index, block_time)
         },
         MeteoraDammV2Instruction::RemoveLiquidity => {
-            parse_remove_liquidity_instruction(data, accounts, signature, slot, block_time)
+            parse_remove_liquidity_instruction(data, accounts, signature, slot, tx_index, block_time)
         },
         MeteoraDammV2Instruction::InitializeLbPair => {
-            parse_initialize_lb_pair_instruction(data, accounts, signature, slot, block_time)
+            parse_initialize_lb_pair_instruction(data, accounts, signature, slot, tx_index, block_time)
         },
         MeteoraDammV2Instruction::InitializePosition => {
-            parse_initialize_position_instruction(data, accounts, signature, slot, block_time)
+            parse_initialize_position_instruction(data, accounts, signature, slot, tx_index, block_time)
         },
         MeteoraDammV2Instruction::ClosePosition => {
-            parse_close_position_instruction(data, accounts, signature, slot, block_time)
+            parse_close_position_instruction(data, accounts, signature, slot, tx_index, block_time)
         },
         MeteoraDammV2Instruction::ClaimPositionFee => {
-            parse_claim_position_fee_instruction(data, accounts, signature, slot, block_time)
+            parse_claim_position_fee_instruction(data, accounts, signature, slot, tx_index, block_time)
         },
         MeteoraDammV2Instruction::InitializeReward => {
-            parse_initialize_reward_instruction(data, accounts, signature, slot, block_time)
+            parse_initialize_reward_instruction(data, accounts, signature, slot, tx_index, block_time)
         },
         MeteoraDammV2Instruction::FundReward => {
-            parse_fund_reward_instruction(data, accounts, signature, slot, block_time)
+            parse_fund_reward_instruction(data, accounts, signature, slot, tx_index, block_time)
         },
         MeteoraDammV2Instruction::ClaimReward => {
-            parse_claim_reward_instruction(data, accounts, signature, slot, block_time)
+            parse_claim_reward_instruction(data, accounts, signature, slot, tx_index, block_time)
         },
         _ => None, // 其他指令暂不解析
     }
@@ -153,6 +154,7 @@ fn parse_swap_instruction(
     accounts: &[Pubkey],
     signature: Signature,
     slot: u64,
+    tx_index: Option<u64>,
     block_time: Option<i64>,
 ) -> Option<DexEvent> {
     let mut offset = 0;
@@ -164,7 +166,7 @@ fn parse_swap_instruction(
 
     let lb_pair = get_account(accounts, 0)?;
     let user = get_account(accounts, 7)?;
-    let metadata = create_metadata_simple(signature, slot, block_time, lb_pair);
+    let metadata = create_metadata_simple(signature, slot, tx_index, block_time, lb_pair);
 
     Some(DexEvent::MeteoraDammV2Swap(MeteoraDammV2SwapEvent {
         metadata,
@@ -188,6 +190,7 @@ fn parse_add_liquidity_instruction(
     accounts: &[Pubkey],
     signature: Signature,
     slot: u64,
+    tx_index: Option<u64>,
     block_time: Option<i64>,
 ) -> Option<DexEvent> {
     let mut offset = 0;
@@ -204,7 +207,7 @@ fn parse_add_liquidity_instruction(
     let lb_pair = get_account(accounts, 0)?;
     let position = get_account(accounts, 1)?;
     let user = get_account(accounts, 2)?;
-    let metadata = create_metadata_simple(signature, slot, block_time, lb_pair);
+    let metadata = create_metadata_simple(signature, slot, tx_index, block_time, lb_pair);
 
     Some(DexEvent::MeteoraDammV2AddLiquidity(MeteoraDammV2AddLiquidityEvent {
         metadata,
@@ -222,6 +225,7 @@ fn parse_remove_liquidity_instruction(
     accounts: &[Pubkey],
     signature: Signature,
     slot: u64,
+    tx_index: Option<u64>,
     block_time: Option<i64>,
 ) -> Option<DexEvent> {
     let mut offset = 0;
@@ -231,7 +235,7 @@ fn parse_remove_liquidity_instruction(
     let lb_pair = get_account(accounts, 0)?;
     let position = get_account(accounts, 1)?;
     let user = get_account(accounts, 2)?;
-    let metadata = create_metadata_simple(signature, slot, block_time, lb_pair);
+    let metadata = create_metadata_simple(signature, slot, tx_index, block_time, lb_pair);
 
     Some(DexEvent::MeteoraDammV2RemoveLiquidity(MeteoraDammV2RemoveLiquidityEvent {
         metadata,
@@ -249,6 +253,7 @@ fn parse_initialize_lb_pair_instruction(
     accounts: &[Pubkey],
     signature: Signature,
     slot: u64,
+    tx_index: Option<u64>,
     block_time: Option<i64>,
 ) -> Option<DexEvent> {
     let mut offset = 0;
@@ -261,7 +266,7 @@ fn parse_initialize_lb_pair_instruction(
     let lb_pair = get_account(accounts, 0)?;
     let token_x = get_account(accounts, 2)?;
     let token_y = get_account(accounts, 3)?;
-    let metadata = create_metadata_simple(signature, slot, block_time, lb_pair);
+    let metadata = create_metadata_simple(signature, slot, tx_index, block_time, lb_pair);
 
     Some(DexEvent::MeteoraDammV2InitializePool(MeteoraDammV2InitializePoolEvent {
         metadata,
@@ -278,12 +283,13 @@ fn parse_initialize_position_instruction(
     accounts: &[Pubkey],
     signature: Signature,
     slot: u64,
+    tx_index: Option<u64>,
     block_time: Option<i64>,
 ) -> Option<DexEvent> {
     let lb_pair = get_account(accounts, 0)?;
     let position = get_account(accounts, 1)?;
     let owner = get_account(accounts, 2)?;
-    let metadata = create_metadata_simple(signature, slot, block_time, lb_pair);
+    let metadata = create_metadata_simple(signature, slot, tx_index, block_time, lb_pair);
 
     Some(DexEvent::MeteoraDammV2CreatePosition(MeteoraDammV2CreatePositionEvent {
         metadata,
@@ -299,11 +305,12 @@ fn parse_close_position_instruction(
     accounts: &[Pubkey],
     signature: Signature,
     slot: u64,
+    tx_index: Option<u64>,
     block_time: Option<i64>,
 ) -> Option<DexEvent> {
     let position = get_account(accounts, 0)?;
     let owner = get_account(accounts, 1)?;
-    let metadata = create_metadata_simple(signature, slot, block_time, position);
+    let metadata = create_metadata_simple(signature, slot, tx_index, block_time, position);
 
     Some(DexEvent::MeteoraDammV2ClosePosition(MeteoraDammV2ClosePositionEvent {
         metadata,
@@ -318,12 +325,13 @@ fn parse_claim_position_fee_instruction(
     accounts: &[Pubkey],
     signature: Signature,
     slot: u64,
+    tx_index: Option<u64>,
     block_time: Option<i64>,
 ) -> Option<DexEvent> {
     let lb_pair = get_account(accounts, 0)?;
     let position = get_account(accounts, 1)?;
     let owner = get_account(accounts, 2)?;
-    let metadata = create_metadata_simple(signature, slot, block_time, lb_pair);
+    let metadata = create_metadata_simple(signature, slot, tx_index, block_time, lb_pair);
 
     Some(DexEvent::MeteoraDammV2ClaimPositionFee(MeteoraDammV2ClaimPositionFeeEvent {
         metadata,
@@ -341,6 +349,7 @@ fn parse_initialize_reward_instruction(
     accounts: &[Pubkey],
     signature: Signature,
     slot: u64,
+    tx_index: Option<u64>,
     block_time: Option<i64>,
 ) -> Option<DexEvent> {
     let mut offset = 0;
@@ -353,7 +362,7 @@ fn parse_initialize_reward_instruction(
     let lb_pair = get_account(accounts, 0)?;
     let reward_mint = get_account(accounts, 1)?;
     let funder = get_account(accounts, 2)?;
-    let metadata = create_metadata_simple(signature, slot, block_time, lb_pair);
+    let metadata = create_metadata_simple(signature, slot, tx_index, block_time, lb_pair);
 
     Some(DexEvent::MeteoraDammV2InitializeReward(MeteoraDammV2InitializeRewardEvent {
         metadata,
@@ -371,6 +380,7 @@ fn parse_fund_reward_instruction(
     accounts: &[Pubkey],
     signature: Signature,
     slot: u64,
+    tx_index: Option<u64>,
     block_time: Option<i64>,
 ) -> Option<DexEvent> {
     let mut offset = 0;
@@ -382,7 +392,7 @@ fn parse_fund_reward_instruction(
 
     let lb_pair = get_account(accounts, 0)?;
     let funder = get_account(accounts, 1)?;
-    let metadata = create_metadata_simple(signature, slot, block_time, lb_pair);
+    let metadata = create_metadata_simple(signature, slot, tx_index, block_time, lb_pair);
 
     Some(DexEvent::MeteoraDammV2FundReward(MeteoraDammV2FundRewardEvent {
         metadata,
@@ -399,6 +409,7 @@ fn parse_claim_reward_instruction(
     accounts: &[Pubkey],
     signature: Signature,
     slot: u64,
+    tx_index: Option<u64>,
     block_time: Option<i64>,
 ) -> Option<DexEvent> {
     let mut offset = 0;
@@ -408,7 +419,7 @@ fn parse_claim_reward_instruction(
     let lb_pair = get_account(accounts, 0)?;
     let position = get_account(accounts, 1)?;
     let owner = get_account(accounts, 2)?;
-    let metadata = create_metadata_simple(signature, slot, block_time, lb_pair);
+    let metadata = create_metadata_simple(signature, slot, tx_index, block_time, lb_pair);
 
     Some(DexEvent::MeteoraDammV2ClaimReward(MeteoraDammV2ClaimRewardEvent {
         metadata,

@@ -23,6 +23,7 @@ pub fn parse_instruction(
     accounts: &[Pubkey],
     signature: Signature,
     slot: u64,
+    tx_index: Option<u64>,
     block_time: Option<i64>,
 ) -> Option<DexEvent> {
     if instruction_data.len() < 8 {
@@ -34,13 +35,13 @@ pub fn parse_instruction(
 
     match discriminator {
         discriminators::TRADE => {
-            parse_trade_instruction(data, accounts, signature, slot, block_time)
+            parse_trade_instruction(data, accounts, signature, slot, tx_index, block_time)
         },
         discriminators::POOL_CREATE => {
-            parse_pool_create_instruction(data, accounts, signature, slot, block_time)
+            parse_pool_create_instruction(data, accounts, signature, slot, tx_index, block_time)
         },
         discriminators::MIGRATE_AMM => {
-            parse_migrate_amm_instruction(data, accounts, signature, slot, block_time)
+            parse_migrate_amm_instruction(data, accounts, signature, slot, tx_index, block_time)
         },
         _ => None,
     }
@@ -52,6 +53,7 @@ fn parse_trade_instruction(
     accounts: &[Pubkey],
     signature: Signature,
     slot: u64,
+    tx_index: Option<u64>,
     block_time: Option<i64>,
 ) -> Option<DexEvent> {
     let mut offset = 0;
@@ -62,7 +64,7 @@ fn parse_trade_instruction(
     let amount_out_min = read_u64_le(data, offset)?;
 
     let pool_state = get_account(accounts, 0)?;
-    let metadata = create_metadata_simple(signature, slot, block_time, pool_state);
+    let metadata = create_metadata_simple(signature, slot, tx_index, block_time, pool_state);
 
     Some(DexEvent::BonkTrade(BonkTradeEvent {
         metadata,
@@ -82,10 +84,11 @@ fn parse_pool_create_instruction(
     accounts: &[Pubkey],
     signature: Signature,
     slot: u64,
+    tx_index: Option<u64>,
     block_time: Option<i64>,
 ) -> Option<DexEvent> {
     let pool_state = get_account(accounts, 0)?;
-    let metadata = create_metadata_simple(signature, slot, block_time, pool_state);
+    let metadata = create_metadata_simple(signature, slot, tx_index, block_time, pool_state);
 
     Some(DexEvent::BonkPoolCreate(BonkPoolCreateEvent {
         metadata,
@@ -106,6 +109,7 @@ fn parse_migrate_amm_instruction(
     accounts: &[Pubkey],
     signature: Signature,
     slot: u64,
+    tx_index: Option<u64>,
     block_time: Option<i64>,
 ) -> Option<DexEvent> {
     let mut offset = 0;
@@ -113,7 +117,7 @@ fn parse_migrate_amm_instruction(
     let liquidity_amount = read_u64_le(data, offset)?;
 
     let old_pool = get_account(accounts, 0)?;
-    let metadata = create_metadata_simple(signature, slot, block_time, old_pool);
+    let metadata = create_metadata_simple(signature, slot, tx_index, block_time, old_pool);
 
     Some(DexEvent::BonkMigrateAmm(BonkMigrateAmmEvent {
         metadata,

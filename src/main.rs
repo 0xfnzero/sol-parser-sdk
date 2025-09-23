@@ -31,8 +31,6 @@ async fn test_grpc_streaming() -> Result<(), Box<dyn std::error::Error>> {
 
     println!("✅ gRPC client created successfully");
 
-    let callback = create_event_callback();
-
     // Monitor only PumpFun protocol for focused events
     let protocols = vec![
         Protocol::PumpFun,
@@ -53,13 +51,39 @@ async fn test_grpc_streaming() -> Result<(), Box<dyn std::error::Error>> {
     println!("🎧 Starting subscription...");
     println!("🔍 Monitoring programs for DEX events...");
 
-    grpc.subscribe_dex_events(
+    // 使用队列接收事件（性能更优）
+    let rx = grpc.subscribe_dex_events_with_channel(
         vec![transaction_filter],
         vec![account_filter],
         None, // event_type_filter
-        move |event| callback(event),
     )
     .await?;
+
+    // 异步消费事件
+    tokio::spawn(async move {
+        while let Ok(event) = rx.recv() {
+            // 计算从gRPC接收到队列接收的耗时
+            let queue_recv_us = unsafe {
+                let mut ts = libc::timespec { tv_sec: 0, tv_nsec: 0 };
+                libc::clock_gettime(libc::CLOCK_REALTIME, &mut ts);
+                (ts.tv_sec as i64) * 1_000_000 + (ts.tv_nsec as i64) / 1_000
+            };
+
+            match event {
+                DexEvent::PumpFunTrade(e) => {
+                    let latency_us = queue_recv_us - e.metadata.grpc_recv_us;
+                    println!("⏱️  队列接收耗时: {}μs", latency_us);
+                    println!("{:#?}", e);
+                },
+                DexEvent::PumpFunCreate(e) => {
+                    let latency_us = queue_recv_us - e.metadata.grpc_recv_us;
+                    println!("⏱️  队列接收耗时: {}μs", latency_us);
+                    println!("{:#?}", e);
+                },
+                _ => {}
+            }
+        }
+    });
 
     // Auto-stop after 1000 seconds for testing
     let grpc_clone = grpc.clone();
@@ -74,160 +98,6 @@ async fn test_grpc_streaming() -> Result<(), Box<dyn std::error::Error>> {
     println!("👋 Shutting down gracefully...");
 
     Ok(())
-}
-
-fn create_event_callback() -> impl Fn(DexEvent) {
-    |event: DexEvent| {
-        match event {
-            // ========================== PumpFun Events ==========================
-            DexEvent::PumpFunTrade(e) => {
-                println!("{:#?}", e);
-            },
-            DexEvent::PumpFunCreate(e) => {
-                println!("{:#?}", e);
-            },
-
-            // ========================== 暂时注释掉其他事件 ==========================
-
-            /*
-            // ========================== Bonk Events ==========================
-            DexEvent::BonkTrade(e) => {
-                println!(
-                    "[{}] 🔴 Bonk Trade: {} -> {} | Pool: {} | User: {}",
-                    timestamp,
-                    e.amount_in,
-                    e.amount_out,
-                    e.pool_state,
-                    e.user
-                );
-            },
-
-            // ========================== Raydium CPMM Events ==========================
-            DexEvent::RaydiumCpmmSwap(e) => {
-                println!(
-                    "[{}] 🔵 Raydium CPMM Swap: {} -> {} | Pool: {} | User: {} | BaseInput: {}",
-                    timestamp,
-                    e.amount_in,
-                    e.amount_out,
-                    e.pool,
-                    e.user,
-                    e.is_base_input
-                );
-            },
-            DexEvent::RaydiumCpmmDeposit(e) => {
-                println!(
-                    "[{}] 📈 Raydium CPMM Deposit: LP {} | Tokens: {} + {} | Pool: {}",
-                    timestamp,
-                    e.lp_token_amount,
-                    e.token0_amount,
-                    e.token1_amount,
-                    e.pool
-                );
-            },
-            DexEvent::RaydiumCpmmWithdraw(e) => {
-                println!(
-                    "[{}] 📉 Raydium CPMM Withdraw: LP {} | Tokens: {} + {} | Pool: {}",
-                    timestamp,
-                    e.lp_token_amount,
-                    e.token0_amount,
-                    e.token1_amount,
-                    e.pool
-                );
-            },
-            DexEvent::RaydiumCpmmInitialize(e) => {
-                println!(
-                    "[{}] 🎯 Raydium CPMM Initialize: Pool {} | Creator: {} | Initial: {} + {}",
-                    timestamp,
-                    e.pool,
-                    e.creator,
-                    e.init_amount0,
-                    e.init_amount1
-                );
-            },
-
-            // ========================== Raydium CLMM Events ==========================
-            DexEvent::RaydiumClmmSwap(e) => {
-                println!(
-                    "[{}] 🟡 Raydium CLMM Swap: {} | Pool: {} | User: {} | BaseInput: {}",
-                    timestamp,
-                    e.amount,
-                    e.pool,
-                    e.user,
-                    e.is_base_input
-                );
-            },
-            DexEvent::RaydiumClmmOpenPosition(e) => {
-                println!(
-                    "[{}] 📍 Raydium CLMM Open Position: Pool {} | User: {} | Ticks: {} to {} | Liquidity: {}",
-                    timestamp,
-                    e.pool,
-                    e.user,
-                    e.tick_lower_index,
-                    e.tick_upper_index,
-                    e.liquidity
-                );
-            },
-            DexEvent::RaydiumClmmIncreaseLiquidity(e) => {
-                println!(
-                    "[{}] ⬆️ Raydium CLMM Increase Liquidity: Pool {} | User: {} | Liquidity: {} | Max: {} + {}",
-                    timestamp,
-                    e.pool,
-                    e.user,
-                    e.liquidity,
-                    e.amount0_max,
-                    e.amount1_max
-                );
-            },
-
-            // ========================== Raydium AMM V4 Events ==========================
-            DexEvent::RaydiumAmmV4Swap(e) => {
-                println!(
-                    "[{}] 🟠 Raydium AMM V4 Swap: {} -> {} | AMM: {}",
-                    timestamp,
-                    e.amount_in,
-                    e.amount_out,
-                    e.amm
-                );
-            },
-            DexEvent::RaydiumAmmV4Deposit(e) => {
-                println!(
-                    "[{}] 📊 Raydium AMM V4 Deposit: Max Coin: {} | Max PC: {} | AMM: {}",
-                    timestamp,
-                    e.max_coin_amount,
-                    e.max_pc_amount,
-                    e.amm
-                );
-            },
-
-            // ========================== PumpSwap Events ==========================
-            DexEvent::PumpSwapBuy(e) => {
-                println!(
-                    "[{}] 💰 PumpSwap Buy: {} -> {} | Pool: {} | User: {}",
-                    timestamp,
-                    e.sol_amount,
-                    e.token_amount,
-                    e.pool_id,
-                    e.user
-                );
-            },
-            DexEvent::PumpSwapSell(e) => {
-                println!(
-                    "[{}] 💸 PumpSwap Sell: {} -> {} | Pool: {} | User: {}",
-                    timestamp,
-                    e.token_amount,
-                    e.sol_amount,
-                    e.pool_id,
-                    e.user
-                );
-            },
-            */
-
-            // ========================== Other Events ==========================
-            _ => {
-                // 其他事件暂时忽略，只显示PumpFun事件
-            }
-        }
-    }
 }
 
 // Example of implementing custom event listener

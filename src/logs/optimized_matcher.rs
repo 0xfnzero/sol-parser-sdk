@@ -4,6 +4,17 @@
 
 use crate::core::events::DexEvent;
 use solana_sdk::signature::Signature;
+use memchr::memmem;
+use once_cell::sync::Lazy;
+
+/// SIMD 优化的字符串查找器 - 预编译一次，重复使用
+static PUMPFUN_FINDER: Lazy<memmem::Finder> = Lazy::new(|| memmem::Finder::new(b"6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P"));
+static RAYDIUM_AMM_FINDER: Lazy<memmem::Finder> = Lazy::new(|| memmem::Finder::new(b"675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8"));
+static RAYDIUM_CLMM_FINDER: Lazy<memmem::Finder> = Lazy::new(|| memmem::Finder::new(b"CAMMCzo5YL8w4VFF8KVHrK22GGUQpMdRBFSzKNT3t4ivN6"));
+static RAYDIUM_CPMM_FINDER: Lazy<memmem::Finder> = Lazy::new(|| memmem::Finder::new(b"CPMDWBwJDtYax9qKcQP3CtKz7tHjJsN3H8hGrYVD9mZD"));
+static BONK_FINDER: Lazy<memmem::Finder> = Lazy::new(|| memmem::Finder::new(b"Bxby5A7E8xPDGGc3FyJw7m5eK5aqNVLU83H2zLTQDH1b"));
+static PROGRAM_FINDER: Lazy<memmem::Finder> = Lazy::new(|| memmem::Finder::new(b"Program"));
+static PROGRAM_DATA_FINDER: Lazy<memmem::Finder> = Lazy::new(|| memmem::Finder::new(b"Program data: "));
 
 /// 预计算的程序 ID 字符串常量
 pub mod program_id_strings {
@@ -46,66 +57,78 @@ pub enum LogType {
     Unknown,
 }
 
-/// 优化的日志类型检测器
+/// SIMD 优化的日志类型检测器 - 激进早期退出
 #[inline]
 pub fn detect_log_type(log: &str) -> LogType {
-    // 快速检查：如果没有 "Program" 就跳过
-    if !log.contains("Program") {
+    let log_bytes = log.as_bytes();
+
+    // 第一步：快速长度检查 - 太短的日志直接跳过
+    if log_bytes.len() < 20 {
         return LogType::Unknown;
     }
 
-    // 按使用频率排序，最常见的协议优先检查
+    // 第二步：检查是否有 "Program data:" - 这是事件日志的标志
+    let has_program_data = PROGRAM_DATA_FINDER.find(log_bytes).is_some();
 
+    // 只有 "Program data:" 日志才可能是交易事件
+    if !has_program_data {
+        return LogType::Unknown;
+    }
+
+    // 第三步：使用 SIMD 快速检测具体协议
     // PumpFun - 最常见
-    if log.contains(program_id_strings::PUMPFUN_ID) ||
-       (log.contains(program_id_strings::PROGRAM_DATA) && log.len() > 50) {
+    // 优先检查程序ID，如果没有ID但有长数据，也可能是PumpFun
+    if PUMPFUN_FINDER.find(log_bytes).is_some() {
         return LogType::PumpFun;
     }
 
     // Raydium AMM - 高频
-    if log.contains(program_id_strings::RAYDIUM_AMM_V4_ID) {
+    if RAYDIUM_AMM_FINDER.find(log_bytes).is_some() {
         return LogType::RaydiumAmm;
     }
 
     // Raydium CLMM
-    if log.contains(program_id_strings::RAYDIUM_CLMM_ID) {
+    if RAYDIUM_CLMM_FINDER.find(log_bytes).is_some() {
         return LogType::RaydiumClmm;
     }
 
     // Raydium CPMM
-    if log.contains(program_id_strings::RAYDIUM_CPMM_ID) {
+    if RAYDIUM_CPMM_FINDER.find(log_bytes).is_some() {
         return LogType::RaydiumCpmm;
     }
 
-    // Raydium Launchpad
-    if log.contains(program_id_strings::BONK_ID) ||
-       (log.contains("bonk") && log.contains(program_id_strings::PROGRAM_DATA)) {
+    // Raydium Launchpad (Bonk)
+    if BONK_FINDER.find(log_bytes).is_some() {
         return LogType::RaydiumLaunchpad;
     }
 
+    // 以下协议使用较少，放在后面检查
+
     // Orca Whirlpool
-    if log.contains("whirL") && log.contains(program_id_strings::PROGRAM_DATA) {
+    if log.contains("whirL") {
         return LogType::OrcaWhirlpool;
     }
 
-    // Meteora DAMM
-    if log.contains("meteora") && log.contains("LB") {
-        return LogType::MeteoraDamm;
+    // Meteora - 统一检查前缀
+    if let Some(pos) = log.find("meteora") {
+        if log[pos..].contains("LB") {
+            return LogType::MeteoraDamm;
+        } else if log[pos..].contains("DLMM") {
+            return LogType::MeteoraDlmm;
+        } else {
+            return LogType::MeteoraAmm;
+        }
     }
 
-    // Meteora DLMM
-    if log.contains("meteora") && log.contains("DLMM") {
-        return LogType::MeteoraDlmm;
-    }
-
-    // Meteora AMM
-    if log.contains("meteora") && log.contains(program_id_strings::PROGRAM_DATA) {
-        return LogType::MeteoraAmm;
-    }
-
-    // Pump AMM (与 PumpFun 相似)
+    // Pump AMM
     if log.contains("pumpswap") || log.contains("PumpSwap") {
         return LogType::PumpAmm;
+    }
+
+    // 兜底：有 "Program data:" 但无法识别协议的，可能是PumpFun
+    // PumpFun的日志只有 "Program data: <base64>" 没有其他特征
+    if log.len() > 50 {
+        return LogType::PumpFun;
     }
 
     LogType::Unknown
@@ -118,22 +141,23 @@ pub fn parse_log_optimized(
     signature: Signature,
     slot: u64,
     block_time: Option<i64>,
+    grpc_recv_us: i64,
 ) -> Option<DexEvent> {
     // 快速类型检测
     let log_type = detect_log_type(log);
 
-    // 根据类型直接调用相应的解析器，避免重复检查
+    // 根据类型直接调用相应的解析器，传入grpc_recv_us
     match log_type {
-        LogType::PumpFun => crate::logs::parse_pumpfun_log(log, signature, slot, block_time),
-        LogType::RaydiumLaunchpad => crate::logs::parse_raydium_launchpad_log(log, signature, slot, block_time),
-        LogType::PumpAmm => crate::logs::parse_pump_amm_log(log, signature, slot, block_time),
-        LogType::RaydiumClmm => crate::logs::parse_raydium_clmm_log(log, signature, slot, block_time),
-        LogType::RaydiumCpmm => crate::logs::parse_raydium_cpmm_log(log, signature, slot, block_time),
-        LogType::RaydiumAmm => crate::logs::parse_raydium_amm_log(log, signature, slot, block_time),
-        LogType::OrcaWhirlpool => crate::logs::parse_orca_whirlpool_log(log, signature, slot, block_time),
-        LogType::MeteoraAmm => crate::logs::parse_meteora_amm_log(log, signature, slot, block_time),
-        LogType::MeteoraDamm => crate::logs::parse_meteora_damm_log(log, signature, slot, block_time),
-        LogType::MeteoraDlmm => crate::logs::parse_meteora_dlmm_log(log, signature, slot, block_time),
+        LogType::PumpFun => crate::logs::parse_pumpfun_log(log, signature, slot, block_time, grpc_recv_us),
+        LogType::RaydiumLaunchpad => crate::logs::parse_raydium_launchpad_log(log, signature, slot, block_time, grpc_recv_us),
+        LogType::PumpAmm => crate::logs::parse_pump_amm_log(log, signature, slot, block_time, grpc_recv_us),
+        LogType::RaydiumClmm => crate::logs::parse_raydium_clmm_log(log, signature, slot, block_time, grpc_recv_us),
+        LogType::RaydiumCpmm => crate::logs::parse_raydium_cpmm_log(log, signature, slot, block_time, grpc_recv_us),
+        LogType::RaydiumAmm => crate::logs::parse_raydium_amm_log(log, signature, slot, block_time, grpc_recv_us),
+        LogType::OrcaWhirlpool => crate::logs::parse_orca_whirlpool_log(log, signature, slot, block_time, grpc_recv_us),
+        LogType::MeteoraAmm => crate::logs::parse_meteora_amm_log(log, signature, slot, block_time, grpc_recv_us),
+        LogType::MeteoraDamm => crate::logs::parse_meteora_damm_log(log, signature, slot, block_time, grpc_recv_us),
+        LogType::MeteoraDlmm => crate::logs::parse_meteora_dlmm_log(log, signature, slot, block_time, grpc_recv_us),
         LogType::Unknown => None,
     }
 }

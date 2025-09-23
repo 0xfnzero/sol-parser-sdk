@@ -1,9 +1,8 @@
 //! 统一解析器 - 简化的单一入口解析器
 //!
-//! 提供完整的交易解析能力，支持指令和日志数据合并
+//! 提供完整的交易解析能力，支持指令和日志数据处理
 
 use crate::core::events::*;
-use crate::merge::merge_instruction_and_log_events;
 use solana_sdk::{pubkey::Pubkey, signature::Signature};
 
 /// 主要解析函数 - 解析完整交易并返回所有 DEX 事件
@@ -30,7 +29,7 @@ pub fn parse_transaction_events(
 
     // 1. 解析指令事件
     if let Some(instr_event) = crate::instr::parse_instruction_unified(
-        instruction_data, accounts, signature, slot, block_time, program_id
+        instruction_data, accounts, signature, slot, None, block_time, program_id
     ) {
         instruction_events.push(instr_event);
     }
@@ -42,8 +41,9 @@ pub fn parse_transaction_events(
         }
     }
 
-    // 3. 合并指令和日志事件，优先使用日志数据
-    merge_instruction_and_log_events(instruction_events, log_events)
+    // 3. 合并指令和日志事件
+    instruction_events.extend(log_events);
+    instruction_events
 }
 
 /// 简化版本 - 仅解析日志事件
@@ -107,7 +107,7 @@ pub fn parse_transaction_events_streaming<F>(
 {
     // 1. 先解析指令事件（如果有） - 立即回调
     if let Some(instr_event) = crate::instr::parse_instruction_unified(
-        instruction_data, accounts, signature, slot, block_time, program_id
+        instruction_data, accounts, signature, slot, None, block_time, program_id
     ) {
         callback(instr_event);  // 立即回调指令事件
     }

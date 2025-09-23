@@ -36,18 +36,19 @@ pub fn parse_log(
     signature: Signature,
     slot: u64,
     block_time: Option<i64>,
+    grpc_recv_us: i64,
 ) -> Option<DexEvent> {
     if !is_pumpfun_log(log) {
         return None;
     }
 
     // 尝试结构化解析
-    if let Some(event) = parse_structured_log(log, signature, slot, block_time) {
+    if let Some(event) = parse_structured_log(log, signature, slot, block_time, grpc_recv_us) {
         return Some(event);
     }
 
     // 回退到文本解析
-    parse_text_log(log, signature, slot, block_time)
+    parse_text_log(log, signature, slot, block_time, grpc_recv_us)
 }
 
 /// 结构化日志解析（基于 Program data）
@@ -56,6 +57,7 @@ fn parse_structured_log(
     signature: Signature,
     slot: u64,
     block_time: Option<i64>,
+    grpc_recv_us: i64,
 ) -> Option<DexEvent> {
     let program_data = extract_program_data(log)?;
     if program_data.len() < 8 {
@@ -67,13 +69,13 @@ fn parse_structured_log(
 
     match discriminator {
         discriminators::CREATE_EVENT => {
-            parse_create_event(data, signature, slot, block_time)
+            parse_create_event(data, signature, slot, block_time, grpc_recv_us)
         },
         discriminators::TRADE_EVENT => {
-            parse_trade_event(data, signature, slot, block_time)
+            parse_trade_event(data, signature, slot, block_time, grpc_recv_us)
         },
         discriminators::MIGRATE_EVENT => {
-            parse_migrate_event(data, signature, slot, block_time)
+            parse_migrate_event(data, signature, slot, block_time, grpc_recv_us)
         },
         _ => None,
     }
@@ -85,6 +87,7 @@ fn parse_create_event(
     signature: Signature,
     slot: u64,
     block_time: Option<i64>,
+    grpc_recv_us: i64,
 ) -> Option<DexEvent> {
     let mut offset = 0;
 
@@ -126,7 +129,7 @@ fn parse_create_event(
 
     let token_total_supply = read_u64_le(data, offset)?;
 
-    let metadata = create_metadata_simple(signature, slot, block_time, mint);
+    let metadata = create_metadata_simple(signature, slot, block_time, mint, grpc_recv_us);
 
     Some(DexEvent::PumpFunCreate(PumpFunCreateTokenEvent {
         metadata,
@@ -136,8 +139,12 @@ fn parse_create_event(
         mint,
         bonding_curve,
         user,
+        creator,
+        timestamp,
         virtual_token_reserves,
         virtual_sol_reserves,
+        real_token_reserves,
+        token_total_supply,
     }))
 }
 
@@ -147,6 +154,7 @@ fn parse_trade_event(
     signature: Signature,
     slot: u64,
     block_time: Option<i64>,
+    grpc_recv_us: i64,
 ) -> Option<DexEvent> {
     let mut offset = 0;
 
@@ -199,10 +207,18 @@ fn parse_trade_event(
     let creator_fee = read_u64_le(data, offset)?;
     offset += 8;
 
-    // 根据最新IDL TradeEvent，还有track_volume字段
     let track_volume = read_bool(data, offset).unwrap_or(false);
+    offset += 1;
 
-    let metadata = create_metadata_simple(signature, slot, block_time, mint);
+    let total_unclaimed_tokens = read_u64_le(data, offset).unwrap_or(0);
+    offset += 8;
+
+    let total_claimed_tokens = read_u64_le(data, offset).unwrap_or(0);
+    offset += 8;
+
+    let current_sol_volume = read_u64_le(data, offset).unwrap_or(0);
+
+    let metadata = create_metadata_simple(signature, slot, block_time, mint, grpc_recv_us);
 
     Some(DexEvent::PumpFunTrade(PumpFunTradeEvent {
         metadata,
@@ -219,8 +235,15 @@ fn parse_trade_event(
         real_sol_reserves,
         real_token_reserves,
         fee_recipient,
+        fee_basis_points,
+        fee,
         creator,
-        current_sol_volume: 0,
+        creator_fee_basis_points,
+        creator_fee,
+        track_volume,
+        total_unclaimed_tokens,
+        total_claimed_tokens,
+        current_sol_volume,
         last_update_timestamp: timestamp,
 
         // 指令账户字段 - 默认值，由account_filler填充
@@ -237,6 +260,7 @@ fn parse_complete_event(
     signature: Signature,
     slot: u64,
     block_time: Option<i64>,
+    grpc_recv_us: i64,
 ) -> Option<DexEvent> {
     let mut offset = 0;
 
@@ -248,13 +272,16 @@ fn parse_complete_event(
 
     let bonding_curve = read_pubkey(data, offset)?;
 
-    let metadata = create_metadata_simple(signature, slot, block_time, mint);
+    let metadata = create_metadata_simple(signature, slot, block_time, mint, grpc_recv_us);
+
+    let timestamp = read_i64_le(data, offset)?;
 
     Some(DexEvent::PumpFunComplete(PumpFunCompleteTokenEvent {
         metadata,
         user,
         mint,
         bonding_curve,
+        timestamp,
     }))
 }
 
@@ -264,6 +291,7 @@ fn parse_migrate_event(
     signature: Signature,
     slot: u64,
     block_time: Option<i64>,
+    grpc_recv_us: i64,
 ) -> Option<DexEvent> {
     let mut offset = 0;
 
@@ -290,7 +318,7 @@ fn parse_migrate_event(
 
     let pool = read_pubkey(data, offset)?;
 
-    let metadata = create_metadata_simple(signature, slot, block_time, mint);
+    let metadata = create_metadata_simple(signature, slot, block_time, mint, grpc_recv_us);
 
     Some(DexEvent::PumpFunMigrate(PumpFunMigrateEvent {
         metadata,
@@ -305,8 +333,6 @@ fn parse_migrate_event(
         global: Pubkey::default(),
         withdraw_authority: Pubkey::default(),
         associated_bonding_curve: Pubkey::default(),
-        system_program: Pubkey::default(),
-        token_program: Pubkey::default(),
         pump_amm: Pubkey::default(),
         pool_authority: Pubkey::default(),
         pool_authority_mint_account: Pubkey::default(),
@@ -317,11 +343,6 @@ fn parse_migrate_event(
         user_pool_token_account: Pubkey::default(),
         pool_base_token_account: Pubkey::default(),
         pool_quote_token_account: Pubkey::default(),
-        token_2022_program: Pubkey::default(),
-        associated_token_program: Pubkey::default(),
-        pump_amm_event_authority: Pubkey::default(),
-        event_authority: Pubkey::default(),
-        program: Pubkey::default(),
     }))
 }
 
@@ -331,23 +352,24 @@ fn parse_text_log(
     signature: Signature,
     slot: u64,
     block_time: Option<i64>,
+    grpc_recv_us: i64,
 ) -> Option<DexEvent> {
     use super::utils::text_parser::*;
 
     if log.contains("CreateEvent") || log.contains("create") {
-        return parse_create_from_text(log, signature, slot, block_time);
+        return parse_create_from_text(log, signature, slot, block_time, grpc_recv_us);
     }
 
     if log.contains("TradeEvent") || log.contains("swap") || log.contains("trade") {
-        return parse_trade_from_text(log, signature, slot, block_time);
+        return parse_trade_from_text(log, signature, slot, block_time, grpc_recv_us);
     }
 
     if log.contains("CompleteEvent") || log.contains("graduation") {
-        return parse_complete_from_text(log, signature, slot, block_time);
+        return parse_complete_from_text(log, signature, slot, block_time, grpc_recv_us);
     }
 
     if log.contains("MigrateEvent") || log.contains("migrate") {
-        return parse_migrate_from_text(log, signature, slot, block_time);
+        return parse_migrate_from_text(log, signature, slot, block_time, grpc_recv_us);
     }
 
     None
@@ -359,10 +381,11 @@ fn parse_create_from_text(
     signature: Signature,
     slot: u64,
     block_time: Option<i64>,
+    grpc_recv_us: i64,
 ) -> Option<DexEvent> {
     use super::utils::text_parser::*;
 
-    let metadata = create_metadata_simple(signature, slot, block_time, Pubkey::default());
+    let metadata = create_metadata_simple(signature, slot, block_time, Pubkey::default(), grpc_recv_us);
 
     Some(DexEvent::PumpFunCreate(PumpFunCreateTokenEvent {
         metadata,
@@ -372,8 +395,12 @@ fn parse_create_from_text(
         mint: Pubkey::default(),
         bonding_curve: Pubkey::default(),
         user: Pubkey::default(),
+        creator: Pubkey::default(),
+        timestamp: block_time.unwrap_or(0),
         virtual_token_reserves: 1_073_000_000_000_000,
         virtual_sol_reserves: 30_000_000_000,
+        real_token_reserves: 0,
+        token_total_supply: 0,
     }))
 }
 
@@ -383,10 +410,11 @@ fn parse_trade_from_text(
     signature: Signature,
     slot: u64,
     block_time: Option<i64>,
+    grpc_recv_us: i64,
 ) -> Option<DexEvent> {
     use super::utils::text_parser::*;
 
-    let metadata = create_metadata_simple(signature, slot, block_time, Pubkey::default());
+    let metadata = create_metadata_simple(signature, slot, block_time, Pubkey::default(), grpc_recv_us);
     let is_buy = detect_trade_type(log).unwrap_or(true);
 
     Some(DexEvent::PumpFunTrade(PumpFunTradeEvent {
@@ -404,7 +432,14 @@ fn parse_trade_from_text(
         real_sol_reserves: 0,
         real_token_reserves: 0,
         fee_recipient: Pubkey::default(),
+        fee_basis_points: 0,
+        fee: 0,
         creator: Pubkey::default(),
+        creator_fee_basis_points: 0,
+        creator_fee: 0,
+        track_volume: false,
+        total_unclaimed_tokens: 0,
+        total_claimed_tokens: 0,
         current_sol_volume: 0,
         last_update_timestamp: block_time.unwrap_or(0),
 
@@ -422,14 +457,16 @@ fn parse_complete_from_text(
     signature: Signature,
     slot: u64,
     block_time: Option<i64>,
+    grpc_recv_us: i64,
 ) -> Option<DexEvent> {
-    let metadata = create_metadata_simple(signature, slot, block_time, Pubkey::default());
+    let metadata = create_metadata_simple(signature, slot, block_time, Pubkey::default(), grpc_recv_us);
 
     Some(DexEvent::PumpFunComplete(PumpFunCompleteTokenEvent {
         metadata,
         user: Pubkey::default(),
         mint: Pubkey::default(),
         bonding_curve: Pubkey::default(),
+        timestamp: block_time.unwrap_or(0),
     }))
 }
 
@@ -439,10 +476,11 @@ fn parse_migrate_from_text(
     signature: Signature,
     slot: u64,
     block_time: Option<i64>,
+    grpc_recv_us: i64,
 ) -> Option<DexEvent> {
     use super::utils::text_parser::*;
 
-    let metadata = create_metadata_simple(signature, slot, block_time, Pubkey::default());
+    let metadata = create_metadata_simple(signature, slot, block_time, Pubkey::default(), grpc_recv_us);
 
     Some(DexEvent::PumpFunMigrate(PumpFunMigrateEvent {
         metadata,
@@ -457,8 +495,6 @@ fn parse_migrate_from_text(
         global: Pubkey::default(),
         withdraw_authority: Pubkey::default(),
         associated_bonding_curve: Pubkey::default(),
-        system_program: Pubkey::default(),
-        token_program: Pubkey::default(),
         pump_amm: Pubkey::default(),
         pool_authority: Pubkey::default(),
         pool_authority_mint_account: Pubkey::default(),
@@ -469,10 +505,5 @@ fn parse_migrate_from_text(
         user_pool_token_account: Pubkey::default(),
         pool_base_token_account: Pubkey::default(),
         pool_quote_token_account: Pubkey::default(),
-        token_2022_program: Pubkey::default(),
-        associated_token_program: Pubkey::default(),
-        pump_amm_event_authority: Pubkey::default(),
-        event_authority: Pubkey::default(),
-        program: Pubkey::default(),
     }))
 }

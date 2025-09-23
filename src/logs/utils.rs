@@ -17,59 +17,42 @@ pub fn extract_program_data(log: &str) -> Option<Vec<u8>> {
     }
 }
 
-/// 从字节数组中读取 u64（小端序）
+/// 从字节数组中读取 u64（小端序）- SIMD 优化
 #[inline]
 pub fn read_u64_le(data: &[u8], offset: usize) -> Option<u64> {
-    if data.len() < offset + 8 {
-        return None;
-    }
-    let bytes = &data[offset..offset + 8];
-    Some(u64::from_le_bytes([
-        bytes[0], bytes[1], bytes[2], bytes[3],
-        bytes[4], bytes[5], bytes[6], bytes[7]
-    ]))
+    data.get(offset..offset + 8)
+        .map(|slice| u64::from_le_bytes(slice.try_into().unwrap()))
 }
 
-/// 从字节数组中读取 u32（小端序）
+/// 从字节数组中读取 u32（小端序）- SIMD 优化
 #[inline]
 pub fn read_u32_le(data: &[u8], offset: usize) -> Option<u32> {
-    if data.len() < offset + 4 {
-        return None;
-    }
-    let bytes = &data[offset..offset + 4];
-    Some(u32::from_le_bytes([bytes[0], bytes[1], bytes[2], bytes[3]]))
+    data.get(offset..offset + 4)
+        .map(|slice| u32::from_le_bytes(slice.try_into().unwrap()))
 }
 
-/// 从字节数组中读取 i64（小端序）
+/// 从字节数组中读取 i64（小端序）- SIMD 优化
 pub fn read_i64_le(data: &[u8], offset: usize) -> Option<i64> {
-    if data.len() < offset + 8 {
-        return None;
-    }
-    Some(i64::from_le_bytes(data[offset..offset + 8].try_into().ok()?))
+    data.get(offset..offset + 8)
+        .map(|slice| i64::from_le_bytes(slice.try_into().unwrap()))
 }
 
-/// 从字节数组中读取 i32（小端序）
+/// 从字节数组中读取 i32（小端序）- SIMD 优化
 pub fn read_i32_le(data: &[u8], offset: usize) -> Option<i32> {
-    if data.len() < offset + 4 {
-        return None;
-    }
-    Some(i32::from_le_bytes(data[offset..offset + 4].try_into().ok()?))
+    data.get(offset..offset + 4)
+        .map(|slice| i32::from_le_bytes(slice.try_into().unwrap()))
 }
 
-/// 从字节数组中读取 u128（小端序）
+/// 从字节数组中读取 u128（小端序）- SIMD 优化
 pub fn read_u128_le(data: &[u8], offset: usize) -> Option<u128> {
-    if data.len() < offset + 16 {
-        return None;
-    }
-    Some(u128::from_le_bytes(data[offset..offset + 16].try_into().ok()?))
+    data.get(offset..offset + 16)
+        .map(|slice| u128::from_le_bytes(slice.try_into().unwrap()))
 }
 
-/// 从字节数组中读取 u16（小端序）
+/// 从字节数组中读取 u16（小端序）- SIMD 优化
 pub fn read_u16_le(data: &[u8], offset: usize) -> Option<u16> {
-    if data.len() < offset + 2 {
-        return None;
-    }
-    Some(u16::from_le_bytes(data[offset..offset + 2].try_into().ok()?))
+    data.get(offset..offset + 2)
+        .map(|slice| u16::from_le_bytes(slice.try_into().unwrap()))
 }
 
 /// 从字节数组中读取 u8
@@ -77,15 +60,14 @@ pub fn read_u8(data: &[u8], offset: usize) -> Option<u8> {
     data.get(offset).copied()
 }
 
-/// 从字节数组中读取 Pubkey（32字节）
+/// 从字节数组中读取 Pubkey（32字节）- SIMD 优化
 #[inline]
 pub fn read_pubkey(data: &[u8], offset: usize) -> Option<Pubkey> {
-    if data.len() < offset + 32 {
-        return None;
-    }
-    let mut key_bytes = [0u8; 32];
-    key_bytes.copy_from_slice(&data[offset..offset + 32]);
-    Some(Pubkey::new_from_array(key_bytes))
+    data.get(offset..offset + 32)
+        .and_then(|slice| {
+            let key_bytes: [u8; 32] = slice.try_into().ok()?;
+            Some(Pubkey::new_from_array(key_bytes))
+        })
 }
 
 /// 从字节数组中读取字符串
@@ -119,18 +101,14 @@ pub fn create_metadata_simple(
     slot: u64,
     block_time: Option<i64>,
     program_id: Pubkey,
+    grpc_recv_us: i64,
 ) -> EventMetadata {
-    let current_time = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .unwrap()
-        .as_micros() as i64;
-
     EventMetadata {
         signature,
         slot,
-        tx_index: 0,
+        tx_index: None,
         block_time_us: block_time.unwrap_or(0) * 1_000_000,
-        grpc_recv_us: current_time,
+        grpc_recv_us,
     }
 }
 
@@ -140,15 +118,23 @@ pub fn create_metadata_default(
     slot: u64,
     block_time: Option<i64>,
 ) -> EventMetadata {
-    let current_time = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .unwrap()
-        .as_micros() as i64;
+    // 优化：macOS 使用 CLOCK_REALTIME（Linux 可用 CLOCK_REALTIME_COARSE）
+    let current_time = unsafe {
+        let mut ts = libc::timespec {
+            tv_sec: 0,
+            tv_nsec: 0,
+        };
+        #[cfg(target_os = "linux")]
+        libc::clock_gettime(libc::CLOCK_REALTIME_COARSE, &mut ts);
+        #[cfg(not(target_os = "linux"))]
+        libc::clock_gettime(libc::CLOCK_REALTIME, &mut ts);
+        (ts.tv_sec as i64 * 1_000_000) + (ts.tv_nsec as i64 / 1_000)
+    };
 
     EventMetadata {
         signature,
         slot,
-        tx_index: 0,
+        tx_index: None,  // 日志解析无tx_index信息
         block_time_us: block_time.unwrap_or(0) * 1_000_000,
         grpc_recv_us: current_time,
     }

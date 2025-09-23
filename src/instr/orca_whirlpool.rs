@@ -113,6 +113,7 @@ pub fn parse_instruction(
     accounts: &[Pubkey],
     signature: Signature,
     slot: u64,
+    tx_index: Option<u64>,
     block_time: Option<i64>,
 ) -> Option<DexEvent> {
     if instruction_data.len() < 8 {
@@ -125,16 +126,16 @@ pub fn parse_instruction(
 
     match instruction_type {
         OrcaWhirlpoolInstruction::Swap | OrcaWhirlpoolInstruction::SwapV2 => {
-            parse_swap_instruction(data, accounts, signature, slot, block_time)
+            parse_swap_instruction(data, accounts, signature, slot, tx_index, block_time)
         },
         OrcaWhirlpoolInstruction::IncreaseLiquidity | OrcaWhirlpoolInstruction::IncreaseLiquidityV2 => {
-            parse_increase_liquidity_instruction(data, accounts, signature, slot, block_time)
+            parse_increase_liquidity_instruction(data, accounts, signature, slot, tx_index, block_time)
         },
         OrcaWhirlpoolInstruction::DecreaseLiquidity | OrcaWhirlpoolInstruction::DecreaseLiquidityV2 => {
-            parse_decrease_liquidity_instruction(data, accounts, signature, slot, block_time)
+            parse_decrease_liquidity_instruction(data, accounts, signature, slot, tx_index, block_time)
         },
         OrcaWhirlpoolInstruction::InitializePool | OrcaWhirlpoolInstruction::InitializePoolV2 => {
-            parse_initialize_pool_instruction(data, accounts, signature, slot, block_time)
+            parse_initialize_pool_instruction(data, accounts, signature, slot, tx_index, block_time)
         },
         _ => None, // 其他指令暂不解析
     }
@@ -146,6 +147,7 @@ fn parse_swap_instruction(
     accounts: &[Pubkey],
     signature: Signature,
     slot: u64,
+    tx_index: Option<u64>,
     block_time: Option<i64>,
 ) -> Option<DexEvent> {
     let mut offset = 0;
@@ -165,7 +167,7 @@ fn parse_swap_instruction(
     let a_to_b = read_bool(data, offset)?;
 
     let whirlpool = get_account(accounts, 1)?;
-    let metadata = create_metadata_simple(signature, slot, block_time, whirlpool);
+    let metadata = create_metadata_simple(signature, slot, tx_index, block_time, whirlpool);
 
     Some(DexEvent::OrcaWhirlpoolSwap(OrcaWhirlpoolSwapEvent {
         metadata,
@@ -210,6 +212,7 @@ fn parse_increase_liquidity_instruction(
     accounts: &[Pubkey],
     signature: Signature,
     slot: u64,
+    tx_index: Option<u64>,
     block_time: Option<i64>,
 ) -> Option<DexEvent> {
     let mut offset = 0;
@@ -224,7 +227,7 @@ fn parse_increase_liquidity_instruction(
 
     let whirlpool = get_account(accounts, 1)?;
     let position = get_account(accounts, 3)?;
-    let metadata = create_metadata_simple(signature, slot, block_time, whirlpool);
+    let metadata = create_metadata_simple(signature, slot, tx_index, block_time, whirlpool);
 
     Some(DexEvent::OrcaWhirlpoolLiquidityIncreased(OrcaWhirlpoolLiquidityIncreasedEvent {
         metadata,
@@ -246,6 +249,7 @@ fn parse_decrease_liquidity_instruction(
     accounts: &[Pubkey],
     signature: Signature,
     slot: u64,
+    tx_index: Option<u64>,
     block_time: Option<i64>,
 ) -> Option<DexEvent> {
     let mut offset = 0;
@@ -260,7 +264,7 @@ fn parse_decrease_liquidity_instruction(
 
     let whirlpool = get_account(accounts, 1)?;
     let position = get_account(accounts, 3)?;
-    let metadata = create_metadata_simple(signature, slot, block_time, whirlpool);
+    let metadata = create_metadata_simple(signature, slot, tx_index, block_time, whirlpool);
 
     Some(DexEvent::OrcaWhirlpoolLiquidityDecreased(OrcaWhirlpoolLiquidityDecreasedEvent {
         metadata,
@@ -282,6 +286,7 @@ fn parse_initialize_pool_instruction(
     accounts: &[Pubkey],
     signature: Signature,
     slot: u64,
+    tx_index: Option<u64>,
     block_time: Option<i64>,
 ) -> Option<DexEvent> {
     let mut offset = 0;
@@ -295,7 +300,7 @@ fn parse_initialize_pool_instruction(
     let whirlpools_config = get_account(accounts, 2)?;
     let token_mint_a = get_account(accounts, 3)?;
     let token_mint_b = get_account(accounts, 4)?;
-    let metadata = create_metadata_simple(signature, slot, block_time, whirlpool);
+    let metadata = create_metadata_simple(signature, slot, tx_index, block_time, whirlpool);
 
     Some(DexEvent::OrcaWhirlpoolPoolInitialized(OrcaWhirlpoolPoolInitializedEvent {
         metadata,

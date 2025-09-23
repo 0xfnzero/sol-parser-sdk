@@ -18,8 +18,5 @@ pub use unified_parser::{
     parse_transaction_events_streaming, parse_logs_streaming, parse_transaction_with_streaming_listener, StreamingEventListener
 };
 
-// 导出事件合并功能
-pub use crate::merge::merge_instruction_and_log_events;
-
 // 兼容性类型
 pub type ParsedEvent = DexEvent;

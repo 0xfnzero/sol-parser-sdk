@@ -7,7 +7,7 @@ use crate::core::events::EventMetadata;
 pub fn create_metadata(
     signature: Signature,
     slot: u64,
-    tx_index: u64,
+    tx_index: Option<u64>,
     block_time_us: i64,
     grpc_recv_us: i64,
 ) -> EventMetadata {
@@ -20,86 +20,93 @@ pub fn create_metadata(
     }
 }
 
-/// 创建事件元数据的兼容性函数（旧版本）
+/// 创建事件元数据的兼容性函数（用于指令解析）
+#[inline(always)]
 pub fn create_metadata_simple(
     signature: Signature,
     slot: u64,
+    tx_index: Option<u64>,
     block_time: Option<i64>,
     _program_id: Pubkey,
 ) -> EventMetadata {
-    let current_time = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .unwrap()
-        .as_micros() as i64;
+    // 优化：macOS 使用 CLOCK_REALTIME（Linux 可用 CLOCK_REALTIME_COARSE）
+    let current_time = unsafe {
+        let mut ts = libc::timespec {
+            tv_sec: 0,
+            tv_nsec: 0,
+        };
+        #[cfg(target_os = "linux")]
+        libc::clock_gettime(libc::CLOCK_REALTIME_COARSE, &mut ts);
+        #[cfg(not(target_os = "linux"))]
+        libc::clock_gettime(libc::CLOCK_REALTIME, &mut ts);
+        (ts.tv_sec as i64 * 1_000_000) + (ts.tv_nsec as i64 / 1_000)
+    };
 
     EventMetadata {
         signature,
         slot,
-        tx_index: 0,
-        block_time_us: block_time.unwrap_or(0) * 1_000_000,
+        tx_index,
+        block_time_us: block_time.map_or(0, |t| t * 1_000_000),
         grpc_recv_us: current_time,
     }
 }
 
-/// 从指令数据中读取 u64（小端序）
+/// 从指令数据中读取 u64（小端序）- SIMD 优化
+#[inline(always)]
 pub fn read_u64_le(data: &[u8], offset: usize) -> Option<u64> {
-    if data.len() < offset + 8 {
-        return None;
-    }
-    Some(u64::from_le_bytes(data[offset..offset + 8].try_into().ok()?))
+    data.get(offset..offset + 8)
+        .map(|slice| u64::from_le_bytes(slice.try_into().unwrap()))
 }
 
-/// 从指令数据中读取 u32（小端序）
+/// 从指令数据中读取 u32（小端序）- SIMD 优化
+#[inline(always)]
 pub fn read_u32_le(data: &[u8], offset: usize) -> Option<u32> {
-    if data.len() < offset + 4 {
-        return None;
-    }
-    Some(u32::from_le_bytes(data[offset..offset + 4].try_into().ok()?))
+    data.get(offset..offset + 4)
+        .map(|slice| u32::from_le_bytes(slice.try_into().unwrap()))
 }
 
-/// 从指令数据中读取 u16（小端序）
+/// 从指令数据中读取 u16（小端序）- SIMD 优化
+#[inline(always)]
 pub fn read_u16_le(data: &[u8], offset: usize) -> Option<u16> {
-    if data.len() < offset + 2 {
-        return None;
-    }
-    Some(u16::from_le_bytes(data[offset..offset + 2].try_into().ok()?))
+    data.get(offset..offset + 2)
+        .map(|slice| u16::from_le_bytes(slice.try_into().unwrap()))
 }
 
 /// 从指令数据中读取 u8
+#[inline(always)]
 pub fn read_u8(data: &[u8], offset: usize) -> Option<u8> {
     data.get(offset).copied()
 }
 
-/// 从指令数据中读取 i32（小端序）
+/// 从指令数据中读取 i32（小端序）- SIMD 优化
+#[inline(always)]
 pub fn read_i32_le(data: &[u8], offset: usize) -> Option<i32> {
-    if data.len() < offset + 4 {
-        return None;
-    }
-    Some(i32::from_le_bytes(data[offset..offset + 4].try_into().ok()?))
+    data.get(offset..offset + 4)
+        .map(|slice| i32::from_le_bytes(slice.try_into().unwrap()))
 }
 
-/// 从指令数据中读取 u128（小端序）
+/// 从指令数据中读取 u128（小端序）- SIMD 优化
+#[inline(always)]
 pub fn read_u128_le(data: &[u8], offset: usize) -> Option<u128> {
-    if data.len() < offset + 16 {
-        return None;
-    }
-    Some(u128::from_le_bytes(data[offset..offset + 16].try_into().ok()?))
+    data.get(offset..offset + 16)
+        .map(|slice| u128::from_le_bytes(slice.try_into().unwrap()))
 }
 
 /// 从指令数据中读取布尔值
+#[inline(always)]
 pub fn read_bool(data: &[u8], offset: usize) -> Option<bool> {
     data.get(offset).map(|&b| b != 0)
 }
 
-/// 从指令数据中读取公钥
+/// 从指令数据中读取公钥 - SIMD 优化
+#[inline(always)]
 pub fn read_pubkey(data: &[u8], offset: usize) -> Option<Pubkey> {
-    if data.len() < offset + 32 {
-        return None;
-    }
-    Pubkey::try_from(&data[offset..offset + 32]).ok()
+    data.get(offset..offset + 32)
+        .and_then(|slice| Pubkey::try_from(slice).ok())
 }
 
 /// 从账户列表中获取账户
+#[inline(always)]
 pub fn get_account(accounts: &[Pubkey], index: usize) -> Option<Pubkey> {
     accounts.get(index).copied()
 }

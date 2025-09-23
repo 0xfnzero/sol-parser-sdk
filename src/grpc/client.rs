@@ -7,6 +7,7 @@ use std::collections::HashMap;
 use futures::StreamExt;
 use log::error;
 use tonic::transport::ClientTlsConfig;
+use crossbeam_channel::{unbounded, Sender, Receiver};
 
 
 #[derive(Clone)]
@@ -37,13 +38,78 @@ impl YellowstoneGrpc {
         })
     }
 
-    /// 订阅DEX事件
+    /// 订阅DEX事件（无锁队列版本）
+    pub async fn subscribe_dex_events_with_channel(
+        &self,
+        transaction_filters: Vec<TransactionFilter>,
+        account_filters: Vec<AccountFilter>,
+        event_type_filter: Option<EventTypeFilter>,
+    ) -> Result<Receiver<DexEvent>, Box<dyn std::error::Error>> {
+        let (tx, rx) = unbounded();
+
+        let self_clone = self.clone();
+        tokio::spawn(async move {
+            let _ = self_clone.subscribe_dex_events_internal(
+                transaction_filters,
+                account_filters,
+                event_type_filter,
+                tx,
+            ).await;
+        });
+
+        Ok(rx)
+    }
+
+    /// 订阅DEX事件（回调版本 - 兼容旧接口）
     pub async fn subscribe_dex_events(
         &self,
         transaction_filters: Vec<TransactionFilter>,
         account_filters: Vec<AccountFilter>,
         event_type_filter: Option<EventTypeFilter>,
         callback: impl Fn(DexEvent) + Send + Sync + 'static,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        let rx = self.subscribe_dex_events_with_channel(
+            transaction_filters,
+            account_filters,
+            event_type_filter,
+        ).await?;
+
+        tokio::spawn(async move {
+            while let Ok(event) = rx.recv() {
+                // 计算从gRPC接收到队列接收的耗时
+                let queue_recv_us = unsafe {
+                    let mut ts = libc::timespec { tv_sec: 0, tv_nsec: 0 };
+                    libc::clock_gettime(libc::CLOCK_REALTIME, &mut ts);
+                    (ts.tv_sec as i64) * 1_000_000 + (ts.tv_nsec as i64) / 1_000
+                };
+
+                let grpc_recv_us = match &event {
+                    DexEvent::PumpFunTrade(e) => e.metadata.grpc_recv_us,
+                    DexEvent::PumpFunCreate(e) => e.metadata.grpc_recv_us,
+                    DexEvent::PumpFunMigrate(e) => e.metadata.grpc_recv_us,
+                    DexEvent::RaydiumAmmV4Swap(e) => e.metadata.grpc_recv_us,
+                    DexEvent::RaydiumClmmSwap(e) => e.metadata.grpc_recv_us,
+                    DexEvent::RaydiumCpmmSwap(e) => e.metadata.grpc_recv_us,
+                    _ => 0,
+                };
+
+                let latency_us = queue_recv_us - grpc_recv_us;
+                println!("⏱️  队列接收耗时: {}μs", latency_us);
+
+                callback(event);
+            }
+        });
+
+        Ok(())
+    }
+
+    /// 内部订阅实现
+    async fn subscribe_dex_events_internal(
+        &self,
+        transaction_filters: Vec<TransactionFilter>,
+        account_filters: Vec<AccountFilter>,
+        event_type_filter: Option<EventTypeFilter>,
+        tx: Sender<DexEvent>,
     ) -> Result<(), Box<dyn std::error::Error>> {
         println!("🚀 Starting DEX event subscription...");
         println!("🌐 gRPC endpoint: {}", self.endpoint);
@@ -158,8 +224,7 @@ impl YellowstoneGrpc {
         println!("✅ Subscription established successfully");
         println!("🎧 Listening for real-time events...");
 
-        // 处理订阅响应 - 正确处理 yellowstone-grpc 消息
-        let callback = std::sync::Arc::new(callback);
+        // 处理订阅响应 - 使用无锁队列
         tokio::spawn(async move {
             let mut event_count = 0;
             let start_time = std::time::Instant::now();
@@ -169,31 +234,21 @@ impl YellowstoneGrpc {
                     Ok(msg) => {
                         event_count += 1;
 
-                        // 统计消息处理（不显示）
-                        // if event_count % 100 == 0 {
-                        //     let elapsed = start_time.elapsed().as_secs();
-                        //     let rate = if elapsed > 0 { event_count / elapsed } else { 0 };
-                        //     println!("📊 Processed {} messages ({} msg/sec)", event_count, rate);
-                        // }
-
                         match msg.update_oneof {
                             Some(subscribe_update::UpdateOneof::Transaction(transaction_update)) => {
-                                let mut event_count = 0;
-                                // 流式解析交易事件 - 每解析出一个事件就立即回调
-                                Self::parse_transaction_to_events_streaming(&transaction_update, &mut |event| {
-                                    event_count += 1;
-                                    // 执行用户回调
-                                    callback(event);
-                                }).await;
+                                // 记录gRPC接收时间（微秒）
+                                let grpc_recv_us = unsafe {
+                                    let mut ts = libc::timespec { tv_sec: 0, tv_nsec: 0 };
+                                    libc::clock_gettime(libc::CLOCK_REALTIME, &mut ts);
+                                    (ts.tv_sec as i64) * 1_000_000 + (ts.tv_nsec as i64) / 1_000
+                                };
+                                Self::parse_transaction_to_events_streaming_queue(&transaction_update, grpc_recv_us, &tx).await;
                             },
                             Some(subscribe_update::UpdateOneof::Account(_account_update)) => {
-                                // Account updates - 暂时忽略
                             },
                             Some(subscribe_update::UpdateOneof::Slot(_slot_update)) => {
-                                // Slot updates - 暂时忽略
                             },
                             _ => {
-                                // 其他类型更新 - 暂时忽略
                             }
                         }
                     },
@@ -221,19 +276,15 @@ impl YellowstoneGrpc {
                 // 从交易中提取指令数据
                 if let Some(tx) = &transaction_info.transaction {
                     if let Some(message) = &tx.message {
-                        // 解析账户密钥
-                        let accounts: Vec<Pubkey> = message.account_keys
-                            .iter()
-                            .filter_map(|key| {
-                                if key.len() == 32 {
-                                    let mut pubkey_bytes = [0u8; 32];
-                                    pubkey_bytes.copy_from_slice(key);
-                                    Some(Pubkey::new_from_array(pubkey_bytes))
-                                } else {
-                                    None
-                                }
-                            })
-                            .collect();
+                        // 解析账户密钥（预分配容量以减少重新分配）
+                        let mut accounts = Vec::with_capacity(message.account_keys.len());
+                        for key in &message.account_keys {
+                            if key.len() == 32 {
+                                let mut pubkey_bytes = [0u8; 32];
+                                pubkey_bytes.copy_from_slice(key);
+                                accounts.push(Pubkey::new_from_array(pubkey_bytes));
+                            }
+                        }
 
                         // 解析签名
                         let signature = if let Some(sig) = tx.signatures.first() {
@@ -281,35 +332,103 @@ impl YellowstoneGrpc {
         None
     }
 
+    /// 流式解析交易为 DEX 事件 - 队列版本（直接发送到无锁队列）
+    async fn parse_transaction_to_events_streaming_queue(
+        transaction_update: &SubscribeUpdateTransaction,
+        grpc_recv_us: i64,
+        tx: &Sender<DexEvent>,
+    ) {
+        // 从 transaction_update 中提取数据
+        if let Some(transaction_info) = &transaction_update.transaction {
+            let tx_index = transaction_info.index;
+
+            if let Some(meta) = &transaction_info.meta {
+                let logs = &meta.log_messages;
+
+                if let Some(tx_msg) = &transaction_info.transaction {
+                    if let Some(message) = &tx_msg.message {
+                        // 解析账户密钥
+                        let mut accounts = Vec::with_capacity(message.account_keys.len());
+                        for key in &message.account_keys {
+                            if key.len() == 32 {
+                                let mut pubkey_bytes = [0u8; 32];
+                                pubkey_bytes.copy_from_slice(key);
+                                accounts.push(Pubkey::new_from_array(pubkey_bytes));
+                            }
+                        }
+
+                        // 解析签名
+                        let signature = if let Some(sig) = tx_msg.signatures.first() {
+                            if sig.len() == 64 {
+                                let mut sig_array = [0u8; 64];
+                                sig_array.copy_from_slice(sig);
+                                solana_sdk::signature::Signature::from(sig_array)
+                            } else {
+                                solana_sdk::signature::Signature::default()
+                            }
+                        } else {
+                            solana_sdk::signature::Signature::default()
+                        };
+
+                        let block_time = Some(chrono::Utc::now().timestamp());
+                        let mut log_events_parsed = false;
+
+                        // 流式解析所有指令
+                        for instruction in &message.instructions {
+                            let program_id_index = instruction.program_id_index as usize;
+                            if program_id_index < accounts.len() {
+                                let program_id = accounts[program_id_index];
+
+                                Self::parse_transaction_events_streaming_with_queue(
+                                    &instruction.data,
+                                    &accounts,
+                                    &logs,
+                                    signature,
+                                    transaction_update.slot,
+                                    tx_index,
+                                    block_time,
+                                    &program_id,
+                                    grpc_recv_us,
+                                    tx,
+                                    &mut log_events_parsed,
+                                );
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     /// 流式解析交易为 DEX 事件 - 每解析出一个事件立即回调
     async fn parse_transaction_to_events_streaming<F>(
         transaction_update: &SubscribeUpdateTransaction,
+        grpc_recv_time: std::time::Instant,
         callback: &mut F
     ) where
         F: FnMut(DexEvent)
     {
         // 从 transaction_update 中提取数据
         if let Some(transaction_info) = &transaction_update.transaction {
+            // 提取 transaction index (SubscribeUpdateTransactionInfo 有 index 字段)
+            let tx_index = transaction_info.index;
+
             if let Some(meta) = &transaction_info.meta {
-                // 从 meta 中提取日志
-                let logs: Vec<String> = meta.log_messages.clone();
+                // 使用引用避免 clone，提升性能
+                let logs = &meta.log_messages;
 
                 // 从交易中提取指令数据
                 if let Some(tx) = &transaction_info.transaction {
                     if let Some(message) = &tx.message {
-                        // 解析账户密钥
-                        let accounts: Vec<Pubkey> = message.account_keys
-                            .iter()
-                            .filter_map(|key| {
-                                if key.len() == 32 {
-                                    let mut pubkey_bytes = [0u8; 32];
-                                    pubkey_bytes.copy_from_slice(key);
-                                    Some(Pubkey::new_from_array(pubkey_bytes))
-                                } else {
-                                    None
-                                }
-                            })
-                            .collect();
+                        // 解析账户密钥（预分配容量以减少重新分配）
+                        let mut accounts = Vec::with_capacity(message.account_keys.len());
+                        for key in &message.account_keys {
+                            if key.len() == 32 {
+                                let mut pubkey_bytes = [0u8; 32];
+                                pubkey_bytes.copy_from_slice(key);
+                                accounts.push(Pubkey::new_from_array(pubkey_bytes));
+                            }
+                        }
 
                         // 解析签名
                         let signature = if let Some(sig) = tx.signatures.first() {
@@ -324,8 +443,11 @@ impl YellowstoneGrpc {
                             solana_sdk::signature::Signature::default()
                         };
 
-                        // 预先计算时间戳，避免重复系统调用
+                        // 预先计算时间戳（只调用一次），避免重复系统调用
                         let block_time = Some(chrono::Utc::now().timestamp());
+
+                        // 优化：日志只解析一次，所有指令共享解析结果
+                        let mut log_events_parsed = false;
 
                         // 流式解析所有指令 - 每解析出一个事件就立即回调
                         for instruction in &message.instructions {
@@ -340,14 +462,72 @@ impl YellowstoneGrpc {
                                     &logs,
                                     signature,
                                     transaction_update.slot,
+                                    tx_index,
                                     block_time,
                                     &program_id,
+                                    grpc_recv_time,
                                     callback,
+                                    &mut log_events_parsed,  // 传递标志，避免重复解析日志
                                 );
                             }
                         }
                     }
                 }
+            }
+        }
+    }
+
+    /// 流式解析交易事件 - 队列版本（直接发送到队列）
+    fn parse_transaction_events_streaming_with_queue(
+        instruction_data: &[u8],
+        accounts: &[Pubkey],
+        logs: &[String],
+        signature: solana_sdk::signature::Signature,
+        slot: u64,
+        tx_index: u64,
+        block_time: Option<i64>,
+        program_id: &Pubkey,
+        grpc_recv_us: i64,
+        tx: &Sender<DexEvent>,
+        log_events_parsed: &mut bool,
+    ) {
+        let instruction_accounts = accounts;
+        let mut has_log_event = false;
+
+        // 1. 检查指令事件
+        let instr_event = crate::instr::parse_instruction_unified(
+            instruction_data, accounts, signature, slot, Some(tx_index), block_time, program_id
+        );
+
+        // 2. 流式处理日志事件
+        if !*log_events_parsed {
+            for log in logs.iter() {
+                if !log.contains("Program data:") {
+                    continue;
+                }
+
+                if let Some(mut log_event) = crate::logs::parse_log_unified_with_grpc_time(log, signature, slot, block_time, grpc_recv_us) {
+                    // 填充账户信息
+                    crate::core::account_filler::fill_accounts_from_instruction_data(&mut log_event, instruction_accounts);
+
+                    // 直接发送到队列
+                    let _ = tx.send(log_event);
+                    has_log_event = true;
+                }
+            }
+            *log_events_parsed = true;
+        }
+
+        // 3. 如果有日志事件则返回
+        if has_log_event {
+            return;
+        }
+
+        // 4. 如果没有日志事件，输出指令事件
+        if !*log_events_parsed {
+            if let Some(instr_event) = instr_event {
+                let _ = tx.send(instr_event);
+                *log_events_parsed = true;
             }
         }
     }
@@ -359,56 +539,109 @@ impl YellowstoneGrpc {
         logs: &[String],
         signature: solana_sdk::signature::Signature,
         slot: u64,
+        tx_index: u64,
         block_time: Option<i64>,
         program_id: &Pubkey,
+        grpc_recv_time: std::time::Instant,
         callback: &mut F,
+        log_events_parsed: &mut bool,  // 标志：日志是否已解析
     ) where
         F: FnMut(DexEvent)
     {
-        let mut event_counter = 0;
+        let total_start = std::time::Instant::now();
+        let instruction_accounts = accounts;
+        let mut event_count = 0u32;
 
-        // 1. 先一次性解析指令，提取所有账户数据
-        let instruction_accounts = accounts; // 直接使用指令中的accounts
+        // 1. 先检查是否有指令事件，用于后续去重判断
+        let instr_start = std::time::Instant::now();
+        let instr_event = crate::instr::parse_instruction_unified(
+            instruction_data, accounts, signature, slot, Some(tx_index), block_time, program_id
+        );
+        let instr_time = instr_start.elapsed().as_micros();
 
-        // 2. 然后逐个处理log事件，从预解析的账户数据中补充缺失字段
-        for (_log_index, log) in logs.iter().enumerate() {
-            let event_start = std::time::Instant::now();
-            if let Some(mut log_event) = crate::logs::parse_log_unified(log, signature, slot, block_time) {
-                // 从预解析的账户数据中补充缺失字段
-                crate::core::account_filler::fill_accounts_from_instruction_data(&mut log_event, instruction_accounts);
+        // 2. 流式处理日志事件：快速过滤 + 解析 + 回调（只处理一次）
+        let loop_start = std::time::Instant::now();
+        let mut has_log_event = false;
+        let mut total_parse_time = 0u128;
+        let mut total_fill_time = 0u128;
+        let mut total_callback_time = 0u128;
+        let mut log_count = 0u32;
+        let mut matched_count = 0u32;
+        let mut filtered_count = 0u32;
 
-                let total_time = event_start.elapsed().as_micros();
-                event_counter += 1;
-                println!("⚡ 事件{}: 耗时: {}μs", event_counter, total_time);
-                println!("────────────────────────────────────────");
+        // 优化：日志只在第一个指令时解析，后续指令跳过
+        if !*log_events_parsed {
+            for log in logs.iter() {
+                log_count += 1;
 
-                // 立即回调处理完的事件
-                callback(log_event);
+                // 快速过滤：只处理 "Program data:" 日志
+                if !log.contains("Program data:") {
+                    filtered_count += 1;
+                    continue;
+                }
+
+                let parse_start = std::time::Instant::now();
+                if let Some(mut log_event) = crate::logs::parse_log_unified(log, signature, slot, block_time) {
+                    let parse_time = parse_start.elapsed().as_micros();
+                    total_parse_time += parse_time;
+                    matched_count += 1;
+
+                    // 填充账户信息
+                    let fill_start = std::time::Instant::now();
+                    crate::core::account_filler::fill_accounts_from_instruction_data(&mut log_event, instruction_accounts);
+                    let fill_time = fill_start.elapsed().as_micros();
+                    total_fill_time += fill_time;
+
+                    // 发送到队列并统计端到端耗时
+                    let send_start = std::time::Instant::now();
+                    callback(log_event);
+                    let send_time = send_start.elapsed().as_micros();
+                    total_callback_time += send_time;
+
+                    // 计算从接收gRPC到发送队列的总耗时
+                    let end_to_end_time = grpc_recv_time.elapsed().as_micros();
+
+                    event_count += 1;
+                    has_log_event = true;
+                } else {
+                    // 未匹配的日志也要计入解析时间
+                    total_parse_time += parse_start.elapsed().as_micros();
+                }
             }
+            *log_events_parsed = true;  // 标记已解析
+        }
+        let loop_time = loop_start.elapsed().as_micros();
+
+        // 3. 如果日志有事件，提前返回（已解析过的指令不再处理）
+        if has_log_event {
+            let total_time = total_start.elapsed().as_micros();
+            let overhead = total_time.saturating_sub(instr_time + loop_time);
+            let end_to_end_time = grpc_recv_time.elapsed().as_micros();
+
+            println!("📊 解析统计 | 总:{} 指令:{} 循环:{} (解析:{} 填充:{} 队列:{}) 开销:{} | 过滤:{} 匹配:{}/{} 事件:{} | 🔄端到端:{}μs",
+                total_time, instr_time, loop_time, total_parse_time, total_fill_time, total_callback_time,
+                overhead, filtered_count, matched_count, log_count, event_count, end_to_end_time);
+            println!("────────────────────────────────────────");
+            return;
         }
 
-        // 3. 如果有独立的指令事件（没有对应的log事件），单独处理
-        if let Some(instr_event) = crate::instr::parse_instruction_unified(
-            instruction_data, accounts, signature, slot, block_time, program_id
-        ) {
-            // 检查这个指令事件是否已经被上面的log事件处理过了
-            let is_already_processed = logs.iter().any(|log| {
-                if let Some(log_event) = crate::logs::parse_log_unified(log, signature, slot, block_time) {
-                    Self::can_merge_events(&log_event, &instr_event)
-                } else {
-                    false
-                }
-            });
-
-            // 如果没有被处理过，则作为独立事件输出
-            if !is_already_processed {
-                let event_start = std::time::Instant::now();
-                let total_time = event_start.elapsed().as_micros();
-                event_counter += 1;
-                println!("⚡ 事件{}: 耗时: {}μs", event_counter, total_time);
-                println!("────────────────────────────────────────");
+        // 4. 如果没有日志事件，则输出指令事件（仅第一个指令）
+        if !*log_events_parsed {
+            if let Some(instr_event) = instr_event {
+                let callback_start = std::time::Instant::now();
                 callback(instr_event);
+                total_callback_time += callback_start.elapsed().as_micros();
+                event_count += 1;
+
+                let total_time = total_start.elapsed().as_micros();
+                let overhead = total_time.saturating_sub(instr_time + loop_time);
+
+                println!("📊 解析统计 | 总:{} 指令:{} 循环:{} (解析:{} 填充:{} 回调:{}) 开销:{} | 过滤:{} 匹配:{}/{} 事件:{}",
+                    total_time, instr_time, loop_time, total_parse_time, total_fill_time, total_callback_time,
+                    overhead, filtered_count, matched_count, log_count, event_count);
+                println!("────────────────────────────────────────");
             }
+            *log_events_parsed = true;  // 标记已解析，后续指令跳过
         }
     }
 

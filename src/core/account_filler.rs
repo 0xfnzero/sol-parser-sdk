@@ -55,6 +55,15 @@ pub fn fill_accounts_from_instruction_data(
         DexEvent::MeteoraDammV2Swap(ref mut swap_event) => {
             meteora::fill_damm_v2_swap_accounts(swap_event, &get_account);
         },
+        DexEvent::MeteoraDlmmSwap(ref mut swap_event) => {
+            meteora::fill_dlmm_swap_accounts(swap_event, &get_account);
+        },
+        DexEvent::MeteoraDlmmAddLiquidity(ref mut event) => {
+            meteora::fill_dlmm_add_liquidity_accounts(event, &get_account);
+        },
+        DexEvent::MeteoraDlmmRemoveLiquidity(ref mut event) => {
+            meteora::fill_dlmm_remove_liquidity_accounts(event, &get_account);
+        },
 
         // Bonk 事件填充
         DexEvent::BonkTrade(ref mut trade_event) => {
@@ -115,39 +124,103 @@ pub mod pumpfun {
     }
 
     /// 填充 PumpFun Create 事件账户
+    /// 基于PumpFun IDL create指令账户映射:
+    /// 0: mint
+    /// 1: mint_authority
+    /// 2: bonding_curve
+    /// 3: associated_bonding_curve
+    /// 4: global
+    /// 5: mpl_token_metadata
+    /// 6: metadata
+    /// 7: user
     pub fn fill_create_accounts(
         create_event: &mut PumpFunCreateTokenEvent,
         get_account: &AccountGetter<'_>,
     ) {
-        // TODO: 基于PumpFun create指令IDL定义账户映射
         if create_event.mint == Pubkey::default() {
             create_event.mint = get_account(0);
-        }
-        if create_event.user == Pubkey::default() {
-            create_event.user = get_account(7); // 基于IDL create指令
         }
         if create_event.bonding_curve == Pubkey::default() {
             create_event.bonding_curve = get_account(2);
         }
+        if create_event.user == Pubkey::default() {
+            create_event.user = get_account(7);
+        }
     }
 
     /// 填充 PumpFun Migrate 事件账户
+    /// 基于PumpFun IDL migrate指令账户映射:
+    /// 0: global
+    /// 1: withdraw_authority
+    /// 2: mint
+    /// 3: bonding_curve
+    /// 4: associated_bonding_curve
+    /// 5: user
+    /// 8: pump_amm
+    /// 9: pool
+    /// 10: pool_authority
+    /// 11: pool_authority_mint_account
+    /// 12: pool_authority_wsol_account
+    /// 13: amm_global_config
+    /// 14: wsol_mint
+    /// 15: lp_mint
+    /// 16: user_pool_token_account
+    /// 17: pool_base_token_account
+    /// 18: pool_quote_token_account
     pub fn fill_migrate_accounts(
         migrate_event: &mut PumpFunMigrateEvent,
         get_account: &AccountGetter<'_>,
     ) {
-        // TODO: 基于PumpFun migrate指令IDL定义账户映射
+        if migrate_event.global == Pubkey::default() {
+            migrate_event.global = get_account(0);
+        }
+        if migrate_event.withdraw_authority == Pubkey::default() {
+            migrate_event.withdraw_authority = get_account(1);
+        }
         if migrate_event.mint == Pubkey::default() {
             migrate_event.mint = get_account(2);
-        }
-        if migrate_event.user == Pubkey::default() {
-            migrate_event.user = get_account(5);
         }
         if migrate_event.bonding_curve == Pubkey::default() {
             migrate_event.bonding_curve = get_account(3);
         }
+        if migrate_event.associated_bonding_curve == Pubkey::default() {
+            migrate_event.associated_bonding_curve = get_account(4);
+        }
+        if migrate_event.user == Pubkey::default() {
+            migrate_event.user = get_account(5);
+        }
+        if migrate_event.pump_amm == Pubkey::default() {
+            migrate_event.pump_amm = get_account(8);
+        }
         if migrate_event.pool == Pubkey::default() {
             migrate_event.pool = get_account(9);
+        }
+        if migrate_event.pool_authority == Pubkey::default() {
+            migrate_event.pool_authority = get_account(10);
+        }
+        if migrate_event.pool_authority_mint_account == Pubkey::default() {
+            migrate_event.pool_authority_mint_account = get_account(11);
+        }
+        if migrate_event.pool_authority_wsol_account == Pubkey::default() {
+            migrate_event.pool_authority_wsol_account = get_account(12);
+        }
+        if migrate_event.amm_global_config == Pubkey::default() {
+            migrate_event.amm_global_config = get_account(13);
+        }
+        if migrate_event.wsol_mint == Pubkey::default() {
+            migrate_event.wsol_mint = get_account(14);
+        }
+        if migrate_event.lp_mint == Pubkey::default() {
+            migrate_event.lp_mint = get_account(15);
+        }
+        if migrate_event.user_pool_token_account == Pubkey::default() {
+            migrate_event.user_pool_token_account = get_account(16);
+        }
+        if migrate_event.pool_base_token_account == Pubkey::default() {
+            migrate_event.pool_base_token_account = get_account(17);
+        }
+        if migrate_event.pool_quote_token_account == Pubkey::default() {
+            migrate_event.pool_quote_token_account = get_account(18);
         }
     }
 }
@@ -305,14 +378,25 @@ pub mod meteora {
     use super::*;
 
     /// 填充 Meteora Pools Swap 事件账户
+    /// 基于Meteora AMM IDL swap指令账户映射:
+    /// 0: pool
+    /// 1: userSourceToken
+    /// 2: userDestinationToken
+    /// 3: aVault
+    /// 4: bVault
+    /// 5: aTokenVault
+    /// 6: bTokenVault
+    /// 7: aVaultLpMint
+    /// 8: bVaultLpMint
+    /// 9: aVaultLp
+    /// 10: bVaultLp
+    /// 11: adminTokenFee
+    /// 12: user
     pub fn fill_pools_swap_accounts(
         swap_event: &mut MeteoraPoolsSwapEvent,
         get_account: &AccountGetter<'_>,
     ) {
-        // TODO: 基于Meteora Pools IDL定义账户映射
-        // 当前MeteoraPoolsSwapEvent基于IDL事件字段，账户信息从日志中填充
-        // 这里可以填充指令账户字段（如果有的话）
-        // MeteoraPoolsSwapEvent没有user字段，只有IDL事件字段
+        // MeteoraPoolsSwapEvent只有IDL事件字段，无指令账户字段
     }
 
     /// 填充 Meteora DAMM V2 Swap 事件账户
@@ -320,12 +404,68 @@ pub mod meteora {
         swap_event: &mut MeteoraDammV2SwapEvent,
         get_account: &AccountGetter<'_>,
     ) {
-        // 基于Meteora DAMM V2 IDL swap指令账户映射
         if swap_event.lb_pair == Pubkey::default() {
             swap_event.lb_pair = get_account(1);
         }
         if swap_event.from == Pubkey::default() {
             swap_event.from = get_account(0);
+        }
+    }
+
+    /// 填充 Meteora DLMM Swap 事件账户
+    /// 基于Meteora DLMM IDL swap指令账户映射:
+    /// 0: lbPair
+    /// 5: userTokenOut
+    /// 10: user
+    pub fn fill_dlmm_swap_accounts(
+        swap_event: &mut MeteoraDlmmSwapEvent,
+        get_account: &AccountGetter<'_>,
+    ) {
+        if swap_event.pool == Pubkey::default() {
+            swap_event.pool = get_account(0);
+        }
+        if swap_event.from == Pubkey::default() {
+            swap_event.from = get_account(10);
+        }
+    }
+
+    /// 填充 Meteora DLMM Add Liquidity 事件账户
+    /// 基于Meteora DLMM IDL addLiquidity指令账户映射:
+    /// 0: position
+    /// 1: lbPair
+    /// 11: sender
+    pub fn fill_dlmm_add_liquidity_accounts(
+        event: &mut MeteoraDlmmAddLiquidityEvent,
+        get_account: &AccountGetter<'_>,
+    ) {
+        if event.position == Pubkey::default() {
+            event.position = get_account(0);
+        }
+        if event.pool == Pubkey::default() {
+            event.pool = get_account(1);
+        }
+        if event.from == Pubkey::default() {
+            event.from = get_account(11);
+        }
+    }
+
+    /// 填充 Meteora DLMM Remove Liquidity 事件账户
+    /// 基于Meteora DLMM IDL removeLiquidity指令账户映射:
+    /// 0: position
+    /// 1: lbPair
+    /// 11: sender
+    pub fn fill_dlmm_remove_liquidity_accounts(
+        event: &mut MeteoraDlmmRemoveLiquidityEvent,
+        get_account: &AccountGetter<'_>,
+    ) {
+        if event.position == Pubkey::default() {
+            event.position = get_account(0);
+        }
+        if event.pool == Pubkey::default() {
+            event.pool = get_account(1);
+        }
+        if event.from == Pubkey::default() {
+            event.from = get_account(11);
         }
     }
 }
