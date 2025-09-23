@@ -73,52 +73,32 @@ pub struct BonkMigrateAmmEvent {
     pub liquidity_amount: u64,
 }
 
-/// PumpFun Trade Event - 增强版本，集成旧版本的完整字段
+/// PumpFun Trade Event - 基于官方IDL定义
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PumpFunTradeEvent {
     pub metadata: EventMetadata,
+    // IDL定义的核心字段
     pub mint: Pubkey,
-    pub user: Pubkey,
     pub sol_amount: u64,
     pub token_amount: u64,
     pub is_buy: bool,
-    pub bonding_curve: Pubkey,
-    // 储备量信息
+    pub user: Pubkey,
+    pub timestamp: i64,
     pub virtual_sol_reserves: u64,
     pub virtual_token_reserves: u64,
     pub real_sol_reserves: u64,
     pub real_token_reserves: u64,
-    // 费用信息
-    pub fee_recipient: Pubkey,
-    pub fee_basis_points: u64,
-    pub fee: u64,
-    pub creator: Pubkey,
-    pub creator_fee_basis_points: u64,
-    pub creator_fee: u64,
-    // 代币统计信息
-    pub total_unclaimed_tokens: u64,
-    pub total_claimed_tokens: u64,
-    pub current_sol_volume: u64,
-    // 时间戳信息
-    pub timestamp: i64,
-    pub last_update_timestamp: i64,
-    pub track_volume: bool,
-    // 指令参数
+    // 指令解析补充字段
+    pub bonding_curve: Pubkey,
     pub max_sol_cost: u64,
     pub min_sol_output: u64,
     pub amount: u64,
-    // 交易状态标记
-    pub is_bot: bool,
-    pub is_dev_create_token_trade: bool,
-    // 账户信息（用于指令解析）
+    // PumpFun 相关账户信息（有意义的账户）
     pub global: Pubkey,
     pub associated_bonding_curve: Pubkey,
     pub associated_user: Pubkey,
-    pub system_program: Pubkey,
-    pub token_program: Pubkey,
     pub creator_vault: Pubkey,
     pub event_authority: Pubkey,
-    pub program: Pubkey,
     pub global_volume_accumulator: Pubkey,
     pub user_volume_accumulator: Pubkey,
 }
@@ -167,27 +147,20 @@ pub struct PumpFunMigrateEvent {
     pub program: Pubkey,
 }
 
-/// PumpFun Create Token Event - 增强版本，集成旧版本的完整字段
+/// PumpFun Create Token Event - 精简版本，只包含实际可获取的有用数据
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PumpFunCreateTokenEvent {
     pub metadata: EventMetadata,
+    // 代币基本信息（从instruction获取）
     pub name: String,
     pub symbol: String,
     pub uri: String,
     pub mint: Pubkey,
     pub bonding_curve: Pubkey,
     pub user: Pubkey,
-    pub creator: Pubkey,
-    // 储备量信息
+    // 储备量信息（从logs获取）
     pub virtual_token_reserves: u64,
     pub virtual_sol_reserves: u64,
-    pub real_token_reserves: u64,
-    pub token_total_supply: u64,
-    // 时间戳
-    pub timestamp: i64,
-    // 额外账户信息（用于指令解析）
-    pub mint_authority: Pubkey,
-    pub associated_bonding_curve: Pubkey,
 }
 
 /// PumpSwap Buy Event

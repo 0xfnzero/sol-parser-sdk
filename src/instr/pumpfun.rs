@@ -64,14 +64,8 @@ fn parse_create_instruction(
         mint,
         bonding_curve: get_account(accounts, 1).unwrap_or_default(),
         user: get_account(accounts, 2).unwrap_or_default(),
-        creator: get_account(accounts, 2).unwrap_or_default(),
         virtual_token_reserves: 1_073_000_000_000_000,
         virtual_sol_reserves: 30_000_000_000,
-        real_token_reserves: 0,
-        token_total_supply: 1_000_000_000_000_000,
-        timestamp: block_time.unwrap_or(0),
-        mint_authority: get_account(accounts, 3).unwrap_or_default(),
-        associated_bonding_curve: get_account(accounts, 4).unwrap_or_default(),
     }))
 }
 
@@ -90,48 +84,33 @@ fn parse_buy_instruction(
 
     let max_sol_cost = read_u64_le(data, offset)?;
 
-    let mint = get_account(accounts, 0)?;
+    let mint = get_account(accounts, 2)?; // mint is at index 2
     let metadata = create_metadata(signature, slot, block_time, mint);
 
     Some(DexEvent::PumpFunTrade(PumpFunTradeEvent {
         metadata,
         mint,
-        user: get_account(accounts, 1).unwrap_or_default(),
         sol_amount,
         token_amount: 0, // 将从日志填充
         is_buy: true,
-        bonding_curve: get_account(accounts, 2).unwrap_or_default(),
-        virtual_sol_reserves: 30_000_000_000,
-        virtual_token_reserves: 1_073_000_000_000_000,
-        real_sol_reserves: 0,
-        real_token_reserves: 793_100_000_000_000,
-        fee_recipient: get_account(accounts, 3).unwrap_or_default(),
-        fee_basis_points: 100,
-        fee: sol_amount / 100, // 1% 费用
-        creator: get_account(accounts, 4).unwrap_or_default(),
-        creator_fee_basis_points: 0,
-        creator_fee: 0,
-        total_unclaimed_tokens: 0,
-        total_claimed_tokens: 0,
-        current_sol_volume: 0,
+        user: get_account(accounts, 6).unwrap_or_default(), // user is at index 6
         timestamp: block_time.unwrap_or(0),
-        last_update_timestamp: block_time.unwrap_or(0),
-        track_volume: false,
+        virtual_sol_reserves: 30_000_000_000, // 默认值，将从日志覆盖
+        virtual_token_reserves: 1_073_000_000_000_000, // 默认值，将从日志覆盖
+        real_sol_reserves: 0, // 将从日志填充
+        real_token_reserves: 0, // 将从日志填充
+        bonding_curve: get_account(accounts, 3).unwrap_or_default(), // bondingCurve is at index 3
         max_sol_cost,
         min_sol_output: 0,
-        amount: 0, // 将从日志填充
-        is_bot: false,
-        is_dev_create_token_trade: false,
-        global: get_account(accounts, 5).unwrap_or_default(),
-        associated_bonding_curve: get_account(accounts, 6).unwrap_or_default(),
-        associated_user: get_account(accounts, 7).unwrap_or_default(),
-        system_program: get_account(accounts, 8).unwrap_or_default(),
-        token_program: get_account(accounts, 9).unwrap_or_default(),
-        creator_vault: get_account(accounts, 10).unwrap_or_default(),
-        event_authority: get_account(accounts, 11).unwrap_or_default(),
-        program: get_account(accounts, 12).unwrap_or_default(),
-        global_volume_accumulator: get_account(accounts, 13).unwrap_or_default(),
-        user_volume_accumulator: get_account(accounts, 14).unwrap_or_default(),
+        amount: sol_amount,
+        // PumpFun 相关账户信息 - 买入指令账户映射
+        global: get_account(accounts, 0).unwrap_or_default(),              // 索引0: global
+        associated_bonding_curve: get_account(accounts, 4).unwrap_or_default(), // 索引4: associatedBondingCurve
+        associated_user: get_account(accounts, 5).unwrap_or_default(),     // 索引5: associatedUser
+        creator_vault: Pubkey::default(),                                  // 买入指令中没有creator_vault
+        event_authority: get_account(accounts, 10).unwrap_or_default(),    // 索引10: eventAuthority
+        global_volume_accumulator: Pubkey::default(),                      // 这些字段在买入指令中不存在
+        user_volume_accumulator: Pubkey::default(),
     }))
 }
 
@@ -150,47 +129,32 @@ fn parse_sell_instruction(
 
     let min_sol_output = read_u64_le(data, offset)?;
 
-    let mint = get_account(accounts, 0)?;
+    let mint = get_account(accounts, 2)?; // mint is at index 2
     let metadata = create_metadata(signature, slot, block_time, mint);
 
     Some(DexEvent::PumpFunTrade(PumpFunTradeEvent {
         metadata,
         mint,
-        user: get_account(accounts, 1).unwrap_or_default(),
         sol_amount: 0, // 将从日志填充
         token_amount,
         is_buy: false,
-        bonding_curve: get_account(accounts, 2).unwrap_or_default(),
-        virtual_sol_reserves: 30_000_000_000,
-        virtual_token_reserves: 1_073_000_000_000_000,
-        real_sol_reserves: 0,
-        real_token_reserves: 793_100_000_000_000,
-        fee_recipient: get_account(accounts, 3).unwrap_or_default(),
-        fee_basis_points: 100,
-        fee: token_amount / 100, // 1% 费用
-        creator: get_account(accounts, 4).unwrap_or_default(),
-        creator_fee_basis_points: 0,
-        creator_fee: 0,
-        total_unclaimed_tokens: 0,
-        total_claimed_tokens: 0,
-        current_sol_volume: 0,
+        user: get_account(accounts, 6).unwrap_or_default(), // user is at index 6
         timestamp: block_time.unwrap_or(0),
-        last_update_timestamp: block_time.unwrap_or(0),
-        track_volume: false,
+        virtual_sol_reserves: 30_000_000_000, // 默认值，将从日志覆盖
+        virtual_token_reserves: 1_073_000_000_000_000, // 默认值，将从日志覆盖
+        real_sol_reserves: 0, // 将从日志填充
+        real_token_reserves: 0, // 将从日志填充
+        bonding_curve: get_account(accounts, 3).unwrap_or_default(), // bondingCurve is at index 3
         max_sol_cost: 0,
         min_sol_output,
         amount: token_amount,
-        is_bot: false,
-        is_dev_create_token_trade: false,
-        global: get_account(accounts, 5).unwrap_or_default(),
-        associated_bonding_curve: get_account(accounts, 6).unwrap_or_default(),
-        associated_user: get_account(accounts, 7).unwrap_or_default(),
-        system_program: get_account(accounts, 8).unwrap_or_default(),
-        token_program: get_account(accounts, 9).unwrap_or_default(),
-        creator_vault: get_account(accounts, 10).unwrap_or_default(),
-        event_authority: get_account(accounts, 11).unwrap_or_default(),
-        program: get_account(accounts, 12).unwrap_or_default(),
-        global_volume_accumulator: get_account(accounts, 13).unwrap_or_default(),
-        user_volume_accumulator: get_account(accounts, 14).unwrap_or_default(),
+        // PumpFun 相关账户信息 - 卖出指令账户映射
+        global: get_account(accounts, 0).unwrap_or_default(),              // 索引0: global
+        associated_bonding_curve: get_account(accounts, 4).unwrap_or_default(), // 索引4: associatedBondingCurve
+        associated_user: get_account(accounts, 5).unwrap_or_default(),     // 索引5: associatedUser
+        creator_vault: Pubkey::default(),                                  // 卖出指令中没有creator_vault
+        event_authority: get_account(accounts, 10).unwrap_or_default(),    // 索引10: eventAuthority
+        global_volume_accumulator: Pubkey::default(),                      // 这些字段在卖出指令中不存在
+        user_volume_accumulator: Pubkey::default(),
     }))
 }

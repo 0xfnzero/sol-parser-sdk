@@ -23,6 +23,15 @@ pub fn merge_pumpfun_trade_events(
     if merged.min_sol_output == 0 && instruction_event.min_sol_output > 0 {
         merged.min_sol_output = instruction_event.min_sol_output;
     }
+    if merged.real_sol_reserves == 0 && instruction_event.real_sol_reserves > 0 {
+        merged.real_sol_reserves = instruction_event.real_sol_reserves;
+    }
+    if merged.real_token_reserves == 0 && instruction_event.real_token_reserves > 0 {
+        merged.real_token_reserves = instruction_event.real_token_reserves;
+    }
+    if merged.timestamp == 0 && instruction_event.timestamp > 0 {
+        merged.timestamp = instruction_event.timestamp;
+    }
 
     // 填充账户信息
     if merged.mint == Pubkey::default() && instruction_event.mint != Pubkey::default() {
@@ -52,9 +61,7 @@ pub fn merge_pumpfun_create_events(
     if merged.user == Pubkey::default() && instruction_event.user != Pubkey::default() {
         merged.user = instruction_event.user;
     }
-    if merged.creator == Pubkey::default() && instruction_event.creator != Pubkey::default() {
-        merged.creator = instruction_event.creator;
-    }
+    // creator 字段已从精简版事件中移除
     if merged.bonding_curve == Pubkey::default() && instruction_event.bonding_curve != Pubkey::default() {
         merged.bonding_curve = instruction_event.bonding_curve;
     }
