@@ -80,37 +80,40 @@ pub struct BonkMigrateAmmEvent {
 /// 字段来源标记:
 /// - [EVENT]: 来自原始IDL事件定义，由程序日志直接解析获得
 /// - [INSTRUCTION]: 来自指令解析，用于补充事件缺失的上下文信息
+/// PumpFun Trade Event - 基于官方IDL定义
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PumpFunTradeEvent {
-    pub metadata: EventMetadata, // [SDK]: SDK添加的元数据
+    pub metadata: EventMetadata,
 
-    // === IDL定义的原始事件字段 (可从日志事件直接解析) ===
-    pub mint: Pubkey,                    // [EVENT] - IDL: "mint"
-    pub sol_amount: u64,                 // [EVENT] - IDL: "solAmount"
-    pub token_amount: u64,               // [EVENT] - IDL: "tokenAmount"
-    pub is_buy: bool,                    // [EVENT] - IDL: "isBuy"
-    pub user: Pubkey,                    // [EVENT] - IDL: "user"
-    pub timestamp: i64,                  // [EVENT] - IDL: "timestamp"
-    pub virtual_sol_reserves: u64,       // [EVENT] - IDL: "virtualSolReserves"
-    pub virtual_token_reserves: u64,     // [EVENT] - IDL: "virtualTokenReserves"
-    pub real_sol_reserves: u64,          // [EVENT] - IDL: "realSolReserves"
-    pub real_token_reserves: u64,        // [EVENT] - IDL: "realTokenReserves"
+    // === IDL TradeEvent 事件字段 ===
+    pub mint: Pubkey,
+    pub sol_amount: u64,
+    pub token_amount: u64,
+    pub is_buy: bool,
+    pub user: Pubkey,
+    pub timestamp: i64,
+    pub virtual_sol_reserves: u64,
+    pub virtual_token_reserves: u64,
+    pub real_sol_reserves: u64,
+    pub real_token_reserves: u64,
+    pub fee_recipient: Pubkey,
+    pub fee_basis_points: u64,
+    pub fee: u64,
+    pub creator: Pubkey,
+    pub creator_fee_basis_points: u64,
+    pub creator_fee: u64,
+    pub track_volume: bool,
 
-    // === 指令解析补充字段 (仅能从指令数据获得) ===
-    pub bonding_curve: Pubkey,           // [INSTRUCTION] - accounts[1] bondingCurve
-    pub max_sol_cost: u64,               // [INSTRUCTION] - buy指令参数 maxSolCost
-    pub min_sol_output: u64,             // [INSTRUCTION] - sell指令参数 minSolOutput
-    pub amount: u64,                     // [INSTRUCTION] - 指令参数 amount
+    // === 指令参数字段 ===
+    pub amount: u64,                     // buy/sell.args.amount
+    pub max_sol_cost: u64,               // buy.args.maxSolCost
+    pub min_sol_output: u64,             // sell.args.minSolOutput
 
-    // === PumpFun 相关账户信息 (仅能从指令accounts获得) ===
-    pub global: Pubkey,                     // [INSTRUCTION] - accounts[2] global
-    pub associated_bonding_curve: Pubkey,   // [INSTRUCTION] - accounts[4] associatedBondingCurve
-    pub associated_user: Pubkey,            // [INSTRUCTION] - accounts[5] associatedUser
-    pub creator_vault: Pubkey,              // [INSTRUCTION] - accounts[6] creator/vault
-    pub event_authority: Pubkey,            // [INSTRUCTION] - accounts[8] eventAuthority
-    pub global_volume_accumulator: Pubkey,  // [INSTRUCTION] - accounts[9] globalVolumeAccumulator
-    pub user_volume_accumulator: Pubkey,    // [INSTRUCTION] - accounts[10] userVolumeAccumulator
-
+    // === 指令账户字段 ===
+    pub global: Pubkey,                  // 0: global
+    pub bonding_curve: Pubkey,           // 3: bonding_curve
+    pub associated_bonding_curve: Pubkey, // 4: associated_bonding_curve
+    pub associated_user: Pubkey,         // 5: associated_user
 }
 
 /// PumpFun Complete Token Event
@@ -340,15 +343,36 @@ pub struct PumpSwapWithdrawEvent {
     pub amount: u64,
 }
 
-/// Raydium CPMM Swap Event
+/// Raydium CPMM Swap Event (基于IDL SwapEvent + swapBaseInput指令定义)
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RaydiumCpmmSwapEvent {
     pub metadata: EventMetadata,
-    pub pool: Pubkey,
-    pub user: Pubkey,
+
+    // === IDL SwapEvent 事件字段 ===
+    pub pool_id: Pubkey,
+    pub input_vault_before: u64,
+    pub output_vault_before: u64,
+    pub input_amount: u64,
+    pub output_amount: u64,
+    pub input_transfer_fee: u64,
+    pub output_transfer_fee: u64,
+    pub base_input: bool,
+
+    // === 指令参数字段 ===
     pub amount_in: u64,
-    pub amount_out: u64,
-    pub is_base_input: bool,
+    pub minimum_amount_out: u64,
+
+    // === 指令账户字段 ===
+    pub payer: Pubkey,              // 0: payer
+    pub authority: Pubkey,          // 1: authority
+    pub amm_config: Pubkey,         // 2: ammConfig
+    pub pool_state: Pubkey,         // 3: poolState
+    pub input_token_account: Pubkey, // 4: inputTokenAccount
+    pub output_token_account: Pubkey, // 5: outputTokenAccount
+    pub input_vault: Pubkey,        // 6: inputVault
+    pub output_vault: Pubkey,       // 7: outputVault
+    pub input_token_mint: Pubkey,   // 10: inputTokenMint
+    pub output_token_mint: Pubkey,  // 11: outputTokenMint
 }
 
 /// Raydium CPMM Deposit Event
@@ -383,17 +407,33 @@ pub struct RaydiumCpmmWithdrawEvent {
     pub token1_amount: u64,
 }
 
-/// Raydium CLMM Swap Event
+/// Raydium CLMM Swap Event (基于IDL SwapEvent + swap指令定义)
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RaydiumClmmSwapEvent {
     pub metadata: EventMetadata,
-    // === 事件核心字段 ===
-    pub pool: Pubkey,
-    pub user: Pubkey,
+
+    // === IDL SwapEvent 事件字段 ===
+    pub pool_state: Pubkey,
+    pub sender: Pubkey,
+    pub token_account_0: Pubkey,
+    pub token_account_1: Pubkey,
+    pub amount_0: u64,
+    pub transfer_fee_0: u64,
+    pub amount_1: u64,
+    pub transfer_fee_1: u64,
+    pub zero_for_one: bool,
+    pub sqrt_price_x64: u128,
+    pub liquidity: u128,
+    pub tick: i32,
+
+    // === 指令参数字段 ===
     pub amount: u64,
     pub other_amount_threshold: u64,
     pub sqrt_price_limit_x64: u128,
     pub is_base_input: bool,
+
+    // === 指令账户字段 ===
+    // TODO: 根据Raydium CLMM swap指令IDL添加账户字段
 }
 
 /// Raydium CLMM Close Position Event
@@ -978,19 +1018,36 @@ pub struct TokenInfoEvent {
 
 // ====================== Orca Whirlpool Events ======================
 
-/// Orca Whirlpool Swap Event
+/// Orca Whirlpool Swap Event (基于swap指令定义，无独立SwapEvent)
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct OrcaWhirlpoolSwapEvent {
     pub metadata: EventMetadata,
-    // === 事件核心字段 ===
-    pub whirlpool: Pubkey,
+
+    // === 指令参数字段 ===
+    pub amount: u64,
+    pub other_amount_threshold: u64,
+    pub sqrt_price_limit: u128,
+    pub amount_specified_is_input: bool,
     pub a_to_b: bool,
-    pub pre_sqrt_price: u128,
-    pub post_sqrt_price: u128,
+
+    // === 指令账户字段 ===
+    pub token_authority: Pubkey,    // 1: tokenAuthority
+    pub whirlpool: Pubkey,          // 2: whirlpool
+    pub token_owner_account_a: Pubkey, // 3: tokenOwnerAccountA
+    pub token_vault_a: Pubkey,      // 4: tokenVaultA
+    pub token_owner_account_b: Pubkey, // 5: tokenOwnerAccountB
+    pub token_vault_b: Pubkey,      // 6: tokenVaultB
+    pub tick_array_0: Pubkey,       // 7: tickArray0
+    pub tick_array_1: Pubkey,       // 8: tickArray1
+    pub tick_array_2: Pubkey,       // 9: tickArray2
+
+    // === 解析结果字段 (从日志或计算得出) ===
     pub input_amount: u64,
     pub output_amount: u64,
     pub input_transfer_fee: u64,
     pub output_transfer_fee: u64,
+    pub pre_sqrt_price: u128,
+    pub post_sqrt_price: u128,
     pub lp_fee: u64,
     pub protocol_fee: u64,
 }

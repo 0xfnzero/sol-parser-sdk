@@ -110,12 +110,26 @@ fn parse_swap_event(
 
     Some(DexEvent::RaydiumClmmSwap(RaydiumClmmSwapEvent {
         metadata,
-        pool: pool_state,
-        user,
+
+        // IDL SwapEvent 事件字段
+        pool_state,
+        sender: user,
+        token_account_0: Pubkey::default(),
+        token_account_1: Pubkey::default(),
+        amount_0: 0, // 从日志填充
+        transfer_fee_0: 0, // 从日志填充
+        amount_1: 0, // 从日志填充
+        transfer_fee_1: 0, // 从日志填充
+        zero_for_one: is_base_input,
+        sqrt_price_x64: sqrt_price_limit_x64,
+        is_base_input,
+        liquidity: 0, // 从日志填充
+        tick: 0, // 从日志填充
+
+        // 指令参数字段
         amount,
         other_amount_threshold,
         sqrt_price_limit_x64,
-        is_base_input,
     }))
 }
 
@@ -297,12 +311,26 @@ fn parse_swap_from_text(
 
     Some(DexEvent::RaydiumClmmSwap(RaydiumClmmSwapEvent {
         metadata,
-        pool: Pubkey::default(),
-        user: Pubkey::default(),
+
+        // IDL SwapEvent 事件字段
+        pool_state: Pubkey::default(),
+        sender: Pubkey::default(),
+        token_account_0: Pubkey::default(),
+        token_account_1: Pubkey::default(),
+        amount_0: 0,
+        transfer_fee_0: 0,
+        amount_1: 0,
+        transfer_fee_1: 0,
+        zero_for_one: is_base_input,
+        sqrt_price_x64: 0,
+        is_base_input,
+        liquidity: 0,
+        tick: 0,
+
+        // 指令参数字段
         amount: extract_number_from_text(log, "amount").unwrap_or(1_000_000_000),
         other_amount_threshold: extract_number_from_text(log, "threshold").unwrap_or(950_000_000),
         sqrt_price_limit_x64: 0,
-        is_base_input,
     }))
 }
 

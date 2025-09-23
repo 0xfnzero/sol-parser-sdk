@@ -88,12 +88,26 @@ fn parse_swap_instruction(
 
     Some(DexEvent::RaydiumClmmSwap(RaydiumClmmSwapEvent {
         metadata,
-        pool,
-        user: get_account(accounts, 1).unwrap_or_default(),
+
+        // IDL SwapEvent 事件字段
+        pool_state: pool,
+        sender: get_account(accounts, 1).unwrap_or_default(),
+        token_account_0: Pubkey::default(),
+        token_account_1: Pubkey::default(),
+        amount_0: 0, // 从日志填充
+        transfer_fee_0: 0, // 从日志填充
+        amount_1: 0, // 从日志填充
+        transfer_fee_1: 0, // 从日志填充
+        zero_for_one: is_base_input,
+        sqrt_price_x64: sqrt_price_limit_x64,
+        is_base_input,
+        liquidity: 0, // 从日志填充
+        tick: 0, // 从日志填充
+
+        // 指令参数字段
         amount,
         other_amount_threshold,
         sqrt_price_limit_x64,
-        is_base_input,
     }))
 }
 

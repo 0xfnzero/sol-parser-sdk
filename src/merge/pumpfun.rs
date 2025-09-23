@@ -17,12 +17,6 @@ pub fn merge_pumpfun_trade_events(
     if merged.token_amount == 0 && instruction_event.token_amount > 0 {
         merged.token_amount = instruction_event.token_amount;
     }
-    if merged.max_sol_cost == 0 && instruction_event.max_sol_cost > 0 {
-        merged.max_sol_cost = instruction_event.max_sol_cost;
-    }
-    if merged.min_sol_output == 0 && instruction_event.min_sol_output > 0 {
-        merged.min_sol_output = instruction_event.min_sol_output;
-    }
     if merged.real_sol_reserves == 0 && instruction_event.real_sol_reserves > 0 {
         merged.real_sol_reserves = instruction_event.real_sol_reserves;
     }

@@ -77,11 +77,33 @@ fn parse_swap_base_in_instruction(
 
     Some(DexEvent::RaydiumCpmmSwap(RaydiumCpmmSwapEvent {
         metadata,
-        pool,
-        user: get_account(accounts, 1).unwrap_or_default(),
+
+        // IDL SwapEvent 事件字段 - 从日志填充，这里设置默认值
+        pool_id: Pubkey::default(), // 将从日志填充
+        input_vault_before: 0, // 将从日志填充
+        output_vault_before: 0, // 将从日志填充
+        input_amount: 0, // 将从日志填充
+        output_amount: 0, // 将从日志填充
+        input_transfer_fee: 0, // 将从日志填充
+        output_transfer_fee: 0, // 将从日志填充
+        base_input: true,
+
+        // 指令参数字段
         amount_in,
-        amount_out: minimum_amount_out, // 先赋值为minimum_amount_out，logs会覆盖
-        is_base_input: true,
+        minimum_amount_out,
+
+        // 指令账户字段 - 从account_filler填充
+        payer: Pubkey::default(),
+        authority: Pubkey::default(),
+        amm_config: Pubkey::default(),
+        pool_state: Pubkey::default(),
+        input_token_account: Pubkey::default(),
+        output_token_account: Pubkey::default(),
+        input_vault: Pubkey::default(),
+        output_vault: Pubkey::default(),
+        input_token_mint: Pubkey::default(),
+        output_token_mint: Pubkey::default(),
+
     }))
 }
 
@@ -105,11 +127,33 @@ fn parse_swap_base_out_instruction(
 
     Some(DexEvent::RaydiumCpmmSwap(RaydiumCpmmSwapEvent {
         metadata,
-        pool,
-        user: get_account(accounts, 1).unwrap_or_default(),
-        amount_in: maximum_amount_in, // 先赋值为maximum_amount_in，logs会覆盖
-        amount_out,
-        is_base_input: false,
+
+        // IDL SwapEvent 事件字段 - 从日志填充，这里设置默认值
+        pool_id: Pubkey::default(), // 将从日志填充
+        input_vault_before: 0, // 将从日志填充
+        output_vault_before: 0, // 将从日志填充
+        input_amount: 0, // 将从日志填充
+        output_amount: 0, // 将从日志填充
+        input_transfer_fee: 0, // 将从日志填充
+        output_transfer_fee: 0, // 将从日志填充
+        base_input: false,
+
+        // 指令参数字段
+        amount_in: maximum_amount_in,
+        minimum_amount_out: amount_out,
+
+        // 指令账户字段 - 从account_filler填充
+        payer: Pubkey::default(),
+        authority: Pubkey::default(),
+        amm_config: Pubkey::default(),
+        pool_state: Pubkey::default(),
+        input_token_account: Pubkey::default(),
+        output_token_account: Pubkey::default(),
+        input_vault: Pubkey::default(),
+        output_vault: Pubkey::default(),
+        input_token_mint: Pubkey::default(),
+        output_token_mint: Pubkey::default(),
+
     }))
 }
 

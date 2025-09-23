@@ -83,7 +83,7 @@ fn parse_buy_instruction(
 ) -> Option<DexEvent> {
     let mut offset = 0;
 
-    let sol_amount = read_u64_le(data, offset)?;
+    let amount = read_u64_le(data, offset)?;
     offset += 8;
 
     let max_sol_cost = read_u64_le(data, offset)?;
@@ -93,29 +93,36 @@ fn parse_buy_instruction(
 
     Some(DexEvent::PumpFunTrade(PumpFunTradeEvent {
         metadata,
+
+        // IDL TradeEvent 字段 - 从日志填充，这里设置默认值
         mint,
-        sol_amount,
+        sol_amount: 0, // 将从日志填充
         token_amount: 0, // 将从日志填充
         is_buy: true,
-        user: get_account(accounts, 6).unwrap_or_default(), // user is at index 6
+        user: Pubkey::default(), // 将从日志填充
         timestamp: block_time.unwrap_or(0),
-        virtual_sol_reserves: 30_000_000_000, // 默认值，将从日志覆盖
-        virtual_token_reserves: 1_073_000_000_000_000, // 默认值，将从日志覆盖
+        virtual_sol_reserves: 0, // 将从日志填充
+        virtual_token_reserves: 0, // 将从日志填充
         real_sol_reserves: 0, // 将从日志填充
         real_token_reserves: 0, // 将从日志填充
+        fee_recipient: Pubkey::default(), // 将从日志填充
+        fee_basis_points: 0, // 将从日志填充
+        fee: 0, // 将从日志填充
+        creator: Pubkey::default(), // 将从日志填充
+        creator_fee_basis_points: 0, // 将从日志填充
+        creator_fee: 0, // 将从日志填充
+        track_volume: false, // 将从日志填充
 
-        bonding_curve: get_account(accounts, 3).unwrap_or_default(), // bondingCurve is at index 3
+        // 指令参数
+        amount,
         max_sol_cost,
-        min_sol_output: 0,
-        amount: sol_amount,
-        // PumpFun 相关账户信息 - 买入指令账户映射
-        global: get_account(accounts, 0).unwrap_or_default(),              // 索引0: global
-        associated_bonding_curve: get_account(accounts, 4).unwrap_or_default(), // 索引4: associatedBondingCurve
-        associated_user: get_account(accounts, 5).unwrap_or_default(),     // 索引5: associatedUser
-        creator_vault: Pubkey::default(),                                  // 买入指令中没有creator_vault
-        event_authority: get_account(accounts, 10).unwrap_or_default(),    // 索引10: eventAuthority
-        global_volume_accumulator: Pubkey::default(),                      // 这些字段在买入指令中不存在
-        user_volume_accumulator: Pubkey::default(),
+        min_sol_output: 0, // buy指令没有此参数
+
+        // 指令账户字段 - 从account_filler填充
+        global: Pubkey::default(),
+        bonding_curve: Pubkey::default(),
+        associated_bonding_curve: Pubkey::default(),
+        associated_user: Pubkey::default(),
     }))
 }
 
@@ -129,7 +136,7 @@ fn parse_sell_instruction(
 ) -> Option<DexEvent> {
     let mut offset = 0;
 
-    let token_amount = read_u64_le(data, offset)?;
+    let amount = read_u64_le(data, offset)?;
     offset += 8;
 
     let min_sol_output = read_u64_le(data, offset)?;
@@ -139,28 +146,35 @@ fn parse_sell_instruction(
 
     Some(DexEvent::PumpFunTrade(PumpFunTradeEvent {
         metadata,
+
+        // IDL TradeEvent 字段 - 从日志填充，这里设置默认值
         mint,
         sol_amount: 0, // 将从日志填充
-        token_amount,
+        token_amount: 0, // 将从日志填充
         is_buy: false,
-        user: get_account(accounts, 6).unwrap_or_default(), // user is at index 6
+        user: Pubkey::default(), // 将从日志填充
         timestamp: block_time.unwrap_or(0),
-        virtual_sol_reserves: 30_000_000_000, // 默认值，将从日志覆盖
-        virtual_token_reserves: 1_073_000_000_000_000, // 默认值，将从日志覆盖
+        virtual_sol_reserves: 0, // 将从日志填充
+        virtual_token_reserves: 0, // 将从日志填充
         real_sol_reserves: 0, // 将从日志填充
         real_token_reserves: 0, // 将从日志填充
+        fee_recipient: Pubkey::default(), // 将从日志填充
+        fee_basis_points: 0, // 将从日志填充
+        fee: 0, // 将从日志填充
+        creator: Pubkey::default(), // 将从日志填充
+        creator_fee_basis_points: 0, // 将从日志填充
+        creator_fee: 0, // 将从日志填充
+        track_volume: false, // 将从日志填充
 
-        bonding_curve: get_account(accounts, 3).unwrap_or_default(), // bondingCurve is at index 3
-        max_sol_cost: 0,
+        // 指令参数
+        amount,
+        max_sol_cost: 0, // sell指令没有此参数
         min_sol_output,
-        amount: token_amount,
-        // PumpFun 相关账户信息 - 卖出指令账户映射
-        global: get_account(accounts, 0).unwrap_or_default(),              // 索引0: global
-        associated_bonding_curve: get_account(accounts, 4).unwrap_or_default(), // 索引4: associatedBondingCurve
-        associated_user: get_account(accounts, 5).unwrap_or_default(),     // 索引5: associatedUser
-        creator_vault: Pubkey::default(),                                  // 卖出指令中没有creator_vault
-        event_authority: get_account(accounts, 10).unwrap_or_default(),    // 索引10: eventAuthority
-        global_volume_accumulator: Pubkey::default(),                      // 这些字段在卖出指令中不存在
-        user_volume_accumulator: Pubkey::default(),
+
+        // 指令账户字段 - 从account_filler填充
+        global: Pubkey::default(),
+        bonding_curve: Pubkey::default(),
+        associated_bonding_curve: Pubkey::default(),
+        associated_user: Pubkey::default(),
     }))
 }

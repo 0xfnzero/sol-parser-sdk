@@ -111,7 +111,8 @@ fn parse_traded_event(
 
     Some(DexEvent::OrcaWhirlpoolSwap(OrcaWhirlpoolSwapEvent {
         metadata,
-        whirlpool,
+
+        // IDL SwapEvent 事件字段
         a_to_b,
         pre_sqrt_price,
         post_sqrt_price,
@@ -121,6 +122,23 @@ fn parse_traded_event(
         output_transfer_fee,
         lp_fee,
         protocol_fee,
+
+        // 指令参数字段
+        amount: input_amount,
+        amount_specified_is_input: true,
+        other_amount_threshold: output_amount,
+        sqrt_price_limit: pre_sqrt_price,
+
+        // 指令账户字段
+        token_authority: solana_sdk::pubkey::Pubkey::default(),
+        whirlpool,
+        token_owner_account_a: solana_sdk::pubkey::Pubkey::default(),
+        token_vault_a: solana_sdk::pubkey::Pubkey::default(),
+        token_owner_account_b: solana_sdk::pubkey::Pubkey::default(),
+        token_vault_b: solana_sdk::pubkey::Pubkey::default(),
+        tick_array_0: solana_sdk::pubkey::Pubkey::default(),
+        tick_array_1: solana_sdk::pubkey::Pubkey::default(),
+        tick_array_2: solana_sdk::pubkey::Pubkey::default(),
     }))
 }
 

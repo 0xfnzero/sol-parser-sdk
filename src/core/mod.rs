@@ -9,6 +9,7 @@
 // 核心模块
 pub mod events;          // 事件定义
 pub mod unified_parser;  // 统一解析器 - 单一入口
+pub mod account_filler;  // 账户填充器 - 从指令数据填充事件账户
 
 // 主要导出 - 核心事件处理功能
 pub use events::*;

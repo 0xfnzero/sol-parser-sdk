@@ -172,7 +172,8 @@ fn parse_swap_instruction(
 
     Some(DexEvent::OrcaWhirlpoolSwap(OrcaWhirlpoolSwapEvent {
         metadata,
-        whirlpool,
+
+        // IDL SwapEvent 事件字段
         a_to_b,
         pre_sqrt_price: sqrt_price_limit, // 从指令获取初始值，日志会覆盖
         post_sqrt_price: 0, // 从日志中获取
@@ -186,6 +187,23 @@ fn parse_swap_instruction(
         output_transfer_fee: 0, // 从日志中获取
         lp_fee: 0, // 从日志中获取
         protocol_fee: 0, // 从日志中获取
+
+        // 指令参数字段
+        amount,
+        amount_specified_is_input,
+        other_amount_threshold,
+        sqrt_price_limit,
+
+        // 指令账户字段 - 从account_filler填充
+        token_authority: Pubkey::default(),
+        whirlpool: Pubkey::default(),
+        token_owner_account_a: Pubkey::default(),
+        token_vault_a: Pubkey::default(),
+        token_owner_account_b: Pubkey::default(),
+        token_vault_b: Pubkey::default(),
+        tick_array_0: Pubkey::default(),
+        tick_array_1: Pubkey::default(),
+        tick_array_2: Pubkey::default(),
     }))
 }
 

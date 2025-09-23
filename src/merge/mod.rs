@@ -86,12 +86,12 @@ fn events_can_merge(event1: &DexEvent, event2: &DexEvent) -> bool {
         },
         (DexEvent::RaydiumClmmSwap(e1), DexEvent::RaydiumClmmSwap(e2)) => {
             e1.metadata.signature == e2.metadata.signature &&
-            e1.pool == e2.pool &&
-            e1.is_base_input == e2.is_base_input
+            e1.pool_state == e2.pool_state &&
+            e1.zero_for_one == e2.zero_for_one
         },
         (DexEvent::RaydiumCpmmSwap(e1), DexEvent::RaydiumCpmmSwap(e2)) => {
             e1.metadata.signature == e2.metadata.signature &&
-            e1.pool == e2.pool
+            e1.pool_state == e2.pool_state
         },
         (DexEvent::BonkTrade(e1), DexEvent::BonkTrade(e2)) => {
             e1.metadata.signature == e2.metadata.signature &&

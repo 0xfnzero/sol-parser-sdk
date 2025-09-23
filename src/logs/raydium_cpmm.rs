@@ -110,11 +110,32 @@ fn parse_swap_base_in_event(
 
     Some(DexEvent::RaydiumCpmmSwap(RaydiumCpmmSwapEvent {
         metadata,
-        pool: pool_state,
-        user,
+
+        // IDL SwapEvent 事件字段
+        pool_id: pool_state,
+        input_vault_before: 0, // 需要从日志数据解析
+        output_vault_before: 0, // 需要从日志数据解析
+        input_amount: amount_in,
+        output_amount: amount_out,
+        input_transfer_fee: 0, // 需要从日志数据解析
+        output_transfer_fee: 0, // 需要从日志数据解析
+        base_input: is_base_input,
+
+        // 指令参数字段
         amount_in,
-        amount_out,
-        is_base_input,
+        minimum_amount_out,
+
+        // 指令账户字段 - 从account_filler填充
+        payer: user,
+        authority: Pubkey::default(),
+        amm_config: Pubkey::default(),
+        pool_state,
+        input_token_account: Pubkey::default(),
+        output_token_account: Pubkey::default(),
+        input_vault: Pubkey::default(),
+        output_vault: Pubkey::default(),
+        input_token_mint: Pubkey::default(),
+        output_token_mint: Pubkey::default(),
     }))
 }
 
@@ -148,11 +169,32 @@ fn parse_swap_base_out_event(
 
     Some(DexEvent::RaydiumCpmmSwap(RaydiumCpmmSwapEvent {
         metadata,
-        pool: pool_state,
-        user,
-        amount_in,
-        amount_out,
-        is_base_input: !is_base_output,
+
+        // IDL SwapEvent 事件字段
+        pool_id: pool_state,
+        input_vault_before: 0, // 需要从日志数据解析
+        output_vault_before: 0, // 需要从日志数据解析
+        input_amount: amount_in,
+        output_amount: amount_out,
+        input_transfer_fee: 0, // 需要从日志数据解析
+        output_transfer_fee: 0, // 需要从日志数据解析
+        base_input: !is_base_output,
+
+        // 指令参数字段
+        amount_in: maximum_amount_in,
+        minimum_amount_out: amount_out,
+
+        // 指令账户字段 - 从account_filler填充
+        payer: user,
+        authority: Pubkey::default(),
+        amm_config: Pubkey::default(),
+        pool_state,
+        input_token_account: Pubkey::default(),
+        output_token_account: Pubkey::default(),
+        input_vault: Pubkey::default(),
+        output_vault: Pubkey::default(),
+        input_token_mint: Pubkey::default(),
+        output_token_mint: Pubkey::default(),
     }))
 }
 
@@ -310,11 +352,32 @@ fn parse_swap_base_in_from_text(
 
     Some(DexEvent::RaydiumCpmmSwap(RaydiumCpmmSwapEvent {
         metadata,
-        pool: Pubkey::default(),
-        user: Pubkey::default(),
+
+        // IDL SwapEvent 事件字段
+        pool_id: Pubkey::default(),
+        input_vault_before: 0,
+        output_vault_before: 0,
+        input_amount: extract_number_from_text(log, "amount_in").unwrap_or(1_000_000_000),
+        output_amount: extract_number_from_text(log, "amount_out").unwrap_or(950_000_000),
+        input_transfer_fee: 0,
+        output_transfer_fee: 0,
+        base_input: true,
+
+        // 指令参数字段
         amount_in: extract_number_from_text(log, "amount_in").unwrap_or(1_000_000_000),
-        amount_out: extract_number_from_text(log, "amount_out").unwrap_or(950_000_000),
-        is_base_input: true,
+        minimum_amount_out: extract_number_from_text(log, "amount_out").unwrap_or(950_000_000),
+
+        // 指令账户字段
+        payer: Pubkey::default(),
+        authority: Pubkey::default(),
+        amm_config: Pubkey::default(),
+        pool_state: Pubkey::default(),
+        input_token_account: Pubkey::default(),
+        output_token_account: Pubkey::default(),
+        input_vault: Pubkey::default(),
+        output_vault: Pubkey::default(),
+        input_token_mint: Pubkey::default(),
+        output_token_mint: Pubkey::default(),
     }))
 }
 
@@ -331,11 +394,32 @@ fn parse_swap_base_out_from_text(
 
     Some(DexEvent::RaydiumCpmmSwap(RaydiumCpmmSwapEvent {
         metadata,
-        pool: Pubkey::default(),
-        user: Pubkey::default(),
+
+        // IDL SwapEvent 事件字段
+        pool_id: Pubkey::default(),
+        input_vault_before: 0,
+        output_vault_before: 0,
+        input_amount: extract_number_from_text(log, "amount_in").unwrap_or(1_000_000_000),
+        output_amount: extract_number_from_text(log, "amount_out").unwrap_or(950_000_000),
+        input_transfer_fee: 0,
+        output_transfer_fee: 0,
+        base_input: false,
+
+        // 指令参数字段
         amount_in: extract_number_from_text(log, "amount_in").unwrap_or(1_000_000_000),
-        amount_out: extract_number_from_text(log, "amount_out").unwrap_or(950_000_000),
-        is_base_input: false,
+        minimum_amount_out: extract_number_from_text(log, "amount_out").unwrap_or(950_000_000),
+
+        // 指令账户字段
+        payer: Pubkey::default(),
+        authority: Pubkey::default(),
+        amm_config: Pubkey::default(),
+        pool_state: Pubkey::default(),
+        input_token_account: Pubkey::default(),
+        output_token_account: Pubkey::default(),
+        input_vault: Pubkey::default(),
+        output_vault: Pubkey::default(),
+        input_token_mint: Pubkey::default(),
+        output_token_mint: Pubkey::default(),
     }))
 }
 

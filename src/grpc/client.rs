@@ -375,7 +375,7 @@ impl YellowstoneGrpc {
             let event_start = std::time::Instant::now();
             if let Some(mut log_event) = crate::logs::parse_log_unified(log, signature, slot, block_time) {
                 // 从预解析的账户数据中补充缺失字段
-                Self::fill_accounts_from_extracted_data(&mut log_event, instruction_accounts);
+                crate::core::account_filler::fill_accounts_from_instruction_data(&mut log_event, instruction_accounts);
 
                 let total_time = event_start.elapsed().as_micros();
                 event_counter += 1;
@@ -413,140 +413,7 @@ impl YellowstoneGrpc {
     }
 
 
-    /// 从指令账户中补充log事件的缺失字段
-    fn fill_accounts_from_extracted_data(
-        log_event: &mut DexEvent,
-        instruction_accounts: &[Pubkey],
-    ) {
-        use crate::core::events::DexEvent;
 
-        // 获取账户的辅助函数
-        let get_account = |index: usize| -> Pubkey {
-            instruction_accounts.get(index).cloned().unwrap_or_default()
-        };
-
-        match log_event {
-            // PumpFun 事件账户填充 - 按IDL账户索引填充
-            DexEvent::PumpFunTrade(ref mut log_trade) => {
-                // PumpFun buy/sell指令的账户映射（根据IDL）:
-                // 0: global, 1: feeRecipient, 2: mint, 3: bondingCurve, 4: associatedBondingCurve,
-                // 5: associatedUser, 6: user, 7: systemProgram, 8: tokenProgram, 9: rent, 10: eventAuthority
-
-                // 填充账户地址（如果log中缺失）
-                if log_trade.bonding_curve == Pubkey::default() {
-                    log_trade.bonding_curve = get_account(3); // bondingCurve
-                }
-                if log_trade.global == Pubkey::default() {
-                    log_trade.global = get_account(0); // global
-                }
-                if log_trade.associated_bonding_curve == Pubkey::default() {
-                    log_trade.associated_bonding_curve = get_account(4); // associatedBondingCurve
-                }
-                if log_trade.associated_user == Pubkey::default() {
-                    log_trade.associated_user = get_account(5); // associatedUser
-                }
-                if log_trade.event_authority == Pubkey::default() {
-                    log_trade.event_authority = get_account(10); // eventAuthority
-                }
-                // user 从账户 6 获取（如果log中缺失）
-                if log_trade.user == Pubkey::default() {
-                    log_trade.user = get_account(6); // user
-                }
-                // mint 从账户 2 获取（如果log中缺失）
-                if log_trade.mint == Pubkey::default() {
-                    log_trade.mint = get_account(2); // mint
-                }
-            },
-
-            // 其他事件类型暂时不处理，因为它们的log通常已经完整
-            _ => {}
-        }
-    }
-
-    /// 从指令中提取账户地址填充log事件（只填充event中已定义的字段）
-    fn fill_account_addresses_from_instruction(
-        log_event: &mut DexEvent,
-        instruction_data: &[u8],
-        accounts: &[Pubkey],
-        program_id: &Pubkey,
-    ) {
-        use crate::core::events::DexEvent;
-
-        // 首先尝试解析指令以获取账户信息
-        if let Some(instr_event) = crate::instr::parse_instruction_unified(
-            instruction_data, accounts, Default::default(), 0, None, program_id
-        ) {
-            // 根据事件类型，只填充已定义字段中为默认值的账户地址
-            match (log_event, &instr_event) {
-                // PumpFun 事件账户填充
-                (DexEvent::PumpFunTrade(ref mut log_trade), DexEvent::PumpFunTrade(instr_trade)) => {
-                    if log_trade.user == Pubkey::default() && instr_trade.user != Pubkey::default() {
-                        log_trade.user = instr_trade.user;
-                    }
-                    if log_trade.mint == Pubkey::default() && instr_trade.mint != Pubkey::default() {
-                        log_trade.mint = instr_trade.mint;
-                    }
-                },
-
-                // Raydium CLMM 事件账户填充
-                (DexEvent::RaydiumClmmSwap(ref mut log_swap), DexEvent::RaydiumClmmSwap(instr_swap)) => {
-                    if log_swap.pool == Pubkey::default() && instr_swap.pool != Pubkey::default() {
-                        log_swap.pool = instr_swap.pool;
-                    }
-                    if log_swap.user == Pubkey::default() && instr_swap.user != Pubkey::default() {
-                        log_swap.user = instr_swap.user;
-                    }
-                },
-
-                // Raydium CPMM 事件账户填充
-                (DexEvent::RaydiumCpmmSwap(ref mut log_swap), DexEvent::RaydiumCpmmSwap(instr_swap)) => {
-                    if log_swap.pool == Pubkey::default() && instr_swap.pool != Pubkey::default() {
-                        log_swap.pool = instr_swap.pool;
-                    }
-                    if log_swap.user == Pubkey::default() && instr_swap.user != Pubkey::default() {
-                        log_swap.user = instr_swap.user;
-                    }
-                },
-
-                // Raydium AMM V4 事件账户填充
-                (DexEvent::RaydiumAmmV4Swap(ref mut log_swap), DexEvent::RaydiumAmmV4Swap(instr_swap)) => {
-                    if log_swap.amm == Pubkey::default() && instr_swap.amm != Pubkey::default() {
-                        log_swap.amm = instr_swap.amm;
-                    }
-                },
-
-                // Orca Whirlpool 事件账户填充
-                (DexEvent::OrcaWhirlpoolSwap(ref mut log_swap), DexEvent::OrcaWhirlpoolSwap(instr_swap)) => {
-                    if log_swap.whirlpool == Pubkey::default() && instr_swap.whirlpool != Pubkey::default() {
-                        log_swap.whirlpool = instr_swap.whirlpool;
-                    }
-                },
-
-                // Meteora DAMM V2 事件账户填充
-                (DexEvent::MeteoraDammV2Swap(ref mut log_swap), DexEvent::MeteoraDammV2Swap(instr_swap)) => {
-                    if log_swap.lb_pair == Pubkey::default() && instr_swap.lb_pair != Pubkey::default() {
-                        log_swap.lb_pair = instr_swap.lb_pair;
-                    }
-                    if log_swap.from == Pubkey::default() && instr_swap.from != Pubkey::default() {
-                        log_swap.from = instr_swap.from;
-                    }
-                },
-
-                // Bonk 事件账户填充
-                (DexEvent::BonkTrade(ref mut log_trade), DexEvent::BonkTrade(instr_trade)) => {
-                    if log_trade.pool_state == Pubkey::default() && instr_trade.pool_state != Pubkey::default() {
-                        log_trade.pool_state = instr_trade.pool_state;
-                    }
-                    if log_trade.user == Pubkey::default() && instr_trade.user != Pubkey::default() {
-                        log_trade.user = instr_trade.user;
-                    }
-                },
-
-                // 其他事件类型暂时不处理
-                _ => {}
-            }
-        }
-    }
 
     /// 检查两个事件是否可以合并
     fn can_merge_events(log_event: &DexEvent, instr_event: &DexEvent) -> bool {
@@ -607,8 +474,8 @@ impl YellowstoneGrpc {
                 if log_swap.amount_in == 0 && instr_swap.amount_in > 0 {
                     log_swap.amount_in = instr_swap.amount_in;
                 }
-                if log_swap.amount_out == 0 && instr_swap.amount_out > 0 {
-                    log_swap.amount_out = instr_swap.amount_out;
+                if log_swap.output_amount == 0 && instr_swap.output_amount > 0 {
+                    log_swap.output_amount = instr_swap.output_amount;
                 }
                 Some(DexEvent::RaydiumCpmmSwap(log_swap))
             },

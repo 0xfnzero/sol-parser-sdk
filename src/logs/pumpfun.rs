@@ -197,11 +197,17 @@ fn parse_trade_event(
     offset += 8;
 
     let creator_fee = read_u64_le(data, offset)?;
+    offset += 8;
+
+    // 根据最新IDL TradeEvent，还有track_volume字段
+    let track_volume = read_bool(data, offset).unwrap_or(false);
 
     let metadata = create_metadata(signature, slot, block_time, mint);
 
     Some(DexEvent::PumpFunTrade(PumpFunTradeEvent {
         metadata,
+
+        // IDL TradeEvent 字段
         mint,
         sol_amount,
         token_amount,
@@ -212,18 +218,24 @@ fn parse_trade_event(
         virtual_token_reserves,
         real_sol_reserves,
         real_token_reserves,
-        bonding_curve: Pubkey::default(),
+        fee_recipient,
+        fee_basis_points,
+        fee,
+        creator,
+        creator_fee_basis_points,
+        creator_fee,
+        track_volume,
+
+        // 指令参数字段
+        amount: token_amount,
         max_sol_cost: 0,
         min_sol_output: 0,
-        amount: token_amount,
+
+        // 指令账户字段 - 默认值，由account_filler填充
         global: Pubkey::default(),
+        bonding_curve: Pubkey::default(),
         associated_bonding_curve: Pubkey::default(),
         associated_user: Pubkey::default(),
-        creator_vault: Pubkey::default(),
-        event_authority: Pubkey::default(),
-        global_volume_accumulator: Pubkey::default(),
-        user_volume_accumulator: Pubkey::default(),
-
     }))
 }
 
@@ -387,6 +399,8 @@ fn parse_trade_from_text(
 
     Some(DexEvent::PumpFunTrade(PumpFunTradeEvent {
         metadata,
+
+        // IDL TradeEvent 字段
         mint: Pubkey::default(),
         sol_amount: extract_number_from_text(log, "sol").unwrap_or(1_000_000_000),
         token_amount: extract_number_from_text(log, "token").unwrap_or(1_000_000_000),
@@ -397,18 +411,24 @@ fn parse_trade_from_text(
         virtual_token_reserves: 1_073_000_000_000_000,
         real_sol_reserves: 0,
         real_token_reserves: 0,
-        // 指令解析补充字段 - 日志解析时默认为空，由指令填充
-        bonding_curve: Pubkey::default(),
+        fee_recipient: Pubkey::default(),
+        fee_basis_points: 0,
+        fee: 0,
+        creator: Pubkey::default(),
+        creator_fee_basis_points: 0,
+        creator_fee: 0,
+        track_volume: false,
+
+        // 指令参数字段
+        amount: extract_number_from_text(log, "amount").unwrap_or(1_000_000_000),
         max_sol_cost: 0,
         min_sol_output: 0,
-        amount: extract_number_from_text(log, "amount").unwrap_or(1_000_000_000),
+
+        // 指令账户字段
         global: Pubkey::default(),
+        bonding_curve: Pubkey::default(),
         associated_bonding_curve: Pubkey::default(),
         associated_user: Pubkey::default(),
-        creator_vault: Pubkey::default(),
-        event_authority: Pubkey::default(),
-        global_volume_accumulator: Pubkey::default(),
-        user_volume_accumulator: Pubkey::default(),
     }))
 }
 
