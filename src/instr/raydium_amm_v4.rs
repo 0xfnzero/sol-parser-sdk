@@ -5,6 +5,7 @@
 use solana_sdk::{pubkey::Pubkey, signature::Signature};
 use crate::core::events::*;
 use super::utils::*;
+use super::program_ids;
 
 /// Raydium AMM V4 指令类型枚举
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -42,8 +43,11 @@ pub mod discriminators {
     pub const WITHDRAW_PNL: u8 = 7;
 }
 
-/// Raydium AMM V4 程序 ID
+/// Raydium AMM V4 程序 ID (为了向后兼容保留字符串版本)
 pub const PROGRAM_ID: &str = "675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8";
+
+/// Raydium AMM V4 程序 ID (优化版本 - 使用 Pubkey 常量)
+pub const PROGRAM_ID_PUBKEY: Pubkey = program_ids::RAYDIUM_AMM_V4_PROGRAM_ID;
 
 /// 主要的 Raydium AMM V4 指令解析函数
 pub fn parse_instruction(

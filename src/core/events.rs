@@ -21,6 +21,7 @@ pub struct EventMetadata {
     pub handle_us: i64,
 }
 
+
 /// Block Meta Event
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BlockMetaEvent {
@@ -48,6 +49,7 @@ pub struct BaseMintParam {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BonkTradeEvent {
     pub metadata: EventMetadata,
+    // === 事件核心字段 ===
     pub pool_state: Pubkey,
     pub user: Pubkey,
     pub amount_in: u64,
@@ -74,33 +76,41 @@ pub struct BonkMigrateAmmEvent {
 }
 
 /// PumpFun Trade Event - 基于官方IDL定义
+///
+/// 字段来源标记:
+/// - [EVENT]: 来自原始IDL事件定义，由程序日志直接解析获得
+/// - [INSTRUCTION]: 来自指令解析，用于补充事件缺失的上下文信息
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PumpFunTradeEvent {
-    pub metadata: EventMetadata,
-    // IDL定义的核心字段
-    pub mint: Pubkey,
-    pub sol_amount: u64,
-    pub token_amount: u64,
-    pub is_buy: bool,
-    pub user: Pubkey,
-    pub timestamp: i64,
-    pub virtual_sol_reserves: u64,
-    pub virtual_token_reserves: u64,
-    pub real_sol_reserves: u64,
-    pub real_token_reserves: u64,
-    // 指令解析补充字段
-    pub bonding_curve: Pubkey,
-    pub max_sol_cost: u64,
-    pub min_sol_output: u64,
-    pub amount: u64,
-    // PumpFun 相关账户信息（有意义的账户）
-    pub global: Pubkey,
-    pub associated_bonding_curve: Pubkey,
-    pub associated_user: Pubkey,
-    pub creator_vault: Pubkey,
-    pub event_authority: Pubkey,
-    pub global_volume_accumulator: Pubkey,
-    pub user_volume_accumulator: Pubkey,
+    pub metadata: EventMetadata, // [SDK]: SDK添加的元数据
+
+    // === IDL定义的原始事件字段 (可从日志事件直接解析) ===
+    pub mint: Pubkey,                    // [EVENT] - IDL: "mint"
+    pub sol_amount: u64,                 // [EVENT] - IDL: "solAmount"
+    pub token_amount: u64,               // [EVENT] - IDL: "tokenAmount"
+    pub is_buy: bool,                    // [EVENT] - IDL: "isBuy"
+    pub user: Pubkey,                    // [EVENT] - IDL: "user"
+    pub timestamp: i64,                  // [EVENT] - IDL: "timestamp"
+    pub virtual_sol_reserves: u64,       // [EVENT] - IDL: "virtualSolReserves"
+    pub virtual_token_reserves: u64,     // [EVENT] - IDL: "virtualTokenReserves"
+    pub real_sol_reserves: u64,          // [EVENT] - IDL: "realSolReserves"
+    pub real_token_reserves: u64,        // [EVENT] - IDL: "realTokenReserves"
+
+    // === 指令解析补充字段 (仅能从指令数据获得) ===
+    pub bonding_curve: Pubkey,           // [INSTRUCTION] - accounts[1] bondingCurve
+    pub max_sol_cost: u64,               // [INSTRUCTION] - buy指令参数 maxSolCost
+    pub min_sol_output: u64,             // [INSTRUCTION] - sell指令参数 minSolOutput
+    pub amount: u64,                     // [INSTRUCTION] - 指令参数 amount
+
+    // === PumpFun 相关账户信息 (仅能从指令accounts获得) ===
+    pub global: Pubkey,                     // [INSTRUCTION] - accounts[2] global
+    pub associated_bonding_curve: Pubkey,   // [INSTRUCTION] - accounts[4] associatedBondingCurve
+    pub associated_user: Pubkey,            // [INSTRUCTION] - accounts[5] associatedUser
+    pub creator_vault: Pubkey,              // [INSTRUCTION] - accounts[6] creator/vault
+    pub event_authority: Pubkey,            // [INSTRUCTION] - accounts[8] eventAuthority
+    pub global_volume_accumulator: Pubkey,  // [INSTRUCTION] - accounts[9] globalVolumeAccumulator
+    pub user_volume_accumulator: Pubkey,    // [INSTRUCTION] - accounts[10] userVolumeAccumulator
+
 }
 
 /// PumpFun Complete Token Event
@@ -377,6 +387,7 @@ pub struct RaydiumCpmmWithdrawEvent {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RaydiumClmmSwapEvent {
     pub metadata: EventMetadata,
+    // === 事件核心字段 ===
     pub pool: Pubkey,
     pub user: Pubkey,
     pub amount: u64,
@@ -971,6 +982,7 @@ pub struct TokenInfoEvent {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct OrcaWhirlpoolSwapEvent {
     pub metadata: EventMetadata,
+    // === 事件核心字段 ===
     pub whirlpool: Pubkey,
     pub a_to_b: bool,
     pub pre_sqrt_price: u128,
@@ -1098,6 +1110,7 @@ pub struct MeteoraPoolsSetPoolFeesEvent {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MeteoraDammV2SwapEvent {
     pub metadata: EventMetadata,
+    // === 事件核心字段 ===
     pub lb_pair: Pubkey,
     pub from: Pubkey,
     pub start_bin_id: i32,

@@ -7,6 +7,7 @@ use crate::core::events::EventMetadata;
 use base64::{Engine as _, engine::general_purpose};
 
 /// 从日志中提取程序数据
+#[inline]
 pub fn extract_program_data(log: &str) -> Option<Vec<u8>> {
     if let Some(data_start) = log.find("Program data: ") {
         let data_part = &log[data_start + 14..];
@@ -17,19 +18,26 @@ pub fn extract_program_data(log: &str) -> Option<Vec<u8>> {
 }
 
 /// 从字节数组中读取 u64（小端序）
+#[inline]
 pub fn read_u64_le(data: &[u8], offset: usize) -> Option<u64> {
     if data.len() < offset + 8 {
         return None;
     }
-    Some(u64::from_le_bytes(data[offset..offset + 8].try_into().ok()?))
+    let bytes = &data[offset..offset + 8];
+    Some(u64::from_le_bytes([
+        bytes[0], bytes[1], bytes[2], bytes[3],
+        bytes[4], bytes[5], bytes[6], bytes[7]
+    ]))
 }
 
 /// 从字节数组中读取 u32（小端序）
+#[inline]
 pub fn read_u32_le(data: &[u8], offset: usize) -> Option<u32> {
     if data.len() < offset + 4 {
         return None;
     }
-    Some(u32::from_le_bytes(data[offset..offset + 4].try_into().ok()?))
+    let bytes = &data[offset..offset + 4];
+    Some(u32::from_le_bytes([bytes[0], bytes[1], bytes[2], bytes[3]]))
 }
 
 /// 从字节数组中读取 i64（小端序）
@@ -70,11 +78,13 @@ pub fn read_u8(data: &[u8], offset: usize) -> Option<u8> {
 }
 
 /// 从字节数组中读取 Pubkey（32字节）
+#[inline]
 pub fn read_pubkey(data: &[u8], offset: usize) -> Option<Pubkey> {
     if data.len() < offset + 32 {
         return None;
     }
-    let key_bytes: [u8; 32] = data[offset..offset + 32].try_into().ok()?;
+    let mut key_bytes = [0u8; 32];
+    key_bytes.copy_from_slice(&data[offset..offset + 32]);
     Some(Pubkey::new_from_array(key_bytes))
 }
 
@@ -90,7 +100,8 @@ pub fn read_string(data: &[u8], offset: usize) -> Option<(String, usize)> {
     }
 
     let string_bytes = &data[offset + 4..offset + 4 + len];
-    let string = String::from_utf8(string_bytes.to_vec()).ok()?;
+    // 使用 from_utf8_lossy 避免额外的错误处理和内存分配
+    let string = std::str::from_utf8(string_bytes).ok()?.to_string();
     Some((string, 4 + len))
 }
 

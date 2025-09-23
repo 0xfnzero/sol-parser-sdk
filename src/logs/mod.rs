@@ -3,6 +3,7 @@
 //! 包含所有 DEX 协议的日志解析器实现
 
 pub mod utils;
+pub mod optimized_matcher;
 pub mod bonk;
 pub mod pumpfun;
 pub mod pumpswap;
@@ -30,8 +31,19 @@ pub use utils::*;
 use solana_sdk::{signature::Signature};
 use crate::core::events::DexEvent;
 
-/// 统一的日志解析入口函数
+/// 统一的日志解析入口函数（优化版本）
 pub fn parse_log_unified(
+    log: &str,
+    signature: Signature,
+    slot: u64,
+    block_time: Option<i64>,
+) -> Option<DexEvent> {
+    // 使用优化的匹配器，避免重复的字符串操作
+    optimized_matcher::parse_log_optimized(log, signature, slot, block_time)
+}
+
+/// 传统的日志解析函数（保留用于比较）
+pub fn parse_log_unified_legacy(
     log: &str,
     signature: Signature,
     slot: u64,

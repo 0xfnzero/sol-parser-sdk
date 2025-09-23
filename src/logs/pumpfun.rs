@@ -223,6 +223,7 @@ fn parse_trade_event(
         event_authority: Pubkey::default(),
         global_volume_accumulator: Pubkey::default(),
         user_volume_accumulator: Pubkey::default(),
+
     }))
 }
 
@@ -396,6 +397,7 @@ fn parse_trade_from_text(
         virtual_token_reserves: 1_073_000_000_000_000,
         real_sol_reserves: 0,
         real_token_reserves: 0,
+        // 指令解析补充字段 - 日志解析时默认为空，由指令填充
         bonding_curve: Pubkey::default(),
         max_sol_cost: 0,
         min_sol_output: 0,

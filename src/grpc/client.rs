@@ -8,6 +8,7 @@ use futures::StreamExt;
 use log::error;
 use tonic::transport::ClientTlsConfig;
 
+
 #[derive(Clone)]
 pub struct YellowstoneGrpc {
     endpoint: String,
@@ -177,12 +178,13 @@ impl YellowstoneGrpc {
 
                         match msg.update_oneof {
                             Some(subscribe_update::UpdateOneof::Transaction(transaction_update)) => {
-                                // 解析交易事件 - 使用我们现有的解析逻辑
-                                if let Some(events) = Self::parse_transaction_to_events(&transaction_update).await {
-                                    for event in events {
-                                        callback(event);
-                                    }
-                                }
+                                let mut event_count = 0;
+                                // 流式解析交易事件 - 每解析出一个事件就立即回调
+                                Self::parse_transaction_to_events_streaming(&transaction_update, &mut |event| {
+                                    event_count += 1;
+                                    // 执行用户回调
+                                    callback(event);
+                                }).await;
                             },
                             Some(subscribe_update::UpdateOneof::Account(_account_update)) => {
                                 // Account updates - 暂时忽略
@@ -279,6 +281,397 @@ impl YellowstoneGrpc {
         None
     }
 
+    /// 流式解析交易为 DEX 事件 - 每解析出一个事件立即回调
+    async fn parse_transaction_to_events_streaming<F>(
+        transaction_update: &SubscribeUpdateTransaction,
+        callback: &mut F
+    ) where
+        F: FnMut(DexEvent)
+    {
+        // 从 transaction_update 中提取数据
+        if let Some(transaction_info) = &transaction_update.transaction {
+            if let Some(meta) = &transaction_info.meta {
+                // 从 meta 中提取日志
+                let logs: Vec<String> = meta.log_messages.clone();
+
+                // 从交易中提取指令数据
+                if let Some(tx) = &transaction_info.transaction {
+                    if let Some(message) = &tx.message {
+                        // 解析账户密钥
+                        let accounts: Vec<Pubkey> = message.account_keys
+                            .iter()
+                            .filter_map(|key| {
+                                if key.len() == 32 {
+                                    let mut pubkey_bytes = [0u8; 32];
+                                    pubkey_bytes.copy_from_slice(key);
+                                    Some(Pubkey::new_from_array(pubkey_bytes))
+                                } else {
+                                    None
+                                }
+                            })
+                            .collect();
+
+                        // 解析签名
+                        let signature = if let Some(sig) = tx.signatures.first() {
+                            if sig.len() == 64 {
+                                let mut sig_array = [0u8; 64];
+                                sig_array.copy_from_slice(sig);
+                                solana_sdk::signature::Signature::from(sig_array)
+                            } else {
+                                solana_sdk::signature::Signature::default()
+                            }
+                        } else {
+                            solana_sdk::signature::Signature::default()
+                        };
+
+                        // 预先计算时间戳，避免重复系统调用
+                        let block_time = Some(chrono::Utc::now().timestamp());
+
+                        // 流式解析所有指令 - 每解析出一个事件就立即回调
+                        for instruction in &message.instructions {
+                            let program_id_index = instruction.program_id_index as usize;
+                            if program_id_index < accounts.len() {
+                                let program_id = accounts[program_id_index];
+
+                                // 使用流式解析函数 - 每个事件都会立即回调
+                                Self::parse_transaction_events_streaming(
+                                    &instruction.data,
+                                    &accounts,
+                                    &logs,
+                                    signature,
+                                    transaction_update.slot,
+                                    block_time,
+                                    &program_id,
+                                    callback,
+                                );
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /// 流式解析交易事件 - 优先解析日志，指令补充缺失字段后合并
+    fn parse_transaction_events_streaming<F>(
+        instruction_data: &[u8],
+        accounts: &[Pubkey],
+        logs: &[String],
+        signature: solana_sdk::signature::Signature,
+        slot: u64,
+        block_time: Option<i64>,
+        program_id: &Pubkey,
+        callback: &mut F,
+    ) where
+        F: FnMut(DexEvent)
+    {
+        let mut event_counter = 0;
+
+        // 1. 先一次性解析指令，提取所有账户数据
+        let instruction_accounts = accounts; // 直接使用指令中的accounts
+
+        // 2. 然后逐个处理log事件，从预解析的账户数据中补充缺失字段
+        for (_log_index, log) in logs.iter().enumerate() {
+            let event_start = std::time::Instant::now();
+            if let Some(mut log_event) = crate::logs::parse_log_unified(log, signature, slot, block_time) {
+                // 从预解析的账户数据中补充缺失字段
+                Self::fill_accounts_from_extracted_data(&mut log_event, instruction_accounts);
+
+                let total_time = event_start.elapsed().as_micros();
+                event_counter += 1;
+                println!("⚡ 事件{}: 耗时: {}μs", event_counter, total_time);
+                println!("────────────────────────────────────────");
+
+                // 立即回调处理完的事件
+                callback(log_event);
+            }
+        }
+
+        // 3. 如果有独立的指令事件（没有对应的log事件），单独处理
+        if let Some(instr_event) = crate::instr::parse_instruction_unified(
+            instruction_data, accounts, signature, slot, block_time, program_id
+        ) {
+            // 检查这个指令事件是否已经被上面的log事件处理过了
+            let is_already_processed = logs.iter().any(|log| {
+                if let Some(log_event) = crate::logs::parse_log_unified(log, signature, slot, block_time) {
+                    Self::can_merge_events(&log_event, &instr_event)
+                } else {
+                    false
+                }
+            });
+
+            // 如果没有被处理过，则作为独立事件输出
+            if !is_already_processed {
+                let event_start = std::time::Instant::now();
+                let total_time = event_start.elapsed().as_micros();
+                event_counter += 1;
+                println!("⚡ 事件{}: 耗时: {}μs", event_counter, total_time);
+                println!("────────────────────────────────────────");
+                callback(instr_event);
+            }
+        }
+    }
+
+
+    /// 从指令账户中补充log事件的缺失字段
+    fn fill_accounts_from_extracted_data(
+        log_event: &mut DexEvent,
+        instruction_accounts: &[Pubkey],
+    ) {
+        use crate::core::events::DexEvent;
+
+        // 获取账户的辅助函数
+        let get_account = |index: usize| -> Pubkey {
+            instruction_accounts.get(index).cloned().unwrap_or_default()
+        };
+
+        match log_event {
+            // PumpFun 事件账户填充 - 按IDL账户索引填充
+            DexEvent::PumpFunTrade(ref mut log_trade) => {
+                // PumpFun buy/sell指令的账户映射（根据IDL）:
+                // 0: global, 1: feeRecipient, 2: mint, 3: bondingCurve, 4: associatedBondingCurve,
+                // 5: associatedUser, 6: user, 7: systemProgram, 8: tokenProgram, 9: rent, 10: eventAuthority
+
+                // 填充账户地址（如果log中缺失）
+                if log_trade.bonding_curve == Pubkey::default() {
+                    log_trade.bonding_curve = get_account(3); // bondingCurve
+                }
+                if log_trade.global == Pubkey::default() {
+                    log_trade.global = get_account(0); // global
+                }
+                if log_trade.associated_bonding_curve == Pubkey::default() {
+                    log_trade.associated_bonding_curve = get_account(4); // associatedBondingCurve
+                }
+                if log_trade.associated_user == Pubkey::default() {
+                    log_trade.associated_user = get_account(5); // associatedUser
+                }
+                if log_trade.event_authority == Pubkey::default() {
+                    log_trade.event_authority = get_account(10); // eventAuthority
+                }
+                // user 从账户 6 获取（如果log中缺失）
+                if log_trade.user == Pubkey::default() {
+                    log_trade.user = get_account(6); // user
+                }
+                // mint 从账户 2 获取（如果log中缺失）
+                if log_trade.mint == Pubkey::default() {
+                    log_trade.mint = get_account(2); // mint
+                }
+            },
+
+            // 其他事件类型暂时不处理，因为它们的log通常已经完整
+            _ => {}
+        }
+    }
+
+    /// 从指令中提取账户地址填充log事件（只填充event中已定义的字段）
+    fn fill_account_addresses_from_instruction(
+        log_event: &mut DexEvent,
+        instruction_data: &[u8],
+        accounts: &[Pubkey],
+        program_id: &Pubkey,
+    ) {
+        use crate::core::events::DexEvent;
+
+        // 首先尝试解析指令以获取账户信息
+        if let Some(instr_event) = crate::instr::parse_instruction_unified(
+            instruction_data, accounts, Default::default(), 0, None, program_id
+        ) {
+            // 根据事件类型，只填充已定义字段中为默认值的账户地址
+            match (log_event, &instr_event) {
+                // PumpFun 事件账户填充
+                (DexEvent::PumpFunTrade(ref mut log_trade), DexEvent::PumpFunTrade(instr_trade)) => {
+                    if log_trade.user == Pubkey::default() && instr_trade.user != Pubkey::default() {
+                        log_trade.user = instr_trade.user;
+                    }
+                    if log_trade.mint == Pubkey::default() && instr_trade.mint != Pubkey::default() {
+                        log_trade.mint = instr_trade.mint;
+                    }
+                },
+
+                // Raydium CLMM 事件账户填充
+                (DexEvent::RaydiumClmmSwap(ref mut log_swap), DexEvent::RaydiumClmmSwap(instr_swap)) => {
+                    if log_swap.pool == Pubkey::default() && instr_swap.pool != Pubkey::default() {
+                        log_swap.pool = instr_swap.pool;
+                    }
+                    if log_swap.user == Pubkey::default() && instr_swap.user != Pubkey::default() {
+                        log_swap.user = instr_swap.user;
+                    }
+                },
+
+                // Raydium CPMM 事件账户填充
+                (DexEvent::RaydiumCpmmSwap(ref mut log_swap), DexEvent::RaydiumCpmmSwap(instr_swap)) => {
+                    if log_swap.pool == Pubkey::default() && instr_swap.pool != Pubkey::default() {
+                        log_swap.pool = instr_swap.pool;
+                    }
+                    if log_swap.user == Pubkey::default() && instr_swap.user != Pubkey::default() {
+                        log_swap.user = instr_swap.user;
+                    }
+                },
+
+                // Raydium AMM V4 事件账户填充
+                (DexEvent::RaydiumAmmV4Swap(ref mut log_swap), DexEvent::RaydiumAmmV4Swap(instr_swap)) => {
+                    if log_swap.amm == Pubkey::default() && instr_swap.amm != Pubkey::default() {
+                        log_swap.amm = instr_swap.amm;
+                    }
+                },
+
+                // Orca Whirlpool 事件账户填充
+                (DexEvent::OrcaWhirlpoolSwap(ref mut log_swap), DexEvent::OrcaWhirlpoolSwap(instr_swap)) => {
+                    if log_swap.whirlpool == Pubkey::default() && instr_swap.whirlpool != Pubkey::default() {
+                        log_swap.whirlpool = instr_swap.whirlpool;
+                    }
+                },
+
+                // Meteora DAMM V2 事件账户填充
+                (DexEvent::MeteoraDammV2Swap(ref mut log_swap), DexEvent::MeteoraDammV2Swap(instr_swap)) => {
+                    if log_swap.lb_pair == Pubkey::default() && instr_swap.lb_pair != Pubkey::default() {
+                        log_swap.lb_pair = instr_swap.lb_pair;
+                    }
+                    if log_swap.from == Pubkey::default() && instr_swap.from != Pubkey::default() {
+                        log_swap.from = instr_swap.from;
+                    }
+                },
+
+                // Bonk 事件账户填充
+                (DexEvent::BonkTrade(ref mut log_trade), DexEvent::BonkTrade(instr_trade)) => {
+                    if log_trade.pool_state == Pubkey::default() && instr_trade.pool_state != Pubkey::default() {
+                        log_trade.pool_state = instr_trade.pool_state;
+                    }
+                    if log_trade.user == Pubkey::default() && instr_trade.user != Pubkey::default() {
+                        log_trade.user = instr_trade.user;
+                    }
+                },
+
+                // 其他事件类型暂时不处理
+                _ => {}
+            }
+        }
+    }
+
+    /// 检查两个事件是否可以合并
+    fn can_merge_events(log_event: &DexEvent, instr_event: &DexEvent) -> bool {
+        use crate::core::events::DexEvent;
+
+        match (log_event, instr_event) {
+            // 同类型事件可以合并
+            (DexEvent::PumpFunTrade(_), DexEvent::PumpFunTrade(_)) => true,
+            (DexEvent::RaydiumClmmSwap(_), DexEvent::RaydiumClmmSwap(_)) => true,
+            (DexEvent::RaydiumCpmmSwap(_), DexEvent::RaydiumCpmmSwap(_)) => true,
+            (DexEvent::RaydiumAmmV4Swap(_), DexEvent::RaydiumAmmV4Swap(_)) => true,
+            (DexEvent::OrcaWhirlpoolSwap(_), DexEvent::OrcaWhirlpoolSwap(_)) => true,
+            (DexEvent::MeteoraPoolsSwap(_), DexEvent::MeteoraPoolsSwap(_)) => true,
+            (DexEvent::MeteoraDammV2Swap(_), DexEvent::MeteoraDammV2Swap(_)) => true,
+            (DexEvent::BonkTrade(_), DexEvent::BonkTrade(_)) => true,
+            // 其他情况不合并
+            _ => false,
+        }
+    }
+
+    /// 用指令事件补充日志事件中缺失的字段
+    fn merge_log_with_instruction(log_event: DexEvent, instr_event: &DexEvent) -> Option<DexEvent> {
+        use crate::core::events::*;
+
+        match (log_event, instr_event) {
+            // PumpFun 交易事件合并
+            (DexEvent::PumpFunTrade(mut log_trade), DexEvent::PumpFunTrade(instr_trade)) => {
+                // 日志事件优先，只补充缺失的字段
+                if log_trade.sol_amount == 0 && instr_trade.sol_amount > 0 {
+                    log_trade.sol_amount = instr_trade.sol_amount;
+                }
+                if log_trade.token_amount == 0 && instr_trade.token_amount > 0 {
+                    log_trade.token_amount = instr_trade.token_amount;
+                }
+                if log_trade.virtual_sol_reserves == 0 && instr_trade.virtual_sol_reserves > 0 {
+                    log_trade.virtual_sol_reserves = instr_trade.virtual_sol_reserves;
+                }
+                if log_trade.virtual_token_reserves == 0 && instr_trade.virtual_token_reserves > 0 {
+                    log_trade.virtual_token_reserves = instr_trade.virtual_token_reserves;
+                }
+                Some(DexEvent::PumpFunTrade(log_trade))
+            },
+
+            // Raydium CLMM 事件合并
+            (DexEvent::RaydiumClmmSwap(mut log_swap), DexEvent::RaydiumClmmSwap(instr_swap)) => {
+                // 补充缺失的字段
+                if log_swap.amount == 0 && instr_swap.amount > 0 {
+                    log_swap.amount = instr_swap.amount;
+                }
+                if log_swap.other_amount_threshold == 0 && instr_swap.other_amount_threshold > 0 {
+                    log_swap.other_amount_threshold = instr_swap.other_amount_threshold;
+                }
+                Some(DexEvent::RaydiumClmmSwap(log_swap))
+            },
+
+            // Raydium CPMM 事件合并
+            (DexEvent::RaydiumCpmmSwap(mut log_swap), DexEvent::RaydiumCpmmSwap(instr_swap)) => {
+                if log_swap.amount_in == 0 && instr_swap.amount_in > 0 {
+                    log_swap.amount_in = instr_swap.amount_in;
+                }
+                if log_swap.amount_out == 0 && instr_swap.amount_out > 0 {
+                    log_swap.amount_out = instr_swap.amount_out;
+                }
+                Some(DexEvent::RaydiumCpmmSwap(log_swap))
+            },
+
+            // Raydium AMM V4 事件合并
+            (DexEvent::RaydiumAmmV4Swap(mut log_swap), DexEvent::RaydiumAmmV4Swap(instr_swap)) => {
+                if log_swap.amount_in == 0 && instr_swap.amount_in > 0 {
+                    log_swap.amount_in = instr_swap.amount_in;
+                }
+                if log_swap.amount_out == 0 && instr_swap.amount_out > 0 {
+                    log_swap.amount_out = instr_swap.amount_out;
+                }
+                Some(DexEvent::RaydiumAmmV4Swap(log_swap))
+            },
+
+            // Orca Whirlpool 事件合并
+            (DexEvent::OrcaWhirlpoolSwap(mut log_swap), DexEvent::OrcaWhirlpoolSwap(instr_swap)) => {
+                if log_swap.input_amount == 0 && instr_swap.input_amount > 0 {
+                    log_swap.input_amount = instr_swap.input_amount;
+                }
+                if log_swap.output_amount == 0 && instr_swap.output_amount > 0 {
+                    log_swap.output_amount = instr_swap.output_amount;
+                }
+                Some(DexEvent::OrcaWhirlpoolSwap(log_swap))
+            },
+
+            // Meteora Pools 事件合并
+            (DexEvent::MeteoraPoolsSwap(mut log_swap), DexEvent::MeteoraPoolsSwap(instr_swap)) => {
+                if log_swap.in_amount == 0 && instr_swap.in_amount > 0 {
+                    log_swap.in_amount = instr_swap.in_amount;
+                }
+                if log_swap.out_amount == 0 && instr_swap.out_amount > 0 {
+                    log_swap.out_amount = instr_swap.out_amount;
+                }
+                Some(DexEvent::MeteoraPoolsSwap(log_swap))
+            },
+
+            // Meteora DAMM V2 事件合并
+            (DexEvent::MeteoraDammV2Swap(mut log_swap), DexEvent::MeteoraDammV2Swap(instr_swap)) => {
+                if log_swap.amount_in == 0 && instr_swap.amount_in > 0 {
+                    log_swap.amount_in = instr_swap.amount_in;
+                }
+                if log_swap.amount_out == 0 && instr_swap.amount_out > 0 {
+                    log_swap.amount_out = instr_swap.amount_out;
+                }
+                Some(DexEvent::MeteoraDammV2Swap(log_swap))
+            },
+
+            // Bonk 交易事件合并
+            (DexEvent::BonkTrade(mut log_trade), DexEvent::BonkTrade(instr_trade)) => {
+                if log_trade.amount_in == 0 && instr_trade.amount_in > 0 {
+                    log_trade.amount_in = instr_trade.amount_in;
+                }
+                if log_trade.amount_out == 0 && instr_trade.amount_out > 0 {
+                    log_trade.amount_out = instr_trade.amount_out;
+                }
+                Some(DexEvent::BonkTrade(log_trade))
+            },
+
+            // 不匹配的事件类型
+            _ => None,
+        }
+    }
 
     /// 订阅事件并立即开始处理 - 兼容原始API
     pub async fn subscribe_events_immediate(

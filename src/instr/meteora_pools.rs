@@ -5,6 +5,7 @@
 use solana_sdk::{pubkey::Pubkey, signature::Signature};
 use crate::core::events::*;
 use super::utils::*;
+use super::program_ids;
 
 /// Meteora Pools 指令类型枚举
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -58,8 +59,11 @@ pub mod discriminators {
     pub const CREATE_POOL: [u8; 8] = [95, 180, 10, 172, 84, 174, 232, 40];
 }
 
-/// Meteora Pools 程序 ID
+/// Meteora Pools 程序 ID (为了向后兼容保留字符串版本)
 pub const PROGRAM_ID: &str = "Eo7WjKq67rjJQSZxS6z3YkapzY3eMj6Xy8X5EQVn5UaB";
+
+/// Meteora Pools 程序 ID (优化版本 - 使用 Pubkey 常量)
+pub const PROGRAM_ID_PUBKEY: Pubkey = program_ids::METEORA_POOLS_PROGRAM_ID;
 
 /// 主要的 Meteora Pools 指令解析函数
 pub fn parse_instruction(

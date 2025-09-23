@@ -13,7 +13,8 @@ pub mod unified_parser;  // 统一解析器 - 单一入口
 // 主要导出 - 核心事件处理功能
 pub use events::*;
 pub use unified_parser::{
-    parse_transaction_events, parse_logs_only, parse_transaction_with_listener, EventListener
+    parse_transaction_events, parse_logs_only, parse_transaction_with_listener, EventListener,
+    parse_transaction_events_streaming, parse_logs_streaming, parse_transaction_with_streaming_listener, StreamingEventListener
 };
 
 // 导出事件合并功能

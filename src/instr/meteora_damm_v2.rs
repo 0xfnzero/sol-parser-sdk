@@ -5,6 +5,7 @@
 use solana_sdk::{pubkey::Pubkey, signature::Signature};
 use crate::core::events::*;
 use super::utils::*;
+use super::program_ids;
 
 /// Meteora DAMM V2 指令类型枚举
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -92,8 +93,11 @@ pub mod discriminators {
     pub const FUND_REWARD: [u8; 8] = [104, 233, 237, 122, 199, 191, 121, 85];
 }
 
-/// Meteora DAMM V2 程序 ID
+/// Meteora DAMM V2 程序 ID (为了向后兼容保留字符串版本)
 pub const PROGRAM_ID: &str = "LBUZKhRxPF3XUpBCjp4YzTKgLccjZhTSDM9YuVaPwxo";
+
+/// Meteora DAMM V2 程序 ID (优化版本 - 使用 Pubkey 常量)
+pub const PROGRAM_ID_PUBKEY: Pubkey = program_ids::METEORA_DAMM_V2_PROGRAM_ID;
 
 /// 主要的 Meteora DAMM V2 指令解析函数
 pub fn parse_instruction(

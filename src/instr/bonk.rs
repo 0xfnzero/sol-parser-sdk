@@ -5,6 +5,7 @@
 use solana_sdk::{pubkey::Pubkey, signature::Signature};
 use crate::core::events::*;
 use super::utils::*;
+use super::program_ids;
 
 /// Bonk discriminator 常量
 pub mod discriminators {
@@ -13,8 +14,11 @@ pub mod discriminators {
     pub const MIGRATE_AMM: [u8; 8] = [3, 4, 5, 6, 7, 8, 9, 10];
 }
 
-/// Bonk 程序 ID
+/// Bonk 程序 ID (为了向后兼容保留字符串版本)
 pub const PROGRAM_ID: &str = "DjVE6JNiYqPL2QXyCUUh8rNjHrbz9hXHNYt99MQ59qw1";
+
+/// Bonk 程序 ID (优化版本 - 使用 Pubkey 常量)
+pub const PROGRAM_ID_PUBKEY: Pubkey = program_ids::BONK_PROGRAM_ID;
 
 /// 主要的 Bonk 指令解析函数
 pub fn parse_instruction(

@@ -5,6 +5,7 @@
 use solana_sdk::{pubkey::Pubkey, signature::Signature};
 use crate::core::events::*;
 use super::utils::*;
+use super::program_ids;
 
 /// Raydium CLMM discriminator 常量
 pub mod discriminators {
@@ -16,8 +17,12 @@ pub mod discriminators {
     pub const CLOSE_POSITION: [u8; 8] = [123, 134, 81, 0, 49, 68, 98, 98];
 }
 
-/// Raydium CLMM 程序 ID
-pub const PROGRAM_ID: &str = "CAMMCzo5YL8w4VFF8KVHrK22GGUQpMDdHFWF5LCATdURAy";
+/// Raydium CLMM 程序 ID (为了向后兼容保留字符串版本)
+/// Note: Original was too long, corrected to proper base58 length
+pub const PROGRAM_ID: &str = "CAMMCzo5YL8w4VFF8KVHrK22GGUQpMDdHFWF5LCATdCR";
+
+/// Raydium CLMM 程序 ID (优化版本 - 使用 Pubkey 常量)
+pub const PROGRAM_ID_PUBKEY: Pubkey = program_ids::RAYDIUM_CLMM_PROGRAM_ID;
 
 /// 主要的 Raydium CLMM 指令解析函数
 pub fn parse_instruction(

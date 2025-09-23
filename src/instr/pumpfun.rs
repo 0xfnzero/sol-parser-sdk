@@ -5,6 +5,7 @@
 use solana_sdk::{pubkey::Pubkey, signature::Signature};
 use crate::core::events::*;
 use super::utils::*;
+use super::program_ids;
 
 /// PumpFun discriminator 常量
 pub mod discriminators {
@@ -13,8 +14,11 @@ pub mod discriminators {
     pub const SELL: [u8; 8] = [51, 230, 133, 164, 1, 127, 131, 173];
 }
 
-/// PumpFun 程序 ID
+/// PumpFun 程序 ID (为了向后兼容保留字符串版本)
 pub const PROGRAM_ID: &str = "6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P";
+
+/// PumpFun 程序 ID (优化版本 - 使用 Pubkey 常量)
+pub const PROGRAM_ID_PUBKEY: Pubkey = program_ids::PUMPFUN_PROGRAM_ID;
 
 /// 主要的 PumpFun 指令解析函数
 pub fn parse_instruction(
@@ -99,6 +103,7 @@ fn parse_buy_instruction(
         virtual_token_reserves: 1_073_000_000_000_000, // 默认值，将从日志覆盖
         real_sol_reserves: 0, // 将从日志填充
         real_token_reserves: 0, // 将从日志填充
+
         bonding_curve: get_account(accounts, 3).unwrap_or_default(), // bondingCurve is at index 3
         max_sol_cost,
         min_sol_output: 0,
@@ -144,6 +149,7 @@ fn parse_sell_instruction(
         virtual_token_reserves: 1_073_000_000_000_000, // 默认值，将从日志覆盖
         real_sol_reserves: 0, // 将从日志填充
         real_token_reserves: 0, // 将从日志填充
+
         bonding_curve: get_account(accounts, 3).unwrap_or_default(), // bondingCurve is at index 3
         max_sol_cost: 0,
         min_sol_output,

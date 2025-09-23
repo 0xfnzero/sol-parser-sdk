@@ -36,34 +36,41 @@ pub fn merge_instruction_and_log_events(
     instruction_events: Vec<DexEvent>,
     log_events: Vec<DexEvent>,
 ) -> Vec<DexEvent> {
-    let mut merged_events = Vec::new();
-
-    // 1. 先添加所有日志事件（优先）
-    for log_event in log_events {
-        merged_events.push(log_event);
+    // 快速路径：如果没有指令事件，直接返回日志事件
+    if instruction_events.is_empty() {
+        return log_events;
     }
 
+    // 快速路径：如果没有日志事件，直接返回指令事件
+    if log_events.is_empty() {
+        return instruction_events;
+    }
+
+    let mut merged_events = Vec::with_capacity(log_events.len() + instruction_events.len());
+
+    // 1. 先添加所有日志事件（优先）
+    merged_events.extend(log_events);
+
     // 2. 对于指令事件，检查是否有对应的日志事件可以合并
-    for instr_event in instruction_events {
-        if let Some(existing_index) = find_matching_event(&merged_events, &instr_event) {
-            // 找到匹配的日志事件，进行合并
-            let log_event = &merged_events[existing_index];
-            if let Some(merged) = merge_single_event(instr_event, log_event.clone()) {
-                merged_events[existing_index] = merged;
+    'instr_loop: for instr_event in instruction_events {
+        // 从后向前搜索，因为最近的事件更可能匹配
+        for i in (0..merged_events.len()).rev() {
+            if events_can_merge(&merged_events[i], &instr_event) {
+                // 找到匹配的日志事件，进行合并
+                let log_event = merged_events[i].clone();
+                if let Some(merged) = merge_single_event(instr_event, log_event) {
+                    merged_events[i] = merged;
+                }
+                continue 'instr_loop;
             }
-        } else {
-            // 没有找到匹配的日志事件，直接添加指令事件
-            merged_events.push(instr_event);
         }
+        // 没有找到匹配的日志事件，直接添加指令事件
+        merged_events.push(instr_event);
     }
 
     merged_events
 }
 
-/// 查找匹配的事件索引
-fn find_matching_event(events: &[DexEvent], target: &DexEvent) -> Option<usize> {
-    events.iter().position(|event| events_can_merge(event, target))
-}
 
 /// 检查两个事件是否可以合并（同类型、同交易、同关键字段）
 fn events_can_merge(event1: &DexEvent, event2: &DexEvent) -> bool {

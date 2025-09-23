@@ -24,8 +24,10 @@ pub use core::{
     DexEvent, EventMetadata, ParsedEvent,
     // 主要解析函数
     parse_transaction_events, parse_logs_only, parse_transaction_with_listener,
+    // 流式解析函数
+    parse_transaction_events_streaming, parse_logs_streaming, parse_transaction_with_streaming_listener,
     // 事件监听器
-    EventListener,
+    EventListener, StreamingEventListener,
     // 事件合并器
     merge_instruction_and_log_events,
 };

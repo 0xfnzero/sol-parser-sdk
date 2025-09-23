@@ -5,6 +5,7 @@
 use solana_sdk::{pubkey::Pubkey, signature::Signature};
 use crate::core::events::*;
 use super::utils::*;
+use super::program_ids;
 
 /// Orca Whirlpool 指令类型枚举
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -103,8 +104,11 @@ pub mod discriminators {
     pub const TWO_HOP_SWAP_V2: [u8; 8] = [186, 143, 209, 29, 254, 2, 194, 117];
 }
 
-/// Orca Whirlpool 程序 ID
+/// Orca Whirlpool 程序 ID (为了向后兼容保留字符串版本)
 pub const PROGRAM_ID: &str = "whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc";
+
+/// Orca Whirlpool 程序 ID (优化版本 - 使用 Pubkey 常量)
+pub const PROGRAM_ID_PUBKEY: Pubkey = program_ids::ORCA_WHIRLPOOL_PROGRAM_ID;
 
 /// 主要的 Orca Whirlpool 指令解析函数
 pub fn parse_instruction(

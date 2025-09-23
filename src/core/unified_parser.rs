@@ -88,3 +88,82 @@ pub fn parse_transaction_with_listener<T: EventListener>(
         listener.on_dex_event(event);
     }
 }
+
+/// 流式解析交易事件 - 每解析出一个事件就立即回调
+///
+/// 这个版本不做事件合并，确保每个事件都能立即被处理
+/// 适用于需要实时响应的场景
+pub fn parse_transaction_events_streaming<F>(
+    instruction_data: &[u8],
+    accounts: &[Pubkey],
+    logs: &[String],
+    signature: Signature,
+    slot: u64,
+    block_time: Option<i64>,
+    program_id: &Pubkey,
+    mut callback: F,
+) where
+    F: FnMut(DexEvent)
+{
+    // 1. 先解析指令事件（如果有） - 立即回调
+    if let Some(instr_event) = crate::instr::parse_instruction_unified(
+        instruction_data, accounts, signature, slot, block_time, program_id
+    ) {
+        callback(instr_event);  // 立即回调指令事件
+    }
+
+    // 2. 逐个解析日志事件 - 每个事件立即回调
+    for log in logs {
+        if let Some(log_event) = crate::logs::parse_log_unified(log, signature, slot, block_time) {
+            callback(log_event);  // 立即回调日志事件，不等待其他日志
+        }
+    }
+
+    // 注意：这里完全不做事件合并和缓存，确保每个事件都是立即回调
+    // 回调顺序：先指令事件，然后按日志顺序回调日志事件
+}
+
+/// 流式解析日志事件 - 每解析出一个事件就立即回调
+pub fn parse_logs_streaming<F>(
+    logs: &[String],
+    signature: Signature,
+    slot: u64,
+    block_time: Option<i64>,
+    mut callback: F,
+) where
+    F: FnMut(DexEvent)
+{
+    for log in logs {
+        if let Some(event) = crate::logs::parse_log_unified(log, signature, slot, block_time) {
+            callback(event);
+        }
+    }
+}
+
+/// 流式事件监听器 trait - 适用于流式处理
+pub trait StreamingEventListener {
+    fn on_dex_event_streaming(&mut self, event: DexEvent);
+}
+
+/// 使用流式监听器解析交易的便捷函数
+pub fn parse_transaction_with_streaming_listener<T: StreamingEventListener>(
+    instruction_data: &[u8],
+    accounts: &[Pubkey],
+    logs: &[String],
+    signature: Signature,
+    slot: u64,
+    block_time: Option<i64>,
+    program_id: &Pubkey,
+    listener: &mut T,
+) {
+    parse_transaction_events_streaming(
+        instruction_data,
+        accounts,
+        logs,
+        signature,
+        slot,
+        block_time,
+        program_id,
+        |event| listener.on_dex_event_streaming(event)
+    );
+}
