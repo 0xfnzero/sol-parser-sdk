@@ -54,47 +54,57 @@ async fn test_grpc_streaming() -> Result<(), Box<dyn std::error::Error>> {
     // 只解析 PumpFun Trade 事件
     let event_filter = EventTypeFilter::include_only(vec![EventType::PumpFunTrade]);
 
-    // 使用队列接收事件（性能更优）
-    let rx = grpc.subscribe_dex_events_with_channel(
+    // 使用无锁 ArrayQueue（零拷贝模式）
+    let queue = grpc.subscribe_dex_events_zero_copy(
         vec![transaction_filter],
         vec![account_filter],
         Some(event_filter),
     )
     .await?;
 
-    // 异步消费事件
+    // 高性能消费事件（无锁队列）
     tokio::spawn(async move {
-        let mut total_latency = 0i64;
-        let mut event_count = 0u64;
+        let mut spin_count = 0u32;
+        loop {
+            // 使用 try-recv 非阻塞轮询，降低延迟
+            if let Some(event) = queue.pop() {
+                spin_count = 0; // 重置自旋计数
 
-        while let Ok(event) = rx.recv() {
-            // 计算从gRPC接收到队列接收的耗时
-            let queue_recv_us = unsafe {
-                let mut ts = libc::timespec { tv_sec: 0, tv_nsec: 0 };
-                libc::clock_gettime(libc::CLOCK_REALTIME, &mut ts);
-                (ts.tv_sec as i64) * 1_000_000 + (ts.tv_nsec as i64) / 1_000
-            };
+                // 计算从gRPC接收到队列接收的耗时
+                let queue_recv_us = unsafe {
+                    let mut ts = libc::timespec { tv_sec: 0, tv_nsec: 0 };
+                    libc::clock_gettime(libc::CLOCK_REALTIME, &mut ts);
+                    (ts.tv_sec as i64) * 1_000_000 + (ts.tv_nsec as i64) / 1_000
+                };
 
-            match event {
-                DexEvent::PumpFunTrade(e) => {
-                    let latency_us = queue_recv_us - e.metadata.grpc_recv_us;
-                    total_latency += latency_us;
-                    event_count += 1;
-
-                    println!("⏱️  端到端延迟: {}μs | 平均: {}μs",
-                        latency_us, total_latency / event_count as i64);
-                    println!("{:#?}", e);
-                },
-                DexEvent::PumpFunCreate(e) => {
-                    let latency_us = queue_recv_us - e.metadata.grpc_recv_us;
-                    total_latency += latency_us;
-                    event_count += 1;
-
-                    println!("⏱️  端到端延迟: {}μs | 平均: {}μs",
-                        latency_us, total_latency / event_count as i64);
-                    println!("{:#?}", e);
-                },
-                _ => {}
+                match &event {
+                    DexEvent::PumpFunTrade(e) => {
+                        let latency_us = queue_recv_us - e.metadata.grpc_recv_us;
+                        println!(" ");
+                        println!("事件解析耗时: {}μs", latency_us);
+                        println!("================================================");
+                        println!("{:?}", e);
+                    },
+                    DexEvent::PumpFunCreate(e) => {
+                        let latency_us = queue_recv_us - e.metadata.grpc_recv_us;
+                        println!(" ");
+                        println!("事件解析耗时: {}μs", latency_us);
+                        println!("================================================");
+                        println!("{:?}", e);
+                    },
+                    _ => {}
+                }
+            } else {
+                // 混合策略：先自旋等待，如果长时间没数据才 yield
+                spin_count += 1;
+                if spin_count < 1000 {
+                    // 短暂自旋，降低延迟
+                    std::hint::spin_loop();
+                } else {
+                    // 超过阈值后 yield CPU，避免 100% 占用
+                    tokio::task::yield_now().await;
+                    spin_count = 0;
+                }
             }
         }
     });

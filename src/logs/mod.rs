@@ -14,9 +14,11 @@ pub mod orca_whirlpool;
 pub mod meteora_amm;
 pub mod meteora_damm;
 pub mod meteora_dlmm;
+pub mod zero_copy_parser;
 
 // 导出关键的 utils 函数
 pub use utils::extract_discriminator_fast;
+pub use zero_copy_parser::parse_pumpfun_trade_zero_copy;
 
 // 重新导出主要解析函数
 pub use raydium_launchpad::parse_log as parse_raydium_launchpad_log;

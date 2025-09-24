@@ -77,13 +77,7 @@ pub fn detect_log_type(log: &str) -> LogType {
     }
 
     // 第三步：使用 SIMD 快速检测具体协议
-    // PumpFun - 最常见
-    // 优先检查程序ID，如果没有ID但有长数据，也可能是PumpFun
-    if PUMPFUN_FINDER.find(log_bytes).is_some() {
-        return LogType::PumpFun;
-    }
-
-    // Raydium AMM - 高频
+    // Raydium AMM - 高频，有明确程序ID
     if RAYDIUM_AMM_FINDER.find(log_bytes).is_some() {
         return LogType::RaydiumAmm;
     }
@@ -102,8 +96,6 @@ pub fn detect_log_type(log: &str) -> LogType {
     if BONK_FINDER.find(log_bytes).is_some() {
         return LogType::RaydiumLaunchpad;
     }
-
-    // 以下协议使用较少，放在后面检查
 
     // Orca Whirlpool
     if log.contains("whirL") {
@@ -126,9 +118,16 @@ pub fn detect_log_type(log: &str) -> LogType {
         return LogType::PumpAmm;
     }
 
-    // 兜底：有 "Program data:" 但无法识别协议的，可能是PumpFun
-    // PumpFun的日志只有 "Program data: <base64>" 没有其他特征
-    if log.len() > 50 {
+    // PumpFun - 特殊处理：可能有程序ID，也可能直接是base64数据
+    // 1. 先检查是否包含程序ID
+    if PUMPFUN_FINDER.find(log_bytes).is_some() {
+        return LogType::PumpFun;
+    }
+
+    // 2. 兜底：有 "Program data:" 但无法识别协议的，尝试作为 PumpFun 解析
+    // PumpFun的日志格式：Program data: <base64>
+    // 只要日志够长且包含Program data，就认为可能是PumpFun
+    if log.len() > 30 {
         return LogType::PumpFun;
     }
 
@@ -151,15 +150,14 @@ pub fn parse_log_optimized(
     // 提前过滤和解析
     if let Some(filter) = event_type_filter {
         if let Some(ref include_only) = filter.include_only {
-            // PumpFun Trade 专用快速路径
+            // PumpFun Trade 超快零拷贝路径
             if include_only.len() == 1 && include_only[0] == EventType::PumpFunTrade {
                 if log_type == LogType::PumpFun {
-                    return crate::logs::pumpfun::parse_log_fast_filter(
-                        log, signature, slot, block_time, grpc_recv_us,
-                        crate::logs::pumpfun::discriminators::TRADE_EVENT
+                    // 使用零拷贝解析器：栈分配，无堆分配，内联函数
+                    return crate::logs::parse_pumpfun_trade_zero_copy(
+                        log, signature, slot, block_time, grpc_recv_us
                     );
                 } else {
-                    // 不是 PumpFun 日志，直接跳过
                     return None;
                 }
             }
