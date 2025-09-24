@@ -31,7 +31,7 @@
     <a href="https://github.com/0xfnzero/sol-parser-sdk/blob/main/README.md">English</a> |
     <a href="https://fnzero.dev/">Website</a> |
     <a href="https://t.me/fnzero_group">Telegram</a> |
-    <a href="https://discord.gg/vuazbGkqQE">Discord</a>
+    <a href="https://discord.gg/ckf5UHxz">Discord</a>
 </p>
 
 ---
