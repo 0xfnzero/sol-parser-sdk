@@ -80,17 +80,19 @@ async fn test_grpc_streaming() -> Result<(), Box<dyn std::error::Error>> {
                 match &event {
                     DexEvent::PumpFunTrade(e) => {
                         let latency_us = queue_recv_us - e.metadata.grpc_recv_us;
-                        println!(" ");
-                        println!("事件解析耗时: {}μs", latency_us);
+                        println!("\ngRPC接收时间: {} μs", e.metadata.grpc_recv_us);
+                        println!("事件接收时间: {} μs", queue_recv_us);
+                        println!("事件解析耗时: {} μs", latency_us);
                         println!("================================================");
-                        println!("{:?}", e);
+                        println!("{:?}", event);
                     },
                     DexEvent::PumpFunCreate(e) => {
                         let latency_us = queue_recv_us - e.metadata.grpc_recv_us;
-                        println!(" ");
-                        println!("事件解析耗时: {}μs", latency_us);
+                        println!("\ngRPC接收时间: {} μs", e.metadata.grpc_recv_us);
+                        println!("事件接收时间: {} μs", queue_recv_us);
+                        println!("事件解析耗时: {} μs", latency_us);
                         println!("================================================");
-                        println!("{:?}", e);
+                        println!("{:?}", event);
                     },
                     _ => {}
                 }

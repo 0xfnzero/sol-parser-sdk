@@ -35,6 +35,7 @@ pub fn is_raydium_amm_log(log: &str) -> bool {
 }
 
 /// 解析 Raydium AMM V4 日志
+#[inline]
 pub fn parse_log(log: &str, signature: Signature, slot: u64, block_time: Option<i64>, grpc_recv_us: i64) -> Option<DexEvent> {
     parse_structured_log(log, signature, slot, block_time, grpc_recv_us)
 }

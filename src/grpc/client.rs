@@ -52,7 +52,7 @@ impl YellowstoneGrpc {
 
         let self_clone = self.clone();
         tokio::spawn(async move {
-            let _ = self_clone.subscribe_dex_events_internal(
+            let _ = self_clone.stream_to_channel(
                 transaction_filters,
                 account_filters,
                 event_type_filter,
@@ -76,7 +76,7 @@ impl YellowstoneGrpc {
 
         let self_clone = self.clone();
         tokio::spawn(async move {
-            let _ = self_clone.subscribe_dex_events_internal_zero_copy(
+            let _ = self_clone.stream_to_queue(
                 transaction_filters,
                 account_filters,
                 event_type_filter,
@@ -130,8 +130,8 @@ impl YellowstoneGrpc {
         Ok(())
     }
 
-    /// 内部订阅实现
-    async fn subscribe_dex_events_internal(
+    /// 流式订阅到 Channel
+    async fn stream_to_channel(
         &self,
         transaction_filters: Vec<TransactionFilter>,
         account_filters: Vec<AccountFilter>,
@@ -507,6 +507,7 @@ impl YellowstoneGrpc {
     }
 
     /// 流式解析交易事件 - 队列版本（直接发送到队列）
+    #[inline]
     fn parse_transaction_events_streaming_with_queue(
         instruction_data: &[u8],
         accounts: &[Pubkey],
@@ -848,8 +849,8 @@ impl YellowstoneGrpc {
         // 在实际实现中，这里会清理连接
     }
 
-    /// 零拷贝内部订阅实现（使用 ArrayQueue）
-    async fn subscribe_dex_events_internal_zero_copy(
+    /// 流式订阅到无锁队列
+    async fn stream_to_queue(
         &self,
         transaction_filters: Vec<TransactionFilter>,
         account_filters: Vec<AccountFilter>,
@@ -1027,6 +1028,7 @@ impl YellowstoneGrpc {
     }
 
     /// 零拷贝解析事件到 ArrayQueue
+    #[inline]
     fn parse_events_zero_copy_queue(
         _accounts: &[Pubkey],
         logs: &[String],

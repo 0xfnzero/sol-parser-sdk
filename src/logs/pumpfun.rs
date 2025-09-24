@@ -31,6 +31,7 @@ pub fn is_pumpfun_log(log: &str) -> bool {
 }
 
 /// 主要的 PumpFun 日志解析函数
+#[inline]
 pub fn parse_log(
     log: &str,
     signature: Signature,

@@ -26,6 +26,7 @@ pub fn is_raydium_cpmm_log(log: &str) -> bool {
 }
 
 /// 主要的 Raydium CPMM 日志解析函数
+#[inline]
 pub fn parse_log(log: &str, signature: Signature, slot: u64, block_time: Option<i64>, grpc_recv_us: i64) -> Option<DexEvent> {
     parse_structured_log(log, signature, slot, block_time, grpc_recv_us)
 }
