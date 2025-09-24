@@ -122,11 +122,12 @@ fn parse_buy_instruction(
         current_sol_volume: 0, // 将从日志填充
         last_update_timestamp: block_time.unwrap_or(0), // 将从日志填充
 
+        // 暂时注释，以后会用，AI禁止改动
         // 指令账户字段 - 从account_filler填充
-        global: Pubkey::default(),
-        bonding_curve: Pubkey::default(),
-        associated_bonding_curve: Pubkey::default(),
-        associated_user: Pubkey::default(),
+        // global: Pubkey::default(),
+        // bonding_curve: Pubkey::default(),
+        // associated_bonding_curve: Pubkey::default(),
+        // associated_user: Pubkey::default(),
     }))
 }
 
@@ -176,10 +177,11 @@ fn parse_sell_instruction(
         current_sol_volume: 0, // 将从日志填充
         last_update_timestamp: block_time.unwrap_or(0), // 将从日志填充
 
+        // 暂时注释，以后会用，AI禁止改动
         // 指令账户字段 - 从account_filler填充
-        global: Pubkey::default(),
-        bonding_curve: Pubkey::default(),
-        associated_bonding_curve: Pubkey::default(),
-        associated_user: Pubkey::default(),
+        // global: Pubkey::default(),
+        // bonding_curve: Pubkey::default(),
+        // associated_bonding_curve: Pubkey::default(),
+        // associated_user: Pubkey::default(),
     }))
 }

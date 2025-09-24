@@ -109,21 +109,22 @@ fn parse_swap_base_in_event(
         output_transfer_fee: 0, // 需要从日志数据解析
         base_input: is_base_input,
 
+        // 暂时注释，以后会用，AI禁止改动
         // 指令参数字段
-        amount_in,
-        minimum_amount_out,
+        // amount_in,
+        // minimum_amount_out,
 
         // 指令账户字段 - 从account_filler填充
-        payer: user,
-        authority: Pubkey::default(),
-        amm_config: Pubkey::default(),
-        pool_state,
-        input_token_account: Pubkey::default(),
-        output_token_account: Pubkey::default(),
-        input_vault: Pubkey::default(),
-        output_vault: Pubkey::default(),
-        input_token_mint: Pubkey::default(),
-        output_token_mint: Pubkey::default(),
+        // payer: user,
+        // authority: Pubkey::default(),
+        // amm_config: Pubkey::default(),
+        // pool_state,
+        // input_token_account: Pubkey::default(),
+        // output_token_account: Pubkey::default(),
+        // input_vault: Pubkey::default(),
+        // output_vault: Pubkey::default(),
+        // input_token_mint: Pubkey::default(),
+        // output_token_mint: Pubkey::default(),
     }))
 }
 
@@ -169,21 +170,22 @@ fn parse_swap_base_out_event(
         output_transfer_fee: 0, // 需要从日志数据解析
         base_input: !is_base_output,
 
+        // 暂时注释，以后会用，AI禁止改动
         // 指令参数字段
-        amount_in: maximum_amount_in,
-        minimum_amount_out: amount_out,
+        // amount_in: maximum_amount_in,
+        // minimum_amount_out: amount_out,
 
         // 指令账户字段 - 从account_filler填充
-        payer: user,
-        authority: Pubkey::default(),
-        amm_config: Pubkey::default(),
-        pool_state,
-        input_token_account: Pubkey::default(),
-        output_token_account: Pubkey::default(),
-        input_vault: Pubkey::default(),
-        output_vault: Pubkey::default(),
-        input_token_mint: Pubkey::default(),
-        output_token_mint: Pubkey::default(),
+        // payer: user,
+        // authority: Pubkey::default(),
+        // amm_config: Pubkey::default(),
+        // pool_state,
+        // input_token_account: Pubkey::default(),
+        // output_token_account: Pubkey::default(),
+        // input_vault: Pubkey::default(),
+        // output_vault: Pubkey::default(),
+        // input_token_mint: Pubkey::default(),
+        // output_token_mint: Pubkey::default(),
     }))
 }
 
@@ -357,21 +359,22 @@ fn parse_swap_base_in_from_text(
         output_transfer_fee: 0,
         base_input: true,
 
+        // 暂时注释，以后会用，AI禁止改动
         // 指令参数字段
-        amount_in: extract_number_from_text(log, "amount_in").unwrap_or(1_000_000_000),
-        minimum_amount_out: extract_number_from_text(log, "amount_out").unwrap_or(950_000_000),
+        // amount_in: extract_number_from_text(log, "amount_in").unwrap_or(1_000_000_000),
+        // minimum_amount_out: extract_number_from_text(log, "amount_out").unwrap_or(950_000_000),
 
         // 指令账户字段
-        payer: Pubkey::default(),
-        authority: Pubkey::default(),
-        amm_config: Pubkey::default(),
-        pool_state: Pubkey::default(),
-        input_token_account: Pubkey::default(),
-        output_token_account: Pubkey::default(),
-        input_vault: Pubkey::default(),
-        output_vault: Pubkey::default(),
-        input_token_mint: Pubkey::default(),
-        output_token_mint: Pubkey::default(),
+        // payer: Pubkey::default(),
+        // authority: Pubkey::default(),
+        // amm_config: Pubkey::default(),
+        // pool_state: Pubkey::default(),
+        // input_token_account: Pubkey::default(),
+        // output_token_account: Pubkey::default(),
+        // input_vault: Pubkey::default(),
+        // output_vault: Pubkey::default(),
+        // input_token_mint: Pubkey::default(),
+        // output_token_mint: Pubkey::default(),
     }))
 }
 
@@ -400,21 +403,22 @@ fn parse_swap_base_out_from_text(
         output_transfer_fee: 0,
         base_input: false,
 
+        // 暂时注释，以后会用，AI禁止改动
         // 指令参数字段
-        amount_in: extract_number_from_text(log, "amount_in").unwrap_or(1_000_000_000),
-        minimum_amount_out: extract_number_from_text(log, "amount_out").unwrap_or(950_000_000),
+        // amount_in: extract_number_from_text(log, "amount_in").unwrap_or(1_000_000_000),
+        // minimum_amount_out: extract_number_from_text(log, "amount_out").unwrap_or(950_000_000),
 
         // 指令账户字段
-        payer: Pubkey::default(),
-        authority: Pubkey::default(),
-        amm_config: Pubkey::default(),
-        pool_state: Pubkey::default(),
-        input_token_account: Pubkey::default(),
-        output_token_account: Pubkey::default(),
-        input_vault: Pubkey::default(),
-        output_vault: Pubkey::default(),
-        input_token_mint: Pubkey::default(),
-        output_token_mint: Pubkey::default(),
+        // payer: Pubkey::default(),
+        // authority: Pubkey::default(),
+        // amm_config: Pubkey::default(),
+        // pool_state: Pubkey::default(),
+        // input_token_account: Pubkey::default(),
+        // output_token_account: Pubkey::default(),
+        // input_vault: Pubkey::default(),
+        // output_vault: Pubkey::default(),
+        // input_token_mint: Pubkey::default(),
+        // output_token_mint: Pubkey::default(),
     }))
 }
 

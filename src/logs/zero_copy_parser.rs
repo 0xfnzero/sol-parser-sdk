@@ -160,10 +160,11 @@ pub fn parse_pumpfun_trade(
         total_claimed_tokens,
         current_sol_volume,
         last_update_timestamp: timestamp,
-        bonding_curve: Pubkey::default(),
-        associated_bonding_curve: Pubkey::default(),
-        associated_user: Pubkey::default(),
-        global: Pubkey::default(),
+        // 暂时注释，以后会用，AI禁止改动
+        // bonding_curve: Pubkey::default(),
+        // associated_bonding_curve: Pubkey::default(),
+        // associated_user: Pubkey::default(),
+        // global: Pubkey::default(),
     }))
 }
 

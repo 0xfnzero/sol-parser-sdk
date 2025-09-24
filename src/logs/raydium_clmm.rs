@@ -16,7 +16,7 @@ pub mod discriminators {
 }
 
 /// Raydium CLMM 程序 ID
-pub const PROGRAM_ID: &str = "CAMMCzo5YL8w4VFF8KVHrK22GGUQpMDdHFWF5LCATdURAy";
+pub const PROGRAM_ID: &str = "CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK";
 
 /// 检查日志是否来自 Raydium CLMM 程序
 pub fn is_raydium_clmm_log(log: &str) -> bool {
@@ -110,14 +110,15 @@ fn parse_swap_event(
         transfer_fee_1: 0, // 从日志填充
         zero_for_one: is_base_input,
         sqrt_price_x64: sqrt_price_limit_x64,
-        is_base_input,
+        // is_base_input,
         liquidity: 0, // 从日志填充
         tick: 0, // 从日志填充
 
+        // 暂时注释，以后会用，AI禁止改动
         // 指令参数字段
-        amount,
-        other_amount_threshold,
-        sqrt_price_limit_x64,
+        // amount,
+        // other_amount_threshold,
+        // sqrt_price_limit_x64,
     }))
 }
 
@@ -317,14 +318,15 @@ fn parse_swap_from_text(
         transfer_fee_1: 0,
         zero_for_one: is_base_input,
         sqrt_price_x64: 0,
-        is_base_input,
+        // is_base_input,
         liquidity: 0,
         tick: 0,
 
+        // 暂时注释，以后会用，AI禁止改动
         // 指令参数字段
-        amount: extract_number_from_text(log, "amount").unwrap_or(1_000_000_000),
-        other_amount_threshold: extract_number_from_text(log, "threshold").unwrap_or(950_000_000),
-        sqrt_price_limit_x64: 0,
+        // amount: extract_number_from_text(log, "amount").unwrap_or(1_000_000_000),
+        // other_amount_threshold: extract_number_from_text(log, "threshold").unwrap_or(950_000_000),
+        // sqrt_price_limit_x64: 0,
     }))
 }
 

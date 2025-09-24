@@ -98,14 +98,15 @@ fn parse_swap_instruction(
         transfer_fee_1: 0, // 从日志填充
         zero_for_one: is_base_input,
         sqrt_price_x64: sqrt_price_limit_x64,
-        is_base_input,
+        // is_base_input,
         liquidity: 0, // 从日志填充
         tick: 0, // 从日志填充
 
+        // 暂时注释，以后会用，AI禁止改动
         // 指令参数字段
-        amount,
-        other_amount_threshold,
-        sqrt_price_limit_x64,
+        // amount,
+        // other_amount_threshold,
+        // sqrt_price_limit_x64,
     }))
 }
 

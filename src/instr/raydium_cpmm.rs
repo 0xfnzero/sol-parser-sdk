@@ -87,21 +87,22 @@ fn parse_swap_base_in_instruction(
         output_transfer_fee: 0, // 将从日志填充
         base_input: true,
 
+        // 暂时注释，以后会用，AI禁止改动
         // 指令参数字段
-        amount_in,
-        minimum_amount_out,
+        // amount_in,
+        // minimum_amount_out,
 
         // 指令账户字段 - 从account_filler填充
-        payer: Pubkey::default(),
-        authority: Pubkey::default(),
-        amm_config: Pubkey::default(),
-        pool_state: Pubkey::default(),
-        input_token_account: Pubkey::default(),
-        output_token_account: Pubkey::default(),
-        input_vault: Pubkey::default(),
-        output_vault: Pubkey::default(),
-        input_token_mint: Pubkey::default(),
-        output_token_mint: Pubkey::default(),
+        // payer: Pubkey::default(),
+        // authority: Pubkey::default(),
+        // amm_config: Pubkey::default(),
+        // pool_state: Pubkey::default(),
+        // input_token_account: Pubkey::default(),
+        // output_token_account: Pubkey::default(),
+        // input_vault: Pubkey::default(),
+        // output_vault: Pubkey::default(),
+        // input_token_mint: Pubkey::default(),
+        // output_token_mint: Pubkey::default(),
 
     }))
 }
@@ -138,21 +139,22 @@ fn parse_swap_base_out_instruction(
         output_transfer_fee: 0, // 将从日志填充
         base_input: false,
 
+        // 暂时注释，以后会用，AI禁止改动
         // 指令参数字段
-        amount_in: maximum_amount_in,
-        minimum_amount_out: amount_out,
+        // amount_in: maximum_amount_in,
+        // minimum_amount_out: amount_out,
 
         // 指令账户字段 - 从account_filler填充
-        payer: Pubkey::default(),
-        authority: Pubkey::default(),
-        amm_config: Pubkey::default(),
-        pool_state: Pubkey::default(),
-        input_token_account: Pubkey::default(),
-        output_token_account: Pubkey::default(),
-        input_vault: Pubkey::default(),
-        output_vault: Pubkey::default(),
-        input_token_mint: Pubkey::default(),
-        output_token_mint: Pubkey::default(),
+        // payer: Pubkey::default(),
+        // authority: Pubkey::default(),
+        // amm_config: Pubkey::default(),
+        // pool_state: Pubkey::default(),
+        // input_token_account: Pubkey::default(),
+        // output_token_account: Pubkey::default(),
+        // input_vault: Pubkey::default(),
+        // output_vault: Pubkey::default(),
+        // input_token_mint: Pubkey::default(),
+        // output_token_mint: Pubkey::default(),
 
     }))
 }

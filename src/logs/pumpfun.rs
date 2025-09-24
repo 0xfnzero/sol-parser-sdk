@@ -283,11 +283,12 @@ fn parse_trade_event(
         current_sol_volume,
         last_update_timestamp: timestamp,
 
+        // 暂时注释，以后会用，AI禁止改动
         // 指令账户字段 - 默认值，由account_filler填充
-        global: Pubkey::default(),
-        bonding_curve: Pubkey::default(),
-        associated_bonding_curve: Pubkey::default(),
-        associated_user: Pubkey::default(),
+        // global: Pubkey::default(),
+        // bonding_curve: Pubkey::default(),
+        // associated_bonding_curve: Pubkey::default(),
+        // associated_user: Pubkey::default(),
     }))
 }
 
@@ -367,19 +368,20 @@ fn parse_migrate_event(
         bonding_curve,
         timestamp,
         pool,
-        global: Pubkey::default(),
-        withdraw_authority: Pubkey::default(),
-        associated_bonding_curve: Pubkey::default(),
-        pump_amm: Pubkey::default(),
-        pool_authority: Pubkey::default(),
-        pool_authority_mint_account: Pubkey::default(),
-        pool_authority_wsol_account: Pubkey::default(),
-        amm_global_config: Pubkey::default(),
-        wsol_mint: Pubkey::default(),
-        lp_mint: Pubkey::default(),
-        user_pool_token_account: Pubkey::default(),
-        pool_base_token_account: Pubkey::default(),
-        pool_quote_token_account: Pubkey::default(),
+        // 暂时注释，以后会用，AI禁止改动
+        // global: Pubkey::default(),
+        // withdraw_authority: Pubkey::default(),
+        // associated_bonding_curve: Pubkey::default(),
+        // pump_amm: Pubkey::default(),
+        // pool_authority: Pubkey::default(),
+        // pool_authority_mint_account: Pubkey::default(),
+        // pool_authority_wsol_account: Pubkey::default(),
+        // amm_global_config: Pubkey::default(),
+        // wsol_mint: Pubkey::default(),
+        // lp_mint: Pubkey::default(),
+        // user_pool_token_account: Pubkey::default(),
+        // pool_base_token_account: Pubkey::default(),
+        // pool_quote_token_account: Pubkey::default(),
     }))
 }
 
@@ -488,11 +490,12 @@ fn parse_trade_from_text(
         current_sol_volume: 0,
         last_update_timestamp: block_time.unwrap_or(0),
 
+        // 暂时注释，以后会用，AI禁止改动
         // 指令账户字段
-        global: Pubkey::default(),
-        bonding_curve: Pubkey::default(),
-        associated_bonding_curve: Pubkey::default(),
-        associated_user: Pubkey::default(),
+        // global: Pubkey::default(),
+        // bonding_curve: Pubkey::default(),
+        // associated_bonding_curve: Pubkey::default(),
+        // associated_user: Pubkey::default(),
     }))
 }
 
@@ -537,18 +540,19 @@ fn parse_migrate_from_text(
         bonding_curve: Pubkey::default(),
         timestamp: block_time.unwrap_or(0),
         pool: Pubkey::default(),
-        global: Pubkey::default(),
-        withdraw_authority: Pubkey::default(),
-        associated_bonding_curve: Pubkey::default(),
-        pump_amm: Pubkey::default(),
-        pool_authority: Pubkey::default(),
-        pool_authority_mint_account: Pubkey::default(),
-        pool_authority_wsol_account: Pubkey::default(),
-        amm_global_config: Pubkey::default(),
-        wsol_mint: Pubkey::default(),
-        lp_mint: Pubkey::default(),
-        user_pool_token_account: Pubkey::default(),
-        pool_base_token_account: Pubkey::default(),
-        pool_quote_token_account: Pubkey::default(),
+        // 暂时注释，以后会用，AI禁止改动
+        // global: Pubkey::default(),
+        // withdraw_authority: Pubkey::default(),
+        // associated_bonding_curve: Pubkey::default(),
+        // pump_amm: Pubkey::default(),
+        // pool_authority: Pubkey::default(),
+        // pool_authority_mint_account: Pubkey::default(),
+        // pool_authority_wsol_account: Pubkey::default(),
+        // amm_global_config: Pubkey::default(),
+        // wsol_mint: Pubkey::default(),
+        // lp_mint: Pubkey::default(),
+        // user_pool_token_account: Pubkey::default(),
+        // pool_base_token_account: Pubkey::default(),
+        // pool_quote_token_account: Pubkey::default(),
     }))
 }

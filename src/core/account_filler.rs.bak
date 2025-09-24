@@ -103,22 +103,21 @@ pub mod pumpfun {
         // 5: associated_user - 关联用户PDA
         // 6: user - 用户账户
 
-        // 暂时注释，以后会用，AI禁止改动
-        // if trade_event.global == Pubkey::default() {
-        //     trade_event.global = get_account(0);
-        // }
-        // if trade_event.mint == Pubkey::default() {
-        //     trade_event.mint = get_account(2);
-        // }
-        // if trade_event.bonding_curve == Pubkey::default() {
-        //     trade_event.bonding_curve = get_account(3);
-        // }
-        // if trade_event.associated_bonding_curve == Pubkey::default() {
-        //     trade_event.associated_bonding_curve = get_account(4);
-        // }
-        // if trade_event.associated_user == Pubkey::default() {
-        //     trade_event.associated_user = get_account(5);
-        // }
+        //         if trade_event.global == Pubkey::default() {
+        //             trade_event.global = get_account(0);
+        //         }
+        //         if trade_event.mint == Pubkey::default() {
+        //             trade_event.mint = get_account(2);
+        //         }
+        //         if trade_event.bonding_curve == Pubkey::default() {
+        //             trade_event.bonding_curve = get_account(3);
+        //         }
+        //         if trade_event.associated_bonding_curve == Pubkey::default() {
+        //             trade_event.associated_bonding_curve = get_account(4);
+        //         }
+        //         if trade_event.associated_user == Pubkey::default() {
+        //             trade_event.associated_user = get_account(5);
+        }
         if trade_event.user == Pubkey::default() {
             trade_event.user = get_account(6);
         }
@@ -172,58 +171,57 @@ pub mod pumpfun {
         migrate_event: &mut PumpFunMigrateEvent,
         get_account: &AccountGetter<'_>,
     ) {
-        // 暂时注释，以后会用，AI禁止改动
-        // if migrate_event.global == Pubkey::default() {
-        //     migrate_event.global = get_account(0);
-        // }
-        // if migrate_event.withdraw_authority == Pubkey::default() {
-        //     migrate_event.withdraw_authority = get_account(1);
-        // }
-        // if migrate_event.mint == Pubkey::default() {
-        //     migrate_event.mint = get_account(2);
-        // }
-        // if migrate_event.bonding_curve == Pubkey::default() {
-        //     migrate_event.bonding_curve = get_account(3);
-        // }
-        // if migrate_event.associated_bonding_curve == Pubkey::default() {
-        //     migrate_event.associated_bonding_curve = get_account(4);
-        // }
-        // if migrate_event.user == Pubkey::default() {
-        //     migrate_event.user = get_account(5);
-        // }
-        // if migrate_event.pump_amm == Pubkey::default() {
-        //     migrate_event.pump_amm = get_account(8);
-        // }
-        // if migrate_event.pool == Pubkey::default() {
-        //     migrate_event.pool = get_account(9);
-        // }
-        // if migrate_event.pool_authority == Pubkey::default() {
-        //     migrate_event.pool_authority = get_account(10);
-        // }
-        // if migrate_event.pool_authority_mint_account == Pubkey::default() {
-        //     migrate_event.pool_authority_mint_account = get_account(11);
-        // }
-        // if migrate_event.pool_authority_wsol_account == Pubkey::default() {
-        //     migrate_event.pool_authority_wsol_account = get_account(12);
-        // }
-        // if migrate_event.amm_global_config == Pubkey::default() {
-        //     migrate_event.amm_global_config = get_account(13);
-        // }
-        // if migrate_event.wsol_mint == Pubkey::default() {
-        //     migrate_event.wsol_mint = get_account(14);
-        // }
-        // if migrate_event.lp_mint == Pubkey::default() {
-        //     migrate_event.lp_mint = get_account(15);
-        // }
-        // if migrate_event.user_pool_token_account == Pubkey::default() {
-        //     migrate_event.user_pool_token_account = get_account(16);
-        // }
-        // if migrate_event.pool_base_token_account == Pubkey::default() {
-        //     migrate_event.pool_base_token_account = get_account(17);
-        // }
-        // if migrate_event.pool_quote_token_account == Pubkey::default() {
-        //     migrate_event.pool_quote_token_account = get_account(18);
-        // }
+        //         if migrate_event.global == Pubkey::default() {
+        //             migrate_event.global = get_account(0);
+        //         }
+        //         if migrate_event.withdraw_authority == Pubkey::default() {
+        //             migrate_event.withdraw_authority = get_account(1);
+        //         }
+        //         if migrate_event.mint == Pubkey::default() {
+        //             migrate_event.mint = get_account(2);
+        //         }
+        //         if migrate_event.bonding_curve == Pubkey::default() {
+        //             migrate_event.bonding_curve = get_account(3);
+        //         }
+        //         if migrate_event.associated_bonding_curve == Pubkey::default() {
+        //             migrate_event.associated_bonding_curve = get_account(4);
+        //         }
+        //         if migrate_event.user == Pubkey::default() {
+        //             migrate_event.user = get_account(5);
+        //         }
+        //         if migrate_event.pump_amm == Pubkey::default() {
+        //             migrate_event.pump_amm = get_account(8);
+        //         }
+        //         if migrate_event.pool == Pubkey::default() {
+        //             migrate_event.pool = get_account(9);
+        //         }
+        //         if migrate_event.pool_authority == Pubkey::default() {
+        //             migrate_event.pool_authority = get_account(10);
+        //         }
+        //         if migrate_event.pool_authority_mint_account == Pubkey::default() {
+        //             migrate_event.pool_authority_mint_account = get_account(11);
+        //         }
+        //         if migrate_event.pool_authority_wsol_account == Pubkey::default() {
+        //             migrate_event.pool_authority_wsol_account = get_account(12);
+        //         }
+        //         if migrate_event.amm_global_config == Pubkey::default() {
+        //             migrate_event.amm_global_config = get_account(13);
+        //         }
+        //         if migrate_event.wsol_mint == Pubkey::default() {
+        //             migrate_event.wsol_mint = get_account(14);
+        //         }
+        //         if migrate_event.lp_mint == Pubkey::default() {
+        //             migrate_event.lp_mint = get_account(15);
+        //         }
+        //         if migrate_event.user_pool_token_account == Pubkey::default() {
+        //             migrate_event.user_pool_token_account = get_account(16);
+        //         }
+        //         if migrate_event.pool_base_token_account == Pubkey::default() {
+        //             migrate_event.pool_base_token_account = get_account(17);
+        //         }
+        //         if migrate_event.pool_quote_token_account == Pubkey::default() {
+        //             migrate_event.pool_quote_token_account = get_account(18);
+        }
     }
 }
 
@@ -278,37 +276,36 @@ pub mod raydium {
         // 10: inputTokenMint - 输入代币mint
         // 11: outputTokenMint - 输出代币mint
 
-        // 暂时注释，以后会用，AI禁止改动
-        // if swap_event.payer == Pubkey::default() {
-        //     swap_event.payer = get_account(0);
-        // }
-        // if swap_event.authority == Pubkey::default() {
-        //     swap_event.authority = get_account(1);
-        // }
-        // if swap_event.amm_config == Pubkey::default() {
-        //     swap_event.amm_config = get_account(2);
-        // }
-        // if swap_event.pool_state == Pubkey::default() {
-        //     swap_event.pool_state = get_account(3);
-        // }
-        // if swap_event.input_token_account == Pubkey::default() {
-        //     swap_event.input_token_account = get_account(4);
-        // }
-        // if swap_event.output_token_account == Pubkey::default() {
-        //     swap_event.output_token_account = get_account(5);
-        // }
-        // if swap_event.input_vault == Pubkey::default() {
-        //     swap_event.input_vault = get_account(6);
-        // }
-        // if swap_event.output_vault == Pubkey::default() {
-        //     swap_event.output_vault = get_account(7);
-        // }
-        // if swap_event.input_token_mint == Pubkey::default() {
-        //     swap_event.input_token_mint = get_account(10);
-        // }
-        // if swap_event.output_token_mint == Pubkey::default() {
-        //     swap_event.output_token_mint = get_account(11);
-        // }
+        //         if swap_event.payer == Pubkey::default() {
+        //             swap_event.payer = get_account(0);
+        //         }
+        //         if swap_event.authority == Pubkey::default() {
+        //             swap_event.authority = get_account(1);
+        //         }
+        //         if swap_event.amm_config == Pubkey::default() {
+        //             swap_event.amm_config = get_account(2);
+        //         }
+        //         if swap_event.pool_state == Pubkey::default() {
+        //             swap_event.pool_state = get_account(3);
+        //         }
+        //         if swap_event.input_token_account == Pubkey::default() {
+        //             swap_event.input_token_account = get_account(4);
+        //         }
+        //         if swap_event.output_token_account == Pubkey::default() {
+        //             swap_event.output_token_account = get_account(5);
+        //         }
+        //         if swap_event.input_vault == Pubkey::default() {
+        //             swap_event.input_vault = get_account(6);
+        //         }
+        //         if swap_event.output_vault == Pubkey::default() {
+        //             swap_event.output_vault = get_account(7);
+        //         }
+        //         if swap_event.input_token_mint == Pubkey::default() {
+        //             swap_event.input_token_mint = get_account(10);
+        //         }
+        //         if swap_event.output_token_mint == Pubkey::default() {
+        //             swap_event.output_token_mint = get_account(11);
+        }
 
     }
 
@@ -346,34 +343,33 @@ pub mod orca {
         // 8: tickArray1 - tick数组1
         // 9: tickArray2 - tick数组2
 
-        // 暂时注释，以后会用，AI禁止改动
-        // if swap_event.token_authority == Pubkey::default() {
-        //     swap_event.token_authority = get_account(1);
-        // }
-        // if swap_event.whirlpool == Pubkey::default() {
-        //     swap_event.whirlpool = get_account(2);
-        // }
-        // if swap_event.token_owner_account_a == Pubkey::default() {
-        //     swap_event.token_owner_account_a = get_account(3);
-        // }
-        // if swap_event.token_vault_a == Pubkey::default() {
-        //     swap_event.token_vault_a = get_account(4);
-        // }
-        // if swap_event.token_owner_account_b == Pubkey::default() {
-        //     swap_event.token_owner_account_b = get_account(5);
-        // }
-        // if swap_event.token_vault_b == Pubkey::default() {
-        //     swap_event.token_vault_b = get_account(6);
-        // }
-        // if swap_event.tick_array_0 == Pubkey::default() {
-        //     swap_event.tick_array_0 = get_account(7);
-        // }
-        // if swap_event.tick_array_1 == Pubkey::default() {
-        //     swap_event.tick_array_1 = get_account(8);
-        // }
-        // if swap_event.tick_array_2 == Pubkey::default() {
-        //     swap_event.tick_array_2 = get_account(9);
-        // }
+        if swap_event.token_authority == Pubkey::default() {
+            swap_event.token_authority = get_account(1);
+        }
+        if swap_event.whirlpool == Pubkey::default() {
+            swap_event.whirlpool = get_account(2);
+        }
+        if swap_event.token_owner_account_a == Pubkey::default() {
+            swap_event.token_owner_account_a = get_account(3);
+        }
+        if swap_event.token_vault_a == Pubkey::default() {
+            swap_event.token_vault_a = get_account(4);
+        }
+        if swap_event.token_owner_account_b == Pubkey::default() {
+            swap_event.token_owner_account_b = get_account(5);
+        }
+        if swap_event.token_vault_b == Pubkey::default() {
+            swap_event.token_vault_b = get_account(6);
+        }
+        if swap_event.tick_array_0 == Pubkey::default() {
+            swap_event.tick_array_0 = get_account(7);
+        }
+        if swap_event.tick_array_1 == Pubkey::default() {
+            swap_event.tick_array_1 = get_account(8);
+        }
+        if swap_event.tick_array_2 == Pubkey::default() {
+            swap_event.tick_array_2 = get_account(9);
+        }
     }
 }
 
