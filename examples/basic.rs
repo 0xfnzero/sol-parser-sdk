@@ -1,19 +1,18 @@
 use sol_parser_sdk::grpc::{
     ClientConfig, Protocol, YellowstoneGrpc, TransactionFilter, AccountFilter, EventTypeFilter, EventType,
 };
-use sol_parser_sdk::{DexEvent, EventListener, parse_transaction_events};
+use sol_parser_sdk::DexEvent;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Initialize crypto provider for rustls
     let _ = rustls::crypto::ring::default_provider().install_default();
 
     println!("Starting Sol Parser SDK Example...");
-    test_grpc_streaming().await?;
+    run_example().await?;
     Ok(())
 }
 
-async fn test_grpc_streaming() -> Result<(), Box<dyn std::error::Error>> {
+async fn run_example() -> Result<(), Box<dyn std::error::Error>> {
     println!("🚀 Subscribing to Yellowstone gRPC events...");
 
     // Create low-latency configuration
@@ -124,66 +123,4 @@ async fn test_grpc_streaming() -> Result<(), Box<dyn std::error::Error>> {
     println!("👋 Shutting down gracefully...");
 
     Ok(())
-}
-
-// Example of implementing custom event listener
-#[allow(dead_code)]
-struct CustomEventListener {
-    pub event_count: std::sync::Arc<std::sync::atomic::AtomicU64>,
-}
-
-#[allow(dead_code)]
-impl EventListener for CustomEventListener {
-    fn on_dex_event(&self, event: &DexEvent) {
-        self.event_count.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-
-        // Custom processing logic
-        match event {
-            DexEvent::PumpFunTrade(trade) if trade.sol_amount > 1_000_000 => {
-                println!("🔥 Large PumpFun trade detected: {} SOL!", trade.sol_amount);
-            },
-            DexEvent::RaydiumCpmmSwap(swap) if swap.amount_in > 10_000_000 => {
-                println!("💎 Large Raydium CPMM swap detected: {} tokens!", swap.amount_in);
-            },
-            _ => {} // Ignore other events
-        }
-    }
-}
-
-// Example of using the parser directly (without gRPC streaming)
-#[allow(dead_code)]
-fn example_direct_parsing() {
-    use solana_sdk::{pubkey::Pubkey, signature::Signature};
-    use std::str::FromStr;
-
-    // Example transaction data (would come from actual Solana transactions)
-    let instruction_data = vec![/* instruction bytes */];
-    let accounts = vec![
-        Pubkey::from_str("11111111111111111111111111111111").unwrap(),
-        // ... other account pubkeys
-    ];
-    let logs = vec![
-        "Program log: Instruction: Swap".to_string(),
-        // ... other log lines
-    ];
-    let signature = Signature::default();
-    let slot = 123456789;
-    let block_time = Some(1640995200);
-    let program_id = Pubkey::from_str("6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P").unwrap();
-
-    // Parse events from transaction data
-    let events = parse_transaction_events(
-        &instruction_data,
-        &accounts,
-        &logs,
-        signature,
-        slot,
-        block_time,
-        &program_id,
-    );
-
-    println!("Parsed {} events from transaction", events.len());
-    for event in events {
-        println!("Event: {:?}", event);
-    }
 }
