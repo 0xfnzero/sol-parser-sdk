@@ -50,9 +50,9 @@
 
 ### Installation
 
-```toml
-[dependencies]
-sol-parser-sdk = "0.4.13"
+```shell
+cd your_project_dir
+git clone https://github.com/0xfnzero/sol-parser-sdk
 ```
 
 ### Performance Testing
