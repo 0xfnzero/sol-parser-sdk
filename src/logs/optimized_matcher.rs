@@ -7,6 +7,7 @@ use crate::grpc::types::{EventType, EventTypeFilter};
 use solana_sdk::signature::Signature;
 use memchr::memmem;
 use once_cell::sync::Lazy;
+use super::perf_hints::{likely, unlikely};
 
 /// SIMD 优化的字符串查找器 - 预编译一次，重复使用
 static PUMPFUN_FINDER: Lazy<memmem::Finder> = Lazy::new(|| memmem::Finder::new(b"6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P"));
@@ -69,7 +70,7 @@ pub enum LogType {
 }
 
 /// SIMD 优化的日志类型检测器 - 激进早期退出
-#[inline]
+#[inline(always)]
 pub fn detect_log_type(log: &str) -> LogType {
     let log_bytes = log.as_bytes();
 
@@ -82,13 +83,13 @@ pub fn detect_log_type(log: &str) -> LogType {
     let has_program_data = PROGRAM_DATA_FINDER.find(log_bytes).is_some();
 
     // 只有 "Program data:" 日志才可能是交易事件
-    if !has_program_data {
+    if unlikely(!has_program_data) {
         return LogType::Unknown;
     }
 
     // 第三步：使用 SIMD 快速检测具体协议
-    // Raydium AMM - 高频，有明确程序ID
-    if RAYDIUM_AMM_FINDER.find(log_bytes).is_some() {
+    // Raydium AMM - 高频，有明确程序ID（最常见）
+    if likely(RAYDIUM_AMM_FINDER.find(log_bytes).is_some()) {
         return LogType::RaydiumAmm;
     }
 
@@ -130,8 +131,8 @@ pub fn detect_log_type(log: &str) -> LogType {
     }
 
     // PumpFun - 特殊处理：可能有程序ID，也可能直接是base64数据
-    // 1. 先检查是否包含程序ID
-    if PUMPFUN_FINDER.find(log_bytes).is_some() {
+    // 1. 先检查是否包含程序ID（高频事件）
+    if likely(PUMPFUN_FINDER.find(log_bytes).is_some()) {
         return LogType::PumpFun;
     }
 
@@ -146,7 +147,7 @@ pub fn detect_log_type(log: &str) -> LogType {
 }
 
 /// 优化的统一日志解析器（带事件类型过滤）
-#[inline]
+#[inline(always)]
 pub fn parse_log_optimized(
     log: &str,
     signature: Signature,
@@ -162,9 +163,9 @@ pub fn parse_log_optimized(
     // 提前过滤和解析
     if let Some(filter) = event_type_filter {
         if let Some(ref include_only) = filter.include_only {
-            // PumpFun Trade 超快路径
-            if include_only.len() == 1 && include_only[0] == EventType::PumpFunTrade {
-                if log_type == LogType::PumpFun {
+            // PumpFun Trade 超快路径（最常见情况）
+            if likely(include_only.len() == 1 && include_only[0] == EventType::PumpFunTrade) {
+                if likely(log_type == LogType::PumpFun) {
                     // 使用优化解析器：栈分配，无堆分配，内联函数
                     return crate::logs::parse_pumpfun_trade(
                         log, signature, slot, block_time, grpc_recv_us, is_created_buy
@@ -194,7 +195,7 @@ pub fn parse_log_optimized(
                 _ => true,
             };
 
-            if !should_parse {
+            if unlikely(!should_parse) {
                 return None;
             }
         }
@@ -229,7 +230,7 @@ pub fn parse_log_optimized(
                 _ => return Some(event),
             };
 
-            if filter.should_include(event_type) {
+            if likely(filter.should_include(event_type)) {
                 return Some(event);
             } else {
                 return None;

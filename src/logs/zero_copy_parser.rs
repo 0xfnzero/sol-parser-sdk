@@ -5,6 +5,7 @@ use crate::core::events::*;
 use super::utils::*;
 use memchr::memmem;
 use base64::{Engine as _, engine::general_purpose};
+use super::perf_hints::prefetch_read;
 
 /// 零分配 PumpFun Trade 事件解析（栈缓冲区）
 #[inline(always)]
@@ -59,6 +60,13 @@ pub fn parse_pumpfun_trade(
 
     let data = &decode_buf[8..decoded_len];
     let mut offset = 0;
+
+    // 预取后续数据到 CPU 缓存
+    unsafe {
+        if data.len() >= 64 {
+            prefetch_read(data.as_ptr().add(32));
+        }
+    }
 
     // 快速解析字段（内联读取，避免函数调用开销）
     let mint = read_pubkey_inline(data, offset)?;

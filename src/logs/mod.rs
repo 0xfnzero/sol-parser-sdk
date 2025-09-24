@@ -15,6 +15,7 @@ pub mod meteora_amm;
 pub mod meteora_damm;
 pub mod meteora_dlmm;
 pub mod zero_copy_parser;
+pub mod perf_hints;
 
 // 导出关键的 utils 函数
 pub use utils::extract_discriminator_fast;
