@@ -1,5 +1,5 @@
 use sol_parser_sdk::grpc::{
-    ClientConfig, Protocol, YellowstoneGrpc, TransactionFilter, AccountFilter,
+    ClientConfig, Protocol, YellowstoneGrpc, TransactionFilter, AccountFilter, EventTypeFilter, EventType,
 };
 use sol_parser_sdk::{DexEvent, EventListener, parse_transaction_events};
 
@@ -51,16 +51,22 @@ async fn test_grpc_streaming() -> Result<(), Box<dyn std::error::Error>> {
     println!("🎧 Starting subscription...");
     println!("🔍 Monitoring programs for DEX events...");
 
+    // 只解析 PumpFun Trade 事件
+    let event_filter = EventTypeFilter::include_only(vec![EventType::PumpFunTrade]);
+
     // 使用队列接收事件（性能更优）
     let rx = grpc.subscribe_dex_events_with_channel(
         vec![transaction_filter],
         vec![account_filter],
-        None, // event_type_filter
+        Some(event_filter),
     )
     .await?;
 
     // 异步消费事件
     tokio::spawn(async move {
+        let mut total_latency = 0i64;
+        let mut event_count = 0u64;
+
         while let Ok(event) = rx.recv() {
             // 计算从gRPC接收到队列接收的耗时
             let queue_recv_us = unsafe {
@@ -72,12 +78,20 @@ async fn test_grpc_streaming() -> Result<(), Box<dyn std::error::Error>> {
             match event {
                 DexEvent::PumpFunTrade(e) => {
                     let latency_us = queue_recv_us - e.metadata.grpc_recv_us;
-                    println!("⏱️  队列接收耗时: {}μs", latency_us);
+                    total_latency += latency_us;
+                    event_count += 1;
+
+                    println!("⏱️  端到端延迟: {}μs | 平均: {}μs",
+                        latency_us, total_latency / event_count as i64);
                     println!("{:#?}", e);
                 },
                 DexEvent::PumpFunCreate(e) => {
                     let latency_us = queue_recv_us - e.metadata.grpc_recv_us;
-                    println!("⏱️  队列接收耗时: {}μs", latency_us);
+                    total_latency += latency_us;
+                    event_count += 1;
+
+                    println!("⏱️  端到端延迟: {}μs | 平均: {}μs",
+                        latency_us, total_latency / event_count as i64);
                     println!("{:#?}", e);
                 },
                 _ => {}

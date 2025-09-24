@@ -8,6 +8,7 @@ use futures::StreamExt;
 use log::error;
 use tonic::transport::ClientTlsConfig;
 use crossbeam_channel::{unbounded, Sender, Receiver};
+use memchr::memmem;
 
 
 #[derive(Clone)]
@@ -242,7 +243,7 @@ impl YellowstoneGrpc {
                                     libc::clock_gettime(libc::CLOCK_REALTIME, &mut ts);
                                     (ts.tv_sec as i64) * 1_000_000 + (ts.tv_nsec as i64) / 1_000
                                 };
-                                Self::parse_transaction_to_events_streaming_queue(&transaction_update, grpc_recv_us, &tx).await;
+                                Self::parse_transaction_to_events_streaming_queue(&transaction_update, grpc_recv_us, &tx, event_type_filter.as_ref()).await;
                             },
                             Some(subscribe_update::UpdateOneof::Account(_account_update)) => {
                             },
@@ -337,6 +338,7 @@ impl YellowstoneGrpc {
         transaction_update: &SubscribeUpdateTransaction,
         grpc_recv_us: i64,
         tx: &Sender<DexEvent>,
+        event_type_filter: Option<&EventTypeFilter>,
     ) {
         // 从 transaction_update 中提取数据
         if let Some(transaction_info) = &transaction_update.transaction {
@@ -391,6 +393,7 @@ impl YellowstoneGrpc {
                                     grpc_recv_us,
                                     tx,
                                     &mut log_events_parsed,
+                                    event_type_filter,
                                 );
                             }
                         }
@@ -490,31 +493,31 @@ impl YellowstoneGrpc {
         grpc_recv_us: i64,
         tx: &Sender<DexEvent>,
         log_events_parsed: &mut bool,
+        event_type_filter: Option<&EventTypeFilter>,
     ) {
-        let instruction_accounts = accounts;
         let mut has_log_event = false;
 
-        // 1. 检查指令事件
-        let instr_event = crate::instr::parse_instruction_unified(
-            instruction_data, accounts, signature, slot, Some(tx_index), block_time, program_id
-        );
-
-        // 2. 流式处理日志事件
+        // 流式处理日志事件
         if !*log_events_parsed {
             for log in logs.iter() {
-                if !log.contains("Program data:") {
+                let log_bytes = log.as_bytes();
+
+                // 使用 SIMD 快速检查是否包含 "Program data: "
+                if memmem::find(log_bytes, b"Program data: ").is_none() {
                     continue;
                 }
 
-                if let Some(mut log_event) = crate::logs::parse_log_unified_with_grpc_time(log, signature, slot, block_time, grpc_recv_us) {
-                    // 填充账户信息
-                    crate::core::account_filler::fill_accounts_from_instruction_data(&mut log_event, instruction_accounts);
-
+                if let Some(log_event) = crate::logs::parse_log_unified_with_grpc_time(log, signature, slot, block_time, grpc_recv_us, event_type_filter) {
                     // 直接发送到队列
                     let _ = tx.send(log_event);
                     has_log_event = true;
+
+                    // 早期退出：找到事件后立即返回，不继续遍历
+                    *log_events_parsed = true;
+                    return;
                 }
             }
+
             *log_events_parsed = true;
         }
 
@@ -523,13 +526,13 @@ impl YellowstoneGrpc {
             return;
         }
 
-        // 4. 如果没有日志事件，输出指令事件
-        if !*log_events_parsed {
-            if let Some(instr_event) = instr_event {
-                let _ = tx.send(instr_event);
-                *log_events_parsed = true;
-            }
-        }
+        // // 4. 如果没有日志事件，输出指令事件
+        // if !*log_events_parsed {
+        //     if let Some(instr_event) = instr_event {
+        //         let _ = tx.send(instr_event);
+        //         *log_events_parsed = true;
+        //     }
+        // }
     }
 
     /// 流式解析交易事件 - 优先解析日志，指令补充缺失字段后合并

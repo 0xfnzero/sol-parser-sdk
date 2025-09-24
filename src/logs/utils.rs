@@ -6,12 +6,42 @@ use solana_sdk::{pubkey::Pubkey, signature::Signature};
 use crate::core::events::EventMetadata;
 use base64::{Engine as _, engine::general_purpose};
 
-/// 从日志中提取程序数据
+/// 从日志中提取程序数据（使用 SIMD 优化查找）
 #[inline]
 pub fn extract_program_data(log: &str) -> Option<Vec<u8>> {
-    if let Some(data_start) = log.find("Program data: ") {
-        let data_part = &log[data_start + 14..];
-        general_purpose::STANDARD.decode(data_part.trim()).ok()
+    use memchr::memmem;
+
+    let log_bytes = log.as_bytes();
+    let pos = memmem::find(log_bytes, b"Program data: ")?;
+
+    let data_part = &log[pos + 14..];
+    general_purpose::STANDARD.decode(data_part.trim()).ok()
+}
+
+/// 快速提取 discriminator（只解码前16字节，避免完整解码）
+#[inline]
+pub fn extract_discriminator_fast(log: &str) -> Option<[u8; 8]> {
+    use memchr::memmem;
+
+    let log_bytes = log.as_bytes();
+    let pos = memmem::find(log_bytes, b"Program data: ")?;
+
+    let data_part = log[pos + 14..].trim();
+
+    // Base64 编码：每4个字符解码为3个字节
+    // 要获取8字节，需要至少 ceil(8/3)*4 = 12 个 base64 字符
+    if data_part.len() < 12 {
+        return None;
+    }
+
+    // 取前16个字符（解码为12字节，包含8字节 discriminator）
+    let prefix = &data_part[..16];
+
+    let mut buf = [0u8; 12];
+    let decoded_len = general_purpose::STANDARD.decode_slice(prefix.as_bytes(), &mut buf).ok()?;
+
+    if decoded_len >= 8 {
+        Some(buf[0..8].try_into().unwrap())
     } else {
         None
     }

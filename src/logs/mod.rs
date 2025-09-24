@@ -15,6 +15,9 @@ pub mod meteora_amm;
 pub mod meteora_damm;
 pub mod meteora_dlmm;
 
+// 导出关键的 utils 函数
+pub use utils::extract_discriminator_fast;
+
 // 重新导出主要解析函数
 pub use raydium_launchpad::parse_log as parse_raydium_launchpad_log;
 pub use pumpfun::parse_log as parse_pumpfun_log;
@@ -33,15 +36,16 @@ pub use utils::*;
 use solana_sdk::{signature::Signature};
 use crate::core::events::DexEvent;
 
-/// 统一的日志解析入口函数（优化版本，带grpc时间）
+/// 统一的日志解析入口函数（优化版本，带grpc时间和事件类型过滤）
 pub fn parse_log_unified_with_grpc_time(
     log: &str,
     signature: Signature,
     slot: u64,
     block_time: Option<i64>,
     grpc_recv_us: i64,
+    event_type_filter: Option<&crate::grpc::types::EventTypeFilter>,
 ) -> Option<DexEvent> {
-    optimized_matcher::parse_log_optimized(log, signature, slot, block_time, grpc_recv_us)
+    optimized_matcher::parse_log_optimized(log, signature, slot, block_time, grpc_recv_us, event_type_filter)
 }
 
 /// 统一的日志解析入口函数（优化版本）
@@ -57,7 +61,7 @@ pub fn parse_log_unified(
         libc::clock_gettime(libc::CLOCK_REALTIME, &mut ts);
         (ts.tv_sec as i64) * 1_000_000 + (ts.tv_nsec as i64) / 1_000
     };
-    optimized_matcher::parse_log_optimized(log, signature, slot, block_time, grpc_recv_us)
+    optimized_matcher::parse_log_optimized(log, signature, slot, block_time, grpc_recv_us, None)
 }
 
 /// 传统的日志解析函数（保留用于比较）

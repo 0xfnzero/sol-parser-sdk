@@ -3,6 +3,7 @@
 //! 使用预计算的字符串常量和优化的匹配策略
 
 use crate::core::events::DexEvent;
+use crate::grpc::types::{EventType, EventTypeFilter};
 use solana_sdk::signature::Signature;
 use memchr::memmem;
 use once_cell::sync::Lazy;
@@ -134,7 +135,7 @@ pub fn detect_log_type(log: &str) -> LogType {
     LogType::Unknown
 }
 
-/// 优化的统一日志解析器
+/// 优化的统一日志解析器（带事件类型过滤）
 #[inline]
 pub fn parse_log_optimized(
     log: &str,
@@ -142,12 +143,55 @@ pub fn parse_log_optimized(
     slot: u64,
     block_time: Option<i64>,
     grpc_recv_us: i64,
+    event_type_filter: Option<&EventTypeFilter>,
 ) -> Option<DexEvent> {
     // 快速类型检测
     let log_type = detect_log_type(log);
 
+    // 提前过滤和解析
+    if let Some(filter) = event_type_filter {
+        if let Some(ref include_only) = filter.include_only {
+            // PumpFun Trade 专用快速路径
+            if include_only.len() == 1 && include_only[0] == EventType::PumpFunTrade {
+                if log_type == LogType::PumpFun {
+                    return crate::logs::pumpfun::parse_log_fast_filter(
+                        log, signature, slot, block_time, grpc_recv_us,
+                        crate::logs::pumpfun::discriminators::TRADE_EVENT
+                    );
+                } else {
+                    // 不是 PumpFun 日志，直接跳过
+                    return None;
+                }
+            }
+
+            // 提前过滤：如果该协议的所有事件都不在过滤范围内，直接跳过解析
+            let should_parse = match log_type {
+                LogType::PumpFun => include_only.iter().any(|t| matches!(t,
+                    EventType::PumpFunTrade | EventType::PumpFunCreate |
+                    EventType::PumpFunComplete | EventType::PumpFunMigrate)),
+                LogType::RaydiumAmm => include_only.iter().any(|t| matches!(t,
+                    EventType::RaydiumAmmV4Swap | EventType::RaydiumAmmV4Deposit |
+                    EventType::RaydiumAmmV4Withdraw | EventType::RaydiumAmmV4Initialize2 |
+                    EventType::RaydiumAmmV4WithdrawPnl)),
+                LogType::RaydiumClmm => include_only.iter().any(|t| matches!(t,
+                    EventType::RaydiumClmmSwap | EventType::RaydiumClmmCreatePool |
+                    EventType::RaydiumClmmOpenPosition | EventType::RaydiumClmmClosePosition |
+                    EventType::RaydiumClmmIncreaseLiquidity | EventType::RaydiumClmmDecreaseLiquidity |
+                    EventType::RaydiumClmmOpenPositionWithTokenExtNft | EventType::RaydiumClmmCollectFee)),
+                LogType::RaydiumCpmm => include_only.iter().any(|t| matches!(t,
+                    EventType::RaydiumCpmmSwap | EventType::RaydiumCpmmDeposit |
+                    EventType::RaydiumCpmmWithdraw | EventType::RaydiumCpmmInitialize)),
+                _ => true,
+            };
+
+            if !should_parse {
+                return None;
+            }
+        }
+    }
+
     // 根据类型直接调用相应的解析器，传入grpc_recv_us
-    match log_type {
+    let event = match log_type {
         LogType::PumpFun => crate::logs::parse_pumpfun_log(log, signature, slot, block_time, grpc_recv_us),
         LogType::RaydiumLaunchpad => crate::logs::parse_raydium_launchpad_log(log, signature, slot, block_time, grpc_recv_us),
         LogType::PumpAmm => crate::logs::parse_pump_amm_log(log, signature, slot, block_time, grpc_recv_us),
@@ -159,6 +203,31 @@ pub fn parse_log_optimized(
         LogType::MeteoraDamm => crate::logs::parse_meteora_damm_log(log, signature, slot, block_time, grpc_recv_us),
         LogType::MeteoraDlmm => crate::logs::parse_meteora_dlmm_log(log, signature, slot, block_time, grpc_recv_us),
         LogType::Unknown => None,
+    };
+
+    // 应用精确的事件类型过滤
+    if let Some(event) = event {
+        if let Some(filter) = event_type_filter {
+            let event_type = match &event {
+                DexEvent::PumpFunTrade(_) => EventType::PumpFunTrade,
+                DexEvent::PumpFunCreate(_) => EventType::PumpFunCreate,
+                DexEvent::PumpFunComplete(_) => EventType::PumpFunComplete,
+                DexEvent::PumpFunMigrate(_) => EventType::PumpFunMigrate,
+                DexEvent::RaydiumAmmV4Swap(_) => EventType::RaydiumAmmV4Swap,
+                DexEvent::RaydiumClmmSwap(_) => EventType::RaydiumClmmSwap,
+                DexEvent::RaydiumCpmmSwap(_) => EventType::RaydiumCpmmSwap,
+                _ => return Some(event),
+            };
+
+            if filter.should_include(event_type) {
+                return Some(event);
+            } else {
+                return None;
+            }
+        }
+        Some(event)
+    } else {
+        None
     }
 }
 

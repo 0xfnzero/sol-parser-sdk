@@ -51,6 +51,28 @@ pub fn parse_log(
     parse_text_log(log, signature, slot, block_time, grpc_recv_us)
 }
 
+/// 快速路径：只检查 discriminator，避免完整解码（用于事件类型过滤）
+#[inline]
+pub fn parse_log_fast_filter(
+    log: &str,
+    signature: Signature,
+    slot: u64,
+    block_time: Option<i64>,
+    grpc_recv_us: i64,
+    wanted_discriminator: [u8; 8],
+) -> Option<DexEvent> {
+    // 快速提取 discriminator（只解码前8字节）
+    let discriminator = extract_discriminator_fast(log)?;
+
+    // 如果不是想要的类型，立即返回
+    if discriminator != wanted_discriminator {
+        return None;
+    }
+
+    // 是想要的类型，完整解析
+    parse_structured_log(log, signature, slot, block_time, grpc_recv_us)
+}
+
 /// 结构化日志解析（基于 Program data）
 fn parse_structured_log(
     log: &str,
