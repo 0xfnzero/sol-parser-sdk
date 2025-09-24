@@ -83,6 +83,7 @@ pub struct PumpFunTradeEvent {
     pub sol_amount: u64,
     pub token_amount: u64,
     pub is_buy: bool,
+    pub is_created_buy: bool,
     pub user: Pubkey,
     pub timestamp: i64,
     pub virtual_sol_reserves: u64,

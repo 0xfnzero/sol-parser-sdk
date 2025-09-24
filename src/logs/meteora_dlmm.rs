@@ -19,12 +19,6 @@ pub mod discriminators {
     pub const CLAIM_FEE_EVENT: [u8; 8] = [152, 70, 208, 111, 104, 91, 44, 1];
 }
 
-/// 判断是否为 Meteora DLMM 日志
-pub fn is_meteora_dlmm_log(log: &str) -> bool {
-    log.contains("Program data: ") &&
-    (log.contains("Program log: Instruction:") || log.contains("meteora") || log.contains("DLMM"))
-}
-
 /// 主要的 Meteora DLMM 日志解析函数
 pub fn parse_log(log: &str, signature: Signature, slot: u64, block_time: Option<i64>, grpc_recv_us: i64) -> Option<DexEvent> {
     parse_structured_log(log, signature, slot, block_time, grpc_recv_us)

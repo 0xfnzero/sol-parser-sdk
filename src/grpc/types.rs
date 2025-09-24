@@ -298,6 +298,23 @@ impl EventTypeFilter {
 
         true
     }
+
+    #[inline]
+    pub fn includes_pumpfun(&self) -> bool {
+        if let Some(ref include_only) = self.include_only {
+            return include_only.iter().any(|t| matches!(t,
+                EventType::PumpFunTrade | EventType::PumpFunCreate |
+                EventType::PumpFunComplete | EventType::PumpFunMigrate));
+        }
+
+        if let Some(ref exclude_types) = self.exclude_types {
+            return !exclude_types.iter().any(|t| matches!(t,
+                EventType::PumpFunTrade | EventType::PumpFunCreate |
+                EventType::PumpFunComplete | EventType::PumpFunMigrate));
+        }
+
+        true
+    }
 }
 
 #[derive(Debug, Clone)]

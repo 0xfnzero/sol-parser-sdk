@@ -14,12 +14,6 @@ pub mod discriminators {
     pub const POOL_INITIALIZED_EVENT: [u8; 8] = [100, 118, 173, 87, 12, 198, 254, 229];
 }
 
-/// 判断是否为 Orca Whirlpool 日志
-pub fn is_orca_whirlpool_log(log: &str) -> bool {
-    log.contains("Program data: ") &&
-    (log.contains("whirL") || log.contains("Program log: Instruction:"))
-}
-
 /// 主要的 Orca Whirlpool 日志解析函数
 pub fn parse_log(log: &str, signature: Signature, slot: u64, block_time: Option<i64>, grpc_recv_us: i64) -> Option<DexEvent> {
     parse_structured_log(log, signature, slot, block_time, grpc_recv_us)

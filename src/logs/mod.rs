@@ -18,7 +18,7 @@ pub mod zero_copy_parser;
 
 // 导出关键的 utils 函数
 pub use utils::extract_discriminator_fast;
-pub use zero_copy_parser::parse_pumpfun_trade_zero_copy;
+pub use zero_copy_parser::parse_pumpfun_trade;
 
 // 重新导出主要解析函数
 pub use raydium_launchpad::parse_log as parse_raydium_launchpad_log;
@@ -38,16 +38,17 @@ pub use utils::*;
 use solana_sdk::{signature::Signature};
 use crate::core::events::DexEvent;
 
-/// 统一的日志解析入口函数（优化版本，带grpc时间和事件类型过滤）
-pub fn parse_log_unified_with_grpc_time(
+/// 主日志解析入口函数
+pub fn parse_log(
     log: &str,
     signature: Signature,
     slot: u64,
     block_time: Option<i64>,
     grpc_recv_us: i64,
     event_type_filter: Option<&crate::grpc::types::EventTypeFilter>,
+    is_created_buy: bool,
 ) -> Option<DexEvent> {
-    optimized_matcher::parse_log_optimized(log, signature, slot, block_time, grpc_recv_us, event_type_filter)
+    optimized_matcher::parse_log_optimized(log, signature, slot, block_time, grpc_recv_us, event_type_filter, is_created_buy)
 }
 
 /// 统一的日志解析入口函数（优化版本）
@@ -62,5 +63,5 @@ pub fn parse_log_unified(
         libc::clock_gettime(libc::CLOCK_REALTIME, &mut ts);
         (ts.tv_sec as i64) * 1_000_000 + (ts.tv_nsec as i64) / 1_000
     };
-    optimized_matcher::parse_log_optimized(log, signature, slot, block_time, grpc_recv_us, None)
+    optimized_matcher::parse_log_optimized(log, signature, slot, block_time, grpc_recv_us, None, false)
 }

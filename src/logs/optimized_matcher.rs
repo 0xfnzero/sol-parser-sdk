@@ -16,6 +16,13 @@ static RAYDIUM_CPMM_FINDER: Lazy<memmem::Finder> = Lazy::new(|| memmem::Finder::
 static BONK_FINDER: Lazy<memmem::Finder> = Lazy::new(|| memmem::Finder::new(b"Bxby5A7E8xPDGGc3FyJw7m5eK5aqNVLU83H2zLTQDH1b"));
 static PROGRAM_FINDER: Lazy<memmem::Finder> = Lazy::new(|| memmem::Finder::new(b"Program"));
 static PROGRAM_DATA_FINDER: Lazy<memmem::Finder> = Lazy::new(|| memmem::Finder::new(b"Program data: "));
+static PUMPFUN_CREATE_FINDER: Lazy<memmem::Finder> = Lazy::new(|| memmem::Finder::new(b"Program data: GB7IKAUcB3c"));
+static WHIRL_FINDER: Lazy<memmem::Finder> = Lazy::new(|| memmem::Finder::new(b"whirL"));
+static METEORA_FINDER: Lazy<memmem::Finder> = Lazy::new(|| memmem::Finder::new(b"meteora"));
+static METEORA_LB_FINDER: Lazy<memmem::Finder> = Lazy::new(|| memmem::Finder::new(b"LB"));
+static METEORA_DLMM_FINDER: Lazy<memmem::Finder> = Lazy::new(|| memmem::Finder::new(b"DLMM"));
+static PUMPSWAP_LOWER_FINDER: Lazy<memmem::Finder> = Lazy::new(|| memmem::Finder::new(b"pumpswap"));
+static PUMPSWAP_UPPER_FINDER: Lazy<memmem::Finder> = Lazy::new(|| memmem::Finder::new(b"PumpSwap"));
 
 /// 预计算的程序 ID 字符串常量
 pub mod program_id_strings {
@@ -40,6 +47,9 @@ pub mod program_id_strings {
     // 常用的日志模式
     pub const PROGRAM_DATA: &str = "Program data: ";
     pub const PROGRAM_LOG: &str = "Program log: ";
+
+    // PumpFun 事件 discriminator (base64)
+    pub const PUMPFUN_CREATE_DISCRIMINATOR: &str = "GB7IKAUcB3c";  // [24, 30, 200, 40, 5, 28, 7, 119]
 }
 
 /// 快速日志类型枚举
@@ -98,15 +108,16 @@ pub fn detect_log_type(log: &str) -> LogType {
     }
 
     // Orca Whirlpool
-    if log.contains("whirL") {
+    if WHIRL_FINDER.find(log_bytes).is_some() {
         return LogType::OrcaWhirlpool;
     }
 
-    // Meteora - 统一检查前缀
-    if let Some(pos) = log.find("meteora") {
-        if log[pos..].contains("LB") {
+    // Meteora - SIMD 优化
+    if let Some(pos) = METEORA_FINDER.find(log_bytes) {
+        let rest = &log_bytes[pos..];
+        if METEORA_LB_FINDER.find(rest).is_some() {
             return LogType::MeteoraDamm;
-        } else if log[pos..].contains("DLMM") {
+        } else if METEORA_DLMM_FINDER.find(rest).is_some() {
             return LogType::MeteoraDlmm;
         } else {
             return LogType::MeteoraAmm;
@@ -114,7 +125,7 @@ pub fn detect_log_type(log: &str) -> LogType {
     }
 
     // Pump AMM
-    if log.contains("pumpswap") || log.contains("PumpSwap") {
+    if PUMPSWAP_LOWER_FINDER.find(log_bytes).is_some() || PUMPSWAP_UPPER_FINDER.find(log_bytes).is_some() {
         return LogType::PumpAmm;
     }
 
@@ -143,6 +154,7 @@ pub fn parse_log_optimized(
     block_time: Option<i64>,
     grpc_recv_us: i64,
     event_type_filter: Option<&EventTypeFilter>,
+    is_created_buy: bool,
 ) -> Option<DexEvent> {
     // 快速类型检测
     let log_type = detect_log_type(log);
@@ -150,12 +162,12 @@ pub fn parse_log_optimized(
     // 提前过滤和解析
     if let Some(filter) = event_type_filter {
         if let Some(ref include_only) = filter.include_only {
-            // PumpFun Trade 超快零拷贝路径
+            // PumpFun Trade 超快路径
             if include_only.len() == 1 && include_only[0] == EventType::PumpFunTrade {
                 if log_type == LogType::PumpFun {
-                    // 使用零拷贝解析器：栈分配，无堆分配，内联函数
-                    return crate::logs::parse_pumpfun_trade_zero_copy(
-                        log, signature, slot, block_time, grpc_recv_us
+                    // 使用优化解析器：栈分配，无堆分配，内联函数
+                    return crate::logs::parse_pumpfun_trade(
+                        log, signature, slot, block_time, grpc_recv_us, is_created_buy
                     );
                 } else {
                     return None;
@@ -190,7 +202,7 @@ pub fn parse_log_optimized(
 
     // 根据类型直接调用相应的解析器，传入grpc_recv_us
     let event = match log_type {
-        LogType::PumpFun => crate::logs::parse_pumpfun_log(log, signature, slot, block_time, grpc_recv_us),
+        LogType::PumpFun => crate::logs::parse_pumpfun_log(log, signature, slot, block_time, grpc_recv_us, is_created_buy),
         LogType::RaydiumLaunchpad => crate::logs::parse_raydium_launchpad_log(log, signature, slot, block_time, grpc_recv_us),
         LogType::PumpAmm => crate::logs::parse_pump_amm_log(log, signature, slot, block_time, grpc_recv_us),
         LogType::RaydiumClmm => crate::logs::parse_raydium_clmm_log(log, signature, slot, block_time, grpc_recv_us),
@@ -227,6 +239,14 @@ pub fn parse_log_optimized(
     } else {
         None
     }
+}
+
+/// SIMD 优化的 PumpFun Create 事件检测（扫描所有日志）
+#[inline]
+pub fn detect_pumpfun_create(logs: &[String]) -> bool {
+    logs.iter().any(|log| {
+        PUMPFUN_CREATE_FINDER.find(log.as_bytes()).is_some()
+    })
 }
 
 /// 性能测试辅助函数

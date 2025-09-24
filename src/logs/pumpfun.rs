@@ -5,6 +5,16 @@
 use solana_sdk::{pubkey::Pubkey, signature::Signature};
 use crate::core::events::*;
 use super::utils::*;
+use memchr::memmem;
+use once_cell::sync::Lazy;
+
+/// 文本日志关键词查找器（SIMD 优化）
+static CREATE_EVENT_FINDER: Lazy<memmem::Finder> = Lazy::new(|| memmem::Finder::new(b"CreateEvent"));
+static TRADE_EVENT_FINDER: Lazy<memmem::Finder> = Lazy::new(|| memmem::Finder::new(b"TradeEvent"));
+static COMPLETE_EVENT_FINDER: Lazy<memmem::Finder> = Lazy::new(|| memmem::Finder::new(b"CompleteEvent"));
+static MIGRATE_EVENT_FINDER: Lazy<memmem::Finder> = Lazy::new(|| memmem::Finder::new(b"MigrateEvent"));
+static GRADUATION_FINDER: Lazy<memmem::Finder> = Lazy::new(|| memmem::Finder::new(b"graduation"));
+static SWAP_FINDER: Lazy<memmem::Finder> = Lazy::new(|| memmem::Finder::new(b"swap"));
 
 /// PumpFun discriminator 常量
 pub mod discriminators {
@@ -38,18 +48,19 @@ pub fn parse_log(
     slot: u64,
     block_time: Option<i64>,
     grpc_recv_us: i64,
+    is_created_buy: bool,
 ) -> Option<DexEvent> {
     if !is_pumpfun_log(log) {
         return None;
     }
 
     // 尝试结构化解析
-    if let Some(event) = parse_structured_log(log, signature, slot, block_time, grpc_recv_us) {
+    if let Some(event) = parse_structured_log(log, signature, slot, block_time, grpc_recv_us, is_created_buy) {
         return Some(event);
     }
 
     // 回退到文本解析
-    parse_text_log(log, signature, slot, block_time, grpc_recv_us)
+    parse_text_log(log, signature, slot, block_time, grpc_recv_us, is_created_buy)
 }
 
 /// 快速路径：只检查 discriminator，避免完整解码（用于事件类型过滤）
@@ -71,7 +82,7 @@ pub fn parse_log_fast_filter(
     }
 
     // 是想要的类型，完整解析
-    parse_structured_log(log, signature, slot, block_time, grpc_recv_us)
+    parse_structured_log(log, signature, slot, block_time, grpc_recv_us, false)
 }
 
 /// 结构化日志解析（基于 Program data）
@@ -81,6 +92,7 @@ fn parse_structured_log(
     slot: u64,
     block_time: Option<i64>,
     grpc_recv_us: i64,
+    is_created_buy: bool,
 ) -> Option<DexEvent> {
     let program_data = extract_program_data(log)?;
     if program_data.len() < 8 {
@@ -95,7 +107,7 @@ fn parse_structured_log(
             parse_create_event(data, signature, slot, block_time, grpc_recv_us)
         },
         discriminators::TRADE_EVENT => {
-            parse_trade_event(data, signature, slot, block_time, grpc_recv_us)
+            parse_trade_event(data, signature, slot, block_time, grpc_recv_us, is_created_buy)
         },
         discriminators::MIGRATE_EVENT => {
             parse_migrate_event(data, signature, slot, block_time, grpc_recv_us)
@@ -178,6 +190,7 @@ fn parse_trade_event(
     slot: u64,
     block_time: Option<i64>,
     grpc_recv_us: i64,
+    is_created_buy: bool,
 ) -> Option<DexEvent> {
     let mut offset = 0;
 
@@ -251,6 +264,7 @@ fn parse_trade_event(
         sol_amount,
         token_amount,
         is_buy,
+        is_created_buy,
         user,
         timestamp,
         virtual_sol_reserves,
@@ -369,29 +383,36 @@ fn parse_migrate_event(
     }))
 }
 
-/// 文本回退解析
+/// 文本回退解析（SIMD 优化）
 fn parse_text_log(
     log: &str,
     signature: Signature,
     slot: u64,
     block_time: Option<i64>,
     grpc_recv_us: i64,
+    is_created_buy: bool,
 ) -> Option<DexEvent> {
     use super::utils::text_parser::*;
 
-    if log.contains("CreateEvent") || log.contains("create") {
+    let log_bytes = log.as_bytes();
+
+    if CREATE_EVENT_FINDER.find(log_bytes).is_some() {
         return parse_create_from_text(log, signature, slot, block_time, grpc_recv_us);
     }
 
-    if log.contains("TradeEvent") || log.contains("swap") || log.contains("trade") {
-        return parse_trade_from_text(log, signature, slot, block_time, grpc_recv_us);
+    if TRADE_EVENT_FINDER.find(log_bytes).is_some() || SWAP_FINDER.find(log_bytes).is_some() {
+        let mut event = parse_trade_from_text(log, signature, slot, block_time, grpc_recv_us)?;
+        if let DexEvent::PumpFunTrade(ref mut trade) = event {
+            trade.is_created_buy = is_created_buy;
+        }
+        return Some(event);
     }
 
-    if log.contains("CompleteEvent") || log.contains("graduation") {
+    if COMPLETE_EVENT_FINDER.find(log_bytes).is_some() || GRADUATION_FINDER.find(log_bytes).is_some() {
         return parse_complete_from_text(log, signature, slot, block_time, grpc_recv_us);
     }
 
-    if log.contains("MigrateEvent") || log.contains("migrate") {
+    if MIGRATE_EVENT_FINDER.find(log_bytes).is_some() {
         return parse_migrate_from_text(log, signature, slot, block_time, grpc_recv_us);
     }
 
@@ -448,6 +469,7 @@ fn parse_trade_from_text(
         sol_amount: extract_number_from_text(log, "sol").unwrap_or(1_000_000_000),
         token_amount: extract_number_from_text(log, "token").unwrap_or(1_000_000_000),
         is_buy,
+        is_created_buy: false,  // 默认为 false，由上层设置
         user: Pubkey::default(),
         timestamp: block_time.unwrap_or(0),
         virtual_sol_reserves: 30_000_000_000,

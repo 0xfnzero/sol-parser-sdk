@@ -16,12 +16,6 @@ pub mod discriminators {
     pub const SET_POOL_FEES_EVENT: [u8; 8] = [245, 26, 198, 164, 88, 18, 75, 9];
 }
 
-/// 判断是否为 Meteora AMM 日志
-pub fn is_meteora_amm_log(log: &str) -> bool {
-    log.contains("Program data: ") &&
-    (log.contains("Program log: Instruction:") || log.contains("meteora"))
-}
-
 /// 主要的 Meteora Pools 日志解析函数
 pub fn parse_log(log: &str, signature: Signature, slot: u64, block_time: Option<i64>, grpc_recv_us: i64) -> Option<DexEvent> {
     parse_structured_log(log, signature, slot, block_time, grpc_recv_us)

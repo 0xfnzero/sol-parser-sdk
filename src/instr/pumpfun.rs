@@ -103,6 +103,7 @@ fn parse_buy_instruction(
         sol_amount: 0, // 将从日志填充
         token_amount: 0, // 将从日志填充
         is_buy: true,
+        is_created_buy: false, // 将在上层设置
         user: Pubkey::default(), // 将从日志填充
         timestamp: block_time.unwrap_or(0),
         virtual_sol_reserves: 0, // 将从日志填充
@@ -156,6 +157,7 @@ fn parse_sell_instruction(
         sol_amount: 0, // 将从日志填充
         token_amount: 0, // 将从日志填充
         is_buy: false,
+        is_created_buy: false, // 将在上层设置
         user: Pubkey::default(), // 将从日志填充
         timestamp: block_time.unwrap_or(0),
         virtual_sol_reserves: 0, // 将从日志填充

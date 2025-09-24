@@ -20,20 +20,6 @@ pub mod discriminators {
 /// Raydium AMM V4 程序 ID
 pub const PROGRAM_ID: &str = "675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8";
 
-/// 检查是否是 Raydium AMM 日志
-pub fn is_raydium_amm_log(log: &str) -> bool {
-    log.contains(PROGRAM_ID) ||
-    log.contains("RaydiumAmmV4") ||
-    log.contains("raydium_amm_v4") ||
-    (log.contains("AMM") && log.contains("675kPX")) ||
-    (log.contains("Program data:") && (
-        log.contains("swap") ||
-        log.contains("deposit") ||
-        log.contains("withdraw") ||
-        log.contains("initialize")
-    ))
-}
-
 /// 解析 Raydium AMM V4 日志
 #[inline]
 pub fn parse_log(log: &str, signature: Signature, slot: u64, block_time: Option<i64>, grpc_recv_us: i64) -> Option<DexEvent> {

@@ -20,12 +20,6 @@ pub mod discriminators {
     pub const CLAIM_REWARD_EVENT: [u8; 8] = [218, 86, 147, 200, 235, 188, 215, 231];
 }
 
-/// 判断是否为 Meteora DAMM 日志
-pub fn is_meteora_damm_log(log: &str) -> bool {
-    log.contains("Program data: ") &&
-    (log.contains("Program log: Instruction:") || log.contains("meteora") || log.contains("LB"))
-}
-
 /// 主要的 Meteora DAMM V2 日志解析函数
 pub fn parse_log(log: &str, signature: Signature, slot: u64, block_time: Option<i64>, grpc_recv_us: i64) -> Option<DexEvent> {
     parse_structured_log(log, signature, slot, block_time, grpc_recv_us)

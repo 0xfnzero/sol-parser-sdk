@@ -8,12 +8,13 @@ use base64::{Engine as _, engine::general_purpose};
 
 /// 零分配 PumpFun Trade 事件解析（栈缓冲区）
 #[inline(always)]
-pub fn parse_pumpfun_trade_zero_copy(
+pub fn parse_pumpfun_trade(
     log: &str,
     signature: Signature,
     slot: u64,
     block_time: Option<i64>,
     grpc_recv_us: i64,
+    is_created_buy: bool,
 ) -> Option<DexEvent> {
     // 使用栈缓冲区，避免堆分配（需要足够大以容纳完整的事件数据）
     // PumpFun Trade 事件最大约 350 base64 字符 = 262字节，留出余量用 512 字节
@@ -82,6 +83,42 @@ pub fn parse_pumpfun_trade_zero_copy(
     offset += 8;
 
     let virtual_token_reserves = read_u64_le_inline(data, offset)?;
+    offset += 8;
+
+    let real_sol_reserves = read_u64_le_inline(data, offset).unwrap_or(0);
+    offset += 8;
+
+    let real_token_reserves = read_u64_le_inline(data, offset).unwrap_or(0);
+    offset += 8;
+
+    let fee_recipient = read_pubkey_inline(data, offset).unwrap_or_default();
+    offset += 32;
+
+    let fee_basis_points = read_u64_le_inline(data, offset).unwrap_or(0);
+    offset += 8;
+
+    let fee = read_u64_le_inline(data, offset).unwrap_or(0);
+    offset += 8;
+
+    let creator = read_pubkey_inline(data, offset).unwrap_or_default();
+    offset += 32;
+
+    let creator_fee_basis_points = read_u64_le_inline(data, offset).unwrap_or(0);
+    offset += 8;
+
+    let creator_fee = read_u64_le_inline(data, offset).unwrap_or(0);
+    offset += 8;
+
+    let track_volume = read_u8_inline(data, offset).unwrap_or(0) != 0;
+    offset += 1;
+
+    let total_unclaimed_tokens = read_u64_le_inline(data, offset).unwrap_or(0);
+    offset += 8;
+
+    let total_claimed_tokens = read_u64_le_inline(data, offset).unwrap_or(0);
+    offset += 8;
+
+    let current_sol_volume = read_u64_le_inline(data, offset).unwrap_or(0);
 
     let metadata = EventMetadata {
         signature,
@@ -97,23 +134,24 @@ pub fn parse_pumpfun_trade_zero_copy(
         sol_amount,
         token_amount,
         is_buy: is_buy != 0,
+        is_created_buy,
         user,
         timestamp,
         virtual_sol_reserves,
         virtual_token_reserves,
-        real_sol_reserves: 0,
-        real_token_reserves: 0,
-        fee_recipient: Pubkey::default(),
-        fee_basis_points: 0,
-        fee: 0,
-        creator: Pubkey::default(),
-        creator_fee_basis_points: 0,
-        creator_fee: 0,
-        track_volume: false,
-        total_unclaimed_tokens: 0,
-        total_claimed_tokens: 0,
-        current_sol_volume: 0,
-        last_update_timestamp: 0,
+        real_sol_reserves,
+        real_token_reserves,
+        fee_recipient,
+        fee_basis_points,
+        fee,
+        creator,
+        creator_fee_basis_points,
+        creator_fee,
+        track_volume,
+        total_unclaimed_tokens,
+        total_claimed_tokens,
+        current_sol_volume,
+        last_update_timestamp: timestamp,
         bonding_curve: Pubkey::default(),
         associated_bonding_curve: Pubkey::default(),
         associated_user: Pubkey::default(),

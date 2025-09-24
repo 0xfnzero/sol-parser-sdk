@@ -10,6 +10,9 @@ use tonic::transport::ClientTlsConfig;
 use crossbeam_queue::ArrayQueue;
 use memchr::memmem;
 use std::sync::Arc;
+use once_cell::sync::Lazy;
+
+static PROGRAM_DATA_FINDER: Lazy<memmem::Finder> = Lazy::new(|| memmem::Finder::new(b"Program data: "));
 
 
 #[derive(Clone)]
@@ -257,15 +260,19 @@ impl YellowstoneGrpc {
         event_type_filter: Option<&EventTypeFilter>,
     ) {
         if !*log_events_parsed {
+            let has_create = event_type_filter
+                .map(|f| f.includes_pumpfun())
+                .unwrap_or(true)
+                && crate::logs::optimized_matcher::detect_pumpfun_create(logs);
+
             for log in logs.iter() {
                 let log_bytes = log.as_bytes();
 
-                if memmem::find(log_bytes, b"Program data: ").is_none() {
+                if PROGRAM_DATA_FINDER.find(log_bytes).is_none() {
                     continue;
                 }
 
-                if let Some(log_event) = crate::logs::parse_log_unified_with_grpc_time(log, signature, slot, block_time, grpc_recv_us, event_type_filter) {
-                    // 无锁推送到队列，如果队列满了就丢弃（背压处理）
+                if let Some(log_event) = crate::logs::parse_log(log, signature, slot, block_time, grpc_recv_us, event_type_filter, has_create) {
                     let _ = queue.push(log_event);
                     *log_events_parsed = true;
                     return;
