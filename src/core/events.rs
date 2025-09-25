@@ -11,7 +11,7 @@ use solana_sdk::{pubkey::Pubkey, signature::Signature};
 pub struct EventMetadata {
     pub signature: Signature,
     pub slot: u64,
-    pub tx_index: Option<u64>,  // 交易在slot中的索引，参考solana-streamer
+    pub tx_index: u64,  // 交易在slot中的索引，参考solana-streamer
     pub block_time_us: i64,
     pub grpc_recv_us: i64,
 }

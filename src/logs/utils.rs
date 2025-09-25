@@ -129,6 +129,7 @@ pub fn read_bool(data: &[u8], offset: usize) -> Option<bool> {
 pub fn create_metadata_simple(
     signature: Signature,
     slot: u64,
+    tx_index: u64,
     block_time: Option<i64>,
     program_id: Pubkey,
     grpc_recv_us: i64,
@@ -136,7 +137,7 @@ pub fn create_metadata_simple(
     EventMetadata {
         signature,
         slot,
-        tx_index: None,
+        tx_index,
         block_time_us: block_time.unwrap_or(0) * 1_000_000,
         grpc_recv_us,
     }
@@ -146,6 +147,7 @@ pub fn create_metadata_simple(
 pub fn create_metadata_default(
     signature: Signature,
     slot: u64,
+    tx_index: u64,
     block_time: Option<i64>,
 ) -> EventMetadata {
     // 优化：macOS 使用 CLOCK_REALTIME（Linux 可用 CLOCK_REALTIME_COARSE）
@@ -164,7 +166,7 @@ pub fn create_metadata_default(
     EventMetadata {
         signature,
         slot,
-        tx_index: None,  // 日志解析无tx_index信息
+        tx_index,
         block_time_us: block_time.unwrap_or(0) * 1_000_000,
         grpc_recv_us: current_time,
     }

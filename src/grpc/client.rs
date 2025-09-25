@@ -193,6 +193,9 @@ impl YellowstoneGrpc {
         event_type_filter: Option<&EventTypeFilter>,
     ) {
         if let Some(transaction_info) = &transaction_update.transaction {
+            // 从 transaction_info.index 获取交易索引
+            let tx_index = transaction_info.index;
+            
             if let Some(meta) = &transaction_info.meta {
                 let logs = &meta.log_messages;
 
@@ -232,6 +235,7 @@ impl YellowstoneGrpc {
                                     logs,
                                     signature,
                                     transaction_update.slot,
+                                    tx_index,
                                     block_time,
                                     grpc_recv_us,
                                     queue,
@@ -253,6 +257,7 @@ impl YellowstoneGrpc {
         logs: &[String],
         signature: solana_sdk::signature::Signature,
         slot: u64,
+        tx_index: u64,
         block_time: Option<i64>,
         grpc_recv_us: i64,
         queue: &Arc<ArrayQueue<DexEvent>>,
@@ -272,7 +277,7 @@ impl YellowstoneGrpc {
                     continue;
                 }
 
-                if let Some(log_event) = crate::logs::parse_log(log, signature, slot, block_time, grpc_recv_us, event_type_filter, has_create) {
+                if let Some(log_event) = crate::logs::parse_log(log, signature, slot, tx_index, block_time, grpc_recv_us, event_type_filter, has_create) {
                     let _ = queue.push(log_event);
                     *log_events_parsed = true;
                     return;

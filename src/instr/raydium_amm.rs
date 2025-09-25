@@ -52,7 +52,7 @@ pub fn parse_instruction(
     accounts: &[Pubkey],
     signature: Signature,
     slot: u64,
-    tx_index: Option<u64>,
+    tx_index: u64,
     block_time: Option<i64>,
 ) -> Option<DexEvent> {
     if instruction_data.is_empty() {
@@ -91,7 +91,7 @@ fn parse_swap_base_in_instruction(
     accounts: &[Pubkey],
     signature: Signature,
     slot: u64,
-    tx_index: Option<u64>,
+    tx_index: u64,
     block_time: Option<i64>,
 ) -> Option<DexEvent> {
     let mut offset = 0;
@@ -137,7 +137,7 @@ fn parse_swap_base_out_instruction(
     accounts: &[Pubkey],
     signature: Signature,
     slot: u64,
-    tx_index: Option<u64>,
+    tx_index: u64,
     block_time: Option<i64>,
 ) -> Option<DexEvent> {
     let mut offset = 0;
@@ -183,7 +183,7 @@ fn parse_deposit_instruction(
     accounts: &[Pubkey],
     signature: Signature,
     slot: u64,
-    tx_index: Option<u64>,
+    tx_index: u64,
     block_time: Option<i64>,
 ) -> Option<DexEvent> {
     let mut offset = 0;
@@ -227,7 +227,7 @@ fn parse_withdraw_instruction(
     accounts: &[Pubkey],
     signature: Signature,
     slot: u64,
-    tx_index: Option<u64>,
+    tx_index: u64,
     block_time: Option<i64>,
 ) -> Option<DexEvent> {
     let amount = read_u64_le(data, 0)?;
@@ -269,7 +269,7 @@ fn parse_initialize2_instruction(
     accounts: &[Pubkey],
     signature: Signature,
     slot: u64,
-    tx_index: Option<u64>,
+    tx_index: u64,
     block_time: Option<i64>,
 ) -> Option<DexEvent> {
     let mut offset = 0;
@@ -324,7 +324,7 @@ fn parse_withdraw_pnl_instruction(
     accounts: &[Pubkey],
     signature: Signature,
     slot: u64,
-    tx_index: Option<u64>,
+    tx_index: u64,
     block_time: Option<i64>,
 ) -> Option<DexEvent> {
     let amm = get_account(accounts, 1)?;

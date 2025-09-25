@@ -63,7 +63,7 @@ pub fn parse_instruction(
     accounts: &[Pubkey],
     signature: Signature,
     slot: u64,
-    tx_index: Option<u64>,
+    tx_index: u64,
     block_time: Option<i64>,
 ) -> Option<DexEvent> {
     if instruction_data.is_empty() {
@@ -92,7 +92,7 @@ fn parse_initialize_lb_pair_instruction(
     accounts: &[Pubkey],
     signature: Signature,
     slot: u64,
-    tx_index: Option<u64>,
+    tx_index: u64,
     block_time: Option<i64>,
 ) -> Option<DexEvent> {
     let mut offset = 0;
@@ -120,7 +120,7 @@ fn parse_initialize_bin_array_instruction(
     accounts: &[Pubkey],
     signature: Signature,
     slot: u64,
-    tx_index: Option<u64>,
+    tx_index: u64,
     block_time: Option<i64>,
 ) -> Option<DexEvent> {
     let mut offset = 0;
@@ -144,7 +144,7 @@ fn parse_add_liquidity_instruction(
     accounts: &[Pubkey],
     signature: Signature,
     slot: u64,
-    tx_index: Option<u64>,
+    tx_index: u64,
     block_time: Option<i64>,
 ) -> Option<DexEvent> {
     let mut offset = 0;
@@ -176,7 +176,7 @@ fn parse_remove_liquidity_instruction(
     accounts: &[Pubkey],
     signature: Signature,
     slot: u64,
-    tx_index: Option<u64>,
+    tx_index: u64,
     block_time: Option<i64>,
 ) -> Option<DexEvent> {
     let mut offset = 0;
@@ -208,7 +208,7 @@ fn parse_initialize_position_instruction(
     accounts: &[Pubkey],
     signature: Signature,
     slot: u64,
-    tx_index: Option<u64>,
+    tx_index: u64,
     block_time: Option<i64>,
 ) -> Option<DexEvent> {
     let mut offset = 0;
@@ -237,7 +237,7 @@ fn parse_swap_instruction(
     accounts: &[Pubkey],
     signature: Signature,
     slot: u64,
-    tx_index: Option<u64>,
+    tx_index: u64,
     block_time: Option<i64>,
 ) -> Option<DexEvent> {
     let mut offset = 0;
@@ -272,7 +272,7 @@ fn parse_claim_fee_instruction(
     accounts: &[Pubkey],
     signature: Signature,
     slot: u64,
-    tx_index: Option<u64>,
+    tx_index: u64,
     block_time: Option<i64>,
 ) -> Option<DexEvent> {
     let pool = get_account(accounts, 0)?;
@@ -294,7 +294,7 @@ fn parse_close_position_instruction(
     accounts: &[Pubkey],
     signature: Signature,
     slot: u64,
-    tx_index: Option<u64>,
+    tx_index: u64,
     block_time: Option<i64>,
 ) -> Option<DexEvent> {
     let pool = get_account(accounts, 0)?;

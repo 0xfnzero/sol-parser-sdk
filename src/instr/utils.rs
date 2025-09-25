@@ -7,7 +7,7 @@ use crate::core::events::EventMetadata;
 pub fn create_metadata(
     signature: Signature,
     slot: u64,
-    tx_index: Option<u64>,
+    tx_index: u64,
     block_time_us: i64,
     grpc_recv_us: i64,
 ) -> EventMetadata {
@@ -25,7 +25,7 @@ pub fn create_metadata(
 pub fn create_metadata_simple(
     signature: Signature,
     slot: u64,
-    tx_index: Option<u64>,
+    tx_index: u64,
     block_time: Option<i64>,
     _program_id: Pubkey,
 ) -> EventMetadata {

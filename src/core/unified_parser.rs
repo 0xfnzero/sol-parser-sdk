@@ -21,6 +21,7 @@ pub fn parse_transaction_events(
     logs: &[String],
     signature: Signature,
     slot: u64,
+    tx_index: u64,
     block_time: Option<i64>,
     program_id: &Pubkey,
 ) -> Vec<DexEvent> {
@@ -29,7 +30,7 @@ pub fn parse_transaction_events(
 
     // 1. 解析指令事件
     if let Some(instr_event) = crate::instr::parse_instruction_unified(
-        instruction_data, accounts, signature, slot, None, block_time, program_id
+        instruction_data, accounts, signature, slot, tx_index, block_time, program_id
     ) {
         instruction_events.push(instr_event);
     }
@@ -76,12 +77,13 @@ pub fn parse_transaction_with_listener<T: EventListener>(
     logs: &[String],
     signature: Signature,
     slot: u64,
+    tx_index: u64,
     block_time: Option<i64>,
     program_id: &Pubkey,
     listener: &T,
 ) {
     let events = parse_transaction_events(
-        instruction_data, accounts, logs, signature, slot, block_time, program_id
+        instruction_data, accounts, logs, signature, slot, tx_index, block_time, program_id
     );
 
     for event in &events {
@@ -99,6 +101,7 @@ pub fn parse_transaction_events_streaming<F>(
     logs: &[String],
     signature: Signature,
     slot: u64,
+    tx_index: u64,
     block_time: Option<i64>,
     program_id: &Pubkey,
     mut callback: F,
@@ -107,7 +110,7 @@ pub fn parse_transaction_events_streaming<F>(
 {
     // 1. 先解析指令事件（如果有） - 立即回调
     if let Some(instr_event) = crate::instr::parse_instruction_unified(
-        instruction_data, accounts, signature, slot, None, block_time, program_id
+        instruction_data, accounts, signature, slot, tx_index, block_time, program_id
     ) {
         callback(instr_event);  // 立即回调指令事件
     }
@@ -152,6 +155,7 @@ pub fn parse_transaction_with_streaming_listener<T: StreamingEventListener>(
     logs: &[String],
     signature: Signature,
     slot: u64,
+    tx_index: u64,
     block_time: Option<i64>,
     program_id: &Pubkey,
     listener: &mut T,
@@ -162,6 +166,7 @@ pub fn parse_transaction_with_streaming_listener<T: StreamingEventListener>(
         logs,
         signature,
         slot,
+        tx_index,
         block_time,
         program_id,
         |event| listener.on_dex_event_streaming(event)

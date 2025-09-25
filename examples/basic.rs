@@ -51,7 +51,7 @@ async fn run_example() -> Result<(), Box<dyn std::error::Error>> {
     println!("🔍 Monitoring programs for DEX events...");
 
     // 只解析 PumpFun Trade 事件
-    let event_filter = EventTypeFilter::include_only(vec![EventType::PumpFunTrade]);
+    let event_filter = EventTypeFilter::include_only(vec![EventType::PumpFunTrade, EventType::PumpFunCreate]);
 
     // 使用无锁 ArrayQueue（零拷贝模式）
     let queue = grpc.subscribe_dex_events(

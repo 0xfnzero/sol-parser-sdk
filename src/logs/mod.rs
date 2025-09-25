@@ -44,12 +44,13 @@ pub fn parse_log(
     log: &str,
     signature: Signature,
     slot: u64,
+    tx_index: u64,
     block_time: Option<i64>,
     grpc_recv_us: i64,
     event_type_filter: Option<&crate::grpc::types::EventTypeFilter>,
     is_created_buy: bool,
 ) -> Option<DexEvent> {
-    optimized_matcher::parse_log_optimized(log, signature, slot, block_time, grpc_recv_us, event_type_filter, is_created_buy)
+    optimized_matcher::parse_log_optimized(log, signature, slot, tx_index, block_time, grpc_recv_us, event_type_filter, is_created_buy)
 }
 
 /// 统一的日志解析入口函数（优化版本）
@@ -64,5 +65,5 @@ pub fn parse_log_unified(
         libc::clock_gettime(libc::CLOCK_REALTIME, &mut ts);
         (ts.tv_sec as i64) * 1_000_000 + (ts.tv_nsec as i64) / 1_000
     };
-    optimized_matcher::parse_log_optimized(log, signature, slot, block_time, grpc_recv_us, None, false)
+    optimized_matcher::parse_log_optimized(log, signature, slot, 0, block_time, grpc_recv_us, None, false)
 }
