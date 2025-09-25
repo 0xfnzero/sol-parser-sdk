@@ -41,7 +41,7 @@ pub fn parse_instruction_unified(
     accounts: &[Pubkey],
     signature: Signature,
     slot: u64,
-    tx_index: Option<u64>,
+    tx_index: u64,
     block_time: Option<i64>,
     program_id: &Pubkey,
 ) -> Option<DexEvent> {

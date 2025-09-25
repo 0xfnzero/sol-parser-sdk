@@ -24,8 +24,8 @@ pub fn is_raydium_launchpad_log(log: &str) -> bool {
 }
 
 /// 主要的 Bonk 日志解析函数
-pub fn parse_log(log: &str, signature: Signature, slot: u64, block_time: Option<i64>, grpc_recv_us: i64) -> Option<DexEvent> {
-    parse_structured_log(log, signature, slot, block_time, grpc_recv_us)
+pub fn parse_log(log: &str, signature: Signature, slot: u64, tx_index: u64, block_time: Option<i64>, grpc_recv_us: i64) -> Option<DexEvent> {
+    parse_structured_log(log, signature, slot, tx_index, block_time, grpc_recv_us)
 }
 
 
@@ -34,6 +34,7 @@ fn parse_structured_log(
     log: &str,
     signature: Signature,
     slot: u64,
+    tx_index: u64,
     block_time: Option<i64>,
     grpc_recv_us: i64,
 ) -> Option<DexEvent> {
@@ -47,13 +48,13 @@ fn parse_structured_log(
 
     match discriminator {
         discriminators::TRADE => {
-            parse_trade_event(data, signature, slot, block_time, grpc_recv_us)
+            parse_trade_event(data, signature, slot, tx_index, block_time, grpc_recv_us)
         },
         discriminators::POOL_CREATE => {
-            parse_pool_create_event(data, signature, slot, block_time, grpc_recv_us)
+            parse_pool_create_event(data, signature, slot, tx_index, block_time, grpc_recv_us)
         },
         discriminators::MIGRATE_AMM => {
-            parse_migrate_amm_event(data, signature, slot, block_time, grpc_recv_us)
+            parse_migrate_amm_event(data, signature, slot, tx_index, block_time, grpc_recv_us)
         },
         _ => None,
     }
@@ -64,6 +65,7 @@ fn parse_trade_event(
     data: &[u8],
     signature: Signature,
     slot: u64,
+    tx_index: u64,
     block_time: Option<i64>,
     grpc_recv_us: i64,
 ) -> Option<DexEvent> {
@@ -86,7 +88,7 @@ fn parse_trade_event(
 
     let exact_in = read_bool(data, offset)?;
 
-    let metadata = create_metadata_simple(signature, slot, block_time, pool_state, grpc_recv_us);
+    let metadata = create_metadata_simple(signature, slot, tx_index, block_time, pool_state, grpc_recv_us);
 
     Some(DexEvent::BonkTrade(BonkTradeEvent {
         metadata,
@@ -105,6 +107,7 @@ fn parse_pool_create_event(
     data: &[u8],
     signature: Signature,
     slot: u64,
+    tx_index: u64,
     block_time: Option<i64>,
     grpc_recv_us: i64,
 ) -> Option<DexEvent> {
@@ -127,7 +130,7 @@ fn parse_pool_create_event(
 
     let _initial_liquidity_b = read_u64_le(data, offset)?;
 
-    let metadata = create_metadata_simple(signature, slot, block_time, pool_state, grpc_recv_us);
+    let metadata = create_metadata_simple(signature, slot, tx_index, block_time, pool_state, grpc_recv_us);
 
     Some(DexEvent::BonkPoolCreate(BonkPoolCreateEvent {
         metadata,
@@ -147,6 +150,7 @@ fn parse_migrate_amm_event(
     data: &[u8],
     signature: Signature,
     slot: u64,
+    tx_index: u64,
     block_time: Option<i64>,
     grpc_recv_us: i64,
 ) -> Option<DexEvent> {
@@ -163,7 +167,7 @@ fn parse_migrate_amm_event(
 
     let liquidity_amount = read_u64_le(data, offset)?;
 
-    let metadata = create_metadata_simple(signature, slot, block_time, old_pool, grpc_recv_us);
+    let metadata = create_metadata_simple(signature, slot, tx_index, block_time, old_pool, grpc_recv_us);
 
     Some(DexEvent::BonkMigrateAmm(BonkMigrateAmmEvent {
         metadata,
@@ -176,6 +180,7 @@ fn parse_migrate_amm_event(
 
 /// 文本回退解析
 fn parse_text_log(
+    tx_index: u64,
     log: &str,
     signature: Signature,
     slot: u64,
@@ -185,22 +190,22 @@ fn parse_text_log(
     use super::utils::text_parser::*;
 
     if log.contains("trade") || log.contains("swap") {
-        return parse_trade_from_text(log, signature, slot, block_time, grpc_recv_us);
+        return parse_trade_from_text(tx_index, log, signature, slot, block_time, grpc_recv_us);
     }
 
     if log.contains("pool") && log.contains("create") {
-        return parse_pool_create_from_text(log, signature, slot, block_time, grpc_recv_us);
+        return parse_pool_create_from_text(tx_index, log, signature, slot, block_time, grpc_recv_us);
     }
 
     if log.contains("migrate") {
-        return parse_migrate_from_text(log, signature, slot, block_time, grpc_recv_us);
+        return parse_migrate_from_text(tx_index, log, signature, slot, block_time, grpc_recv_us);
     }
 
     None
 }
 
 /// 从文本解析交易事件
-fn parse_trade_from_text(
+fn parse_trade_from_text(tx_index: u64, 
     log: &str,
     signature: Signature,
     slot: u64,
@@ -209,7 +214,7 @@ fn parse_trade_from_text(
 ) -> Option<DexEvent> {
     use super::utils::text_parser::*;
 
-    let metadata = create_metadata_simple(signature, slot, block_time, Pubkey::default(), grpc_recv_us);
+    let metadata = create_metadata_simple(signature, slot, tx_index, block_time, Pubkey::default(), grpc_recv_us);
     let is_buy = detect_trade_type(log).unwrap_or(true);
 
     Some(DexEvent::BonkTrade(BonkTradeEvent {
@@ -225,14 +230,14 @@ fn parse_trade_from_text(
 }
 
 /// 从文本解析池创建事件
-fn parse_pool_create_from_text(
+fn parse_pool_create_from_text(tx_index: u64, 
     log: &str,
     signature: Signature,
     slot: u64,
     block_time: Option<i64>,
     grpc_recv_us: i64,
 ) -> Option<DexEvent> {
-    let metadata = create_metadata_simple(signature, slot, block_time, Pubkey::default(), grpc_recv_us);
+    let metadata = create_metadata_simple(signature, slot, tx_index, block_time, Pubkey::default(), grpc_recv_us);
 
     Some(DexEvent::BonkPoolCreate(BonkPoolCreateEvent {
         metadata,
@@ -248,7 +253,7 @@ fn parse_pool_create_from_text(
 }
 
 /// 从文本解析迁移事件
-fn parse_migrate_from_text(
+fn parse_migrate_from_text(tx_index: u64, 
     log: &str,
     signature: Signature,
     slot: u64,
@@ -257,7 +262,7 @@ fn parse_migrate_from_text(
 ) -> Option<DexEvent> {
     use super::utils::text_parser::*;
 
-    let metadata = create_metadata_simple(signature, slot, block_time, Pubkey::default(), grpc_recv_us);
+    let metadata = create_metadata_simple(signature, slot, tx_index, block_time, Pubkey::default(), grpc_recv_us);
 
     Some(DexEvent::BonkMigrateAmm(BonkMigrateAmmEvent {
         metadata,

@@ -46,6 +46,7 @@ pub fn parse_log(
     log: &str,
     signature: Signature,
     slot: u64,
+    tx_index: u64,
     block_time: Option<i64>,
     grpc_recv_us: i64,
     is_created_buy: bool,
@@ -55,12 +56,12 @@ pub fn parse_log(
     }
 
     // 尝试结构化解析
-    if let Some(event) = parse_structured_log(log, signature, slot, block_time, grpc_recv_us, is_created_buy) {
+    if let Some(event) = parse_structured_log(log, signature, slot, tx_index, block_time, grpc_recv_us, is_created_buy) {
         return Some(event);
     }
 
     // 回退到文本解析
-    parse_text_log(log, signature, slot, block_time, grpc_recv_us, is_created_buy)
+    parse_text_log(log, signature, slot, tx_index, block_time, grpc_recv_us, is_created_buy)
 }
 
 /// 快速路径：只检查 discriminator，避免完整解码（用于事件类型过滤）
@@ -69,6 +70,7 @@ pub fn parse_log_fast_filter(
     log: &str,
     signature: Signature,
     slot: u64,
+    tx_index: u64,
     block_time: Option<i64>,
     grpc_recv_us: i64,
     wanted_discriminator: [u8; 8],
@@ -82,7 +84,7 @@ pub fn parse_log_fast_filter(
     }
 
     // 是想要的类型，完整解析
-    parse_structured_log(log, signature, slot, block_time, grpc_recv_us, false)
+    parse_structured_log(log, signature, slot, tx_index, block_time, grpc_recv_us, false)
 }
 
 /// 结构化日志解析（基于 Program data）
@@ -90,6 +92,7 @@ fn parse_structured_log(
     log: &str,
     signature: Signature,
     slot: u64,
+    tx_index: u64,
     block_time: Option<i64>,
     grpc_recv_us: i64,
     is_created_buy: bool,
@@ -104,13 +107,13 @@ fn parse_structured_log(
 
     match discriminator {
         discriminators::CREATE_EVENT => {
-            parse_create_event(data, signature, slot, block_time, grpc_recv_us)
+            parse_create_event(data, signature, slot, tx_index, block_time, grpc_recv_us)
         },
         discriminators::TRADE_EVENT => {
-            parse_trade_event(data, signature, slot, block_time, grpc_recv_us, is_created_buy)
+            parse_trade_event(data, signature, slot, tx_index, block_time, grpc_recv_us, is_created_buy)
         },
         discriminators::MIGRATE_EVENT => {
-            parse_migrate_event(data, signature, slot, block_time, grpc_recv_us)
+            parse_migrate_event(data, signature, slot, tx_index, block_time, grpc_recv_us)
         },
         _ => None,
     }
@@ -121,6 +124,7 @@ fn parse_create_event(
     data: &[u8],
     signature: Signature,
     slot: u64,
+    tx_index: u64,
     block_time: Option<i64>,
     grpc_recv_us: i64,
 ) -> Option<DexEvent> {
@@ -164,7 +168,7 @@ fn parse_create_event(
 
     let token_total_supply = read_u64_le(data, offset)?;
 
-    let metadata = create_metadata_simple(signature, slot, block_time, mint, grpc_recv_us);
+    let metadata = create_metadata_simple(signature, slot, tx_index, block_time, mint, grpc_recv_us);
 
     Some(DexEvent::PumpFunCreate(PumpFunCreateTokenEvent {
         metadata,
@@ -188,6 +192,7 @@ fn parse_trade_event(
     data: &[u8],
     signature: Signature,
     slot: u64,
+    tx_index: u64,
     block_time: Option<i64>,
     grpc_recv_us: i64,
     is_created_buy: bool,
@@ -254,7 +259,7 @@ fn parse_trade_event(
 
     let current_sol_volume = read_u64_le(data, offset).unwrap_or(0);
 
-    let metadata = create_metadata_simple(signature, slot, block_time, mint, grpc_recv_us);
+    let metadata = create_metadata_simple(signature, slot, tx_index, block_time, mint, grpc_recv_us);
 
     Some(DexEvent::PumpFunTrade(PumpFunTradeEvent {
         metadata,
@@ -297,6 +302,7 @@ fn parse_complete_event(
     data: &[u8],
     signature: Signature,
     slot: u64,
+    tx_index: u64,
     block_time: Option<i64>,
     grpc_recv_us: i64,
 ) -> Option<DexEvent> {
@@ -310,7 +316,7 @@ fn parse_complete_event(
 
     let bonding_curve = read_pubkey(data, offset)?;
 
-    let metadata = create_metadata_simple(signature, slot, block_time, mint, grpc_recv_us);
+    let metadata = create_metadata_simple(signature, slot, tx_index, block_time, mint, grpc_recv_us);
 
     let timestamp = read_i64_le(data, offset)?;
 
@@ -328,6 +334,7 @@ fn parse_migrate_event(
     data: &[u8],
     signature: Signature,
     slot: u64,
+    tx_index: u64,
     block_time: Option<i64>,
     grpc_recv_us: i64,
 ) -> Option<DexEvent> {
@@ -356,7 +363,7 @@ fn parse_migrate_event(
 
     let pool = read_pubkey(data, offset)?;
 
-    let metadata = create_metadata_simple(signature, slot, block_time, mint, grpc_recv_us);
+    let metadata = create_metadata_simple(signature, slot, tx_index, block_time, mint, grpc_recv_us);
 
     Some(DexEvent::PumpFunMigrate(PumpFunMigrateEvent {
         metadata,
@@ -390,6 +397,7 @@ fn parse_text_log(
     log: &str,
     signature: Signature,
     slot: u64,
+    tx_index: u64,
     block_time: Option<i64>,
     grpc_recv_us: i64,
     is_created_buy: bool,
@@ -399,11 +407,11 @@ fn parse_text_log(
     let log_bytes = log.as_bytes();
 
     if CREATE_EVENT_FINDER.find(log_bytes).is_some() {
-        return parse_create_from_text(log, signature, slot, block_time, grpc_recv_us);
+        return parse_create_from_text(tx_index, log, signature, slot, block_time, grpc_recv_us);
     }
 
     if TRADE_EVENT_FINDER.find(log_bytes).is_some() || SWAP_FINDER.find(log_bytes).is_some() {
-        let mut event = parse_trade_from_text(log, signature, slot, block_time, grpc_recv_us)?;
+        let mut event = parse_trade_from_text(tx_index, log, signature, slot, block_time, grpc_recv_us)?;
         if let DexEvent::PumpFunTrade(ref mut trade) = event {
             trade.is_created_buy = is_created_buy;
         }
@@ -411,11 +419,11 @@ fn parse_text_log(
     }
 
     if COMPLETE_EVENT_FINDER.find(log_bytes).is_some() || GRADUATION_FINDER.find(log_bytes).is_some() {
-        return parse_complete_from_text(log, signature, slot, block_time, grpc_recv_us);
+        return parse_complete_from_text(tx_index, log, signature, slot, block_time, grpc_recv_us);
     }
 
     if MIGRATE_EVENT_FINDER.find(log_bytes).is_some() {
-        return parse_migrate_from_text(log, signature, slot, block_time, grpc_recv_us);
+        return parse_migrate_from_text(tx_index, log, signature, slot, block_time, grpc_recv_us);
     }
 
     None
@@ -423,6 +431,7 @@ fn parse_text_log(
 
 /// 从文本解析创建事件
 fn parse_create_from_text(
+    tx_index: u64,
     log: &str,
     signature: Signature,
     slot: u64,
@@ -431,7 +440,7 @@ fn parse_create_from_text(
 ) -> Option<DexEvent> {
     use super::utils::text_parser::*;
 
-    let metadata = create_metadata_simple(signature, slot, block_time, Pubkey::default(), grpc_recv_us);
+    let metadata = create_metadata_simple(signature, slot, tx_index, block_time, Pubkey::default(), grpc_recv_us);
 
     Some(DexEvent::PumpFunCreate(PumpFunCreateTokenEvent {
         metadata,
@@ -452,6 +461,7 @@ fn parse_create_from_text(
 
 /// 从文本解析交易事件
 fn parse_trade_from_text(
+    tx_index: u64,
     log: &str,
     signature: Signature,
     slot: u64,
@@ -460,7 +470,7 @@ fn parse_trade_from_text(
 ) -> Option<DexEvent> {
     use super::utils::text_parser::*;
 
-    let metadata = create_metadata_simple(signature, slot, block_time, Pubkey::default(), grpc_recv_us);
+    let metadata = create_metadata_simple(signature, slot, tx_index, block_time, Pubkey::default(), grpc_recv_us);
     let is_buy = detect_trade_type(log).unwrap_or(true);
 
     Some(DexEvent::PumpFunTrade(PumpFunTradeEvent {
@@ -501,13 +511,14 @@ fn parse_trade_from_text(
 
 /// 从文本解析完成事件
 fn parse_complete_from_text(
+    tx_index: u64,
     log: &str,
     signature: Signature,
     slot: u64,
     block_time: Option<i64>,
     grpc_recv_us: i64,
 ) -> Option<DexEvent> {
-    let metadata = create_metadata_simple(signature, slot, block_time, Pubkey::default(), grpc_recv_us);
+    let metadata = create_metadata_simple(signature, slot, tx_index, block_time, Pubkey::default(), grpc_recv_us);
 
     Some(DexEvent::PumpFunComplete(PumpFunCompleteTokenEvent {
         metadata,
@@ -520,6 +531,7 @@ fn parse_complete_from_text(
 
 /// 从文本解析迁移事件
 fn parse_migrate_from_text(
+    tx_index: u64,
     log: &str,
     signature: Signature,
     slot: u64,
@@ -528,7 +540,7 @@ fn parse_migrate_from_text(
 ) -> Option<DexEvent> {
     use super::utils::text_parser::*;
 
-    let metadata = create_metadata_simple(signature, slot, block_time, Pubkey::default(), grpc_recv_us);
+    let metadata = create_metadata_simple(signature, slot, tx_index, block_time, Pubkey::default(), grpc_recv_us);
 
     Some(DexEvent::PumpFunMigrate(PumpFunMigrateEvent {
         metadata,

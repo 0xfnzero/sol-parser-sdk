@@ -152,6 +152,7 @@ pub fn parse_log_optimized(
     log: &str,
     signature: Signature,
     slot: u64,
+    tx_index: u64,
     block_time: Option<i64>,
     grpc_recv_us: i64,
     event_type_filter: Option<&EventTypeFilter>,
@@ -168,7 +169,7 @@ pub fn parse_log_optimized(
                 if likely(log_type == LogType::PumpFun) {
                     // 使用优化解析器：栈分配，无堆分配，内联函数
                     return crate::logs::parse_pumpfun_trade(
-                        log, signature, slot, block_time, grpc_recv_us, is_created_buy
+                        log, signature, slot, tx_index, block_time, grpc_recv_us, is_created_buy
                     );
                 } else {
                     return None;
@@ -203,16 +204,16 @@ pub fn parse_log_optimized(
 
     // 根据类型直接调用相应的解析器，传入grpc_recv_us
     let event = match log_type {
-        LogType::PumpFun => crate::logs::parse_pumpfun_log(log, signature, slot, block_time, grpc_recv_us, is_created_buy),
-        LogType::RaydiumLaunchpad => crate::logs::parse_raydium_launchpad_log(log, signature, slot, block_time, grpc_recv_us),
-        LogType::PumpAmm => crate::logs::parse_pump_amm_log(log, signature, slot, block_time, grpc_recv_us),
-        LogType::RaydiumClmm => crate::logs::parse_raydium_clmm_log(log, signature, slot, block_time, grpc_recv_us),
-        LogType::RaydiumCpmm => crate::logs::parse_raydium_cpmm_log(log, signature, slot, block_time, grpc_recv_us),
-        LogType::RaydiumAmm => crate::logs::parse_raydium_amm_log(log, signature, slot, block_time, grpc_recv_us),
-        LogType::OrcaWhirlpool => crate::logs::parse_orca_whirlpool_log(log, signature, slot, block_time, grpc_recv_us),
-        LogType::MeteoraAmm => crate::logs::parse_meteora_amm_log(log, signature, slot, block_time, grpc_recv_us),
-        LogType::MeteoraDamm => crate::logs::parse_meteora_damm_log(log, signature, slot, block_time, grpc_recv_us),
-        LogType::MeteoraDlmm => crate::logs::parse_meteora_dlmm_log(log, signature, slot, block_time, grpc_recv_us),
+        LogType::PumpFun => crate::logs::parse_pumpfun_log(log, signature, slot, tx_index, block_time, grpc_recv_us, is_created_buy),
+        LogType::RaydiumLaunchpad => crate::logs::parse_raydium_launchpad_log(log, signature, slot, tx_index, block_time, grpc_recv_us),
+        LogType::PumpAmm => crate::logs::parse_pump_amm_log(log, signature, slot, tx_index, block_time, grpc_recv_us),
+        LogType::RaydiumClmm => crate::logs::parse_raydium_clmm_log(log, signature, slot, tx_index, block_time, grpc_recv_us),
+        LogType::RaydiumCpmm => crate::logs::parse_raydium_cpmm_log(log, signature, slot, tx_index, block_time, grpc_recv_us),
+        LogType::RaydiumAmm => crate::logs::parse_raydium_amm_log(log, signature, slot, tx_index, block_time, grpc_recv_us),
+        LogType::OrcaWhirlpool => crate::logs::parse_orca_whirlpool_log(log, signature, slot, tx_index, block_time, grpc_recv_us),
+        LogType::MeteoraAmm => crate::logs::parse_meteora_amm_log(log, signature, slot, tx_index, block_time, grpc_recv_us),
+        LogType::MeteoraDamm => crate::logs::parse_meteora_damm_log(log, signature, slot, tx_index, block_time, grpc_recv_us),
+        LogType::MeteoraDlmm => crate::logs::parse_meteora_dlmm_log(log, signature, slot, tx_index, block_time, grpc_recv_us),
         LogType::Unknown => None,
     };
 
