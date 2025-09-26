@@ -23,7 +23,7 @@ pub fn parse_instruction(
     accounts: &[Pubkey],
     signature: Signature,
     slot: u64,
-    tx_index: Option<u64>,
+    tx_index: u64,
     block_time: Option<i64>,
 ) -> Option<DexEvent> {
     if instruction_data.len() < 8 {
@@ -53,7 +53,7 @@ fn parse_trade_instruction(
     accounts: &[Pubkey],
     signature: Signature,
     slot: u64,
-    tx_index: Option<u64>,
+    tx_index: u64,
     block_time: Option<i64>,
 ) -> Option<DexEvent> {
     let mut offset = 0;
@@ -84,7 +84,7 @@ fn parse_pool_create_instruction(
     accounts: &[Pubkey],
     signature: Signature,
     slot: u64,
-    tx_index: Option<u64>,
+    tx_index: u64,
     block_time: Option<i64>,
 ) -> Option<DexEvent> {
     let pool_state = get_account(accounts, 0)?;
@@ -109,7 +109,7 @@ fn parse_migrate_amm_instruction(
     accounts: &[Pubkey],
     signature: Signature,
     slot: u64,
-    tx_index: Option<u64>,
+    tx_index: u64,
     block_time: Option<i64>,
 ) -> Option<DexEvent> {
     let mut offset = 0;

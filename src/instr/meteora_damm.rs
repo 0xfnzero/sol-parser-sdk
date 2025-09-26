@@ -102,7 +102,7 @@ pub fn parse_instruction(
     accounts: &[Pubkey],
     signature: Signature,
     slot: u64,
-    tx_index: Option<u64>,
+    tx_index: u64,
     block_time: Option<i64>,
 ) -> Option<DexEvent> {
     if instruction_data.len() < 8 {
@@ -154,7 +154,7 @@ fn parse_swap_instruction(
     accounts: &[Pubkey],
     signature: Signature,
     slot: u64,
-    tx_index: Option<u64>,
+    tx_index: u64,
     block_time: Option<i64>,
 ) -> Option<DexEvent> {
     let mut offset = 0;
@@ -190,7 +190,7 @@ fn parse_add_liquidity_instruction(
     accounts: &[Pubkey],
     signature: Signature,
     slot: u64,
-    tx_index: Option<u64>,
+    tx_index: u64,
     block_time: Option<i64>,
 ) -> Option<DexEvent> {
     let mut offset = 0;
@@ -225,7 +225,7 @@ fn parse_remove_liquidity_instruction(
     accounts: &[Pubkey],
     signature: Signature,
     slot: u64,
-    tx_index: Option<u64>,
+    tx_index: u64,
     block_time: Option<i64>,
 ) -> Option<DexEvent> {
     let mut offset = 0;
@@ -253,7 +253,7 @@ fn parse_initialize_lb_pair_instruction(
     accounts: &[Pubkey],
     signature: Signature,
     slot: u64,
-    tx_index: Option<u64>,
+    tx_index: u64,
     block_time: Option<i64>,
 ) -> Option<DexEvent> {
     let mut offset = 0;
@@ -283,7 +283,7 @@ fn parse_initialize_position_instruction(
     accounts: &[Pubkey],
     signature: Signature,
     slot: u64,
-    tx_index: Option<u64>,
+    tx_index: u64,
     block_time: Option<i64>,
 ) -> Option<DexEvent> {
     let lb_pair = get_account(accounts, 0)?;
@@ -305,7 +305,7 @@ fn parse_close_position_instruction(
     accounts: &[Pubkey],
     signature: Signature,
     slot: u64,
-    tx_index: Option<u64>,
+    tx_index: u64,
     block_time: Option<i64>,
 ) -> Option<DexEvent> {
     let position = get_account(accounts, 0)?;
@@ -325,7 +325,7 @@ fn parse_claim_position_fee_instruction(
     accounts: &[Pubkey],
     signature: Signature,
     slot: u64,
-    tx_index: Option<u64>,
+    tx_index: u64,
     block_time: Option<i64>,
 ) -> Option<DexEvent> {
     let lb_pair = get_account(accounts, 0)?;
@@ -349,7 +349,7 @@ fn parse_initialize_reward_instruction(
     accounts: &[Pubkey],
     signature: Signature,
     slot: u64,
-    tx_index: Option<u64>,
+    tx_index: u64,
     block_time: Option<i64>,
 ) -> Option<DexEvent> {
     let mut offset = 0;
@@ -380,7 +380,7 @@ fn parse_fund_reward_instruction(
     accounts: &[Pubkey],
     signature: Signature,
     slot: u64,
-    tx_index: Option<u64>,
+    tx_index: u64,
     block_time: Option<i64>,
 ) -> Option<DexEvent> {
     let mut offset = 0;
@@ -409,7 +409,7 @@ fn parse_claim_reward_instruction(
     accounts: &[Pubkey],
     signature: Signature,
     slot: u64,
-    tx_index: Option<u64>,
+    tx_index: u64,
     block_time: Option<i64>,
 ) -> Option<DexEvent> {
     let mut offset = 0;

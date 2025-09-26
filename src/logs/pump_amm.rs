@@ -24,8 +24,8 @@ pub fn is_pump_amm_log(log: &str) -> bool {
 }
 
 /// 主要的 PumpSwap 日志解析函数
-pub fn parse_log(log: &str, signature: Signature, slot: u64, block_time: Option<i64>, grpc_recv_us: i64) -> Option<DexEvent> {
-    parse_structured_log(log, signature, slot, block_time, grpc_recv_us)
+pub fn parse_log(log: &str, signature: Signature, slot: u64, tx_index: u64, block_time: Option<i64>, grpc_recv_us: i64) -> Option<DexEvent> {
+    parse_structured_log(log, signature, slot, tx_index, block_time, grpc_recv_us)
 }
 
 /// 结构化日志解析（基于 Program data）
@@ -33,6 +33,7 @@ fn parse_structured_log(
     log: &str,
     signature: Signature,
     slot: u64,
+    tx_index: u64,
     block_time: Option<i64>,
     grpc_recv_us: i64,
 ) -> Option<DexEvent> {
@@ -46,13 +47,13 @@ fn parse_structured_log(
 
     match discriminator {
         discriminators::BUY => {
-            parse_buy_event(data, signature, slot, block_time, grpc_recv_us)
+            parse_buy_event(data, signature, slot, tx_index, block_time, grpc_recv_us)
         },
         discriminators::SELL => {
-            parse_sell_event(data, signature, slot, block_time, grpc_recv_us)
+            parse_sell_event(data, signature, slot, tx_index, block_time, grpc_recv_us)
         },
         discriminators::CREATE_POOL => {
-            parse_create_pool_event(data, signature, slot, block_time, grpc_recv_us)
+            parse_create_pool_event(data, signature, slot, tx_index, block_time, grpc_recv_us)
         },
         _ => None,
     }
@@ -63,6 +64,7 @@ fn parse_buy_event(
     data: &[u8],
     signature: Signature,
     slot: u64,
+    tx_index: u64,
     block_time: Option<i64>,
     grpc_recv_us: i64,
 ) -> Option<DexEvent> {
@@ -82,7 +84,7 @@ fn parse_buy_event(
 
     let pool_state = read_pubkey(data, offset)?;
 
-    let metadata = create_metadata_simple(signature, slot, block_time, token_mint, grpc_recv_us);
+    let metadata = create_metadata_simple(signature, slot, tx_index, block_time, token_mint, grpc_recv_us);
 
     Some(DexEvent::PumpSwapBuy(PumpSwapBuyEvent {
         metadata,
@@ -101,6 +103,7 @@ fn parse_sell_event(
     data: &[u8],
     signature: Signature,
     slot: u64,
+    tx_index: u64,
     block_time: Option<i64>,
     grpc_recv_us: i64,
 ) -> Option<DexEvent> {
@@ -120,7 +123,7 @@ fn parse_sell_event(
 
     let pool_state = read_pubkey(data, offset)?;
 
-    let metadata = create_metadata_simple(signature, slot, block_time, token_mint, grpc_recv_us);
+    let metadata = create_metadata_simple(signature, slot, tx_index, block_time, token_mint, grpc_recv_us);
 
     Some(DexEvent::PumpSwapSell(PumpSwapSellEvent {
         metadata,
@@ -139,6 +142,7 @@ fn parse_create_pool_event(
     data: &[u8],
     signature: Signature,
     slot: u64,
+    tx_index: u64,
     block_time: Option<i64>,
     grpc_recv_us: i64,
 ) -> Option<DexEvent> {
@@ -158,7 +162,7 @@ fn parse_create_pool_event(
 
     let initial_token_reserve = read_u64_le(data, offset)?;
 
-    let metadata = create_metadata_simple(signature, slot, block_time, token_mint, grpc_recv_us);
+    let metadata = create_metadata_simple(signature, slot, tx_index, block_time, token_mint, grpc_recv_us);
 
     Some(DexEvent::PumpSwapCreatePool(PumpSwapCreatePoolEvent {
         metadata,
@@ -176,21 +180,22 @@ fn parse_text_log(
     log: &str,
     signature: Signature,
     slot: u64,
+    tx_index: u64,
     block_time: Option<i64>,
     grpc_recv_us: i64,
 ) -> Option<DexEvent> {
     use super::utils::text_parser::*;
 
     if log.contains("buy") || log.contains("Buy") {
-        return parse_buy_from_text(log, signature, slot, block_time, grpc_recv_us);
+        return parse_buy_from_text(log, signature, slot, tx_index, block_time, grpc_recv_us);
     }
 
     if log.contains("sell") || log.contains("Sell") {
-        return parse_sell_from_text(log, signature, slot, block_time, grpc_recv_us);
+        return parse_sell_from_text(log, signature, slot, tx_index, block_time, grpc_recv_us);
     }
 
     if log.contains("create") && log.contains("pool") {
-        return parse_create_pool_from_text(log, signature, slot, block_time, grpc_recv_us);
+        return parse_create_pool_from_text(log, signature, slot, tx_index, block_time, grpc_recv_us);
     }
 
     None
@@ -201,12 +206,13 @@ fn parse_buy_from_text(
     log: &str,
     signature: Signature,
     slot: u64,
+    tx_index: u64,
     block_time: Option<i64>,
     grpc_recv_us: i64,
 ) -> Option<DexEvent> {
     use super::utils::text_parser::*;
 
-    let metadata = create_metadata_simple(signature, slot, block_time, Pubkey::default(), grpc_recv_us);
+    let metadata = create_metadata_simple(signature, slot, tx_index, block_time, Pubkey::default(), grpc_recv_us);
 
     Some(DexEvent::PumpSwapBuy(PumpSwapBuyEvent {
         metadata,
@@ -225,12 +231,13 @@ fn parse_sell_from_text(
     log: &str,
     signature: Signature,
     slot: u64,
+    tx_index: u64,
     block_time: Option<i64>,
     grpc_recv_us: i64,
 ) -> Option<DexEvent> {
     use super::utils::text_parser::*;
 
-    let metadata = create_metadata_simple(signature, slot, block_time, Pubkey::default(), grpc_recv_us);
+    let metadata = create_metadata_simple(signature, slot, tx_index, block_time, Pubkey::default(), grpc_recv_us);
 
     Some(DexEvent::PumpSwapSell(PumpSwapSellEvent {
         metadata,
@@ -249,12 +256,13 @@ fn parse_create_pool_from_text(
     log: &str,
     signature: Signature,
     slot: u64,
+    tx_index: u64,
     block_time: Option<i64>,
     grpc_recv_us: i64,
 ) -> Option<DexEvent> {
     use super::utils::text_parser::*;
 
-    let metadata = create_metadata_simple(signature, slot, block_time, Pubkey::default(), grpc_recv_us);
+    let metadata = create_metadata_simple(signature, slot, tx_index, block_time, Pubkey::default(), grpc_recv_us);
 
     Some(DexEvent::PumpSwapCreatePool(PumpSwapCreatePoolEvent {
         metadata,

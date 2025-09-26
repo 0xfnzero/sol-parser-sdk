@@ -27,8 +27,8 @@ pub fn is_raydium_clmm_log(log: &str) -> bool {
 
 /// 主要的 Raydium CLMM 日志解析函数
 #[inline]
-pub fn parse_log(log: &str, signature: Signature, slot: u64, block_time: Option<i64>, grpc_recv_us: i64) -> Option<DexEvent> {
-    parse_structured_log(log, signature, slot, block_time, grpc_recv_us)
+pub fn parse_log(log: &str, signature: Signature, slot: u64, tx_index: u64, block_time: Option<i64>, grpc_recv_us: i64) -> Option<DexEvent> {
+    parse_structured_log(log, signature, slot, tx_index, block_time, grpc_recv_us)
 }
 
 /// 结构化日志解析（基于 Program data）
@@ -36,6 +36,7 @@ fn parse_structured_log(
     log: &str,
     signature: Signature,
     slot: u64,
+    tx_index: u64,
     block_time: Option<i64>,
     grpc_recv_us: i64,
 ) -> Option<DexEvent> {
@@ -49,19 +50,19 @@ fn parse_structured_log(
 
     match discriminator {
         discriminators::SWAP => {
-            parse_swap_event(data, signature, slot, block_time, grpc_recv_us)
+            parse_swap_event(data, signature, slot, tx_index, block_time, grpc_recv_us)
         },
         discriminators::INCREASE_LIQUIDITY => {
-            parse_increase_liquidity_event(data, signature, slot, block_time, grpc_recv_us)
+            parse_increase_liquidity_event(data, signature, slot, tx_index, block_time, grpc_recv_us)
         },
         discriminators::DECREASE_LIQUIDITY => {
-            parse_decrease_liquidity_event(data, signature, slot, block_time, grpc_recv_us)
+            parse_decrease_liquidity_event(data, signature, slot, tx_index, block_time, grpc_recv_us)
         },
         discriminators::CREATE_POOL => {
-            parse_create_pool_event(data, signature, slot, block_time, grpc_recv_us)
+            parse_create_pool_event(data, signature, slot, tx_index, block_time, grpc_recv_us)
         },
         discriminators::COLLECT_FEE => {
-            parse_collect_fee_event(data, signature, slot, block_time, grpc_recv_us)
+            parse_collect_fee_event(data, signature, slot, tx_index, block_time, grpc_recv_us)
         },
         _ => None,
     }
@@ -72,6 +73,7 @@ fn parse_swap_event(
     data: &[u8],
     signature: Signature,
     slot: u64,
+    tx_index: u64,
     block_time: Option<i64>,
     grpc_recv_us: i64,
 ) -> Option<DexEvent> {
@@ -94,7 +96,7 @@ fn parse_swap_event(
 
     let is_base_input = read_bool(data, offset)?;
 
-    let metadata = create_metadata_simple(signature, slot, block_time, pool_state, grpc_recv_us);
+    let metadata = create_metadata_simple(signature, slot, tx_index, block_time, pool_state, grpc_recv_us);
 
     Some(DexEvent::RaydiumClmmSwap(RaydiumClmmSwapEvent {
         metadata,
@@ -127,6 +129,7 @@ fn parse_increase_liquidity_event(
     data: &[u8],
     signature: Signature,
     slot: u64,
+    tx_index: u64,
     block_time: Option<i64>,
     grpc_recv_us: i64,
 ) -> Option<DexEvent> {
@@ -146,7 +149,7 @@ fn parse_increase_liquidity_event(
 
     let amount1_max = read_u64_le(data, offset)?;
 
-    let metadata = create_metadata_simple(signature, slot, block_time, pool_state, grpc_recv_us);
+    let metadata = create_metadata_simple(signature, slot, tx_index, block_time, pool_state, grpc_recv_us);
 
     Some(DexEvent::RaydiumClmmIncreaseLiquidity(RaydiumClmmIncreaseLiquidityEvent {
         metadata,
@@ -163,6 +166,7 @@ fn parse_decrease_liquidity_event(
     data: &[u8],
     signature: Signature,
     slot: u64,
+    tx_index: u64,
     block_time: Option<i64>,
     grpc_recv_us: i64,
 ) -> Option<DexEvent> {
@@ -182,7 +186,7 @@ fn parse_decrease_liquidity_event(
 
     let amount1_min = read_u64_le(data, offset)?;
 
-    let metadata = create_metadata_simple(signature, slot, block_time, pool_state, grpc_recv_us);
+    let metadata = create_metadata_simple(signature, slot, tx_index, block_time, pool_state, grpc_recv_us);
 
     Some(DexEvent::RaydiumClmmDecreaseLiquidity(RaydiumClmmDecreaseLiquidityEvent {
         metadata,
@@ -199,6 +203,7 @@ fn parse_create_pool_event(
     data: &[u8],
     signature: Signature,
     slot: u64,
+    tx_index: u64,
     block_time: Option<i64>,
     grpc_recv_us: i64,
 ) -> Option<DexEvent> {
@@ -215,7 +220,7 @@ fn parse_create_pool_event(
 
     let open_time = read_u64_le(data, offset)?;
 
-    let metadata = create_metadata_simple(signature, slot, block_time, pool_state, grpc_recv_us);
+    let metadata = create_metadata_simple(signature, slot, tx_index, block_time, pool_state, grpc_recv_us);
 
     Some(DexEvent::RaydiumClmmCreatePool(RaydiumClmmCreatePoolEvent {
         metadata,
@@ -231,6 +236,7 @@ fn parse_collect_fee_event(
     data: &[u8],
     signature: Signature,
     slot: u64,
+    tx_index: u64,
     block_time: Option<i64>,
     grpc_recv_us: i64,
 ) -> Option<DexEvent> {
@@ -247,7 +253,7 @@ fn parse_collect_fee_event(
 
     let amount_1 = read_u64_le(data, offset)?;
 
-    let metadata = create_metadata_simple(signature, slot, block_time, pool_state, grpc_recv_us);
+    let metadata = create_metadata_simple(signature, slot, tx_index, block_time, pool_state, grpc_recv_us);
 
     Some(DexEvent::RaydiumClmmCollectFee(RaydiumClmmCollectFeeEvent {
         metadata,
@@ -263,29 +269,30 @@ fn parse_text_log(
     log: &str,
     signature: Signature,
     slot: u64,
+    tx_index: u64,
     block_time: Option<i64>,
     grpc_recv_us: i64,
 ) -> Option<DexEvent> {
     use super::utils::text_parser::*;
 
     if log.contains("swap") || log.contains("Swap") {
-        return parse_swap_from_text(log, signature, slot, block_time, grpc_recv_us);
+        return parse_swap_from_text(log, signature, slot, tx_index, block_time, grpc_recv_us);
     }
 
     if log.contains("increase") && log.contains("liquidity") {
-        return parse_increase_liquidity_from_text(log, signature, slot, block_time, grpc_recv_us);
+        return parse_increase_liquidity_from_text(log, signature, slot, tx_index, block_time, grpc_recv_us);
     }
 
     if log.contains("decrease") && log.contains("liquidity") {
-        return parse_decrease_liquidity_from_text(log, signature, slot, block_time, grpc_recv_us);
+        return parse_decrease_liquidity_from_text(log, signature, slot, tx_index, block_time, grpc_recv_us);
     }
 
     if log.contains("create") && log.contains("pool") {
-        return parse_create_pool_from_text(log, signature, slot, block_time, grpc_recv_us);
+        return parse_create_pool_from_text(log, signature, slot, tx_index, block_time, grpc_recv_us);
     }
 
     if log.contains("collect") && log.contains("fee") {
-        return parse_collect_fee_from_text(log, signature, slot, block_time, grpc_recv_us);
+        return parse_collect_fee_from_text(log, signature, slot, tx_index, block_time, grpc_recv_us);
     }
 
     None
@@ -296,12 +303,13 @@ fn parse_swap_from_text(
     log: &str,
     signature: Signature,
     slot: u64,
+    tx_index: u64,
     block_time: Option<i64>,
     grpc_recv_us: i64,
 ) -> Option<DexEvent> {
     use super::utils::text_parser::*;
 
-    let metadata = create_metadata_simple(signature, slot, block_time, Pubkey::default(), grpc_recv_us);
+    let metadata = create_metadata_simple(signature, slot, tx_index, block_time, Pubkey::default(), grpc_recv_us);
     let is_base_input = detect_trade_type(log).unwrap_or(true);
 
     Some(DexEvent::RaydiumClmmSwap(RaydiumClmmSwapEvent {
@@ -335,12 +343,13 @@ fn parse_increase_liquidity_from_text(
     log: &str,
     signature: Signature,
     slot: u64,
+    tx_index: u64,
     block_time: Option<i64>,
     grpc_recv_us: i64,
 ) -> Option<DexEvent> {
     use super::utils::text_parser::*;
 
-    let metadata = create_metadata_simple(signature, slot, block_time, Pubkey::default(), grpc_recv_us);
+    let metadata = create_metadata_simple(signature, slot, tx_index, block_time, Pubkey::default(), grpc_recv_us);
 
     Some(DexEvent::RaydiumClmmIncreaseLiquidity(RaydiumClmmIncreaseLiquidityEvent {
         metadata,
@@ -357,12 +366,13 @@ fn parse_decrease_liquidity_from_text(
     log: &str,
     signature: Signature,
     slot: u64,
+    tx_index: u64,
     block_time: Option<i64>,
     grpc_recv_us: i64,
 ) -> Option<DexEvent> {
     use super::utils::text_parser::*;
 
-    let metadata = create_metadata_simple(signature, slot, block_time, Pubkey::default(), grpc_recv_us);
+    let metadata = create_metadata_simple(signature, slot, tx_index, block_time, Pubkey::default(), grpc_recv_us);
 
     Some(DexEvent::RaydiumClmmDecreaseLiquidity(RaydiumClmmDecreaseLiquidityEvent {
         metadata,
@@ -379,12 +389,13 @@ fn parse_create_pool_from_text(
     log: &str,
     signature: Signature,
     slot: u64,
+    tx_index: u64,
     block_time: Option<i64>,
     grpc_recv_us: i64,
 ) -> Option<DexEvent> {
     use super::utils::text_parser::*;
 
-    let metadata = create_metadata_simple(signature, slot, block_time, Pubkey::default(), grpc_recv_us);
+    let metadata = create_metadata_simple(signature, slot, tx_index, block_time, Pubkey::default(), grpc_recv_us);
 
     Some(DexEvent::RaydiumClmmCreatePool(RaydiumClmmCreatePoolEvent {
         metadata,
@@ -400,12 +411,13 @@ fn parse_collect_fee_from_text(
     log: &str,
     signature: Signature,
     slot: u64,
+    tx_index: u64,
     block_time: Option<i64>,
     grpc_recv_us: i64,
 ) -> Option<DexEvent> {
     use super::utils::text_parser::*;
 
-    let metadata = create_metadata_simple(signature, slot, block_time, Pubkey::default(), grpc_recv_us);
+    let metadata = create_metadata_simple(signature, slot, tx_index, block_time, Pubkey::default(), grpc_recv_us);
 
     Some(DexEvent::RaydiumClmmCollectFee(RaydiumClmmCollectFeeEvent {
         metadata,
