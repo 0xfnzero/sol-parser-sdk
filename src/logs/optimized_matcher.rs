@@ -250,28 +250,3 @@ pub fn detect_pumpfun_create(logs: &[String]) -> bool {
         PUMPFUN_CREATE_FINDER.find(log.as_bytes()).is_some()
     })
 }
-
-/// 性能测试辅助函数
-#[cfg(test)]
-pub mod performance_tests {
-    use super::*;
-    use std::time::Instant;
-
-    pub fn benchmark_log_detection(log: &str, iterations: usize) -> (u128, u128) {
-        // 测试原始方法
-        let start = Instant::now();
-        for _ in 0..iterations {
-            let _ = crate::logs::parse_log_unified(log, Default::default(), 0, None);
-        }
-        let old_time = start.elapsed().as_nanos();
-
-        // 测试优化方法
-        let start = Instant::now();
-        for _ in 0..iterations {
-            let _ = parse_log_optimized(log, Default::default(), 0, None);
-        }
-        let new_time = start.elapsed().as_nanos();
-
-        (old_time, new_time)
-    }
-}
