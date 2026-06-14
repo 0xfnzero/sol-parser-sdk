@@ -59,11 +59,27 @@ pub fn parse_log(
 /// Parse Raydium LaunchLab TradeEvent from pre-decoded event data.
 #[inline]
 pub fn parse_trade_from_data(data: &[u8], metadata: EventMetadata) -> Option<DexEvent> {
+    const TRADE_EVENT_LEN: usize = 32 + 13 * 8 + 3;
+    if data.len() != TRADE_EVENT_LEN {
+        return None;
+    }
+
     let pool_state = read_pubkey(data, 0)?;
     let amount_in = read_u64_le(data, 88)?;
     let amount_out = read_u64_le(data, 96)?;
     let trade_direction = *data.get(136)?;
-    let exact_in = read_bool(data, 138)?;
+    if trade_direction > 1 {
+        return None;
+    }
+    let pool_status = *data.get(137)?;
+    if pool_status > 2 {
+        return None;
+    }
+    let exact_in_raw = *data.get(138)?;
+    if exact_in_raw > 1 {
+        return None;
+    }
+    let exact_in = exact_in_raw == 1;
     let is_buy = trade_direction == 0;
 
     Some(DexEvent::RaydiumLaunchlabTrade(RaydiumLaunchlabTradeEvent {

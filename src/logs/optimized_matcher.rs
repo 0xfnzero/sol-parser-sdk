@@ -461,6 +461,11 @@ fn filter_wants_pumpfun_trade_event(filter: &EventTypeFilter) -> bool {
 }
 
 #[inline(always)]
+fn filter_wants_launchlab_trade_event(filter: &EventTypeFilter) -> bool {
+    filter.should_include(EventType::RaydiumLaunchlabTrade)
+}
+
+#[inline(always)]
 fn unscoped_filter_allows_discriminator(discriminator: u64, filter: &EventTypeFilter) -> bool {
     match discriminator {
         // Shared by Pump.fun trade and Raydium LaunchLab/RaydiumLaunchlab trade.
@@ -517,6 +522,33 @@ fn apply_event_type_filter(
         }
     }
     Some(event)
+}
+
+#[inline(always)]
+fn parse_unscoped_pumpfun_launchlab_trade(
+    data: &[u8],
+    metadata: EventMetadata,
+    event_type_filter: Option<&EventTypeFilter>,
+    is_created_buy: bool,
+) -> Option<DexEvent> {
+    let wants_pumpfun = event_type_filter.map(filter_wants_pumpfun_trade_event).unwrap_or(true);
+    let wants_launchlab = event_type_filter.map(filter_wants_launchlab_trade_event).unwrap_or(true);
+
+    if wants_pumpfun {
+        if let Some(event) =
+            crate::logs::pump::parse_trade_from_data(data, metadata.clone(), is_created_buy)
+                .and_then(|event| apply_event_type_filter(event, event_type_filter))
+        {
+            return Some(event);
+        }
+    }
+
+    if wants_launchlab {
+        return crate::logs::raydium_launchlab::parse_trade_from_data(data, metadata)
+            .and_then(|event| apply_event_type_filter(event, event_type_filter));
+    }
+
+    None
 }
 
 #[inline(always)]
@@ -619,9 +651,14 @@ fn parse_log_optimized_inner(
 
     // Check hot-path discriminators first (ordered by frequency)
     if likely(discriminator == discriminators::PUMPFUN_TRADE) {
-        // PumpFun Trade - Most common (~40% of all events)
-        let event = crate::logs::pump::parse_trade_from_data(data, metadata, is_created_buy)?;
-        return apply_event_type_filter(event, event_type_filter);
+        // Shared by PumpFun and Raydium LaunchLab. Without program context,
+        // avoid parsing protocols the filter does not request.
+        return parse_unscoped_pumpfun_launchlab_trade(
+            data,
+            metadata,
+            event_type_filter,
+            is_created_buy,
+        );
     }
 
     if likely(discriminator == discriminators::RAYDIUM_CLMM_SWAP) {
@@ -1726,6 +1763,68 @@ mod tests {
             }
             other => panic!("expected RaydiumLaunchlabTrade, got {other:?}"),
         }
+    }
+
+    fn launchlab_trade_log() -> (String, Pubkey) {
+        let pool = Pubkey::new_unique();
+        let mut raw = Vec::new();
+        raw.extend_from_slice(&discriminators::RAYDIUM_LAUNCHLAB_TRADE.to_le_bytes());
+        raw.extend_from_slice(pool.as_ref());
+        for value in 0u64..13 {
+            raw.extend_from_slice(&(100 + value).to_le_bytes());
+        }
+        raw.push(1); // TradeDirection::Sell
+        raw.push(2); // PoolStatus::Trade
+        raw.push(1); // exact_in
+
+        (format!("Program data: {}", STANDARD.encode(raw)), pool)
+    }
+
+    #[test]
+    fn unscoped_launchlab_trade_filter_parses_shared_discriminator() {
+        let (log, pool) = launchlab_trade_log();
+        let filter = EventTypeFilter::include_only(vec![EventType::RaydiumLaunchlabTrade]);
+        let event = parse_log_optimized(
+            &log,
+            Signature::default(),
+            1,
+            2,
+            Some(3),
+            4,
+            Some(&filter),
+            false,
+            None,
+        )
+        .expect("unscoped LaunchLab trade should parse when requested");
+
+        match event {
+            DexEvent::RaydiumLaunchlabTrade(trade) => {
+                assert_eq!(trade.pool_state, pool);
+                assert_eq!(trade.amount_in, 107);
+                assert_eq!(trade.amount_out, 108);
+                assert!(!trade.is_buy);
+                assert!(trade.exact_in);
+            }
+            other => panic!("expected RaydiumLaunchlabTrade, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn unscoped_pumpfun_only_filter_does_not_parse_launchlab_trade() {
+        let (log, _pool) = launchlab_trade_log();
+        let filter = EventTypeFilter::include_only(vec![EventType::PumpFunBuy]);
+        assert!(parse_log_optimized(
+            &log,
+            Signature::default(),
+            1,
+            2,
+            Some(3),
+            4,
+            Some(&filter),
+            false,
+            None,
+        )
+        .is_none());
     }
 
     #[test]
