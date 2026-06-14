@@ -453,11 +453,19 @@ fn filter_wants_supported_logs(filter: &EventTypeFilter) -> bool {
 }
 
 #[inline(always)]
+fn filter_wants_pumpfun_trade_event(filter: &EventTypeFilter) -> bool {
+    filter.should_include(EventType::PumpFunTrade)
+        || filter.should_include(EventType::PumpFunBuy)
+        || filter.should_include(EventType::PumpFunSell)
+        || filter.should_include(EventType::PumpFunBuyExactSolIn)
+}
+
+#[inline(always)]
 fn unscoped_filter_allows_discriminator(discriminator: u64, filter: &EventTypeFilter) -> bool {
     match discriminator {
         // Shared by Pump.fun trade and Raydium LaunchLab/RaydiumLaunchlab trade.
         discriminators::PUMPFUN_TRADE => {
-            filter.should_include(EventType::PumpFunTrade)
+            filter_wants_pumpfun_trade_event(filter)
                 || filter.should_include(EventType::RaydiumLaunchlabTrade)
         }
         // Shared by Raydium CPMM swap-base-in and Meteora DLMM swap.
@@ -485,10 +493,7 @@ fn filter_allows_discriminator(
         if *program_id == program_ids::PUMPFUN_PROGRAM_ID
             && discriminator == discriminators::PUMPFUN_TRADE
         {
-            return filter.should_include(EventType::PumpFunTrade)
-                || filter.should_include(EventType::PumpFunBuy)
-                || filter.should_include(EventType::PumpFunSell)
-                || filter.should_include(EventType::PumpFunBuyExactSolIn);
+            return filter_wants_pumpfun_trade_event(filter);
         }
         if let Some(event_type) =
             program_scoped_discriminator_to_event_type(program_id, discriminator)
@@ -1071,11 +1076,7 @@ fn parse_program_scoped_event(
         if *program_id == program_ids::PUMPFUN_PROGRAM_ID
             && discriminator == discriminators::PUMPFUN_TRADE
         {
-            if !filter.should_include(EventType::PumpFunTrade)
-                && !filter.should_include(EventType::PumpFunBuy)
-                && !filter.should_include(EventType::PumpFunSell)
-                && !filter.should_include(EventType::PumpFunBuyExactSolIn)
-            {
+            if !filter_wants_pumpfun_trade_event(filter) {
                 return None;
             }
         } else if let Some(event_type) =
@@ -1902,6 +1903,37 @@ mod tests {
     }
 
     #[test]
+    fn unscoped_pumpfun_buy_filter_parses_trade_log_variant() {
+        let log = "Program data: vdt/007mYe5StuUGXKtQJzSLsEK5h79gIdGUQz7vyn59ApMQyeYlr3cK4wUAAAAA7dnMPhkDAAAB5uPeR/hOJigYiGhz2PiTzeNML3vtbrwijyhrJHoTgitivC1qAAAAALjcux8HAAAAt2E0T9e8AwC4MJgjAAAAALfJIQNGvgIA4ATIfOuY+lzkf4A4Bv0seUXSlSSVmuwA3tl4FPOPeEZfAAAAAAAAACBRDgAAAAAAbf5L76S20PsQ+d4EfYrWKDprZOVyf9lJPbA04mYiiiweAAAAAAAAAGmFBAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAwAAAGJ1eQAAAAAAAAAAAAAAAAAAAAAAiBMAAAAAAACQKAcAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHcK4wUAAAAAuNy7HwcAAAC4MJgjAAAAAA==";
+        let filter = EventTypeFilter::include_only(vec![EventType::PumpFunBuy]);
+        let event = parse_log_optimized(
+            log,
+            Signature::default(),
+            426270756,
+            268,
+            Some(1781382243600841),
+            1781382243601307,
+            Some(&filter),
+            false,
+            None,
+        )
+        .expect("Unscoped PumpFun TradeEvent log should parse under PumpFunBuy filter");
+
+        match event {
+            DexEvent::PumpFunBuy(trade) => {
+                assert_eq!(trade.ix_name, "buy");
+                assert_eq!(trade.sol_amount, 98_765_431);
+                assert_eq!(trade.token_amount, 3_406_962_678_253);
+                assert_eq!(trade.virtual_sol_reserves, 30_597_176_504);
+                assert_eq!(trade.virtual_token_reserves, 1_052_057_862_955_447);
+                assert_eq!(trade.real_sol_reserves, 597_176_504);
+                assert_eq!(trade.real_token_reserves, 772_157_862_955_447);
+            }
+            other => panic!("expected PumpFunBuy, got {other:?}"),
+        }
+    }
+
+    #[test]
     fn discriminator_prefix_filter_keeps_unscoped_collision_candidates() {
         let dlmm_filter = EventTypeFilter::include_only(vec![EventType::MeteoraDlmmSwap]);
         assert!(filter_allows_discriminator(
@@ -1915,6 +1947,13 @@ mod tests {
             None,
             discriminators::RAYDIUM_CPMM_CREATE_POOL,
             Some(&cpmm_filter),
+        ));
+
+        let pumpfun_buy_filter = EventTypeFilter::include_only(vec![EventType::PumpFunBuy]);
+        assert!(filter_allows_discriminator(
+            None,
+            discriminators::PUMPFUN_TRADE,
+            Some(&pumpfun_buy_filter),
         ));
     }
 
