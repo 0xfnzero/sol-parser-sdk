@@ -107,7 +107,7 @@ pub fn parse_instructions_enhanced(
 
             invokes.entry(pid).or_default().push((outer_idx as i32, j as i32));
 
-            let event = parse_compiled_instruction(
+            let event = parse_inner_compiled_instruction_if_supported(
                 &inner_ix.data,
                 &pid,
                 sig,
@@ -217,6 +217,56 @@ fn parse_compiled_instruction<'a>(
             data, &accounts, sig, slot, tx_idx, block_us, grpc_us, filter, program_id,
         )
     }
+}
+
+#[inline(always)]
+fn is_supported_inner_compiled_instruction(data: &[u8], program_id: &Pubkey) -> bool {
+    if data.len() < 8 {
+        return false;
+    }
+    if *program_id != crate::instr::program_ids::PUMPSWAP_PROGRAM_ID {
+        return false;
+    }
+    let disc: [u8; 8] = data[..8].try_into().unwrap_or_default();
+    matches!(
+        disc,
+        crate::instr::pump_amm::discriminators::BUY
+            | crate::instr::pump_amm::discriminators::SELL
+            | crate::instr::pump_amm::discriminators::CREATE_POOL
+            | crate::instr::pump_amm::discriminators::BUY_EXACT_QUOTE_IN
+            | crate::instr::pump_amm::discriminators::DEPOSIT
+            | crate::instr::pump_amm::discriminators::WITHDRAW
+    )
+}
+
+#[inline(always)]
+fn parse_inner_compiled_instruction_if_supported<'a>(
+    data: &[u8],
+    program_id: &Pubkey,
+    sig: Signature,
+    slot: u64,
+    tx_idx: u64,
+    block_us: Option<i64>,
+    grpc_us: i64,
+    account_indices: &[u8],
+    get_key: &dyn Fn(usize) -> Option<&'a Vec<u8>>,
+    filter: Option<&EventTypeFilter>,
+) -> Option<DexEvent> {
+    if !is_supported_inner_compiled_instruction(data, program_id) {
+        return None;
+    }
+    parse_compiled_instruction(
+        data,
+        program_id,
+        sig,
+        slot,
+        tx_idx,
+        block_us,
+        grpc_us,
+        account_indices,
+        get_key,
+        filter,
+    )
 }
 
 /// 解析单个主指令（outer instruction）
