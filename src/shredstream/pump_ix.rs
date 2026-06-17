@@ -27,10 +27,6 @@ use crate::instr::pump::PROGRAM_ID_PUBKEY;
 use crate::instr::utils::{
     read_bool, read_option_bool_idl, read_pubkey, read_str_unchecked, read_u64_le,
 };
-use crate::instr::{
-    meteora_amm, meteora_damm, orca_whirlpool, pump_amm, pump_fees, raydium_amm, raydium_clmm,
-    raydium_cpmm, raydium_launchlab,
-};
 
 type PumpMintSet = SmallVec<[Pubkey; 4]>;
 type ShredIxAccounts = SmallVec<[Pubkey; 64]>;
@@ -96,131 +92,7 @@ fn pumpfun_outer_data_may_parse(data: &[u8]) -> bool {
 
 #[inline(always)]
 fn unified_outer_data_may_parse(program_id: Pubkey, data: &[u8]) -> bool {
-    if program_id == PUMPSWAP_PROGRAM_ID {
-        let Some(disc) = disc8(data) else {
-            return false;
-        };
-        matches!(
-            disc,
-            pump_amm::discriminators::BUY
-                | pump_amm::discriminators::BUY_EXACT_QUOTE_IN
-                | pump_amm::discriminators::SELL
-                | pump_amm::discriminators::CREATE_POOL
-                | pump_amm::discriminators::DEPOSIT
-                | pump_amm::discriminators::WITHDRAW
-        )
-    } else if program_id == PUMP_FEES_PROGRAM_ID {
-        let Some(disc) = disc8(data) else {
-            return false;
-        };
-        matches!(
-            disc,
-            pump_fees::CREATE_FEE_SHARING_IX
-                | pump_fees::INITIALIZE_FEE_CONFIG_IX
-                | pump_fees::RESET_FEE_SHARING_IX
-                | pump_fees::RESET_FEE_SHARING_V2_IX
-                | pump_fees::REVOKE_FEE_SHARING_IX
-                | pump_fees::TRANSFER_FEE_SHARING_IX
-                | pump_fees::UPDATE_ADMIN_IX
-                | pump_fees::UPDATE_FEE_CONFIG_IX
-                | pump_fees::UPDATE_FEE_SHARES_IX
-                | pump_fees::UPDATE_FEE_SHARES_V2_IX
-                | pump_fees::UPSERT_FEE_TIERS_IX
-        )
-    } else if program_id == RAYDIUM_LAUNCHLAB_PROGRAM_ID {
-        let Some(disc) = disc8(data) else {
-            return false;
-        };
-        matches!(
-            disc,
-            raydium_launchlab::discriminators::BUY_EXACT_IN
-                | raydium_launchlab::discriminators::BUY_EXACT_OUT
-                | raydium_launchlab::discriminators::SELL_EXACT_IN
-                | raydium_launchlab::discriminators::SELL_EXACT_OUT
-                | raydium_launchlab::discriminators::INITIALIZE
-                | raydium_launchlab::discriminators::INITIALIZE_V2
-                | raydium_launchlab::discriminators::INITIALIZE_WITH_TOKEN_2022
-        )
-    } else if program_id == RAYDIUM_CPMM_PROGRAM_ID {
-        let Some(disc) = disc8(data) else {
-            return false;
-        };
-        matches!(
-            disc,
-            raydium_cpmm::discriminators::SWAP_BASE_IN
-                | raydium_cpmm::discriminators::SWAP_BASE_OUT
-                | raydium_cpmm::discriminators::INITIALIZE
-                | raydium_cpmm::discriminators::DEPOSIT
-                | raydium_cpmm::discriminators::WITHDRAW
-        )
-    } else if program_id == RAYDIUM_CLMM_PROGRAM_ID {
-        let Some(disc) = disc8(data) else {
-            return false;
-        };
-        matches!(
-            disc,
-            raydium_clmm::discriminators::SWAP
-                | raydium_clmm::discriminators::SWAP_V2
-                | raydium_clmm::discriminators::INCREASE_LIQUIDITY_V2
-                | raydium_clmm::discriminators::DECREASE_LIQUIDITY_V2
-                | raydium_clmm::discriminators::CREATE_POOL
-                | raydium_clmm::discriminators::CREATE_CUSTOMIZABLE_POOL
-                | raydium_clmm::discriminators::OPEN_POSITION
-                | raydium_clmm::discriminators::OPEN_POSITION_V2
-                | raydium_clmm::discriminators::OPEN_POSITION_WITH_TOKEN_22_NFT
-                | raydium_clmm::discriminators::CLOSE_POSITION
-        )
-    } else if program_id == RAYDIUM_AMM_V4_PROGRAM_ID {
-        matches!(
-            data.first().copied(),
-            Some(raydium_amm::discriminators::SWAP_BASE_IN)
-                | Some(raydium_amm::discriminators::SWAP_BASE_OUT)
-                | Some(raydium_amm::discriminators::DEPOSIT)
-                | Some(raydium_amm::discriminators::WITHDRAW)
-                | Some(raydium_amm::discriminators::INITIALIZE2)
-                | Some(raydium_amm::discriminators::WITHDRAW_PNL)
-        )
-    } else if program_id == ORCA_WHIRLPOOL_PROGRAM_ID {
-        let Some(disc) = disc8(data) else {
-            return false;
-        };
-        matches!(
-            disc,
-            orca_whirlpool::discriminators::SWAP
-                | orca_whirlpool::discriminators::SWAP_V2
-                | orca_whirlpool::discriminators::INCREASE_LIQUIDITY
-                | orca_whirlpool::discriminators::DECREASE_LIQUIDITY
-                | orca_whirlpool::discriminators::INITIALIZE_POOL
-        )
-    } else if program_id == METEORA_POOLS_PROGRAM_ID {
-        let Some(disc) = disc8(data) else {
-            return false;
-        };
-        matches!(
-            disc,
-            meteora_amm::discriminators::SWAP
-                | meteora_amm::discriminators::ADD_LIQUIDITY
-                | meteora_amm::discriminators::REMOVE_LIQUIDITY
-                | meteora_amm::discriminators::CREATE_POOL
-        )
-    } else if program_id == METEORA_DAMM_V2_PROGRAM_ID {
-        let Some(cpi_disc) = data.get(8..16).and_then(|bytes| bytes.try_into().ok()) else {
-            return false;
-        };
-        matches!(
-            cpi_disc,
-            meteora_damm::discriminators::SWAP_LOG
-                | meteora_damm::discriminators::SWAP2_LOG
-                | meteora_damm::discriminators::CREATE_POSITION_LOG
-                | meteora_damm::discriminators::CLOSE_POSITION_LOG
-                | meteora_damm::discriminators::ADD_LIQUIDITY_LOG
-                | meteora_damm::discriminators::REMOVE_LIQUIDITY_LOG
-        )
-    } else if program_id == METEORA_DLMM_PROGRAM_ID {
-        matches!(data.first().copied(), Some(0 | 1 | 2 | 7 | 8 | 11 | 13 | 14))
-    } else {
-        false
-    }
+    crate::instr::instruction_data_may_parse(&program_id, data)
 }
 
 #[inline(always)]

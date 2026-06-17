@@ -221,22 +221,7 @@ fn parse_compiled_instruction<'a>(
 
 #[inline(always)]
 fn is_supported_inner_compiled_instruction(data: &[u8], program_id: &Pubkey) -> bool {
-    if data.len() < 8 {
-        return false;
-    }
-    if *program_id != crate::instr::program_ids::PUMPSWAP_PROGRAM_ID {
-        return false;
-    }
-    let disc: [u8; 8] = data[..8].try_into().unwrap_or_default();
-    matches!(
-        disc,
-        crate::instr::pump_amm::discriminators::BUY
-            | crate::instr::pump_amm::discriminators::SELL
-            | crate::instr::pump_amm::discriminators::CREATE_POOL
-            | crate::instr::pump_amm::discriminators::BUY_EXACT_QUOTE_IN
-            | crate::instr::pump_amm::discriminators::DEPOSIT
-            | crate::instr::pump_amm::discriminators::WITHDRAW
-    )
+    crate::instr::normal_instruction_data_may_parse(program_id, data)
 }
 
 #[inline(always)]
