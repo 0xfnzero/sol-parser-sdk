@@ -246,6 +246,7 @@ mod tests {
     use super::*;
     use crate::core::events::{
         EventMetadata, PumpFunCreateTokenEvent, PumpFunCreateV2TokenEvent, PumpFunTradeEvent,
+        PumpSwapCreatePoolEvent,
     };
     use solana_sdk::{pubkey::Pubkey, signature::Signature};
 
@@ -359,6 +360,49 @@ mod tests {
                 assert!(e.is_cashback_enabled);
             }
             other => panic!("expected PumpFunCreate canonical event, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn pumpswap_create_pool_log_merge_keeps_instruction_cashback_flag() {
+        let pool = Pubkey::new_unique();
+        let base_mint = Pubkey::new_unique();
+        let quote_mint = Pubkey::new_unique();
+        let coin_creator = Pubkey::new_unique();
+
+        let log_create = PumpSwapCreatePoolEvent {
+            metadata: dummy_meta(),
+            pool,
+            base_mint,
+            quote_mint,
+            is_cashback_coin: false,
+            ..Default::default()
+        };
+        let ix_create = PumpSwapCreatePoolEvent {
+            metadata: dummy_meta(),
+            pool,
+            base_mint,
+            quote_mint,
+            coin_creator,
+            is_cashback_coin: true,
+            ..Default::default()
+        };
+
+        let merged = dedupe_log_instruction_events(
+            vec![DexEvent::PumpSwapCreatePool(log_create)],
+            vec![DexEvent::PumpSwapCreatePool(ix_create)],
+        );
+
+        assert_eq!(merged.len(), 1);
+        match &merged[0] {
+            DexEvent::PumpSwapCreatePool(e) => {
+                assert_eq!(e.pool, pool);
+                assert_eq!(e.base_mint, base_mint);
+                assert_eq!(e.quote_mint, quote_mint);
+                assert_eq!(e.coin_creator, coin_creator);
+                assert!(e.is_cashback_coin);
+            }
+            other => panic!("expected PumpSwapCreatePool, got {other:?}"),
         }
     }
 

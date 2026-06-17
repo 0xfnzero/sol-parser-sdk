@@ -107,8 +107,7 @@ pub fn parse_instructions_enhanced(
 
             invokes.entry(pid).or_default().push((outer_idx as i32, j as i32));
 
-            // 解析 inner instruction（16字节 discriminator）
-            if let Some(event) = parse_inner_instruction(
+            let event = parse_compiled_instruction(
                 &inner_ix.data,
                 &pid,
                 sig,
@@ -116,9 +115,25 @@ pub fn parse_instructions_enhanced(
                 tx_idx,
                 block_us,
                 grpc_us,
+                &inner_ix.accounts,
+                &get_key,
                 filter,
-                is_created_buy,
-            ) {
+            )
+            .or_else(|| {
+                parse_inner_instruction(
+                    &inner_ix.data,
+                    &pid,
+                    sig,
+                    slot,
+                    tx_idx,
+                    block_us,
+                    grpc_us,
+                    filter,
+                    is_created_buy,
+                )
+            });
+
+            if let Some(event) = event {
                 result.push((outer_idx, Some(j), event)); // (outer_idx, Some(inner_idx), event)
             }
         }
@@ -154,11 +169,8 @@ pub fn parse_instructions_enhanced(
 // 辅助函数
 // ============================================================================
 
-/// 解析单个主指令（outer instruction）
-///
-/// 主指令使用 8 字节 discriminator
 #[inline(always)]
-fn parse_outer_instruction<'a>(
+fn parse_compiled_instruction<'a>(
     data: &[u8],
     program_id: &Pubkey,
     sig: Signature,
@@ -169,7 +181,6 @@ fn parse_outer_instruction<'a>(
     account_indices: &[u8],
     get_key: &dyn Fn(usize) -> Option<&'a Vec<u8>>,
     filter: Option<&EventTypeFilter>,
-    _is_created_buy: bool,
 ) -> Option<DexEvent> {
     // 检查指令数据长度（至少8字节 discriminator）
     if data.len() < 8 {
@@ -206,6 +217,37 @@ fn parse_outer_instruction<'a>(
             data, &accounts, sig, slot, tx_idx, block_us, grpc_us, filter, program_id,
         )
     }
+}
+
+/// 解析单个主指令（outer instruction）
+///
+/// 主指令使用 8 字节 discriminator
+#[inline(always)]
+fn parse_outer_instruction<'a>(
+    data: &[u8],
+    program_id: &Pubkey,
+    sig: Signature,
+    slot: u64,
+    tx_idx: u64,
+    block_us: Option<i64>,
+    grpc_us: i64,
+    account_indices: &[u8],
+    get_key: &dyn Fn(usize) -> Option<&'a Vec<u8>>,
+    filter: Option<&EventTypeFilter>,
+    _is_created_buy: bool,
+) -> Option<DexEvent> {
+    parse_compiled_instruction(
+        data,
+        program_id,
+        sig,
+        slot,
+        tx_idx,
+        block_us,
+        grpc_us,
+        account_indices,
+        get_key,
+        filter,
+    )
 }
 
 /// 解析单个 inner instruction
@@ -439,7 +481,9 @@ fn should_parse_instructions(filter: Option<&EventTypeFilter>) -> bool {
 mod tests {
     use super::*;
     use crate::core::events::{PUMPFUN_SOLSCAN_SOL_QUOTE_MINT, PUMPFUN_WSOL_QUOTE_MINT};
-    use yellowstone_grpc_proto::prelude::{CompiledInstruction, Message, MessageHeader};
+    use yellowstone_grpc_proto::prelude::{
+        CompiledInstruction, InnerInstruction, InnerInstructions, Message, MessageHeader,
+    };
 
     fn pk(s: &str) -> Pubkey {
         s.parse().unwrap()
@@ -451,6 +495,10 @@ mod tests {
 
     fn pubkey_bytes(key: Pubkey) -> Vec<u8> {
         key.to_bytes().to_vec()
+    }
+
+    fn decode_b58(s: &str) -> Vec<u8> {
+        bs58::decode(s).into_vec().unwrap()
     }
 
     fn str_arg(s: &str, out: &mut Vec<u8>) {
@@ -768,6 +816,136 @@ mod tests {
             assert_eq!(trade.fee_recipient, fee);
         } else {
             panic!("Expected PumpFunTrade event");
+        }
+    }
+
+    #[test]
+    fn grpc_pumpswap_inner_create_pool_cpi_reads_cashback_flag() {
+        let signature = "v5rg9RMc6D4pMsAqD8TrmXGFwHQBePFDWXBbtsQmP5gttLBKvExSEiPcGMipaDWP61VdWaxEyJCr7oXPxFH4DQf";
+        let static_keys = [
+            "9C4nRvhhVquCKATjDCx5FKvNS9PNgNqgyWy9AcoDjYv5",
+            "CRfzaig7jyogshSi4Lydsg3RXm3Ta9Gg4oMVTV7UcYej",
+            "6sFov2ot9waASAUCLf3hUDc9UXSxw36nE1ehbJqA37XS",
+            "F4brPQAt8DR6bN7DLhXzyLUJ77NFYUCokxmnS7cmgvki",
+            "HJKRc3JtgmattaPBFp1XqAhymk9FtJQjZZWZ9LtCMDLC",
+            "4pVPfQmUZPDUgzTC5VAuad82wpaf4yzvSWVvFQBs73sv",
+            "2m3hPFQ17Vn2gdeoxCr4M8Tx9jcLtTjiLtqnpyz7Tizo",
+            "HC5ix2JxmZQ9sNiPFbFsFuXfu7GHt2RT2UoQVFWskfhu",
+            "GywAHNZRk8qjAiekaXgk5mBqweMibW31KGnUHzMN5Ht4",
+            "H1e1uYxxkSeJpjKeqajizBTCMXc4wun1vqgNGiFgsXru",
+            "56pZVJ6T5Dy3MZ56YcAcHM9YqEbyustsjS9MNNNh16cC",
+            "GzZSwyjsKKmMHtEdMggC9fB1bowTm3Vzhs6hxMQfviVu",
+            "ComputeBudget111111111111111111111111111111",
+            "6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P",
+            "9JmruaWd8Dscxs1GBVbnckGWWsoVdJwg9DDFGFW9pump",
+            "SysvarRent111111111111111111111111111111111",
+        ];
+        let loaded_writable = ["39azUYFWPz3VHgKCf3VChUwbpURdCHRxjWVowf5jUJjg"];
+        let loaded_readonly = [
+            "4wTV1YmiEkRvAtNtsSGPtUrqRYQMe5SKy2uB4Jjaxnjf",
+            "So11111111111111111111111111111111111111112",
+            "11111111111111111111111111111111",
+            "pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA",
+            "ADyA8hdefvWN2dbGGWFotbzWxrAvLW83WG6QCVXvJKqw",
+            "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb",
+            "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+            "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL",
+            "GS4CU59F31iL7aR2Q8zVS8DRrcRnXX1yjQ66TqNVQnaR",
+            "Ce6TQqeHC9p8KetsN6JsjHK7UTZk7nasjjnr7XxXp9F1",
+        ];
+        let meta = TransactionStatusMeta {
+            loaded_writable_addresses: loaded_writable.iter().map(|s| pubkey_bytes(pk(s))).collect(),
+            loaded_readonly_addresses: loaded_readonly.iter().map(|s| pubkey_bytes(pk(s))).collect(),
+            inner_instructions: vec![InnerInstructions {
+                index: 2,
+                instructions: vec![InnerInstruction {
+                    program_id_index: 20,
+                    accounts: vec![4, 21, 5, 14, 18, 8, 6, 7, 9, 10, 11, 19, 22, 22, 23, 24, 25, 20],
+                    data: decode_b58(
+                        "iPiwDbPRj3YavFpj3AxMZtPvSSQKdH3Uw8kaPUDj2NXDsWjrQx5ndF39nxYypLG2dVKDtBiBz3jsJ6gvzU",
+                    ),
+                    stack_height: Some(2),
+                }],
+            }],
+            ..Default::default()
+        };
+        let tx = Some(Transaction {
+            signatures: vec![pk("11111111111111111111111111111111").as_ref().to_vec()],
+            message: Some(Message {
+                header: Some(MessageHeader::default()),
+                account_keys: static_keys.iter().map(|s| pubkey_bytes(pk(s))).collect(),
+                recent_blockhash: vec![0; 32],
+                instructions: vec![
+                    CompiledInstruction { program_id_index: 12, accounts: vec![], data: vec![0] },
+                    CompiledInstruction { program_id_index: 12, accounts: vec![], data: vec![0] },
+                    CompiledInstruction { program_id_index: 13, accounts: vec![], data: vec![0] },
+                ],
+                versioned: true,
+                address_table_lookups: Vec::new(),
+            }),
+        });
+
+        let events = parse_instructions_enhanced(
+            &meta,
+            &tx,
+            signature.parse().unwrap(),
+            427_039_576,
+            0,
+            Some(1_781_687_252_000_000),
+            789,
+            None,
+        );
+
+        assert_eq!(events.len(), 1, "{signature}");
+        match &events[0] {
+            DexEvent::PumpSwapCreatePool(e) => {
+                assert_eq!(e.index, 0, "{signature}");
+                assert_eq!(e.base_amount_in, 206_900_000_000_000, "{signature}");
+                assert_eq!(e.quote_amount_in, 84_990_359_912, "{signature}");
+                assert_eq!(
+                    e.coin_creator,
+                    pk("4DrtsW86GarGJJeYrBwYCjoyMgDPG95QWSGhFHvCkU2s"),
+                    "{signature}"
+                );
+                assert!(!e.is_mayhem_mode, "{signature}");
+                assert!(e.is_cashback_coin, "{signature}");
+                assert_eq!(
+                    e.pool,
+                    pk("HJKRc3JtgmattaPBFp1XqAhymk9FtJQjZZWZ9LtCMDLC"),
+                    "{signature}"
+                );
+                assert_eq!(
+                    e.creator,
+                    pk("4pVPfQmUZPDUgzTC5VAuad82wpaf4yzvSWVvFQBs73sv"),
+                    "{signature}"
+                );
+                assert_eq!(
+                    e.base_mint,
+                    pk("9JmruaWd8Dscxs1GBVbnckGWWsoVdJwg9DDFGFW9pump"),
+                    "{signature}"
+                );
+                assert_eq!(
+                    e.quote_mint,
+                    pk("So11111111111111111111111111111111111111112"),
+                    "{signature}"
+                );
+                assert_eq!(
+                    e.lp_mint,
+                    pk("GywAHNZRk8qjAiekaXgk5mBqweMibW31KGnUHzMN5Ht4"),
+                    "{signature}"
+                );
+                assert_eq!(
+                    e.user_base_token_account,
+                    pk("2m3hPFQ17Vn2gdeoxCr4M8Tx9jcLtTjiLtqnpyz7Tizo"),
+                    "{signature}"
+                );
+                assert_eq!(
+                    e.user_quote_token_account,
+                    pk("HC5ix2JxmZQ9sNiPFbFsFuXfu7GHt2RT2UoQVFWskfhu"),
+                    "{signature}"
+                );
+            }
+            other => panic!("expected PumpSwapCreatePool for {signature}, got {other:?}"),
         }
     }
 

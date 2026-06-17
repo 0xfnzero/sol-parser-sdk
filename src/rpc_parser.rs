@@ -146,7 +146,7 @@ pub fn parse_rpc_transaction(
     }
 
     // Parse instructions
-    let mut events = parse_instructions_enhanced(
+    let instr_events = parse_instructions_enhanced(
         &grpc_meta,
         &grpc_tx_opt,
         signature,
@@ -162,6 +162,7 @@ pub fn parse_rpc_transaction(
     let is_created_buy = needs_pumpfun
         && crate::logs::optimized_matcher::detect_pumpfun_create(&grpc_meta.log_messages);
     let mut active_program_stack: Vec<Pubkey> = Vec::with_capacity(8);
+    let mut log_events = Vec::new();
 
     for log in &grpc_meta.log_messages {
         if let Some((pid, depth)) = crate::logs::optimized_matcher::parse_invoke_info(log) {
@@ -199,7 +200,7 @@ pub fn parse_rpc_transaction(
                 &program_invokes,
             );
 
-            events.push(event);
+            log_events.push(event);
         }
 
         if let Some(pid) = crate::logs::optimized_matcher::parse_program_complete_info(log) {
@@ -211,9 +212,14 @@ pub fn parse_rpc_transaction(
         }
     }
 
-    crate::core::pumpfun_fee_enrich::enrich_pumpfun_same_tx_post_merge(&mut events);
+    Ok(merge_log_and_instruction_events(log_events, instr_events))
+}
 
-    Ok(events)
+fn merge_log_and_instruction_events(
+    log_events: Vec<DexEvent>,
+    instr_events: Vec<DexEvent>,
+) -> Vec<DexEvent> {
+    crate::grpc::log_instr_dedup::dedupe_log_instruction_events(log_events, instr_events)
 }
 
 /// Parse error types
@@ -481,4 +487,57 @@ fn convert_v0_message(msg: &solana_sdk::message::v0::Message) -> Result<Message,
             })
             .collect(),
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::core::events::{DexEvent, EventMetadata, PumpSwapCreatePoolEvent};
+    use solana_sdk::{pubkey::Pubkey, signature::Signature};
+
+    fn dummy_meta() -> EventMetadata {
+        EventMetadata {
+            signature: Signature::default(),
+            slot: 1,
+            tx_index: 0,
+            block_time_us: 0,
+            grpc_recv_us: 0,
+            recent_blockhash: None,
+        }
+    }
+
+    #[test]
+    fn rpc_merge_keeps_instruction_cashback_for_log_only_pumpswap_create_pool() {
+        let pool = Pubkey::new_unique();
+        let base_mint = Pubkey::new_unique();
+        let quote_mint = Pubkey::new_unique();
+
+        let log_create = PumpSwapCreatePoolEvent {
+            metadata: dummy_meta(),
+            pool,
+            base_mint,
+            quote_mint,
+            is_cashback_coin: false,
+            ..Default::default()
+        };
+        let ix_create = PumpSwapCreatePoolEvent {
+            metadata: dummy_meta(),
+            pool,
+            base_mint,
+            quote_mint,
+            is_cashback_coin: true,
+            ..Default::default()
+        };
+
+        let merged = merge_log_and_instruction_events(
+            vec![DexEvent::PumpSwapCreatePool(log_create)],
+            vec![DexEvent::PumpSwapCreatePool(ix_create)],
+        );
+
+        assert_eq!(merged.len(), 1);
+        match &merged[0] {
+            DexEvent::PumpSwapCreatePool(e) => assert!(e.is_cashback_coin),
+            other => panic!("expected PumpSwapCreatePool, got {other:?}"),
+        }
+    }
 }
