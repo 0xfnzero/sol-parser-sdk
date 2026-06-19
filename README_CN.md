@@ -53,6 +53,17 @@
 | **Python** | [sol-parser-sdk-python](https://github.com/0xfnzero/sol-parser-sdk-python) | 原生 async/await 支持 |
 | **Go** | [sol-parser-sdk-golang](https://github.com/0xfnzero/sol-parser-sdk-golang) | 并发安全，goroutine 支持 |
 
+## 这个 SDK 适合什么场景
+
+`sol-parser-sdk` 是 Solana DEX 事件的底层 Rust 解析核心，适合交易机器人、跟单管道、狙击机器人、索引服务和流处理系统，从 Yellowstone gRPC 交易、Jito ShredStream entry、RPC 交易 payload 或账户订阅中快速解析出强类型事件。
+
+| 方向 | 覆盖范围 |
+|------|----------|
+| 解析输入 | Yellowstone gRPC、ShredStream、RPC 交易、编码交易、协议账户数据 |
+| DEX 协议 | PumpFun、PumpSwap、Pump Fees、Raydium LaunchLab、Raydium CPMM、Raydium CLMM、Raydium AMM V4、Meteora DAMM v2、Meteora DLMM、Meteora DBC、Orca Whirlpool |
+| 解析后端 | 默认 Borsh 解析器便于维护，也可为低延迟热路径启用 zero-copy 解析器 |
+| 相关 SDK | 如果需要更高层的事件流封装，请使用 [solana-streamer](https://github.com/0xfnzero/solana-streamer) |
+
 ---
 
 ## 📊 性能亮点

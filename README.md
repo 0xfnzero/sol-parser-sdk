@@ -53,6 +53,17 @@ This SDK is available in multiple languages:
 | **Python** | [sol-parser-sdk-python](https://github.com/0xfnzero/sol-parser-sdk-python) | Async/await native support |
 | **Go** | [sol-parser-sdk-golang](https://github.com/0xfnzero/sol-parser-sdk-golang) | Concurrent-safe with goroutine support |
 
+## What This SDK Is For
+
+`sol-parser-sdk` is the low-level Rust parser core for Solana DEX events. It is designed for trading bots, copy-trading pipelines, sniper bots, indexers, and stream processors that need fast, typed parsing from Yellowstone gRPC transactions, Jito ShredStream entries, RPC transaction payloads, or account subscriptions.
+
+| Area | Coverage |
+|------|----------|
+| Parser inputs | Yellowstone gRPC, ShredStream, RPC transactions, encoded transactions, protocol account data |
+| DEX protocols | PumpFun, PumpSwap, Pump Fees, Raydium LaunchLab, Raydium CPMM, Raydium CLMM, Raydium AMM V4, Meteora DAMM v2, Meteora DLMM, Meteora DBC, Orca Whirlpool |
+| Parser backends | Default Borsh parser for maintainability, optional zero-copy parser for latency-sensitive hot paths |
+| Related SDK | Use [solana-streamer](https://github.com/0xfnzero/solana-streamer) when you want a higher-level streaming facade over this parser core |
+
 ---
 
 ## 📊 Performance Highlights
