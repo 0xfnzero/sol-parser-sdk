@@ -629,6 +629,12 @@ pub struct PumpSwapBuyEvent {
     pub cashback_fee_basis_points: u64,
     /// Cashback amount (PUMP_CASHBACK_README)
     pub cashback: u64,
+    pub buyback_fee_basis_points: u64,
+    pub buyback_fee: u64,
+    /// Signed virtual quote reserves appended by the PumpSwap boost upgrade.
+    pub virtual_quote_reserves: i128,
+    pub can_boost: bool,
+    pub base_supply: u64,
 
     // === 额外的信息 ===
     #[borsh(skip)]
@@ -691,6 +697,12 @@ pub struct PumpSwapSellEvent {
     pub cashback_fee_basis_points: u64,
     /// Cashback amount (PUMP_CASHBACK_README)
     pub cashback: u64,
+    pub buyback_fee_basis_points: u64,
+    pub buyback_fee: u64,
+    /// Signed virtual quote reserves appended by the PumpSwap boost upgrade.
+    pub virtual_quote_reserves: i128,
+    pub can_boost: bool,
+    pub base_supply: u64,
 
     // === 额外的信息 ===
     #[borsh(skip)]
@@ -1665,6 +1677,8 @@ pub struct PumpSwapPool {
     pub coin_creator: Pubkey,
     pub is_mayhem_mode: bool,
     pub is_cashback_coin: bool,
+    /// Added by the PumpSwap boost upgrade. Legacy pools decode this as zero.
+    pub virtual_quote_reserves: i128,
 }
 
 /// PumpFun Bonding Curve Account Event

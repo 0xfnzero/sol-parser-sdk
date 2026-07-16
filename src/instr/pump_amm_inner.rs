@@ -117,11 +117,7 @@ fn parse_buy_inner(data: &[u8], metadata: EventMetadata) -> Option<DexEvent> {
 #[cfg(all(feature = "parse-borsh", not(feature = "parse-zero-copy")))]
 #[inline(always)]
 fn parse_buy_inner_borsh(data: &[u8], metadata: EventMetadata) -> Option<DexEvent> {
-    // PumpSwap BuyEvent 含可变长度 ix_name 及 cashback 字段，反序列化整段 data
-    let event = borsh::from_slice::<PumpSwapBuyEvent>(data).ok()?;
-
-    // 设置 metadata
-    Some(DexEvent::PumpSwapBuy(PumpSwapBuyEvent { metadata, ..event }))
+    crate::logs::pump_amm::parse_buy_from_data(data, metadata)
 }
 
 /// 零拷贝解析器 - Buy 事件
@@ -257,6 +253,20 @@ fn parse_buy_inner_zero_copy(data: &[u8], metadata: EventMetadata) -> Option<Dex
             0
         };
         let cashback = if offset + 8 <= data.len() { read_u64_unchecked(data, offset) } else { 0 };
+        offset += 8;
+        let buyback_fee_basis_points =
+            if offset + 8 <= data.len() { read_u64_unchecked(data, offset) } else { 0 };
+        offset += 8;
+        let buyback_fee =
+            if offset + 8 <= data.len() { read_u64_unchecked(data, offset) } else { 0 };
+        offset += 8;
+        let virtual_quote_reserves =
+            if offset + 16 <= data.len() { read_i128_unchecked(data, offset) } else { 0 };
+        offset += 16;
+        let can_boost = if offset < data.len() { data[offset] != 0 } else { false };
+        offset += 1;
+        let base_supply =
+            if offset + 8 <= data.len() { read_u64_unchecked(data, offset) } else { 0 };
 
         Some(DexEvent::PumpSwapBuy(PumpSwapBuyEvent {
             metadata,
@@ -292,6 +302,11 @@ fn parse_buy_inner_zero_copy(data: &[u8], metadata: EventMetadata) -> Option<Dex
             ix_name,
             cashback_fee_basis_points,
             cashback,
+            buyback_fee_basis_points,
+            buyback_fee,
+            virtual_quote_reserves,
+            can_boost,
+            base_supply,
             ..Default::default()
         }))
     }
@@ -323,22 +338,7 @@ fn parse_sell_inner(data: &[u8], metadata: EventMetadata) -> Option<DexEvent> {
 #[cfg(all(feature = "parse-borsh", not(feature = "parse-zero-copy")))]
 #[inline(always)]
 fn parse_sell_inner_borsh(data: &[u8], metadata: EventMetadata) -> Option<DexEvent> {
-    // PumpSwap SellEvent 含 cashback_fee_basis_points, cashback (368 bytes 固定部分)
-    const SELL_EVENT_SIZE: usize = 368;
-
-    if data.len() < SELL_EVENT_SIZE {
-        return None;
-    }
-
-    // 使用 Borsh 反序列化完整的事件数据
-    let event = borsh::from_slice::<PumpSwapSellEvent>(&data[..SELL_EVENT_SIZE]).ok()?;
-
-    // 设置 metadata 并设置 is_pump_pool 标志
-    Some(DexEvent::PumpSwapSell(PumpSwapSellEvent {
-        metadata,
-        is_pump_pool: true, // 标记为 PumpSwap pool
-        ..event
-    }))
+    crate::logs::pump_amm::parse_sell_from_data(data, metadata)
 }
 
 /// 零拷贝解析器 - Sell 事件
@@ -375,7 +375,7 @@ fn parse_sell_inner_zero_copy(data: &[u8], metadata: EventMetadata) -> Option<De
     // cashback: u64 (8)
 
     unsafe {
-        const MIN_SIZE: usize = 8 * 16 + 32 * 7 + 8 + 8; // 368
+        const MIN_SIZE: usize = 8 * 16 + 32 * 7; // 352-byte legacy payload
         if !check_length(data, MIN_SIZE) {
             return None;
         }
@@ -432,9 +432,24 @@ fn parse_sell_inner_zero_copy(data: &[u8], metadata: EventMetadata) -> Option<De
         offset += 8;
         let coin_creator_fee = read_u64_unchecked(data, offset);
         offset += 8;
-        let cashback_fee_basis_points = read_u64_unchecked(data, offset);
+        let cashback_fee_basis_points =
+            if offset + 8 <= data.len() { read_u64_unchecked(data, offset) } else { 0 };
         offset += 8;
-        let cashback = read_u64_unchecked(data, offset);
+        let cashback = if offset + 8 <= data.len() { read_u64_unchecked(data, offset) } else { 0 };
+        offset += 8;
+        let buyback_fee_basis_points =
+            if offset + 8 <= data.len() { read_u64_unchecked(data, offset) } else { 0 };
+        offset += 8;
+        let buyback_fee =
+            if offset + 8 <= data.len() { read_u64_unchecked(data, offset) } else { 0 };
+        offset += 8;
+        let virtual_quote_reserves =
+            if offset + 16 <= data.len() { read_i128_unchecked(data, offset) } else { 0 };
+        offset += 16;
+        let can_boost = if offset < data.len() { data[offset] != 0 } else { false };
+        offset += 1;
+        let base_supply =
+            if offset + 8 <= data.len() { read_u64_unchecked(data, offset) } else { 0 };
 
         Some(DexEvent::PumpSwapSell(PumpSwapSellEvent {
             metadata,
@@ -463,6 +478,11 @@ fn parse_sell_inner_zero_copy(data: &[u8], metadata: EventMetadata) -> Option<De
             coin_creator_fee,
             cashback_fee_basis_points,
             cashback,
+            buyback_fee_basis_points,
+            buyback_fee,
+            virtual_quote_reserves,
+            can_boost,
+            base_supply,
             is_pump_pool: true,
             ..Default::default()
         }))
