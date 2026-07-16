@@ -24,9 +24,14 @@ pub type AccountGetter<'a> = dyn Fn(usize) -> Pubkey + 'a;
 /// ... (13-16 optional system/associated token accounts)
 /// 17: coinCreatorVaultAta (optional)
 /// 18: coinCreatorVaultAuthority (optional)
+/// Upgrade remaining accounts:
+/// - buy non-cashback: 23 pool_v2, 24 fee_recipient, 25 fee_recipient_quote_token_account
+/// - buy cashback: 24 pool_v2, 25 fee_recipient, 26 fee_recipient_quote_token_account
+/// - sell non-cashback: 21 pool_v2, 22 fee_recipient, 23 fee_recipient_quote_token_account
+/// - sell cashback: 23 pool_v2, 24 fee_recipient, 25 fee_recipient_quote_token_account
 macro_rules! fill_pumpswap_trade_common {
     ($event:expr, $get:expr) => {{
-        let e = $event;
+        let e = &mut *$event;
         let get = $get;
 
         if e.pool == Pubkey::default() {
@@ -74,12 +79,82 @@ macro_rules! fill_pumpswap_trade_common {
     }};
 }
 
+fn fill_buy_upgrade_accounts(e: &mut PumpSwapBuyEvent, get: &AccountGetter<'_>) {
+    let a26 = get(26);
+    if a26 != Pubkey::default() {
+        if e.pool_v2 == Pubkey::default() {
+            e.pool_v2 = get(24);
+        }
+        if e.fee_recipient == Pubkey::default() {
+            e.fee_recipient = get(25);
+        }
+        if e.fee_recipient_quote_token_account == Pubkey::default() {
+            e.fee_recipient_quote_token_account = a26;
+        }
+        return;
+    }
+
+    let a25 = get(25);
+    if a25 != Pubkey::default() {
+        if e.pool_v2 == Pubkey::default() {
+            e.pool_v2 = get(23);
+        }
+        if e.fee_recipient == Pubkey::default() {
+            e.fee_recipient = get(24);
+        }
+        if e.fee_recipient_quote_token_account == Pubkey::default() {
+            e.fee_recipient_quote_token_account = a25;
+        }
+        return;
+    }
+
+    if e.pool_v2 == Pubkey::default() {
+        e.pool_v2 = get(23);
+    }
+}
+
+fn fill_sell_upgrade_accounts(e: &mut PumpSwapSellEvent, get: &AccountGetter<'_>) {
+    let a25 = get(25);
+    if a25 != Pubkey::default() {
+        if e.pool_v2 == Pubkey::default() {
+            e.pool_v2 = get(23);
+        }
+        if e.fee_recipient == Pubkey::default() {
+            e.fee_recipient = get(24);
+        }
+        if e.fee_recipient_quote_token_account == Pubkey::default() {
+            e.fee_recipient_quote_token_account = a25;
+        }
+        return;
+    }
+
+    let a23 = get(23);
+    if a23 != Pubkey::default() {
+        if e.pool_v2 == Pubkey::default() {
+            e.pool_v2 = get(21);
+        }
+        if e.fee_recipient == Pubkey::default() {
+            e.fee_recipient = get(22);
+        }
+        if e.fee_recipient_quote_token_account == Pubkey::default() {
+            e.fee_recipient_quote_token_account = a23;
+        }
+        return;
+    }
+
+    if e.pool_v2 == Pubkey::default() {
+        e.pool_v2 = get(21);
+    }
+}
+
 pub fn fill_buy_accounts(e: &mut PumpSwapBuyEvent, get: &AccountGetter<'_>) {
     fill_pumpswap_trade_common!(e, get);
+    fill_buy_upgrade_accounts(e, get);
 }
 
 pub fn fill_sell_accounts(e: &mut PumpSwapSellEvent, get: &AccountGetter<'_>) {
     fill_pumpswap_trade_common!(e, get);
+    fill_sell_upgrade_accounts(e, get);
 }
 
 pub fn fill_trade_accounts(_e: &mut PumpSwapTradeEvent, _get: &AccountGetter<'_>) {

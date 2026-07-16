@@ -37,7 +37,7 @@ impl SimdUtils {
         // Process remaining bytes
         if remainder > 0 {
             let start = chunks * 16;
-            return &a[start..] == &b[start..];
+            return a[start..] == b[start..];
         }
 
         true
@@ -137,13 +137,14 @@ impl SimdUtils {
                         break;
                     }
 
-                    if matches_array[i] != 0 && start + i + needle_len <= haystack_len {
-                        if Self::fast_bytes_equal(
+                    if matches_array[i] != 0
+                        && start + i + needle_len <= haystack_len
+                        && Self::fast_bytes_equal(
                             &haystack[start + i..start + i + needle_len],
                             needle,
-                        ) {
-                            return Some(start + i);
-                        }
+                        )
+                    {
+                        return Some(start + i);
                     }
                 }
             }

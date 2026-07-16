@@ -1,42 +1,49 @@
 use crate::{core::events::*, instr::read_bool};
+use solana_sdk::pubkey::Pubkey;
 use std::collections::HashMap;
 use yellowstone_grpc_proto::prelude::{Transaction, TransactionStatusMeta};
 
+#[inline]
+fn set_pumpswap_is_pump_pool_from_fees_ix(
+    meta: &TransactionStatusMeta,
+    transaction: &Option<Transaction>,
+    program_invokes: &HashMap<Pubkey, Vec<(i32, i32)>>,
+    is_pump_pool: &mut bool,
+) {
+    if let Some(invoke) =
+        program_invokes.get(&crate::grpc::program_ids::PUMPSWAP_FEES_PROGRAM).and_then(|v| v.last())
+    {
+        if let Some(data) = get_instruction_data(meta, transaction, invoke) {
+            *is_pump_pool = read_bool(data, 9).unwrap_or_default();
+        }
+    }
+}
+
+#[inline]
 pub fn fill_data(
     event: &mut DexEvent,
     meta: &TransactionStatusMeta,
     transaction: &Option<Transaction>,
-    program_invokes: &HashMap<&str, Vec<(i32, i32)>>,
+    program_invokes: &HashMap<Pubkey, Vec<(i32, i32)>>,
 ) {
-    // 获取账户的辅助函数
     match event {
-        DexEvent::PumpSwapBuy(ref mut event) => {
-            if let Some(invoke) = program_invokes
-                .get(crate::grpc::program_ids::PUMPSWAP_FEES_PROGRAM_ID)
-                .as_ref()
-                .and_then(|v| v.last())
-            {
-                let data = get_instruction_data(meta, transaction, invoke);
-                if data.is_some() {
-                    let is_pump_pool = read_bool(&data.unwrap_or_default(), 9).unwrap_or_default();
-                    event.is_pump_pool = is_pump_pool;
-                }
-            }
+        DexEvent::PumpSwapBuy(ref mut e) => {
+            set_pumpswap_is_pump_pool_from_fees_ix(
+                meta,
+                transaction,
+                program_invokes,
+                &mut e.is_pump_pool,
+            );
         }
-        DexEvent::PumpSwapSell(ref mut event) => {
-            if let Some(invoke) = program_invokes
-                .get(crate::grpc::program_ids::PUMPSWAP_FEES_PROGRAM_ID)
-                .as_ref()
-                .and_then(|v| v.last())
-            {
-                let data = get_instruction_data(meta, transaction, invoke);
-                if data.is_some() {
-                    let is_pump_pool = read_bool(&data.unwrap_or_default(), 9).unwrap_or_default();
-                    event.is_pump_pool = is_pump_pool;
-                }
-            }
+        DexEvent::PumpSwapSell(ref mut e) => {
+            set_pumpswap_is_pump_pool_from_fees_ix(
+                meta,
+                transaction,
+                program_invokes,
+                &mut e.is_pump_pool,
+            );
         }
-        _ => {} // 其他事件类型TODO
+        _ => {}
     }
 }
 
@@ -56,5 +63,5 @@ pub fn get_instruction_data<'a>(
     } else {
         transaction.as_ref()?.message.as_ref()?.instructions.get(index.0 as usize)?.data.as_slice()
     };
-    return Some(data);
+    Some(data)
 }

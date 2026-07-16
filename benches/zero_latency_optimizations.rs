@@ -8,12 +8,13 @@
 //!
 //! Run with: cargo bench --bench zero_latency_optimizations
 
-use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion};
+use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
 use smallvec::SmallVec;
 use sol_parser_sdk::logs::utils::{
     read_string, read_string_ref,
     text_parser::{extract_text_field, extract_text_field_ref},
 };
+use std::hint::black_box;
 
 // ========================================================================
 // SmallVec vs Vec Benchmarks
@@ -154,7 +155,7 @@ fn bench_discriminator_lookup(c: &mut Criterion) {
     let mut group = c.benchmark_group("Discriminator Lookup");
 
     // Test hot-path discriminators (should be fast)
-    let hot_discriminators = vec![
+    let hot_discriminators = [
         0xEE61E64ED37FDBBD, // PumpFun Trade
         0xC887759EE19EC6F8, // Raydium CLMM Swap
         0x0900000000000000, // Raydium AMM Swap Base In
@@ -163,7 +164,7 @@ fn bench_discriminator_lookup(c: &mut Criterion) {
     ];
 
     // Test cold-path discriminators (handled by match)
-    let cold_discriminators = vec![
+    let cold_discriminators = [
         0x0A00000000000000, // Some cold discriminator
         0x0B00000000000000, // Another cold discriminator
     ];

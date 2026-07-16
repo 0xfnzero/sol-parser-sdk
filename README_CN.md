@@ -14,7 +14,7 @@
     <a href="https://docs.rs/sol-parser-sdk">
         <img src="https://docs.rs/sol-parser-sdk/badge.svg" alt="Documentation">
     </a>
-    <a href="https://github.com/0xfnzero/solana-streamer/blob/main/LICENSE">
+    <a href="https://github.com/0xfnzero/sol-parser-sdk/blob/main/LICENSE">
         <img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License">
     </a>
 </p>
@@ -33,6 +33,36 @@
     <a href="https://t.me/fnzero_group">Telegram</a> |
     <a href="https://discord.gg/vuazbGkqQE">Discord</a>
 </p>
+
+> ☕ **支持本项目**
+>
+> 本 SDK 完全免费且开源。但维护和持续更新需要消耗大量 AI 算力与 Token。如果这个 SDK 对您的开发有帮助，欢迎每月捐赠任意数量的 SOL，您的支持将帮助这个项目持续运行！
+>
+> **捐赠钱包：** `6oW7AXz1yRb57pYSxysuXnMs2aR1ha5rzGzReZ1MjPV8`
+
+---
+
+## 📦 SDK 版本
+
+本 SDK 提供多种语言版本：
+
+| 语言 | 仓库 | 描述 |
+|------|------|------|
+| **Rust** | [sol-parser-sdk](https://github.com/0xfnzero/sol-parser-sdk) | 超低延迟，SIMD 优化 |
+| **Node.js** | [sol-parser-sdk-nodejs](https://github.com/0xfnzero/sol-parser-sdk-nodejs) | TypeScript/JavaScript，Node.js 支持 |
+| **Python** | [sol-parser-sdk-python](https://github.com/0xfnzero/sol-parser-sdk-python) | 原生 async/await 支持 |
+| **Go** | [sol-parser-sdk-golang](https://github.com/0xfnzero/sol-parser-sdk-golang) | 并发安全，goroutine 支持 |
+
+## 这个 SDK 适合什么场景
+
+`sol-parser-sdk` 是 Solana DEX 事件的底层 Rust 解析核心，适合交易机器人、跟单管道、狙击机器人、索引服务和流处理系统，从 Yellowstone gRPC 交易、Jito ShredStream entry、RPC 交易 payload 或账户订阅中快速解析出强类型事件。
+
+| 方向 | 覆盖范围 |
+|------|----------|
+| 解析输入 | Yellowstone gRPC、ShredStream、RPC 交易、编码交易、协议账户数据 |
+| DEX 协议 | PumpFun、PumpSwap、Pump Fees、Raydium LaunchLab、Raydium CPMM、Raydium CLMM、Raydium AMM V4、Meteora DAMM v2、Meteora DLMM、Meteora DBC、Orca Whirlpool |
+| 解析后端 | 默认 Borsh 解析器便于维护，也可为低延迟热路径启用 zero-copy 解析器 |
+| 相关 SDK | 如果需要更高层的事件流封装，请使用 [solana-streamer](https://github.com/0xfnzero/solana-streamer) |
 
 ---
 
@@ -89,14 +119,79 @@ sol-parser-sdk = { path = "../sol-parser-sdk", default-features = false, feature
 
 ```toml
 # 在 Cargo.toml 中添加
-sol-parser-sdk = "0.3.0"
+sol-parser-sdk = "0.5.15"
 ```
 
 或使用零拷贝解析器（最高性能）：
 
 ```toml
-sol-parser-sdk = { version = "0.3.0", default-features = false, features = ["parse-zero-copy"] }
+sol-parser-sdk = { version = "0.5.15", default-features = false, features = ["parse-zero-copy"] }
 ```
+
+### 发布说明
+
+#### v0.5.15
+
+- 修复 Pump.fun `create_v2` 在 16 账户和 19 账户布局下的 quote mint 判断。
+- 只有存在 19 账户 quote-pool 尾部账户时才读取追加的 quote mint；16 账户 `create_v2` 保持 SOL sentinel。
+- 填充账户时按 create/create_v2 discriminator 选择对应指令，避免后续 buy/sell 指令覆盖 create 的 quote 字段。
+
+#### v0.5.13
+
+- gRPC 和 ShredStream 的 Pump.fun create/trade 输出会保留真实 WSOL quote mint（`So11111111111111111111111111111111111111112`）。
+- 只有 legacy 或缺失 Pump.fun quote mint 字段时，才使用 Solscan SOL sentinel（`So11111111111111111111111111111111111111111`）。
+- 增加合并覆盖：占位 SOL quote mint 可以被后续 log 或 instruction/account 上下文中的真实 WSOL quote mint 替换。
+
+#### v0.5.11
+
+- 解析 PumpSwap `create_pool` 指令参数，包括 `index`、注入数量、`coin_creator`、`is_mayhem_mode`、`is_cashback_coin`。
+- 修正 PumpSwap `create_pool` 指令账户映射，按 IDL 填充 `pool`、`creator`、`base_mint`、`quote_mint`、LP/用户 token account。
+- instruction 路径的 CreatePool 数据与 log 路径合并时，会保留 `is_cashback_coin`。
+- 明确字段来源：PumpSwap log `CreatePoolEvent` IDL 不包含 `is_cashback_coin`；ShredStream/外层指令解析可从 instruction data 读取该字段，账户订阅可从 `Pool` account 读取权威字段。
+
+#### v0.5.10
+
+- PumpSwap `CreatePoolEvent` 与链上 IDL 对齐：事件暴露 `is_mayhem_mode`，但不暴露 `is_cashback_coin`。
+- PumpSwap `is_cashback_coin` 保留在 `AccountPumpSwapPool` 账户事件中，因为该字段存储在链上 `Pool` account。
+- 修复 PumpSwap CreatePool log payload 长度检查，包含最后的 `is_mayhem_mode` 字节。
+- 文档明确 ShredStream CreatePool 事件无法恢复 `is_cashback_coin`，因为 Shred entry 不包含账户 body。
+
+#### v0.5.9
+
+- 实现真正的 Yellowstone gRPC `stop()`：会通知、abort 并等待当前订阅任务结束。
+- 串行化 gRPC 订阅生命周期，避免并发 stop / re-subscribe 遗留旧的重连循环。
+- 每次订阅使用独立 stop signal，避免新订阅误重置旧任务的停止状态。
+- 流错误日志改为 `Grpc Stream error`，便于和 ShredStream 日志区分。
+- 修复 warmup 测试对全局测试执行顺序的依赖。
+
+#### v0.5.8
+
+- ShredStream 示例增加可配置事件过滤 preset，包括 Pump.fun trade、create-trade、buy、sell、buy-exact-sol-in。
+- 明确 Pump.fun `ix_name` 使用 IDL 原始 instruction name：`buy`、`buy_v2`、`buy_exact_sol_in`、`buy_exact_quote_in_v2`、`sell`、`sell_v2`。
+- Pump.fun 过滤大类与 IDL 语义保持一致：`PumpFunBuy` 覆盖所有 buy 指令，`PumpFunSell` 覆盖所有 sell 指令，`PumpFunTrade` 覆盖所有 buy 和 sell 指令。
+- 只订阅 `PumpFunTrade` 时，ShredStream 热路径统一输出 `DexEvent::PumpFunTrade`。
+
+#### v0.5.5
+
+- 对齐 Rust、Node.js、Python、Go 的 ShredStream 静态账户解析语义。
+- V0 ALT-loaded 指令账户不再整条跳过，热路径用默认 pubkey 占位继续 best-effort 解析。
+- 当 ShredStream 外层 program id 来自 ALT 且不在静态账户表中时，按候选 program id 做 discriminator fallback。
+- 改进 Pump.fun ShredStream create/create_v2、v2 短账户交易和事件类型过滤的跨语言一致性。
+- 更新 Pump.fun、PumpSwap、Pump Fees、Raydium、Orca、Meteora 的多协议路由与账户补全文档。
+
+#### v0.5.4
+
+- Pump.fun `create` 和 `create_v2` 统一投递为 canonical `PumpFunCreate` 事件。
+- `PumpFunCreate` 和 `PumpFunCreateV2` 过滤器按同一个 create-family 订阅处理。
+- canonical create 事件保留 create_v2 账户字段，Bot 不需要同时处理两个事件变体。
+- 修复 gRPC log + instruction 双路径解析导致新 mint 回调重复的问题。
+
+#### v0.5.3
+
+- 保留真实的 Pump.fun v2 `ix_name`，包括 `buy_v2`、`sell_v2` 和 `buy_exact_quote_in_v2`。
+- 改进 ShredStream 的 Pump.fun v2 解析，对 buy、sell、exact-quote 指令支持短账户列表 best-effort 解析。
+- Pump.fun buy-family 过滤保持双向兼容，订阅 `PumpFunBuy` 或 `PumpFunBuyExactSolIn` 都可以匹配兼容的 buy 变体。
+- 保留 ShredStream 对外层指令的 ALT/default-account best-effort 解析，同时明确 CPI/inner-only 仍无法从 Shred Entry 恢复。
 
 ### 性能测试
 
@@ -124,38 +219,53 @@ cargo run --example pumpswap_ordered --release
 
 ### 示例列表
 
-| 示例 | 说明 | 命令 |
-|---------|-------------|---------|
+| 描述 | 运行命令 | 源码 |
+|------|----------|------|
 | **PumpFun** | | |
-| `pumpfun_with_metrics` | PumpFun 事件解析 + 详细性能指标 | `cargo run --example pumpfun_with_metrics --release` |
-| `pumpfun_trade_filter` | PumpFun 交易类型过滤（Buy/Sell/BuyExactSolIn），无序模式 | `cargo run --example pumpfun_trade_filter --release` |
-| `pumpfun_trade_filter_ordered` | PumpFun 交易过滤 + StreamingOrdered 有序模式 | `cargo run --example pumpfun_trade_filter_ordered --release` |
-| `pumpfun_quick_test` | PumpFun 快速连接测试（前 10 个事件） | `cargo run --example pumpfun_quick_test --release` |
-| `parse_pump_tx` | 按签名从 RPC 解析 PumpFun 交易 | `TX_SIGNATURE=<sig> cargo run --example parse_pump_tx --release` |
-| `debug_pump_tx` | 调试 PumpFun 交易结构与内部指令 | `cargo run --example debug_pump_tx --release` |
+| PumpFun 事件解析 + 性能指标 | `cargo run --example pumpfun_with_metrics --release` | [examples/pumpfun_with_metrics.rs](https://github.com/0xfnzero/sol-parser-sdk/blob/main/examples/pumpfun_with_metrics.rs) |
+| PumpFun 交易类型过滤 | `cargo run --example pumpfun_trade_filter --release` | [examples/pumpfun_trade_filter.rs](https://github.com/0xfnzero/sol-parser-sdk/blob/main/examples/pumpfun_trade_filter.rs) |
+| PumpFun 有序模式交易过滤 | `cargo run --example pumpfun_trade_filter_ordered --release` | [examples/pumpfun_trade_filter_ordered.rs](https://github.com/0xfnzero/sol-parser-sdk/blob/main/examples/pumpfun_trade_filter_ordered.rs) |
+| PumpFun 快速连接测试 | `cargo run --example pumpfun_quick_test --release` | [examples/pumpfun_quick_test.rs](https://github.com/0xfnzero/sol-parser-sdk/blob/main/examples/pumpfun_quick_test.rs) |
+| 按签名解析 PumpFun 交易 | `TX_SIGNATURE=<sig> cargo run --example parse_pump_tx --release` | [examples/parse_pump_tx.rs](https://github.com/0xfnzero/sol-parser-sdk/blob/main/examples/parse_pump_tx.rs) |
+| 解析 PumpFun quote_mint 边界案例 | `TX_SIGNATURES=<sig1,sig2> cargo run --example parse_pumpfun_quote_cases --release` | [examples/parse_pumpfun_quote_cases.rs](https://github.com/0xfnzero/sol-parser-sdk/blob/main/examples/parse_pumpfun_quote_cases.rs) |
+| 调试 PumpFun 交易 | `cargo run --example debug_pump_tx --release` | [examples/debug_pump_tx.rs](https://github.com/0xfnzero/sol-parser-sdk/blob/main/examples/debug_pump_tx.rs) |
 | **PumpSwap** | | |
-| `pumpswap_with_metrics` | PumpSwap 事件 + 单事件与 10 秒性能统计 | `cargo run --example pumpswap_with_metrics --release` |
-| `pumpswap_low_latency` | PumpSwap 超低延迟（无序，完整事件数据） | `cargo run --example pumpswap_low_latency --release` |
-| `pumpswap_ordered` | PumpSwap 买/卖/创建池 + MicroBatch 有序 | `cargo run --example pumpswap_ordered --release` |
-| `parse_pumpswap_tx` | 按签名从 RPC 解析 PumpSwap 交易 | `TX_SIGNATURE=<sig> cargo run --example parse_pumpswap_tx --release` |
-| `debug_pumpswap_tx` | 调试 PumpSwap 交易与 gRPC 转换 | `cargo run --example debug_pumpswap_tx --release` |
+| PumpSwap 事件 + 性能统计 | `cargo run --example pumpswap_with_metrics --release` | [examples/pumpswap_with_metrics.rs](https://github.com/0xfnzero/sol-parser-sdk/blob/main/examples/pumpswap_with_metrics.rs) |
+| PumpSwap 超低延迟 | `cargo run --example pumpswap_low_latency --release` | [examples/pumpswap_low_latency.rs](https://github.com/0xfnzero/sol-parser-sdk/blob/main/examples/pumpswap_low_latency.rs) |
+| PumpSwap MicroBatch 有序 | `cargo run --example pumpswap_ordered --release` | [examples/pumpswap_ordered.rs](https://github.com/0xfnzero/sol-parser-sdk/blob/main/examples/pumpswap_ordered.rs) |
+| 按签名解析 PumpSwap 交易 | `TX_SIGNATURE=<sig> cargo run --example parse_pumpswap_tx --release` | [examples/parse_pumpswap_tx.rs](https://github.com/0xfnzero/sol-parser-sdk/blob/main/examples/parse_pumpswap_tx.rs) |
+| 调试 PumpSwap 交易 | `cargo run --example debug_pumpswap_tx --release` | [examples/debug_pumpswap_tx.rs](https://github.com/0xfnzero/sol-parser-sdk/blob/main/examples/debug_pumpswap_tx.rs) |
 | **Meteora DAMM** | | |
-| `meteora_damm_grpc` | Meteora DAMM V2 gRPC（Swap/AddLiquidity/RemoveLiquidity/CreatePosition/ClosePosition） | `cargo run --example meteora_damm_grpc --release` |
-| `parse_meteora_damm_tx` | 按签名从 RPC 解析 Meteora DAMM 交易 | `TX_SIGNATURE=<sig> cargo run --example parse_meteora_damm_tx --release` |
+| Meteora DAMM V2 事件 | `cargo run --example meteora_damm_grpc --release` | [examples/meteora_damm_grpc.rs](https://github.com/0xfnzero/sol-parser-sdk/blob/main/examples/meteora_damm_grpc.rs) |
+| 按签名解析 Meteora DAMM 交易 | `TX_SIGNATURE=<sig> cargo run --example parse_meteora_damm_tx --release` | [examples/parse_meteora_damm_tx.rs](https://github.com/0xfnzero/sol-parser-sdk/blob/main/examples/parse_meteora_damm_tx.rs) |
+| **非 Pump DEX dry-run 场景** | | |
+| Raydium LaunchLab migration 过滤 | `cargo run --example raydium_launchlab_migration` | [examples/raydium_launchlab_migration.rs](https://github.com/0xfnzero/sol-parser-sdk/blob/main/examples/raydium_launchlab_migration.rs) |
+| Raydium CPMM 新池过滤 | `cargo run --example raydium_cpmm_new_pool` | [examples/raydium_cpmm_new_pool.rs](https://github.com/0xfnzero/sol-parser-sdk/blob/main/examples/raydium_cpmm_new_pool.rs) |
+| Raydium CLMM 价格计算 | `cargo run --example raydium_clmm_token_price` | [examples/raydium_clmm_token_price.rs](https://github.com/0xfnzero/sol-parser-sdk/blob/main/examples/raydium_clmm_token_price.rs) |
+| Orca Whirlpool 价格计算 | `cargo run --example orca_whirlpool_token_price` | [examples/orca_whirlpool_token_price.rs](https://github.com/0xfnzero/sol-parser-sdk/blob/main/examples/orca_whirlpool_token_price.rs) |
+| Meteora DAMM 新池基线 | `cargo run --example meteora_damm_new_pool` | [examples/meteora_damm_new_pool.rs](https://github.com/0xfnzero/sol-parser-sdk/blob/main/examples/meteora_damm_new_pool.rs) |
+| Meteora DBC 价格计算 | `cargo run --example meteora_dbc_token_price` | [examples/meteora_dbc_token_price.rs](https://github.com/0xfnzero/sol-parser-sdk/blob/main/examples/meteora_dbc_token_price.rs) |
+| 钱包交易过滤 | `cargo run --example wallet_trade_filter` | [examples/wallet_trade_filter.rs](https://github.com/0xfnzero/sol-parser-sdk/blob/main/examples/wallet_trade_filter.rs) |
+| gRPC 延迟与 slot 对比配置 | `cargo run --example grpc_latency_slot_compare` | [examples/grpc_latency_slot_compare.rs](https://github.com/0xfnzero/sol-parser-sdk/blob/main/examples/grpc_latency_slot_compare.rs) |
 | **账户订阅** | | |
-| `token_balance_listen` | 订阅单个 token 账户余额变化 | `TOKEN_ACCOUNT=<pubkey> cargo run --example token_balance_listen --release` |
-| `nonce_listen` | 订阅 nonce 账户状态变化 | `NONCE_ACCOUNT=<pubkey> cargo run --example nonce_listen --release` |
-| `token_decimals_listen` | 订阅 mint 账户（TokenInfo：decimals/supply） | `MINT_ACCOUNT=<pubkey> cargo run --example token_decimals_listen --release` |
-| `pumpswap_pool_account_listen` | 通过 memcmp 订阅 PumpSwap 池账户（如 offset 32 的 mint） | `cargo run --example pumpswap_pool_account_listen --release` |
-| `mint_all_ata_account_listen` | 订阅一个或多个 mint 的全部 ATA（memcmp offset 0） | `cargo run --example mint_all_ata_account_listen --release` |
+| Token 账户余额变化 | `TOKEN_ACCOUNT=<pubkey> cargo run --example token_balance_listen --release` | [examples/token_balance_listen.rs](https://github.com/0xfnzero/sol-parser-sdk/blob/main/examples/token_balance_listen.rs) |
+| Nonce 账户状态变化 | `NONCE_ACCOUNT=<pubkey> cargo run --example nonce_listen --release` | [examples/nonce_listen.rs](https://github.com/0xfnzero/sol-parser-sdk/blob/main/examples/nonce_listen.rs) |
+| Mint 账户信息 | `MINT_ACCOUNT=<pubkey> cargo run --example token_decimals_listen --release` | [examples/token_decimals_listen.rs](https://github.com/0xfnzero/sol-parser-sdk/blob/main/examples/token_decimals_listen.rs) |
+| PumpSwap 池账户 memcmp 订阅 | `cargo run --example pumpswap_pool_account_listen --release` | [examples/pumpswap_pool_account_listen.rs](https://github.com/0xfnzero/sol-parser-sdk/blob/main/examples/pumpswap_pool_account_listen.rs) |
+| 所有 ATA 订阅 | `cargo run --example mint_all_ata_account_listen --release` | [examples/mint_all_ata_account_listen.rs](https://github.com/0xfnzero/sol-parser-sdk/blob/main/examples/mint_all_ata_account_listen.rs) |
+| **ShredStream** | | |
+| Jito ShredStream 订阅 | `cargo run --example shredstream_example --release` | [examples/shredstream_example.rs](https://github.com/0xfnzero/sol-parser-sdk/blob/main/examples/shredstream_example.rs) |
 | **工具** | | |
-| `dynamic_subscription` | 运行时更新交易/账户过滤器（无需重连） | `cargo run --example dynamic_subscription --release` |
-| `test_account_filling` | 调试 PumpSwap 账户填充（RPC + 账户解析） | `cargo run --example test_account_filling --release` |
+| 动态更新订阅过滤器 | `cargo run --example dynamic_subscription --release` | [examples/dynamic_subscription.rs](https://github.com/0xfnzero/sol-parser-sdk/blob/main/examples/dynamic_subscription.rs) |
+| 调试 PumpSwap 账户填充 | `cargo run --example test_account_filling --release` | [examples/test_account_filling.rs](https://github.com/0xfnzero/sol-parser-sdk/blob/main/examples/test_account_filling.rs) |
 
 ### 基本用法
 
 ```rust
-use sol_parser_sdk::grpc::{YellowstoneGrpc, ClientConfig, OrderMode, EventTypeFilter, EventType};
+use sol_parser_sdk::grpc::{
+    AccountFilter, ClientConfig, EventType, EventTypeFilter, OrderMode, Protocol,
+    TransactionFilter, YellowstoneGrpc,
+};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -177,9 +287,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         config,
     )?;
 
-    // 仅过滤 PumpFun Trade 事件（超快路径）
+    let protocols = vec![Protocol::PumpFun, Protocol::PumpSwap, Protocol::RaydiumCpmm];
+    let transaction_filter = TransactionFilter::for_protocols(&protocols);
+    let account_filter = AccountFilter::for_protocols(&protocols);
+
+    // 在解析前过滤事件，走最低延迟路径
     let event_filter = EventTypeFilter::include_only(vec![
-        EventType::PumpFunTrade
+        EventType::PumpFunBuy,
+        EventType::PumpFunSell,
+        EventType::PumpSwapBuy,
+        EventType::PumpSwapSell,
+        EventType::RaydiumCpmmSwap,
     ]);
 
     // 订阅并获取无锁队列
@@ -214,21 +332,82 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 ```
 
+### ShredStream 使用（Jito）
+
+ShredStream 通过直接订阅 Jito 的 ShredStream 服务提供超低延迟（比 gRPC 快约 50-100ms）：
+
+```rust
+use sol_parser_sdk::grpc::{EventType, EventTypeFilter};
+use sol_parser_sdk::shredstream::{ShredStreamClient, ShredStreamConfig};
+use sol_parser_sdk::DexEvent;
+use std::sync::Arc;
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // 创建 ShredStream 客户端
+    let client = ShredStreamClient::new("http://127.0.0.1:10800").await?;
+
+    // 或使用自定义配置
+    let config = ShredStreamConfig {
+        connection_timeout_ms: 5000,
+        request_timeout_ms: 30000,
+        max_decoding_message_size: 1024 * 1024 * 1024,
+        reconnect_delay_ms: 1000,
+        max_reconnect_attempts: 0, // 0 = 无限重连
+    };
+    let client = ShredStreamClient::new_with_config("http://127.0.0.1:10800", config).await?;
+
+    // 使用 SDK 侧过滤，在事件转换前丢弃无关事件。
+    // 如果要接收所有支持事件，可使用 `client.subscribe().await?`。
+    let event_filter = EventTypeFilter::include_only(vec![
+        EventType::PumpFunBuy,
+        EventType::PumpSwapBuy,
+        EventType::RaydiumCpmmSwap,
+    ]);
+    let queue = client.subscribe_with_filter(Some(event_filter)).await?;
+
+    // 消费事件
+    loop {
+        if let Some(event) = queue.pop() {
+            match &event {
+                DexEvent::PumpFunTrade(e) => {
+                    println!("PumpFun Trade: mint={}, is_buy={}", e.mint, e.is_buy);
+                }
+                DexEvent::PumpSwapBuy(e) => {
+                    println!("PumpSwap Buy: pool={}", e.pool);
+                }
+                _ => {}
+            }
+        } else {
+            std::hint::spin_loop();
+        }
+    }
+}
+```
+
+**ShredStream 限制：**
+- 仅 `static_account_keys()` - ALT-loaded 指令账户会使用默认账户占位，外层指令会基于 data/discriminator 尽量解析
+- 无 Inner Instructions - 无法从 ShredStream entry 恢复 CPI/inner-only 事件
+- 无 block_time - 恒为 0
+- tx_index 是 entry 内索引而非 slot 内索引
+
 ---
 
 ## 🏗️ 支持的协议
 
 ### DEX 协议
-- ✅ **PumpFun** - Meme 币交易（超快零拷贝路径）
+- ✅ **PumpFun** - Meme 币交易（超快零拷贝路径，含 v2 指令）
+- ✅ **Pump Fees** - Pump 费用分成配置事件
 - ✅ **PumpSwap** - PumpFun 交换协议
+- ✅ **Raydium LaunchLab** - 代币发射平台
 - ✅ **Raydium AMM V4** - 自动做市商
 - ✅ **Raydium CLMM** - 集中流动性做市
 - ✅ **Raydium CPMM** - 集中池做市
 - ✅ **Orca Whirlpool** - 集中流动性 AMM
-- ✅ **Meteora AMM** - 动态 AMM
-- ✅ **Meteora DAMM** - 动态 AMM V2
+- ✅ **Meteora Pools** - 动态 AMM
+- ✅ **Meteora DAMM v2** - 动态 AMM V2
 - ✅ **Meteora DLMM** - 动态流动性做市
-- ✅ **Bonk Launchpad** - 代币发射平台
+- 🚧 **Meteora DBC** - 已补 program id 与过滤常量，交易/账户 parser 后续补齐
 
 ### 事件类型
 每个协议支持：
@@ -236,6 +415,23 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 - 💧 **流动性事件** - 存款/提款
 - 🏊 **池事件** - 池创建/初始化
 - 🎯 **仓位事件** - 开仓/平仓（CLMM）
+
+### 非 Pump DEX 支持矩阵
+
+| 协议 | 事件 | 账户 | 示例 | 语言常量 |
+|------|------|------|------|----------|
+| Raydium LaunchLab | Trade、PoolCreate、Migrate | 待补 | Migration、buy/sell oracle 规划中 | Rust、Node、Python、Go |
+| Raydium CPMM | Swap、Deposit、Withdraw、Initialize | AmmConfig、PoolState | New pool、token price | Rust、Node、Python、Go |
+| Raydium CLMM | Swap、Pool、Position、Liquidity | AmmConfig、PoolState、TickArray | Token price | Rust、Node、Python、Go |
+| Raydium AMM V4 | Swap、Deposit、Withdraw、Initialize2 | 待补 | Token price oracle 规划中 | Rust、Node、Python、Go |
+| Orca Whirlpool | Swap、Liquidity、Pool init | Whirlpool、Position、TickArray、FeeTier、Config | Token price | Rust、Node、Python、Go |
+| Meteora Pools | Swap、Liquidity、Pool create、Fees | 待补 | Token price oracle 规划中 | Rust、Node、Python、Go |
+| Meteora DAMM V2 | Swap、Liquidity、Position | 待补 | New pool、token price oracle 规划中 | Rust、Node、Python、Go |
+| Meteora DLMM | Swap、Liquidity、Bin/Position | 待补 | Token price oracle 规划中 | Rust、Node、Python、Go |
+| Meteora DBC | Swap、InitializePool、CurveComplete（Rust log parser） | 待补 | Token price、migration oracle 规划中 | Rust、Node、Python、Go |
+
+跨语言基线见 [`protocols/canonical.json`](protocols/canonical.json)，当前审计和剩余 parser 工作见
+[`docs/non-pump-dex-gap-analysis.md`](docs/non-pump-dex-gap-analysis.md)。
 
 ---
 
@@ -298,10 +494,19 @@ if let Some(event) = queue.pop() {
 ### 示例：交易机器人
 ```rust
 let event_filter = EventTypeFilter::include_only(vec![
-    EventType::PumpFunTrade,
+    EventType::PumpFunBuy,
+    EventType::PumpFunSell,
+    EventType::PumpFunBuyExactSolIn,
+    EventType::PumpSwapBuy,
+    EventType::PumpSwapSell,
+    EventType::RaydiumLaunchlabTrade,
+    EventType::RaydiumCpmmSwap,
     EventType::RaydiumAmmV4Swap,
     EventType::RaydiumClmmSwap,
     EventType::OrcaWhirlpoolSwap,
+    EventType::MeteoraPoolsSwap,
+    EventType::MeteoraDammV2Swap,
+    EventType::MeteoraDlmmSwap,
 ]);
 ```
 
@@ -309,10 +514,23 @@ let event_filter = EventTypeFilter::include_only(vec![
 ```rust
 let event_filter = EventTypeFilter::include_only(vec![
     EventType::PumpFunCreate,
+    EventType::PumpFeesUpdateFeeShares,
+    EventType::PumpSwapCreatePool,
+    EventType::AccountPumpSwapPool,
+    EventType::RaydiumCpmmInitialize,
     EventType::RaydiumClmmCreatePool,
-    EventType::OrcaWhirlpoolInitialize,
+    EventType::OrcaWhirlpoolPoolInitialized,
+    EventType::MeteoraPoolsPoolCreated,
+    EventType::MeteoraDammV2CreatePosition,
+    EventType::MeteoraDlmmInitializePool,
 ]);
 ```
+
+`PumpSwapCreatePool` 包含 `is_mayhem_mode`。对于 `is_cashback_coin`，
+ShredStream/外层指令解析会从 `create_pool` instruction args 读取；
+log-only 的 `CreatePoolEvent` payload 因为 IDL 不包含该字段，会保持默认
+`false`。账户里的权威值也可通过
+`PumpSwapPoolAccountEvent.pool.is_cashback_coin` 读取。
 
 **性能影响：**
 - 减少 60-80% 的处理开销
@@ -335,6 +553,20 @@ if has_create {
     trade_event.is_created_buy = true;
 }
 ```
+
+### Pump.fun Bonding Curve v2（buy_v2 / sell_v2 / buy_exact_quote_in_v2）
+
+SDK 已支持 Pump.fun Bonding Curve 升级引入的新 v2 交易指令。来自 `buy_v2`、`sell_v2` 和 `buy_exact_quote_in_v2` 的事件日志通过相同的零拷贝路径解析，并映射到已有事件类型：
+
+| ix_name in TradeEvent | DexEvent 枚举变体 |
+|----------------------|-----------------|
+| `"buy"` / `"buy_v2"` / `"buy_exact_quote_in"` / `"buy_exact_quote_in_v2"` | `DexEvent::PumpFunBuy` |
+| `"sell"` / `"sell_v2"` | `DexEvent::PumpFunSell` |
+| `"buy_exact_sol_in"` | `DexEvent::PumpFunBuyExactSolIn` |
+
+无需修改现有事件处理代码 — v2 事件通过相同的 `PumpFunTradeEvent` 结构体投递，`ix_name` 字段会正确填充。指令层已识别 `buy_v2`（`[184, 23, 238, 97, 103, 197, 211, 61]`）、`sell_v2`（`[93, 246, 130, 60, 231, 233, 64, 178]`）和 `buy_exact_quote_in_v2`（`[194, 171, 28, 70, 104, 77, 91, 47]`）的 discriminator。
+
+`CreateEvent` 现在也会暴露 `quote_mint` 和 `virtual_quote_reserves`，USDC 报价池可以据此和 SOL 池区分，并使用正确的 quote 侧初始储备。
 
 ### 动态订阅
 无需重连即可更新过滤器：
@@ -402,6 +634,10 @@ src/
 │   ├── client.rs          # Yellowstone gRPC 客户端
 │   ├── buffers.rs         # SlotBuffer 和 MicroBatchBuffer
 │   └── types.rs           # OrderMode、ClientConfig、过滤器
+├── shredstream/
+│   ├── client.rs          # Jito ShredStream 客户端
+│   ├── config.rs          # ShredStreamConfig
+│   └── proto/             # Protobuf 定义
 ├── logs/
 │   ├── optimized_matcher.rs  # SIMD 日志检测
 │   ├── zero_copy_parser.rs   # 零拷贝解析

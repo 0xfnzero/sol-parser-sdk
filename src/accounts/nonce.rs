@@ -49,5 +49,5 @@ pub fn parse_nonce_account(account: &AccountData, metadata: EventMetadata) -> Op
 ///
 /// Nonce accounts have a discriminator of [1, 0, 0, 0, 1, 0, 0, 0]
 pub fn is_nonce_account(data: &[u8]) -> bool {
-    data.len() >= 8 && &data[0..8] == &[1, 0, 0, 0, 1, 0, 0, 0]
+    data.len() >= 8 && data[0..8] == [1, 0, 0, 0, 1, 0, 0, 0]
 }

@@ -64,6 +64,30 @@ pub fn fill_damm_v2_remove_liquidity_accounts(
     // 事件数据已包含主要信息
 }
 
+pub fn fill_damm_v2_initialize_pool_accounts(
+    e: &mut MeteoraDammV2InitializePoolEvent,
+    get: &AccountGetter<'_>,
+) {
+    if e.creator == Pubkey::default() {
+        e.creator = get(0);
+    }
+    if e.position_nft_mint == Pubkey::default() {
+        e.position_nft_mint = get(1);
+    }
+    if e.pool == Pubkey::default() {
+        e.pool = get(6);
+    }
+    if e.position == Pubkey::default() {
+        e.position = get(7);
+    }
+    if e.token_a_mint == Pubkey::default() {
+        e.token_a_mint = get(8);
+    }
+    if e.token_b_mint == Pubkey::default() {
+        e.token_b_mint = get(9);
+    }
+}
+
 // ============================================================================
 // Meteora Pools
 // ============================================================================

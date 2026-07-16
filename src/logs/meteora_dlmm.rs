@@ -62,6 +62,14 @@ fn parse_structured_log(
             block_time_us,
             grpc_recv_us,
         ),
+        discriminators::INITIALIZE_BIN_ARRAY_EVENT => parse_initialize_bin_array_event(
+            data,
+            signature,
+            slot,
+            tx_index,
+            block_time_us,
+            grpc_recv_us,
+        ),
         discriminators::INITIALIZE_POOL_EVENT => parse_initialize_pool_event(
             data,
             signature,
@@ -88,6 +96,247 @@ fn parse_structured_log(
     }
 }
 
+// =============================================================================
+// Public from_data parsers - Accept pre-decoded data, eliminate double decode
+// =============================================================================
+
+#[inline(always)]
+pub fn parse_swap_from_data(data: &[u8], metadata: EventMetadata) -> Option<DexEvent> {
+    let mut offset = 0;
+
+    let pool = read_pubkey(data, offset)?;
+    offset += 32;
+
+    let from = read_pubkey(data, offset)?;
+    offset += 32;
+
+    let start_bin_id = read_i32_le(data, offset)?;
+    offset += 4;
+
+    let end_bin_id = read_i32_le(data, offset)?;
+    offset += 4;
+
+    let amount_in = read_u64_le(data, offset)?;
+    offset += 8;
+
+    let amount_out = read_u64_le(data, offset)?;
+    offset += 8;
+
+    let swap_for_y = read_bool(data, offset)?;
+    offset += 1;
+
+    let fee = read_u64_le(data, offset)?;
+    offset += 8;
+
+    let protocol_fee = read_u64_le(data, offset)?;
+    offset += 8;
+
+    let fee_bps = read_u128_le(data, offset)?;
+    offset += 16;
+
+    let host_fee = read_u64_le(data, offset)?;
+
+    Some(DexEvent::MeteoraDlmmSwap(MeteoraDlmmSwapEvent {
+        metadata,
+        pool,
+        from,
+        start_bin_id,
+        end_bin_id,
+        amount_in,
+        amount_out,
+        swap_for_y,
+        fee,
+        protocol_fee,
+        fee_bps,
+        host_fee,
+    }))
+}
+
+#[inline(always)]
+pub fn parse_add_liquidity_from_data(data: &[u8], metadata: EventMetadata) -> Option<DexEvent> {
+    let mut offset = 0;
+
+    let pool = read_pubkey(data, offset)?;
+    offset += 32;
+
+    let from = read_pubkey(data, offset)?;
+    offset += 32;
+
+    let position = read_pubkey(data, offset)?;
+    offset += 32;
+
+    let amount_0 = read_u64_le(data, offset)?;
+    offset += 8;
+
+    let amount_1 = read_u64_le(data, offset)?;
+    offset += 8;
+
+    let active_bin_id = read_i32_le(data, offset)?;
+
+    Some(DexEvent::MeteoraDlmmAddLiquidity(MeteoraDlmmAddLiquidityEvent {
+        metadata,
+        pool,
+        from,
+        position,
+        amounts: [amount_0, amount_1],
+        active_bin_id,
+    }))
+}
+
+#[inline(always)]
+pub fn parse_remove_liquidity_from_data(data: &[u8], metadata: EventMetadata) -> Option<DexEvent> {
+    let mut offset = 0;
+
+    let pool = read_pubkey(data, offset)?;
+    offset += 32;
+
+    let from = read_pubkey(data, offset)?;
+    offset += 32;
+
+    let position = read_pubkey(data, offset)?;
+    offset += 32;
+
+    let amount_0 = read_u64_le(data, offset)?;
+    offset += 8;
+
+    let amount_1 = read_u64_le(data, offset)?;
+    offset += 8;
+
+    let active_bin_id = read_i32_le(data, offset)?;
+
+    Some(DexEvent::MeteoraDlmmRemoveLiquidity(MeteoraDlmmRemoveLiquidityEvent {
+        metadata,
+        pool,
+        from,
+        position,
+        amounts: [amount_0, amount_1],
+        active_bin_id,
+    }))
+}
+
+#[inline(always)]
+pub fn parse_initialize_pool_from_data(data: &[u8], metadata: EventMetadata) -> Option<DexEvent> {
+    let mut offset = 0;
+
+    let pool = read_pubkey(data, offset)?;
+    offset += 32;
+
+    let creator = read_pubkey(data, offset)?;
+    offset += 32;
+
+    let active_bin_id = read_i32_le(data, offset)?;
+    offset += 4;
+
+    let bin_step = read_u16_le(data, offset)?;
+
+    Some(DexEvent::MeteoraDlmmInitializePool(MeteoraDlmmInitializePoolEvent {
+        metadata,
+        pool,
+        creator,
+        active_bin_id,
+        bin_step,
+    }))
+}
+
+#[inline(always)]
+pub fn parse_initialize_bin_array_from_data(
+    data: &[u8],
+    metadata: EventMetadata,
+) -> Option<DexEvent> {
+    let mut offset = 0;
+
+    let pool = read_pubkey(data, offset)?;
+    offset += 32;
+
+    let bin_array = read_pubkey(data, offset)?;
+    offset += 32;
+
+    let index = read_i64_le(data, offset)?;
+
+    Some(DexEvent::MeteoraDlmmInitializeBinArray(MeteoraDlmmInitializeBinArrayEvent {
+        metadata,
+        pool,
+        bin_array,
+        index,
+    }))
+}
+
+#[inline(always)]
+pub fn parse_create_position_from_data(data: &[u8], metadata: EventMetadata) -> Option<DexEvent> {
+    let mut offset = 0;
+
+    let pool = read_pubkey(data, offset)?;
+    offset += 32;
+
+    let position = read_pubkey(data, offset)?;
+    offset += 32;
+
+    let owner = read_pubkey(data, offset)?;
+    offset += 32;
+
+    let lower_bin_id = read_i32_le(data, offset)?;
+    offset += 4;
+
+    let width = read_u32_le(data, offset)?;
+
+    Some(DexEvent::MeteoraDlmmCreatePosition(MeteoraDlmmCreatePositionEvent {
+        metadata,
+        pool,
+        position,
+        owner,
+        lower_bin_id,
+        width,
+    }))
+}
+
+#[inline(always)]
+pub fn parse_close_position_from_data(data: &[u8], metadata: EventMetadata) -> Option<DexEvent> {
+    let mut offset = 0;
+
+    let pool = read_pubkey(data, offset)?;
+    offset += 32;
+
+    let position = read_pubkey(data, offset)?;
+    offset += 32;
+
+    let owner = read_pubkey(data, offset)?;
+
+    Some(DexEvent::MeteoraDlmmClosePosition(MeteoraDlmmClosePositionEvent {
+        metadata,
+        pool,
+        position,
+        owner,
+    }))
+}
+
+#[inline(always)]
+pub fn parse_claim_fee_from_data(data: &[u8], metadata: EventMetadata) -> Option<DexEvent> {
+    let mut offset = 0;
+
+    let pool = read_pubkey(data, offset)?;
+    offset += 32;
+
+    let position = read_pubkey(data, offset)?;
+    offset += 32;
+
+    let owner = read_pubkey(data, offset)?;
+    offset += 32;
+
+    let fee_x = read_u64_le(data, offset)?;
+    offset += 8;
+
+    let fee_y = read_u64_le(data, offset)?;
+
+    Some(DexEvent::MeteoraDlmmClaimFee(MeteoraDlmmClaimFeeEvent {
+        metadata,
+        pool,
+        position,
+        owner,
+        fee_x,
+        fee_y,
+    }))
+}
+
 /// 解析交换事件
 fn parse_swap_event(
     data: &[u8],
@@ -105,10 +354,10 @@ fn parse_swap_event(
     let from = read_pubkey(data, offset)?;
     offset += 32;
 
-    let start_bin_id = read_u32_le(data, offset)? as i32;
+    let start_bin_id = read_i32_le(data, offset)?;
     offset += 4;
 
-    let end_bin_id = read_u32_le(data, offset)? as i32;
+    let end_bin_id = read_i32_le(data, offset)?;
     offset += 4;
 
     let amount_in = read_u64_le(data, offset)?;
@@ -176,7 +425,7 @@ fn parse_add_liquidity_event(
     let amount_1 = read_u64_le(data, offset)?;
     offset += 8;
 
-    let active_bin_id = read_u32_le(data, offset)? as i32;
+    let active_bin_id = read_i32_le(data, offset)?;
 
     let metadata =
         create_metadata_simple(signature, slot, tx_index, block_time_us, pool, grpc_recv_us);
@@ -217,7 +466,7 @@ fn parse_remove_liquidity_event(
     let amount_1 = read_u64_le(data, offset)?;
     offset += 8;
 
-    let active_bin_id = read_u32_le(data, offset)? as i32;
+    let active_bin_id = read_i32_le(data, offset)?;
 
     let metadata =
         create_metadata_simple(signature, slot, tx_index, block_time_us, pool, grpc_recv_us);
@@ -249,7 +498,7 @@ fn parse_initialize_pool_event(
     let creator = read_pubkey(data, offset)?;
     offset += 32;
 
-    let active_bin_id = read_u32_le(data, offset)? as i32;
+    let active_bin_id = read_i32_le(data, offset)?;
     offset += 4;
 
     let bin_step = read_u16_le(data, offset)?;
@@ -263,6 +512,36 @@ fn parse_initialize_pool_event(
         creator,
         active_bin_id,
         bin_step,
+    }))
+}
+
+/// 解析 Bin Array 初始化事件
+fn parse_initialize_bin_array_event(
+    data: &[u8],
+    signature: Signature,
+    slot: u64,
+    tx_index: u64,
+    block_time_us: Option<i64>,
+    grpc_recv_us: i64,
+) -> Option<DexEvent> {
+    let mut offset = 0;
+
+    let pool = read_pubkey(data, offset)?;
+    offset += 32;
+
+    let bin_array = read_pubkey(data, offset)?;
+    offset += 32;
+
+    let index = read_i64_le(data, offset)?;
+
+    let metadata =
+        create_metadata_simple(signature, slot, tx_index, block_time_us, pool, grpc_recv_us);
+
+    Some(DexEvent::MeteoraDlmmInitializeBinArray(MeteoraDlmmInitializeBinArrayEvent {
+        metadata,
+        pool,
+        bin_array,
+        index,
     }))
 }
 
@@ -286,7 +565,7 @@ fn parse_create_position_event(
     let owner = read_pubkey(data, offset)?;
     offset += 32;
 
-    let lower_bin_id = read_u32_le(data, offset)? as i32;
+    let lower_bin_id = read_i32_le(data, offset)?;
     offset += 4;
 
     let width = read_u32_le(data, offset)?;

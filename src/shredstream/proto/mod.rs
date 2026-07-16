@@ -50,6 +50,18 @@ pub mod shredstream {
             Self { inner }
         }
 
+        /// 设置最大解码消息大小
+        pub fn max_decoding_message_size(mut self, limit: usize) -> Self {
+            self.inner = self.inner.max_decoding_message_size(limit);
+            self
+        }
+
+        /// 设置最大编码消息大小
+        pub fn max_encoding_message_size(mut self, limit: usize) -> Self {
+            self.inner = self.inner.max_encoding_message_size(limit);
+            self
+        }
+
         /// 订阅 Entry 流
         pub async fn subscribe_entries(
             &mut self,
@@ -59,7 +71,7 @@ pub mod shredstream {
             self.inner.ready().await.map_err(|e| {
                 tonic::Status::unknown(format!("Service was not ready: {}", e.into()))
             })?;
-            let codec = tonic_prost::ProstCodec::default();
+            let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/shredstream.ShredstreamProxy/SubscribeEntries",
             );

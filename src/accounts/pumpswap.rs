@@ -73,8 +73,8 @@ pub fn parse_global_config(account: &AccountData, metadata: EventMetadata) -> Op
 
     // 读取 8 个 protocol_fee_recipients
     let mut protocol_fee_recipients = [solana_sdk::pubkey::Pubkey::default(); 8];
-    for i in 0..8 {
-        protocol_fee_recipients[i] = read_pubkey(data, offset)?;
+    for protocol_fee_recipient in &mut protocol_fee_recipients {
+        *protocol_fee_recipient = read_pubkey(data, offset)?;
         offset += 32;
     }
 
@@ -95,8 +95,8 @@ pub fn parse_global_config(account: &AccountData, metadata: EventMetadata) -> Op
 
     // 读取 7 个 reserved_fee_recipients
     let mut reserved_fee_recipients = [solana_sdk::pubkey::Pubkey::default(); 7];
-    for i in 0..7 {
-        reserved_fee_recipients[i] = read_pubkey(data, offset)?;
+    for reserved_fee_recipient in &mut reserved_fee_recipients {
+        *reserved_fee_recipient = read_pubkey(data, offset)?;
         offset += 32;
     }
 

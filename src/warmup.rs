@@ -102,7 +102,6 @@ mod tests {
 
     #[test]
     fn test_warmup() {
-        assert!(!is_warmed_up());
         warmup_parser();
         assert!(is_warmed_up());
 

@@ -18,22 +18,27 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 async fn run_dynamic_subscription_example() -> Result<(), Box<dyn std::error::Error>> {
     // 创建配置
-    let mut config: ClientConfig = ClientConfig::default();
-    config.enable_metrics = true;
-    config.connection_timeout_ms = 10000;
-    config.request_timeout_ms = 30000;
-    config.enable_tls = true;
+    let config = ClientConfig {
+        enable_metrics: true,
+        connection_timeout_ms: 10000,
+        request_timeout_ms: 30000,
+        enable_tls: true,
+        ..Default::default()
+    };
 
-    const GRPC_ENDPOINT: &str = "https://solana-yellowstone-grpc.publicnode.com:443";
-    const GRPC_AUTH_TOKEN: &str =
+    const GRPC_ENDPOINT_DEFAULT: &str = "https://solana-yellowstone-grpc.publicnode.com:443";
+    const GRPC_AUTH_TOKEN_DEFAULT: &str =
         "cd1c3642f88c86f9f8e7f15831faf9f067b997c6ac2b72c81d115e8d071af77a";
-    let grpc = YellowstoneGrpc::new_with_config(
-        GRPC_ENDPOINT.to_string(),
-        Some(std::env::var("GRPC_AUTH_TOKEN").unwrap_or_else(|_| GRPC_AUTH_TOKEN.to_string())),
-        config,
-    )?;
+    let grpc_endpoint = std::env::var("GRPC_ENDPOINT")
+        .or_else(|_| std::env::var("GRPC_URL"))
+        .unwrap_or_else(|_| GRPC_ENDPOINT_DEFAULT.to_string());
+    let grpc_token = std::env::var("GRPC_AUTH_TOKEN")
+        .or_else(|_| std::env::var("GRPC_TOKEN"))
+        .unwrap_or_else(|_| GRPC_AUTH_TOKEN_DEFAULT.to_string());
+    let grpc = YellowstoneGrpc::new_with_config(grpc_endpoint.clone(), Some(grpc_token), config)?;
 
     println!("✅ gRPC client created successfully\n");
+    println!("📡 Endpoint: {}\n", grpc_endpoint);
 
     // ==========================================
     // 阶段 1: 初始订阅 - 仅监控 PumpFun
@@ -75,13 +80,13 @@ async fn run_dynamic_subscription_example() -> Result<(), Box<dyn std::error::Er
                     _ => "",
                 };
 
-                if current_protocol != "" && current_protocol != last_protocol {
+                if !current_protocol.is_empty() && current_protocol != last_protocol {
                     println!("📦 [Event #{}] Received: {}", event_count, current_protocol);
                     last_protocol = current_protocol.to_string();
                 }
 
                 // 每 50 个事件打印一次统计
-                if event_count % 50 == 0 {
+                if event_count.is_multiple_of(50) {
                     println!("📈 Total events received: {}", event_count);
                 }
             } else {
@@ -108,8 +113,8 @@ async fn run_dynamic_subscription_example() -> Result<(), Box<dyn std::error::Er
     println!("🔄 Updating subscription dynamically (no reconnection)...");
     grpc.update_subscription(vec![updated_tx_filter], vec![updated_acc_filter]).await?;
 
-    println!("✅ Subscription updated (RaydiumCpmm only)\n");
-    println!("⏳ Monitoring RaydiumCpmm for 15 seconds...\n");
+    println!("✅ Subscription updated (PumpSwap only)\n");
+    println!("⏳ Monitoring PumpSwap for 15 seconds...\n");
     tokio::time::sleep(tokio::time::Duration::from_secs(15)).await;
 
     // ==========================================
@@ -124,7 +129,7 @@ async fn run_dynamic_subscription_example() -> Result<(), Box<dyn std::error::Er
     println!("✅ Dynamic subscription example completed successfully!");
     println!("\n🎉 Summary:");
     println!("  • Phase 1: PumpFun only (15s)");
-    println!("  • Phase 2: RaydiumCpmm only (15s)");
+    println!("  • Phase 2: PumpSwap only (15s)");
     println!("\n✨ Protocol switched without reconnection!");
 
     Ok(())

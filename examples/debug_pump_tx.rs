@@ -100,7 +100,7 @@ fn main() {
                     vec![]
                 };
 
-            for (_idx, inner_group) in inner.iter().enumerate() {
+            for inner_group in inner.iter() {
                 println!(
                     "\nOuter instruction #{}, {} inner instructions:",
                     inner_group.index,
@@ -165,7 +165,7 @@ fn main() {
         let versioned_tx: solana_sdk::transaction::VersionedTransaction =
             bincode::deserialize(&bytes).unwrap();
 
-        let _msg = match &versioned_tx.message {
+        match &versioned_tx.message {
             solana_sdk::message::VersionedMessage::Legacy(m) => {
                 println!("Message type: Legacy");
                 println!("Account keys: {}", m.account_keys.len());

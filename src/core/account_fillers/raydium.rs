@@ -27,6 +27,12 @@ pub fn fill_clmm_swap_accounts(e: &mut RaydiumClmmSwapEvent, get: &AccountGetter
     if e.sender == Pubkey::default() {
         e.sender = get(0);
     }
+    if e.token_account_0 == Pubkey::default() {
+        e.token_account_0 = get(3);
+    }
+    if e.token_account_1 == Pubkey::default() {
+        e.token_account_1 = get(4);
+    }
 }
 
 /// Raydium CLMM Create Pool 账户填充
@@ -47,7 +53,21 @@ pub fn fill_clmm_create_pool_accounts(e: &mut RaydiumClmmCreatePoolEvent, get: &
     if e.creator == Pubkey::default() {
         e.creator = get(0);
     }
-    // pool, token_0_mint, token_1_mint 已从事件数据解析
+    if e.pool == Pubkey::default() {
+        e.pool = get(2);
+    }
+    if e.token_0_mint == Pubkey::default() {
+        e.token_0_mint = get(3);
+    }
+    if e.token_1_mint == Pubkey::default() {
+        e.token_1_mint = get(4);
+    }
+    if e.token_vault_0 == Pubkey::default() {
+        e.token_vault_0 = get(5);
+    }
+    if e.token_vault_1 == Pubkey::default() {
+        e.token_vault_1 = get(6);
+    }
 }
 
 /// Raydium CLMM Open Position 账户填充
@@ -73,12 +93,14 @@ pub fn fill_clmm_open_position_accounts(
     get: &AccountGetter<'_>,
 ) {
     if e.user == Pubkey::default() {
-        e.user = get(0); // payer
+        e.user = get(1);
     }
     if e.position_nft_mint == Pubkey::default() {
         e.position_nft_mint = get(2);
     }
-    // pool, tick_lower_index, tick_upper_index, liquidity 需要从链上或日志解析
+    if e.pool == Pubkey::default() {
+        e.pool = get(5);
+    }
 }
 
 /// Raydium CLMM Close Position 账户填充
@@ -125,7 +147,12 @@ pub fn fill_clmm_increase_liquidity_accounts(
     if e.user == Pubkey::default() {
         e.user = get(0);
     }
-    // pool, position_nft_mint, liquidity 已从事件数据解析
+    if e.position_nft_mint == Pubkey::default() {
+        e.position_nft_mint = get(1);
+    }
+    if e.pool == Pubkey::default() {
+        e.pool = get(2);
+    }
 }
 
 /// Raydium CLMM Decrease Liquidity 账户填充
@@ -150,7 +177,12 @@ pub fn fill_clmm_decrease_liquidity_accounts(
     if e.user == Pubkey::default() {
         e.user = get(0);
     }
-    // pool, position_nft_mint, liquidity 已从事件数据解析
+    if e.position_nft_mint == Pubkey::default() {
+        e.position_nft_mint = get(1);
+    }
+    if e.pool == Pubkey::default() {
+        e.pool = get(3);
+    }
 }
 
 // ============================================================================

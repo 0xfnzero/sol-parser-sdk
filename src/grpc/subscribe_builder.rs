@@ -4,10 +4,10 @@ use std::collections::HashMap;
 
 use yellowstone_grpc_proto::prelude::{
     CommitmentLevel, SubscribeRequest, SubscribeRequestFilterAccounts,
-    SubscribeRequestFilterTransactions,
+    SubscribeRequestFilterBlocksMeta, SubscribeRequestFilterTransactions,
 };
 
-use super::types::{AccountFilter, TransactionFilter};
+use super::types::{AccountFilter, EventTypeFilter, TransactionFilter};
 
 #[inline]
 fn tx_filter_to_proto(f: &TransactionFilter) -> SubscribeRequestFilterTransactions {
@@ -28,12 +28,14 @@ fn acc_filter_to_proto(f: &AccountFilter) -> SubscribeRequestFilterAccounts {
         owner: f.owner.clone(),
         filters: f.filters.clone(),
         nonempty_txn_signature: None,
+        cuckoo_accounts_filter: None,
     }
 }
 
 fn finalize(
     transactions: HashMap<String, SubscribeRequestFilterTransactions>,
     accounts: HashMap<String, SubscribeRequestFilterAccounts>,
+    blocks_meta: HashMap<String, SubscribeRequestFilterBlocksMeta>,
     commitment: CommitmentLevel,
 ) -> SubscribeRequest {
     SubscribeRequest {
@@ -42,7 +44,7 @@ fn finalize(
         transactions,
         transactions_status: HashMap::new(),
         blocks: HashMap::new(),
-        blocks_meta: HashMap::new(),
+        blocks_meta,
         entry: HashMap::new(),
         commitment: Some(commitment as i32),
         accounts_data_slice: Vec::new(),
@@ -65,6 +67,16 @@ pub fn build_subscribe_request_with_commitment(
     acc_filters: &[AccountFilter],
     commitment: CommitmentLevel,
 ) -> SubscribeRequest {
+    build_subscribe_request_with_event_filter(tx_filters, acc_filters, None, commitment)
+}
+
+/// 与 [`build_subscribe_request_with_commitment`] 相同，但会按事件过滤器订阅区块元数据。
+pub fn build_subscribe_request_with_event_filter(
+    tx_filters: &[TransactionFilter],
+    acc_filters: &[AccountFilter],
+    event_type_filter: Option<&EventTypeFilter>,
+    commitment: CommitmentLevel,
+) -> SubscribeRequest {
     let transactions = tx_filters
         .iter()
         .enumerate()
@@ -75,7 +87,12 @@ pub fn build_subscribe_request_with_commitment(
         .enumerate()
         .map(|(i, f)| (format!("acc_{}", i), acc_filter_to_proto(f)))
         .collect();
-    finalize(transactions, accounts, commitment)
+    let blocks_meta = if event_type_filter.map(|f| f.includes_block_meta()).unwrap_or(false) {
+        HashMap::from([("block_meta".to_string(), SubscribeRequestFilterBlocksMeta {})])
+    } else {
+        HashMap::new()
+    };
+    finalize(transactions, accounts, blocks_meta, commitment)
 }
 
 /// 自定义交易订阅在 `SubscribeRequest.transactions` 中的 key（便于日志区分多条订阅）。
@@ -93,5 +110,30 @@ pub fn build_subscribe_transaction_filters_named<N: AsRef<str>>(
         .enumerate()
         .map(|(i, f)| (format!("acc_{}", i), acc_filter_to_proto(f)))
         .collect();
-    finalize(transactions, accounts, commitment)
+    finalize(transactions, accounts, HashMap::new(), commitment)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::grpc::types::EventType;
+
+    #[test]
+    fn event_filter_controls_block_meta_subscription() {
+        let without_block_meta = build_subscribe_request_with_event_filter(
+            &[],
+            &[],
+            Some(&EventTypeFilter::include_only(vec![EventType::PumpFunTrade])),
+            CommitmentLevel::Processed,
+        );
+        assert!(without_block_meta.blocks_meta.is_empty());
+
+        let with_block_meta = build_subscribe_request_with_event_filter(
+            &[],
+            &[],
+            Some(&EventTypeFilter::include_only(vec![EventType::BlockMeta])),
+            CommitmentLevel::Processed,
+        );
+        assert_eq!(with_block_meta.blocks_meta.len(), 1);
+    }
 }

@@ -1,3 +1,5 @@
+#![allow(clippy::too_many_arguments)]
+
 // 核心模块 - 扁平化结构
 pub mod accounts; // 账户解析器
 pub mod common;
@@ -10,7 +12,7 @@ pub mod warmup; // 预热模块
 // gRPC 模块 - 支持gRPC订阅和过滤
 pub mod grpc;
 
-// ShredStream 模块 - Jito ShredStream 超低延迟交易订阅
+// ShredStream 模块 - 支持 Jito ShredStream 订阅
 pub mod shredstream;
 
 // RPC 解析模块 - 支持直接从RPC解析交易

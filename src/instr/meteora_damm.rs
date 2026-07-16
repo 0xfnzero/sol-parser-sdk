@@ -15,6 +15,7 @@ pub mod discriminators {
     pub const CLOSE_POSITION_LOG: [u8; 8] = [20, 145, 144, 68, 143, 142, 214, 178];
     pub const ADD_LIQUIDITY_LOG: [u8; 8] = [175, 242, 8, 157, 30, 247, 185, 169];
     pub const REMOVE_LIQUIDITY_LOG: [u8; 8] = [87, 46, 88, 98, 175, 96, 34, 91];
+    pub const INITIALIZE_POOL: [u8; 8] = [95, 180, 10, 172, 84, 174, 232, 40];
 }
 
 /// Meteora DAMM 程序 ID
@@ -38,6 +39,18 @@ pub fn parse_instruction(
     let discriminator: [u8; 8] = instruction_data[0..8].try_into().ok()?;
     let data = &instruction_data[8..];
 
+    if discriminator == discriminators::INITIALIZE_POOL {
+        return parse_initialize_pool_outer_instruction(
+            data,
+            accounts,
+            signature,
+            slot,
+            tx_index,
+            block_time_us,
+            grpc_recv_us,
+        );
+    }
+
     if instruction_data.len() < 16 {
         return None;
     }
@@ -46,74 +59,104 @@ pub fn parse_instruction(
     let cpi_data = &instruction_data[16..];
 
     match cpi_discriminator {
-        discriminators::SWAP_LOG => {
-            return parse_swap_log_instruction(
-                cpi_data,
-                accounts,
-                signature,
-                slot,
-                tx_index,
-                block_time_us,
-                grpc_recv_us,
-            )
-        }
-        discriminators::SWAP2_LOG => {
-            return parse_swap2_log_instruction(
-                cpi_data,
-                accounts,
-                signature,
-                slot,
-                tx_index,
-                block_time_us,
-                grpc_recv_us,
-            )
-        }
-        discriminators::CREATE_POSITION_LOG => {
-            return parse_create_position_log_instruction(
-                cpi_data,
-                accounts,
-                signature,
-                slot,
-                tx_index,
-                block_time_us,
-                grpc_recv_us,
-            );
-        }
-        discriminators::CLOSE_POSITION_LOG => {
-            return parse_close_position_log_instruction(
-                data,
-                accounts,
-                signature,
-                slot,
-                tx_index,
-                block_time_us,
-                grpc_recv_us,
-            );
-        }
-        discriminators::ADD_LIQUIDITY_LOG => {
-            return parse_add_liquidity_log_instruction(
-                cpi_data,
-                accounts,
-                signature,
-                slot,
-                tx_index,
-                block_time_us,
-                grpc_recv_us,
-            );
-        }
-        discriminators::REMOVE_LIQUIDITY_LOG => {
-            return parse_remove_liquidity_log_instruction(
-                cpi_data,
-                accounts,
-                signature,
-                slot,
-                tx_index,
-                block_time_us,
-                grpc_recv_us,
-            );
-        }
+        discriminators::SWAP_LOG => parse_swap_log_instruction(
+            cpi_data,
+            accounts,
+            signature,
+            slot,
+            tx_index,
+            block_time_us,
+            grpc_recv_us,
+        ),
+        discriminators::SWAP2_LOG => parse_swap2_log_instruction(
+            cpi_data,
+            accounts,
+            signature,
+            slot,
+            tx_index,
+            block_time_us,
+            grpc_recv_us,
+        ),
+        discriminators::CREATE_POSITION_LOG => parse_create_position_log_instruction(
+            cpi_data,
+            accounts,
+            signature,
+            slot,
+            tx_index,
+            block_time_us,
+            grpc_recv_us,
+        ),
+        discriminators::CLOSE_POSITION_LOG => parse_close_position_log_instruction(
+            data,
+            accounts,
+            signature,
+            slot,
+            tx_index,
+            block_time_us,
+            grpc_recv_us,
+        ),
+        discriminators::ADD_LIQUIDITY_LOG => parse_add_liquidity_log_instruction(
+            cpi_data,
+            accounts,
+            signature,
+            slot,
+            tx_index,
+            block_time_us,
+            grpc_recv_us,
+        ),
+        discriminators::REMOVE_LIQUIDITY_LOG => parse_remove_liquidity_log_instruction(
+            cpi_data,
+            accounts,
+            signature,
+            slot,
+            tx_index,
+            block_time_us,
+            grpc_recv_us,
+        ),
         _ => None,
     }
+}
+
+/// 解析外层 initialize_pool 指令
+#[allow(unused_variables)]
+fn parse_initialize_pool_outer_instruction(
+    data: &[u8],
+    accounts: &[Pubkey],
+    signature: Signature,
+    slot: u64,
+    tx_index: u64,
+    block_time_us: Option<i64>,
+    grpc_recv_us: i64,
+) -> Option<DexEvent> {
+    if data.len() < 33 || accounts.len() < 10 {
+        return None;
+    }
+
+    let liquidity = read_u128_le(data, 0)?;
+    let sqrt_price = read_u128_le(data, 16)?;
+    let activation_point = match read_u8(data, 32)? {
+        0 => None,
+        1 => Some(read_u64_le(data, 33)?),
+        _ => return None,
+    };
+
+    let pool = accounts.get(6).copied().unwrap_or_default();
+    let metadata =
+        create_metadata(signature, slot, tx_index, block_time_us.unwrap_or_default(), grpc_recv_us);
+
+    Some(DexEvent::MeteoraDammV2InitializePool(MeteoraDammV2InitializePoolEvent {
+        metadata,
+        creator: accounts.first().copied().unwrap_or_default(),
+        position_nft_mint: accounts.get(1).copied().unwrap_or_default(),
+        pool,
+        position: accounts.get(7).copied().unwrap_or_default(),
+        token_a_mint: accounts.get(8).copied().unwrap_or_default(),
+        token_b_mint: accounts.get(9).copied().unwrap_or_default(),
+        liquidity,
+        sqrt_price,
+        activation_point,
+        ..Default::default()
+    }))
 }
 
 /// 解析 Swap 指令
@@ -530,4 +573,37 @@ fn parse_remove_liquidity_log_instruction(
         token_a_amount,
         token_b_amount,
     }))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parses_outer_initialize_pool_instruction() {
+        let mut data = Vec::from(discriminators::INITIALIZE_POOL);
+        data.extend_from_slice(&123u128.to_le_bytes());
+        data.extend_from_slice(&456u128.to_le_bytes());
+        data.push(1);
+        data.extend_from_slice(&789u64.to_le_bytes());
+
+        let accounts: Vec<Pubkey> = (0..10).map(|i| Pubkey::new_from_array([i; 32])).collect();
+        let event = parse_instruction(&data, &accounts, Signature::default(), 1, 2, Some(3), 4)
+            .expect("initialize pool event");
+
+        match event {
+            DexEvent::MeteoraDammV2InitializePool(event) => {
+                assert_eq!(event.creator, accounts[0]);
+                assert_eq!(event.position_nft_mint, accounts[1]);
+                assert_eq!(event.pool, accounts[6]);
+                assert_eq!(event.position, accounts[7]);
+                assert_eq!(event.token_a_mint, accounts[8]);
+                assert_eq!(event.token_b_mint, accounts[9]);
+                assert_eq!(event.liquidity, 123);
+                assert_eq!(event.sqrt_price, 456);
+                assert_eq!(event.activation_point, Some(789));
+            }
+            other => panic!("unexpected event: {other:?}"),
+        }
+    }
 }

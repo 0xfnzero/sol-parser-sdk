@@ -8,7 +8,7 @@ This document compares **sol-parser-sdk** with **solana-streamer** and describes
 |--------|------------------|----------------|
 | Yellowstone gRPC | ✅ | ✅ |
 | **ShredStream** | ✅ | ❌ (candidate for future migration) |
-| Transaction event parsing | ✅ | ✅ (same protocols: PumpFun, PumpSwap, Bonk, Raydium, Meteora) |
+| Transaction event parsing | ✅ | ✅ (same protocols: PumpFun, PumpSwap, RaydiumLaunchlab, Raydium, Meteora) |
 | Account subscription | ✅ | ✅ |
 | Account memcmp filters | ✅ | ✅ (`account_filter_memcmp`, see below) |
 | TokenAccount / NonceAccount / PumpSwapPool account events | ✅ | ✅ |

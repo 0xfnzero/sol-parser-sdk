@@ -1,10 +1,9 @@
 //! 零拷贝解析器 - 极致性能优化
 
-use super::perf_hints::prefetch_read;
 use crate::core::events::*;
 use base64::{engine::general_purpose, Engine as _};
 use memchr::memmem;
-use solana_sdk::{pubkey::Pubkey, signature::Signature};
+use solana_sdk::signature::Signature;
 
 /// 零分配 PumpFun Trade 事件解析（栈缓冲区）
 #[inline(always)]
@@ -17,9 +16,9 @@ pub fn parse_pumpfun_trade(
     grpc_recv_us: i64,
     is_created_buy: bool,
 ) -> Option<DexEvent> {
-    // 使用栈缓冲区，避免堆分配（需要足够大以容纳完整的事件数据）
-    // PumpFun Trade 事件最大约 350 base64 字符 = 262字节，留出余量用 512 字节
-    const MAX_DECODE_SIZE: usize = 512;
+    // 使用栈缓冲区，避免堆分配。当前 TradeEvent tail 含 shareholders Vec，
+    // 需要比旧固定布局更大的缓冲区。
+    const MAX_DECODE_SIZE: usize = 4096;
     let mut decode_buf: [u8; MAX_DECODE_SIZE] = [0u8; MAX_DECODE_SIZE];
 
     // SIMD 快速查找 "Program data: "
@@ -53,79 +52,9 @@ pub fn parse_pumpfun_trade(
     let decoded_len =
         general_purpose::STANDARD.decode_slice(data_part.as_bytes(), &mut decode_buf).ok()?;
 
-    if decoded_len < 96 {
+    if decoded_len < 8 {
         return None;
     }
-
-    let data = &decode_buf[8..decoded_len];
-    let mut offset = 0;
-
-    // 预取后续数据到 CPU 缓存
-    unsafe {
-        if data.len() >= 64 {
-            prefetch_read(data.as_ptr().add(32));
-        }
-    }
-
-    // 快速解析字段（内联读取，避免函数调用开销）
-    let mint = read_pubkey_inline(data, offset)?;
-    offset += 32;
-
-    let sol_amount = read_u64_le_inline(data, offset)?;
-    offset += 8;
-
-    let token_amount = read_u64_le_inline(data, offset)?;
-    offset += 8;
-
-    let is_buy = read_u8_inline(data, offset)?;
-    offset += 1;
-
-    let user = read_pubkey_inline(data, offset)?;
-    offset += 32;
-
-    let timestamp = read_i64_le_inline(data, offset)?;
-    offset += 8;
-
-    let virtual_sol_reserves = read_u64_le_inline(data, offset)?;
-    offset += 8;
-
-    let virtual_token_reserves = read_u64_le_inline(data, offset)?;
-    offset += 8;
-
-    let real_sol_reserves = read_u64_le_inline(data, offset).unwrap_or(0);
-    offset += 8;
-
-    let real_token_reserves = read_u64_le_inline(data, offset).unwrap_or(0);
-    offset += 8;
-
-    let fee_recipient = read_pubkey_inline(data, offset).unwrap_or_default();
-    offset += 32;
-
-    let fee_basis_points = read_u64_le_inline(data, offset).unwrap_or(0);
-    offset += 8;
-
-    let fee = read_u64_le_inline(data, offset).unwrap_or(0);
-    offset += 8;
-
-    let creator = read_pubkey_inline(data, offset).unwrap_or_default();
-    offset += 32;
-
-    let creator_fee_basis_points = read_u64_le_inline(data, offset).unwrap_or(0);
-    offset += 8;
-
-    let creator_fee = read_u64_le_inline(data, offset).unwrap_or(0);
-    offset += 8;
-
-    let track_volume = read_u8_inline(data, offset).unwrap_or(0) != 0;
-    offset += 1;
-
-    let total_unclaimed_tokens = read_u64_le_inline(data, offset).unwrap_or(0);
-    offset += 8;
-
-    let total_claimed_tokens = read_u64_le_inline(data, offset).unwrap_or(0);
-    offset += 8;
-
-    let current_sol_volume = read_u64_le_inline(data, offset).unwrap_or(0);
 
     let metadata = EventMetadata {
         signature,
@@ -136,71 +65,93 @@ pub fn parse_pumpfun_trade(
         recent_blockhash: None,
     };
 
-    Some(DexEvent::PumpFunTrade(PumpFunTradeEvent {
-        metadata,
-        mint,
-        sol_amount,
-        token_amount,
-        is_buy: is_buy != 0,
-        is_created_buy,
-        user,
-        timestamp,
-        virtual_sol_reserves,
-        virtual_token_reserves,
-        real_sol_reserves,
-        real_token_reserves,
-        fee_recipient,
-        fee_basis_points,
-        fee,
-        creator,
-        creator_fee_basis_points,
-        creator_fee,
-        track_volume,
-        total_unclaimed_tokens,
-        total_claimed_tokens,
-        current_sol_volume,
-        ..Default::default()
-    }))
+    crate::logs::pump::parse_trade_from_data(&decode_buf[8..decoded_len], metadata, is_created_buy)
 }
 
-/// 内联读取 Pubkey（避免函数调用）
-#[inline(always)]
-fn read_pubkey_inline(data: &[u8], offset: usize) -> Option<Pubkey> {
-    if offset + 32 <= data.len() {
-        let mut bytes = [0u8; 32];
-        bytes.copy_from_slice(&data[offset..offset + 32]);
-        Some(Pubkey::new_from_array(bytes))
-    } else {
-        None
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use solana_sdk::pubkey::Pubkey;
+
+    fn push_u64(out: &mut Vec<u8>, value: u64) {
+        out.extend_from_slice(&value.to_le_bytes());
     }
-}
 
-/// 内联读取 u64（避免函数调用）
-#[inline(always)]
-fn read_u64_le_inline(data: &[u8], offset: usize) -> Option<u64> {
-    if offset + 8 <= data.len() {
-        let mut bytes = [0u8; 8];
-        bytes.copy_from_slice(&data[offset..offset + 8]);
-        Some(u64::from_le_bytes(bytes))
-    } else {
-        None
+    fn push_i64(out: &mut Vec<u8>, value: i64) {
+        out.extend_from_slice(&value.to_le_bytes());
     }
-}
 
-/// 内联读取 i64（避免函数调用）
-#[inline(always)]
-fn read_i64_le_inline(data: &[u8], offset: usize) -> Option<i64> {
-    if offset + 8 <= data.len() {
-        let mut bytes = [0u8; 8];
-        bytes.copy_from_slice(&data[offset..offset + 8]);
-        Some(i64::from_le_bytes(bytes))
-    } else {
-        None
+    fn push_pubkey(out: &mut Vec<u8>, value: Pubkey) {
+        out.extend_from_slice(value.as_ref());
     }
-}
 
-/// 内联读取 u8（避免函数调用）
-#[inline(always)]
-fn read_u8_inline(data: &[u8], offset: usize) -> Option<u8> {
-    data.get(offset).copied()
+    fn trade_log_with_latest_tail(quote_mint: Pubkey, shareholder: Pubkey) -> String {
+        let mut data = Vec::new();
+        data.extend_from_slice(&[189, 219, 127, 211, 78, 230, 97, 238]);
+        push_pubkey(&mut data, Pubkey::new_unique()); // mint
+        push_u64(&mut data, 1_000); // sol_amount
+        push_u64(&mut data, 2_000); // token_amount
+        data.push(1); // is_buy
+        push_pubkey(&mut data, Pubkey::new_unique()); // user
+        push_i64(&mut data, 123); // timestamp
+        push_u64(&mut data, 10); // virtual_sol_reserves
+        push_u64(&mut data, 20); // virtual_token_reserves
+        push_u64(&mut data, 30); // real_sol_reserves
+        push_u64(&mut data, 40); // real_token_reserves
+        push_pubkey(&mut data, Pubkey::new_unique()); // fee_recipient
+        push_u64(&mut data, 50); // fee_basis_points
+        push_u64(&mut data, 60); // fee
+        push_pubkey(&mut data, Pubkey::new_unique()); // creator
+        push_u64(&mut data, 70); // creator_fee_basis_points
+        push_u64(&mut data, 80); // creator_fee
+        data.push(1); // track_volume
+        push_u64(&mut data, 90); // total_unclaimed_tokens
+        push_u64(&mut data, 100); // total_claimed_tokens
+        push_u64(&mut data, 110); // current_sol_volume
+        push_i64(&mut data, 120); // last_update_timestamp
+        data.extend_from_slice(&(6u32).to_le_bytes());
+        data.extend_from_slice(b"buy_v2");
+        data.push(1); // mayhem_mode
+        push_u64(&mut data, 130); // cashback_fee_basis_points
+        push_u64(&mut data, 140); // cashback
+        push_u64(&mut data, 150); // buyback_fee_basis_points
+        push_u64(&mut data, 160); // buyback_fee
+        data.extend_from_slice(&(1u32).to_le_bytes()); // shareholders len
+        push_pubkey(&mut data, shareholder);
+        data.extend_from_slice(&(250u16).to_le_bytes());
+        push_pubkey(&mut data, quote_mint);
+        push_u64(&mut data, 170); // quote_amount
+        push_u64(&mut data, 180); // virtual_quote_reserves
+        push_u64(&mut data, 190); // real_quote_reserves
+
+        format!("Program data: {}", general_purpose::STANDARD.encode(data))
+    }
+
+    #[test]
+    fn public_zero_copy_trade_parser_keeps_latest_tail_fields() {
+        let quote_mint = Pubkey::new_unique();
+        let shareholder = Pubkey::new_unique();
+        let log = trade_log_with_latest_tail(quote_mint, shareholder);
+        let event = parse_pumpfun_trade(&log, Signature::default(), 1, 0, Some(2), 3, true)
+            .expect("trade log");
+
+        match event {
+            DexEvent::PumpFunBuy(t) => {
+                assert_eq!(t.sol_amount, 1_000);
+                assert_eq!(t.token_amount, 2_000);
+                assert_eq!(t.ix_name, "buy_v2");
+                assert_eq!(t.buyback_fee_basis_points, 150);
+                assert_eq!(t.buyback_fee, 160);
+                assert_eq!(t.shareholders.len(), 1);
+                assert_eq!(t.shareholders[0].address, shareholder);
+                assert_eq!(t.shareholders[0].share_bps, 250);
+                assert_eq!(t.quote_mint, quote_mint);
+                assert_eq!(t.quote_amount, 170);
+                assert_eq!(t.virtual_quote_reserves, 180);
+                assert_eq!(t.real_quote_reserves, 190);
+                assert!(t.is_created_buy);
+            }
+            other => panic!("expected buy event, got {other:?}"),
+        }
+    }
 }

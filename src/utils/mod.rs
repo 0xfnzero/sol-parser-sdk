@@ -5,6 +5,8 @@
 // TODO: 实现性能和验证模块
 // pub mod performance;
 // pub mod validation;
+pub mod market;
 
 // pub use performance::*;
 // pub use validation::*;
+pub use market::*;

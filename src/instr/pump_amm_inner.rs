@@ -81,12 +81,12 @@ pub fn parse_pumpswap_inner_instruction(
     data: &[u8],
     metadata: EventMetadata,
 ) -> Option<DexEvent> {
-    match discriminator {
-        &discriminators::BUY => parse_buy_inner(data, metadata),
-        &discriminators::SELL => parse_sell_inner(data, metadata),
-        &discriminators::CREATE_POOL => parse_create_pool_inner(data, metadata),
-        &discriminators::ADD_LIQUIDITY => parse_add_liquidity_inner(data, metadata),
-        &discriminators::REMOVE_LIQUIDITY => parse_remove_liquidity_inner(data, metadata),
+    match *discriminator {
+        discriminators::BUY => parse_buy_inner(data, metadata),
+        discriminators::SELL => parse_sell_inner(data, metadata),
+        discriminators::CREATE_POOL => parse_create_pool_inner(data, metadata),
+        discriminators::ADD_LIQUIDITY => parse_add_liquidity_inner(data, metadata),
+        discriminators::REMOVE_LIQUIDITY => parse_remove_liquidity_inner(data, metadata),
         _ => None,
     }
 }
@@ -100,7 +100,7 @@ pub fn parse_pumpswap_inner_instruction(
 /// 根据编译时的 feature flag 自动选择解析器实现
 #[inline(always)]
 fn parse_buy_inner(data: &[u8], metadata: EventMetadata) -> Option<DexEvent> {
-    #[cfg(feature = "parse-borsh")]
+    #[cfg(all(feature = "parse-borsh", not(feature = "parse-zero-copy")))]
     {
         parse_buy_inner_borsh(data, metadata)
     }
@@ -114,7 +114,7 @@ fn parse_buy_inner(data: &[u8], metadata: EventMetadata) -> Option<DexEvent> {
 /// Borsh 反序列化解析器 - Buy 事件
 ///
 /// **优点**: 类型安全、代码简洁、自动验证
-#[cfg(feature = "parse-borsh")]
+#[cfg(all(feature = "parse-borsh", not(feature = "parse-zero-copy")))]
 #[inline(always)]
 fn parse_buy_inner_borsh(data: &[u8], metadata: EventMetadata) -> Option<DexEvent> {
     // PumpSwap BuyEvent 含可变长度 ix_name 及 cashback 字段，反序列化整段 data
@@ -130,7 +130,7 @@ fn parse_buy_inner_borsh(data: &[u8], metadata: EventMetadata) -> Option<DexEven
 #[cfg(feature = "parse-zero-copy")]
 #[inline(always)]
 fn parse_buy_inner_zero_copy(data: &[u8], metadata: EventMetadata) -> Option<DexEvent> {
-    // PumpSwap Buy 事件数据结构 (385 bytes):
+    // PumpSwap Buy 事件固定字段到 last_update_timestamp 共 385 bytes.
     // timestamp: i64 (8)
     // base_amount_out: u64 (8)
     // max_quote_amount_in: u64 (8)
@@ -161,7 +161,7 @@ fn parse_buy_inner_zero_copy(data: &[u8], metadata: EventMetadata) -> Option<Dex
     // last_update_timestamp: i64 (8)
 
     unsafe {
-        const MIN_SIZE: usize = 8 * 17 + 32 * 7 + 1;
+        const MIN_SIZE: usize = 16 * 8 + 32 * 7 + 1 + 4 * 8;
         if !check_length(data, MIN_SIZE) {
             return None;
         }
@@ -240,7 +240,7 @@ fn parse_buy_inner_zero_copy(data: &[u8], metadata: EventMetadata) -> Option<Dex
             0
         };
         let ix_name = if offset + 4 <= data.len() {
-            if let Some((s, consumed)) = unsafe { read_string_unchecked(data, offset) } {
+            if let Some((s, consumed)) = read_string_unchecked(data, offset) {
                 offset += consumed;
                 s
             } else {
@@ -306,7 +306,7 @@ fn parse_buy_inner_zero_copy(data: &[u8], metadata: EventMetadata) -> Option<Dex
 /// 根据编译时的 feature flag 自动选择解析器实现
 #[inline(always)]
 fn parse_sell_inner(data: &[u8], metadata: EventMetadata) -> Option<DexEvent> {
-    #[cfg(feature = "parse-borsh")]
+    #[cfg(all(feature = "parse-borsh", not(feature = "parse-zero-copy")))]
     {
         parse_sell_inner_borsh(data, metadata)
     }
@@ -320,7 +320,7 @@ fn parse_sell_inner(data: &[u8], metadata: EventMetadata) -> Option<DexEvent> {
 /// Borsh 反序列化解析器 - Sell 事件
 ///
 /// **优点**: 类型安全、代码简洁、自动验证
-#[cfg(feature = "parse-borsh")]
+#[cfg(all(feature = "parse-borsh", not(feature = "parse-zero-copy")))]
 #[inline(always)]
 fn parse_sell_inner_borsh(data: &[u8], metadata: EventMetadata) -> Option<DexEvent> {
     // PumpSwap SellEvent 含 cashback_fee_basis_points, cashback (368 bytes 固定部分)

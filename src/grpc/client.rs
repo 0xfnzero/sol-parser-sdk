@@ -7,7 +7,9 @@
 //! - Ordered: 1-50ms 完全有序
 
 use super::buffers::{MicroBatchBuffer, SlotBuffer};
-use super::subscribe_builder::build_subscribe_request;
+use super::subscribe_builder::{
+    build_subscribe_request, build_subscribe_request_with_event_filter,
+};
 use super::transaction_meta::try_yellowstone_signature;
 use super::types::*;
 use crate::core::{now_micros, EventMetadata}; // 导入高性能时钟
@@ -19,12 +21,16 @@ use futures::{SinkExt, StreamExt};
 use log::error;
 use memchr::memmem;
 use once_cell::sync::Lazy;
+use solana_sdk::pubkey::Pubkey;
 use std::collections::HashMap;
+use std::str::FromStr;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use tokio::sync::{mpsc, Mutex};
+use tokio::task::JoinHandle;
 use tokio::time::{Duration, Instant};
-use tonic::transport::ClientTlsConfig;
-use yellowstone_grpc_client::GeyserGrpcClient;
+// Note: ClientTlsConfig moved to yellowstone_grpc_client in newer versions
+use yellowstone_grpc_client::{ClientTlsConfig, GeyserGrpcClient};
 use yellowstone_grpc_proto::prelude::*;
 
 static PROGRAM_DATA_FINDER: Lazy<memmem::Finder> =
@@ -38,6 +44,9 @@ pub struct YellowstoneGrpc {
     token: Option<String>,
     config: ClientConfig,
     control_tx: Arc<Mutex<Option<mpsc::Sender<SubscribeRequest>>>>,
+    subscription_handle: Arc<Mutex<Option<JoinHandle<()>>>>,
+    subscription_lifecycle: Arc<Mutex<()>>,
+    stop_signal: Arc<Mutex<Option<Arc<AtomicBool>>>>,
 }
 
 impl YellowstoneGrpc {
@@ -51,6 +60,9 @@ impl YellowstoneGrpc {
             token,
             config: ClientConfig::default(),
             control_tx: Arc::new(Mutex::new(None)),
+            subscription_handle: Arc::new(Mutex::new(None)),
+            subscription_lifecycle: Arc::new(Mutex::new(())),
+            stop_signal: Arc::new(Mutex::new(None)),
         })
     }
 
@@ -60,7 +72,15 @@ impl YellowstoneGrpc {
         config: ClientConfig,
     ) -> Result<Self, Box<dyn std::error::Error>> {
         crate::warmup::warmup_parser();
-        Ok(Self { endpoint, token, config, control_tx: Arc::new(Mutex::new(None)) })
+        Ok(Self {
+            endpoint,
+            token,
+            config,
+            control_tx: Arc::new(Mutex::new(None)),
+            subscription_handle: Arc::new(Mutex::new(None)),
+            subscription_lifecycle: Arc::new(Mutex::new(())),
+            stop_signal: Arc::new(Mutex::new(None)),
+        })
     }
 
     /// 订阅 DEX 事件（自动重连）
@@ -70,13 +90,22 @@ impl YellowstoneGrpc {
         account_filters: Vec<AccountFilter>,
         event_type_filter: Option<EventTypeFilter>,
     ) -> Result<Arc<ArrayQueue<DexEvent>>, Box<dyn std::error::Error>> {
-        let queue = Arc::new(ArrayQueue::new(100_000));
+        let _lifecycle = self.subscription_lifecycle.lock().await;
+        self.stop_without_lifecycle_lock().await;
+
+        let queue = Arc::new(ArrayQueue::new(self.config.buffer_size.max(1)));
         let queue_clone = Arc::clone(&queue);
         let self_clone = self.clone();
+        let stop_signal = Arc::new(AtomicBool::new(false));
+        *self.stop_signal.lock().await = Some(Arc::clone(&stop_signal));
 
-        tokio::spawn(async move {
+        let handle = tokio::spawn(async move {
             let mut delay = 1u64;
             loop {
+                if stop_signal.load(Ordering::SeqCst) {
+                    break;
+                }
+
                 match self_clone
                     .stream_events(
                         &transaction_filters,
@@ -87,13 +116,23 @@ impl YellowstoneGrpc {
                     .await
                 {
                     Ok(_) => delay = 1,
-                    Err(e) => println!("❌ gRPC error: {} - retry in {}s", e, delay),
+                    Err(e) => {
+                        if stop_signal.load(Ordering::SeqCst) {
+                            break;
+                        }
+                        error!("Grpc error: {} - retry in {}s", e, delay);
+                    }
+                }
+
+                if stop_signal.load(Ordering::SeqCst) {
+                    break;
                 }
                 tokio::time::sleep(Duration::from_secs(delay)).await;
                 delay = (delay * 2).min(60);
             }
         });
 
+        *self.subscription_handle.lock().await = Some(handle);
         Ok(queue)
     }
 
@@ -111,7 +150,20 @@ impl YellowstoneGrpc {
     }
 
     pub async fn stop(&self) {
-        println!("🛑 Stopping gRPC subscription...");
+        let _lifecycle = self.subscription_lifecycle.lock().await;
+        self.stop_without_lifecycle_lock().await;
+    }
+
+    async fn stop_without_lifecycle_lock(&self) {
+        if let Some(stop_signal) = self.stop_signal.lock().await.take() {
+            stop_signal.store(true, Ordering::SeqCst);
+        }
+        self.control_tx.lock().await.take();
+        let handle = self.subscription_handle.lock().await.take();
+        if let Some(handle) = handle {
+            handle.abort();
+            let _ = handle.await;
+        }
     }
 
     // ==================== 核心事件流处理 ====================
@@ -143,7 +195,12 @@ impl YellowstoneGrpc {
         }
 
         let mut client = builder.connect().await.map_err(|e| e.to_string())?;
-        let request = build_subscribe_request(tx_filters, acc_filters);
+        let request = build_subscribe_request_with_event_filter(
+            tx_filters,
+            acc_filters,
+            event_filter.as_ref(),
+            CommitmentLevel::Processed,
+        );
 
         let (subscribe_tx, mut stream) =
             client.subscribe_with_request(Some(request)).await.map_err(|e| e.to_string())?;
@@ -183,24 +240,46 @@ impl YellowstoneGrpc {
                 msg = stream.next() => {
                     match msg {
                         Some(Ok(update)) => {
+                            // Geyser 会周期性下发 ping；必须在同一 subscribe 流上回写 SubscribeRequest.ping，否则公共节点 / LB 可能 RST_STREAM。
+                            if matches!(
+                                update.update_oneof.as_ref(),
+                                Some(subscribe_update::UpdateOneof::Ping(_))
+                            ) {
+                                if let Err(e) = subscribe_tx
+                                    .lock()
+                                    .await
+                                    .send(SubscribeRequest {
+                                        ping: Some(SubscribeRequestPing { id: 1 }),
+                                        ..Default::default()
+                                    })
+                                    .await
+                                {
+                                    self.control_tx.lock().await.take();
+                                    return Err(e.to_string());
+                                }
+                                continue;
+                            }
                             self.handle_update(
                                 update, order_mode, event_filter, queue,
                                 &mut slot_buffer, &mut micro_batch, &mut last_slot, batch_us
                             );
                         }
                         Some(Err(e)) => {
-                            error!("Stream error: {:?}", e);
+                            error!("Grpc Stream error: {:?}", e);
                             self.flush_on_disconnect(order_mode, &mut slot_buffer, queue);
+                            self.control_tx.lock().await.take();
                             return Err(e.to_string());
                         }
                         None => {
                             self.flush_on_disconnect(order_mode, &mut slot_buffer, queue);
+                            self.control_tx.lock().await.take();
                             return Ok(());
                         }
                     }
                 }
                 Some(req) = control_rx.recv() => {
                     if let Err(e) = subscribe_tx.lock().await.send(req).await {
+                        self.control_tx.lock().await.take();
                         return Err(e.to_string());
                     }
                 }
@@ -297,8 +376,8 @@ impl YellowstoneGrpc {
         last_slot: &mut u64,
         batch_us: u64,
     ) {
-        let block_time_us =
-            timestamp_to_microseconds(&update_msg.created_at.unwrap_or_default()) as i64;
+        let created_at = update_msg.created_at.unwrap_or_default();
+        let block_time_us = timestamp_to_microseconds(created_at.seconds, created_at.nanos) as i64;
         let grpc_recv_us = get_timestamp_us();
 
         let Some(update) = update_msg.update_oneof else { return };
@@ -320,6 +399,9 @@ impl YellowstoneGrpc {
             }
             subscribe_update::UpdateOneof::Account(acc) => {
                 Self::handle_account(acc, filter, queue, grpc_recv_us, block_time_us);
+            }
+            subscribe_update::UpdateOneof::BlockMeta(block_meta) => {
+                Self::handle_block_meta(block_meta, filter, queue, grpc_recv_us, block_time_us);
             }
             _ => {}
         }
@@ -343,7 +425,12 @@ impl YellowstoneGrpc {
 
         match mode {
             OrderMode::Unordered => {
-                for e in parse_transaction_core(&tx, grpc_us, Some(block_us), filter.as_ref()) {
+                for e in crate::grpc::parse_subscribe_update_transaction_low_latency(
+                    &tx,
+                    grpc_us,
+                    Some(block_us),
+                    filter.as_ref(),
+                ) {
                     let _ = queue.push(e);
                 }
             }
@@ -412,6 +499,35 @@ impl YellowstoneGrpc {
             let _ = queue.push(e);
         }
     }
+
+    #[inline]
+    fn handle_block_meta(
+        block_meta: SubscribeUpdateBlockMeta,
+        filter: &Option<EventTypeFilter>,
+        queue: &Arc<ArrayQueue<DexEvent>>,
+        grpc_us: i64,
+        fallback_block_us: i64,
+    ) {
+        let block_time_us = block_meta
+            .block_time
+            .as_ref()
+            .map(|t| t.timestamp.saturating_mul(1_000_000))
+            .unwrap_or(fallback_block_us);
+        let event = DexEvent::BlockMeta(crate::core::events::BlockMetaEvent {
+            metadata: EventMetadata {
+                signature: Default::default(),
+                slot: block_meta.slot,
+                tx_index: 0,
+                block_time_us,
+                grpc_recv_us: grpc_us,
+                recent_blockhash: (!block_meta.blockhash.is_empty())
+                    .then_some(block_meta.blockhash),
+            },
+        });
+        if filter.as_ref().map(|f| f.should_include_dex_event(&event)).unwrap_or(true) {
+            let _ = queue.push(event);
+        }
+    }
 }
 
 // ==================== 辅助函数 ====================
@@ -456,28 +572,27 @@ fn parse_transaction_core(
     let slot = tx.slot;
     let idx = info.index;
 
-    // 并行解析 logs 和 instructions
-    let (log_events, instr_events) = rayon::join(
-        || {
-            parse_logs(
-                meta,
-                &info.transaction,
-                &meta.log_messages,
-                sig,
-                slot,
-                idx,
-                block_us,
-                grpc_us,
-                filter,
-            )
-        },
-        || parse_instructions(meta, &info.transaction, sig, slot, idx, block_us, grpc_us, filter),
+    let log_events = parse_logs(
+        meta,
+        &info.transaction,
+        &meta.log_messages,
+        sig,
+        slot,
+        idx,
+        block_us,
+        grpc_us,
+        filter,
     );
+    let instr_events =
+        parse_instructions(meta, &info.transaction, sig, slot, idx, block_us, grpc_us, filter);
 
-    let mut result = Vec::with_capacity(log_events.len() + instr_events.len());
-    result.extend(log_events);
-    result.extend(instr_events);
-    result
+    let events =
+        crate::grpc::log_instr_dedup::dedupe_log_instruction_events(log_events, instr_events);
+    if let Some(filter) = filter {
+        events.into_iter().map(|e| filter.normalize_dex_event(e)).collect()
+    } else {
+        events
+    }
 }
 
 #[inline(always)]
@@ -510,7 +625,8 @@ fn parse_logs(
 
     let mut outer_idx: i32 = -1;
     let mut inner_idx: i32 = -1;
-    let mut invokes: HashMap<&str, Vec<(i32, i32)>> = HashMap::with_capacity(8);
+    let mut invokes: HashMap<Pubkey, Vec<(i32, i32)>> = HashMap::with_capacity(8);
+    let mut active_program_stack: Vec<Pubkey> = Vec::with_capacity(8);
     let mut result = Vec::with_capacity(4);
 
     for log in logs {
@@ -521,32 +637,44 @@ fn parse_logs(
             } else {
                 inner_idx += 1;
             }
-            invokes.entry(pid).or_default().push((outer_idx, inner_idx));
+            if let Ok(pk) = Pubkey::from_str(pid) {
+                active_program_stack.truncate(depth.saturating_sub(1));
+                active_program_stack.push(pk);
+                invokes.entry(pk).or_default().push((outer_idx, inner_idx));
+            }
         }
 
-        if PROGRAM_DATA_FINDER.find(log.as_bytes()).is_none() {
-            continue;
+        if PROGRAM_DATA_FINDER.find(log.as_bytes()).is_some() {
+            let current_program = active_program_stack.last();
+            if let Some(mut e) = crate::logs::parse_log_with_program_id(
+                log,
+                sig,
+                slot,
+                tx_idx,
+                block_us,
+                grpc_us,
+                filter,
+                has_create,
+                recent_blockhash.as_deref(),
+                current_program,
+            ) {
+                crate::core::account_dispatcher::fill_accounts_with_owned_keys(
+                    &mut e,
+                    meta,
+                    transaction,
+                    &invokes,
+                );
+                crate::core::common_filler::fill_data(&mut e, meta, transaction, &invokes);
+                result.push(e);
+            }
         }
 
-        if let Some(mut e) = crate::logs::parse_log(
-            log,
-            sig,
-            slot,
-            tx_idx,
-            block_us,
-            grpc_us,
-            filter,
-            has_create,
-            recent_blockhash.as_deref(),
-        ) {
-            crate::core::account_dispatcher::fill_accounts_from_transaction_data(
-                &mut e,
-                meta,
-                transaction,
-                &invokes,
-            );
-            crate::core::common_filler::fill_data(&mut e, meta, transaction, &invokes);
-            result.push(e);
+        if let Some(pid) = crate::logs::optimized_matcher::parse_program_complete_info(log) {
+            if let Ok(pk) = Pubkey::from_str(pid) {
+                if let Some(pos) = active_program_stack.iter().rposition(|active| *active == pk) {
+                    active_program_stack.truncate(pos);
+                }
+            }
         }
     }
     result
@@ -578,4 +706,30 @@ fn parse_instructions(
         grpc_us,
         filter,
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn stop_clears_subscription_state_and_aborts_handle() {
+        let grpc = YellowstoneGrpc::new("http://127.0.0.1:1".to_string(), None).unwrap();
+        let (tx, _rx) = mpsc::channel::<SubscribeRequest>(1);
+        let handle = tokio::spawn(async {
+            std::future::pending::<()>().await;
+        });
+
+        let stop_signal = Arc::new(AtomicBool::new(false));
+        *grpc.control_tx.lock().await = Some(tx);
+        *grpc.subscription_handle.lock().await = Some(handle);
+        *grpc.stop_signal.lock().await = Some(Arc::clone(&stop_signal));
+
+        grpc.stop().await;
+
+        assert!(stop_signal.load(Ordering::SeqCst));
+        assert!(grpc.stop_signal.lock().await.is_none());
+        assert!(grpc.control_tx.lock().await.is_none());
+        assert!(grpc.subscription_handle.lock().await.is_none());
+    }
 }

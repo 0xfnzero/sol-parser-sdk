@@ -35,14 +35,14 @@ pub enum MeteoraPoolsInstruction {
 impl MeteoraPoolsInstruction {
     /// 从 discriminator 转换为指令类型
     pub fn from_discriminator(discriminator: &[u8; 8]) -> Option<Self> {
-        match discriminator {
-            &[175, 175, 109, 31, 13, 152, 155, 237] => Some(Self::Initialize),
-            &[248, 198, 158, 145, 225, 117, 135, 200] => Some(Self::Swap),
-            &[181, 157, 89, 67, 143, 182, 52, 72] => Some(Self::AddLiquidity),
-            &[80, 85, 209, 72, 24, 206, 177, 108] => Some(Self::RemoveLiquidity),
-            &[208, 127, 21, 1, 194, 190, 196, 70] => Some(Self::CreateConfig),
-            &[123, 134, 81, 0, 49, 68, 98, 98] => Some(Self::CloseConfig),
-            &[95, 180, 10, 172, 84, 174, 232, 40] => Some(Self::CreatePool),
+        match *discriminator {
+            [175, 175, 109, 31, 13, 152, 155, 237] => Some(Self::Initialize),
+            [248, 198, 158, 145, 225, 117, 135, 200] => Some(Self::Swap),
+            [181, 157, 89, 67, 143, 182, 52, 72] => Some(Self::AddLiquidity),
+            [80, 85, 209, 72, 24, 206, 177, 108] => Some(Self::RemoveLiquidity),
+            [208, 127, 21, 1, 194, 190, 196, 70] => Some(Self::CreateConfig),
+            [123, 134, 81, 0, 49, 68, 98, 98] => Some(Self::CloseConfig),
+            [95, 180, 10, 172, 84, 174, 232, 40] => Some(Self::CreatePool),
             _ => None,
         }
     }

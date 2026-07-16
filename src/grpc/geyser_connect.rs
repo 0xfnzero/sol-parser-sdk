@@ -35,9 +35,7 @@ pub async fn connect_yellowstone_geyser(
         .max_decoding_message_size(config.max_decoding_message_size);
 
     if let Some(ref t) = config.x_token {
-        builder = builder
-            .x_token(Some(t.as_str()))
-            .map_err(|e| e.to_string())?;
+        builder = builder.x_token(Some(t.as_str())).map_err(|e| e.to_string())?;
     }
 
     if endpoint.starts_with("https://") {

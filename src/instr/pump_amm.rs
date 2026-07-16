@@ -26,6 +26,34 @@ pub mod discriminators {
 /// Pump AMM Program ID
 pub const PROGRAM_ID_PUBKEY: Pubkey = program_ids::PUMPSWAP_PROGRAM_ID;
 
+fn fill_buy_upgrade_accounts(ev: &mut PumpSwapBuyEvent, accounts: &[Pubkey]) {
+    if accounts.len() >= 27 {
+        ev.pool_v2 = get_account(accounts, 24).unwrap_or_default();
+        ev.fee_recipient = get_account(accounts, 25).unwrap_or_default();
+        ev.fee_recipient_quote_token_account = get_account(accounts, 26).unwrap_or_default();
+    } else if accounts.len() >= 26 {
+        ev.pool_v2 = get_account(accounts, 23).unwrap_or_default();
+        ev.fee_recipient = get_account(accounts, 24).unwrap_or_default();
+        ev.fee_recipient_quote_token_account = get_account(accounts, 25).unwrap_or_default();
+    } else if accounts.len() >= 24 {
+        ev.pool_v2 = get_account(accounts, 23).unwrap_or_default();
+    }
+}
+
+fn fill_sell_upgrade_accounts(ev: &mut PumpSwapSellEvent, accounts: &[Pubkey]) {
+    if accounts.len() >= 26 {
+        ev.pool_v2 = get_account(accounts, 23).unwrap_or_default();
+        ev.fee_recipient = get_account(accounts, 24).unwrap_or_default();
+        ev.fee_recipient_quote_token_account = get_account(accounts, 25).unwrap_or_default();
+    } else if accounts.len() >= 24 {
+        ev.pool_v2 = get_account(accounts, 21).unwrap_or_default();
+        ev.fee_recipient = get_account(accounts, 22).unwrap_or_default();
+        ev.fee_recipient_quote_token_account = get_account(accounts, 23).unwrap_or_default();
+    } else if accounts.len() >= 22 {
+        ev.pool_v2 = get_account(accounts, 21).unwrap_or_default();
+    }
+}
+
 /// Main PumpSwap instruction parser
 ///
 /// Parses main instructions to extract account information.
@@ -87,6 +115,8 @@ pub fn parse_instruction(
 /// 13 system_program, 14 associated_token_program, 15 event_authority, 16 program,
 /// 17 coin_creator_vault_ata, 18 coin_creator_vault_authority,
 /// 19 global_volume_accumulator, 20 user_volume_accumulator, 21 fee_config, 22 fee_program.
+/// Post-upgrade non-cashback: 23 pool_v2, 24 fee_recipient, 25 fee_recipient_quote_token_account.
+/// Post-upgrade cashback: 24 pool_v2, 25 fee_recipient, 26 fee_recipient_quote_token_account.
 #[allow(dead_code)]
 fn parse_buy_instruction(
     data: &[u8],
@@ -132,6 +162,7 @@ fn parse_buy_instruction(
         ev.coin_creator_vault_ata = get_account(accounts, 17).unwrap_or_default();
         ev.coin_creator_vault_authority = get_account(accounts, 18).unwrap_or_default();
     }
+    fill_buy_upgrade_accounts(&mut ev, accounts);
     Some(DexEvent::PumpSwapBuy(ev))
 }
 
@@ -141,7 +172,7 @@ fn parse_buy_instruction(
 /// - buy: base_amount_out (token) first, max_quote_amount_in (SOL) second
 /// - buy_exact_quote_in: spendable_quote_in (SOL) first, min_base_amount_out (token) second
 ///
-/// Account indices: 与 buy 相同，共 23 个 (0-22)，见 parse_buy_instruction 注释。
+/// Account indices: 与 buy 相同，共 23 个 IDL 账户，升级尾部同 buy。
 #[allow(dead_code)]
 fn parse_buy_exact_quote_in_instruction(
     data: &[u8],
@@ -187,6 +218,7 @@ fn parse_buy_exact_quote_in_instruction(
         ev.coin_creator_vault_ata = get_account(accounts, 17).unwrap_or_default();
         ev.coin_creator_vault_authority = get_account(accounts, 18).unwrap_or_default();
     }
+    fill_buy_upgrade_accounts(&mut ev, accounts);
     Some(DexEvent::PumpSwapBuy(ev))
 }
 
@@ -201,6 +233,8 @@ fn parse_buy_exact_quote_in_instruction(
 /// 13 system_program, 14 associated_token_program, 15 event_authority, 16 program,
 /// 17 coin_creator_vault_ata, 18 coin_creator_vault_authority,
 /// 19 fee_config, 20 fee_program.
+/// Post-upgrade non-cashback: 21 pool_v2, 22 fee_recipient, 23 fee_recipient_quote_token_account.
+/// Post-upgrade cashback: 23 pool_v2, 24 fee_recipient, 25 fee_recipient_quote_token_account.
 #[allow(dead_code)]
 fn parse_sell_instruction(
     data: &[u8],
@@ -245,13 +279,14 @@ fn parse_sell_instruction(
         ev.coin_creator_vault_ata = get_account(accounts, 17).unwrap_or_default();
         ev.coin_creator_vault_authority = get_account(accounts, 18).unwrap_or_default();
     }
+    fill_sell_upgrade_accounts(&mut ev, accounts);
     Some(DexEvent::PumpSwapSell(ev))
 }
 
 /// Parse create_pool instruction
 #[allow(dead_code)]
 fn parse_create_pool_instruction(
-    _data: &[u8],
+    data: &[u8],
     accounts: &[Pubkey],
     signature: Signature,
     slot: u64,
@@ -266,9 +301,19 @@ fn parse_create_pool_instruction(
 
     Some(DexEvent::PumpSwapCreatePool(PumpSwapCreatePoolEvent {
         metadata,
-        creator: get_account(accounts, 0).unwrap_or_default(),
-        base_mint: get_account(accounts, 2).unwrap_or_default(),
-        quote_mint: get_account(accounts, 3).unwrap_or_default(),
+        pool: get_account(accounts, 0).unwrap_or_default(),
+        creator: get_account(accounts, 2).unwrap_or_default(),
+        base_mint: get_account(accounts, 3).unwrap_or_default(),
+        quote_mint: get_account(accounts, 4).unwrap_or_default(),
+        lp_mint: get_account(accounts, 5).unwrap_or_default(),
+        user_base_token_account: get_account(accounts, 6).unwrap_or_default(),
+        user_quote_token_account: get_account(accounts, 7).unwrap_or_default(),
+        index: read_u16_le(data, 0).unwrap_or_default(),
+        base_amount_in: read_u64_le(data, 2).unwrap_or_default(),
+        quote_amount_in: read_u64_le(data, 10).unwrap_or_default(),
+        coin_creator: read_pubkey(data, 18).unwrap_or_default(),
+        is_mayhem_mode: read_bool(data, 50).unwrap_or_default(),
+        is_cashback_coin: read_option_bool_idl(data, 51).unwrap_or_default(),
         ..Default::default()
     }))
 }
@@ -325,4 +370,129 @@ fn parse_withdraw_instruction(
         user_pool_token_account: get_account(accounts, 6).unwrap_or_default(),
         ..Default::default()
     }))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn data(first: u64, second: u64) -> Vec<u8> {
+        let mut out = Vec::with_capacity(16);
+        out.extend_from_slice(&first.to_le_bytes());
+        out.extend_from_slice(&second.to_le_bytes());
+        out
+    }
+
+    fn create_pool_data(is_cashback_coin: bool) -> Vec<u8> {
+        let coin_creator = Pubkey::new_from_array([7; 32]);
+        let mut out = Vec::with_capacity(52);
+        out.extend_from_slice(&42u16.to_le_bytes());
+        out.extend_from_slice(&100u64.to_le_bytes());
+        out.extend_from_slice(&200u64.to_le_bytes());
+        out.extend_from_slice(coin_creator.as_ref());
+        out.push(1);
+        out.push(u8::from(is_cashback_coin));
+        out
+    }
+
+    fn accounts(n: usize) -> Vec<Pubkey> {
+        (0..n).map(|_| Pubkey::new_unique()).collect()
+    }
+
+    #[test]
+    fn pumpswap_buy_maps_non_cashback_upgrade_tail() {
+        let acc = accounts(26);
+        let ev = parse_buy_instruction(&data(100, 200), &acc, Signature::default(), 1, 0, None)
+            .expect("buy");
+
+        match ev {
+            DexEvent::PumpSwapBuy(t) => {
+                assert_eq!(t.pool_v2, acc[23]);
+                assert_eq!(t.fee_recipient, acc[24]);
+                assert_eq!(t.fee_recipient_quote_token_account, acc[25]);
+            }
+            other => panic!("expected PumpSwapBuy, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn pumpswap_buy_maps_cashback_upgrade_tail() {
+        let acc = accounts(27);
+        let ev = parse_buy_instruction(&data(100, 200), &acc, Signature::default(), 1, 0, None)
+            .expect("buy");
+
+        match ev {
+            DexEvent::PumpSwapBuy(t) => {
+                assert_eq!(t.pool_v2, acc[24]);
+                assert_eq!(t.fee_recipient, acc[25]);
+                assert_eq!(t.fee_recipient_quote_token_account, acc[26]);
+            }
+            other => panic!("expected PumpSwapBuy, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn pumpswap_sell_maps_non_cashback_upgrade_tail() {
+        let acc = accounts(24);
+        let ev = parse_sell_instruction(&data(100, 200), &acc, Signature::default(), 1, 0, None)
+            .expect("sell");
+
+        match ev {
+            DexEvent::PumpSwapSell(t) => {
+                assert_eq!(t.pool_v2, acc[21]);
+                assert_eq!(t.fee_recipient, acc[22]);
+                assert_eq!(t.fee_recipient_quote_token_account, acc[23]);
+            }
+            other => panic!("expected PumpSwapSell, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn pumpswap_sell_maps_cashback_upgrade_tail() {
+        let acc = accounts(26);
+        let ev = parse_sell_instruction(&data(100, 200), &acc, Signature::default(), 1, 0, None)
+            .expect("sell");
+
+        match ev {
+            DexEvent::PumpSwapSell(t) => {
+                assert_eq!(t.pool_v2, acc[23]);
+                assert_eq!(t.fee_recipient, acc[24]);
+                assert_eq!(t.fee_recipient_quote_token_account, acc[25]);
+            }
+            other => panic!("expected PumpSwapSell, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn pumpswap_create_pool_reads_instruction_args_and_idl_accounts() {
+        let acc = accounts(18);
+        let ev = parse_create_pool_instruction(
+            &create_pool_data(true),
+            &acc,
+            Signature::default(),
+            1,
+            0,
+            None,
+        )
+        .expect("create_pool");
+
+        match ev {
+            DexEvent::PumpSwapCreatePool(t) => {
+                assert_eq!(t.pool, acc[0]);
+                assert_eq!(t.creator, acc[2]);
+                assert_eq!(t.base_mint, acc[3]);
+                assert_eq!(t.quote_mint, acc[4]);
+                assert_eq!(t.lp_mint, acc[5]);
+                assert_eq!(t.user_base_token_account, acc[6]);
+                assert_eq!(t.user_quote_token_account, acc[7]);
+                assert_eq!(t.index, 42);
+                assert_eq!(t.base_amount_in, 100);
+                assert_eq!(t.quote_amount_in, 200);
+                assert_eq!(t.coin_creator, Pubkey::new_from_array([7; 32]));
+                assert!(t.is_mayhem_mode);
+                assert!(t.is_cashback_coin);
+            }
+            other => panic!("expected PumpSwapCreatePool, got {other:?}"),
+        }
+    }
 }

@@ -46,7 +46,7 @@ pub fn read_u8(data: &[u8], offset: usize) -> Option<u8> {
 /// Nonce accounts 有一个 discriminator: [1, 0, 0, 0, 1, 0, 0, 0]
 #[inline]
 pub fn is_nonce_account(data: &[u8]) -> bool {
-    data.len() >= 8 && &data[0..8] == &[1, 0, 0, 0, 1, 0, 0, 0]
+    data.len() >= 8 && data[0..8] == [1, 0, 0, 0, 1, 0, 0, 0]
 }
 
 /// 检查账户所有者是否是 Token Program
@@ -71,7 +71,7 @@ pub fn user_wallet_pubkey_for_onchain_account(
     if executable {
         return None;
     }
-    if owner == &system_program::ID {
+    if owner == &system_program::id() {
         return if data.is_empty() { Some(*address) } else { None };
     }
     if is_token_program_account(owner) && data.len() == SplTokenStateAccount::LEN {

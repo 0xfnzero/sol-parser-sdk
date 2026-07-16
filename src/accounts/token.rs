@@ -9,6 +9,7 @@
 //! - 快速路径：优先使用零拷贝，失败时回退到完整解析
 //! - 智能检测：根据数据长度和 owner 自动识别账户类型
 
+use crate::accounts::utils::is_token_program_account;
 use crate::core::events::{EventMetadata, TokenAccountEvent, TokenInfoEvent};
 use crate::DexEvent;
 use solana_sdk::pubkey::Pubkey;
@@ -40,6 +41,10 @@ pub struct AccountData {
 /// - 快速路径：~50ns（零拷贝）
 /// - 完整解析：~200ns（Pack/StateWithExtensions）
 pub fn parse_token_account(account: &AccountData, metadata: EventMetadata) -> Option<DexEvent> {
+    if !is_token_program_account(&account.owner) {
+        return None;
+    }
+
     // 快速路径：尝试零拷贝解析
     if account.data.len() <= 100 {
         if let Some(event) = parse_mint_fast(account, metadata.clone()) {
@@ -252,5 +257,23 @@ mod tests {
         if let Some(DexEvent::TokenAccount(token_account)) = event {
             assert_eq!(token_account.amount, Some(5000));
         }
+    }
+
+    #[test]
+    fn test_parse_token_account_rejects_non_token_owner() {
+        let mut data = vec![0u8; 82];
+        data[36..44].copy_from_slice(&1000000u64.to_le_bytes());
+        data[44] = 6;
+
+        let account = AccountData {
+            pubkey: Pubkey::new_unique(),
+            executable: false,
+            lamports: 1000000,
+            owner: Pubkey::new_unique(),
+            rent_epoch: 0,
+            data,
+        };
+
+        assert!(parse_token_account(&account, EventMetadata::default()).is_none());
     }
 }

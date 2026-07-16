@@ -132,10 +132,10 @@ pub fn parse_pumpfun_inner_instruction(
     metadata: EventMetadata,
     is_created_buy: bool,
 ) -> Option<DexEvent> {
-    match discriminator {
-        &discriminators::TRADE_EVENT => parse_trade_event_inner(data, metadata, is_created_buy),
-        &discriminators::CREATE_TOKEN_EVENT => parse_create_event_inner(data, metadata),
-        &discriminators::COMPLETE_PUMP_AMM_MIGRATION_EVENT => {
+    match *discriminator {
+        discriminators::TRADE_EVENT => parse_trade_event_inner(data, metadata, is_created_buy),
+        discriminators::CREATE_TOKEN_EVENT => parse_create_event_inner(data, metadata),
+        discriminators::COMPLETE_PUMP_AMM_MIGRATION_EVENT => {
             parse_migrate_event_inner(data, metadata)
         }
         _ => None,
@@ -155,7 +155,7 @@ fn parse_trade_event_inner(
     metadata: EventMetadata,
     is_created_buy: bool,
 ) -> Option<DexEvent> {
-    #[cfg(feature = "parse-borsh")]
+    #[cfg(all(feature = "parse-borsh", not(feature = "parse-zero-copy")))]
     {
         parse_trade_event_inner_borsh(data, metadata, is_created_buy)
     }
@@ -169,27 +169,17 @@ fn parse_trade_event_inner(
 /// Borsh 反序列化解析器 - Trade 事件
 ///
 /// **优点**: 类型安全、代码简洁、自动验证
-#[cfg(feature = "parse-borsh")]
+#[cfg(all(feature = "parse-borsh", not(feature = "parse-zero-copy")))]
 #[inline(always)]
 fn parse_trade_event_inner_borsh(
     data: &[u8],
     metadata: EventMetadata,
     is_created_buy: bool,
 ) -> Option<DexEvent> {
-    // PumpFun TradeEvent 不是固定大小，因为包含 String 字段
-    // 我们需要解析整个数据
-    let mut event = borsh::from_slice::<PumpFunTradeEvent>(data).ok()?;
-    event.metadata = metadata;
-    event.is_created_buy = is_created_buy;
-    event.is_cashback_coin = event.cashback_fee_basis_points > 0;
-
-    // 根据 ix_name 返回不同的事件类型
-    match event.ix_name.as_str() {
-        "buy" => Some(DexEvent::PumpFunBuy(event)),
-        "sell" => Some(DexEvent::PumpFunSell(event)),
-        "buy_exact_sol_in" => Some(DexEvent::PumpFunBuyExactSolIn(event)),
-        _ => Some(DexEvent::PumpFunTrade(event)),
-    }
+    // TradeEvent 在链上历史中多次追加 tail 字段。直接 `BorshDeserialize`
+    // 会要求当前 struct 字段全部存在，旧 payload 会整条解析失败；复用日志解析器按
+    // Anchor/Borsh 顺序读取并把追加字段作为 optional tail 处理。
+    crate::logs::pump::parse_trade_from_data(data, metadata, is_created_buy)
 }
 
 /// 零拷贝解析器 - Trade 事件
@@ -289,15 +279,26 @@ fn parse_trade_event_inner_zero_copy(
             (String::new(), 0)
         };
         offset += ix_name_len;
+        let ix_kind = crate::logs::pump::normalize_pumpfun_ix_name(&ix_name);
 
         // TradeEvent 新增字段 (PUMP_CASHBACK_README): mayhem_mode, cashback_fee_basis_points, cashback
         let mayhem_mode =
-            if offset + 1 <= data.len() { read_bool_unchecked(data, offset) } else { false };
+            if offset < data.len() { read_bool_unchecked(data, offset) } else { false };
         offset += 1;
         let cashback_fee_basis_points =
             if offset + 8 <= data.len() { read_u64_unchecked(data, offset) } else { 0 };
         offset += 8;
         let cashback = if offset + 8 <= data.len() { read_u64_unchecked(data, offset) } else { 0 };
+        offset += 8;
+        let (
+            buyback_fee_basis_points,
+            buyback_fee,
+            shareholders,
+            quote_mint,
+            quote_amount,
+            virtual_quote_reserves,
+            real_quote_reserves,
+        ) = crate::logs::pump::read_trade_event_extensions(data, &mut offset)?;
 
         // Inner instruction 只包含日志数据，不含指令上下文账户；is_created_buy 由外层根据同 tx 是否含 create 传入
         let trade_event = PumpFunTradeEvent {
@@ -328,15 +329,23 @@ fn parse_trade_event_inner_zero_copy(
             mayhem_mode,
             cashback_fee_basis_points,
             cashback,
+            buyback_fee_basis_points,
+            buyback_fee,
+            shareholders,
+            quote_mint,
+            quote_amount,
+            virtual_quote_reserves,
+            real_quote_reserves,
             is_cashback_coin: cashback_fee_basis_points > 0,
             ..Default::default() // 其他账户字段由 instruction 提供
         };
 
         // 根据 ix_name 返回不同的事件类型
-        match ix_name.as_str() {
+        match ix_kind {
             "buy" => Some(DexEvent::PumpFunBuy(trade_event)),
             "sell" => Some(DexEvent::PumpFunSell(trade_event)),
             "buy_exact_sol_in" => Some(DexEvent::PumpFunBuyExactSolIn(trade_event)),
+            "buy_exact_quote_in" => Some(DexEvent::PumpFunBuy(trade_event)),
             _ => Some(DexEvent::PumpFunTrade(trade_event)),
         }
     }
@@ -351,9 +360,9 @@ fn parse_trade_event_inner_zero_copy(
 /// 根据编译时的 feature flag 自动选择解析器实现
 #[inline(always)]
 fn parse_create_event_inner(data: &[u8], metadata: EventMetadata) -> Option<DexEvent> {
-    #[cfg(feature = "parse-borsh")]
+    #[cfg(all(feature = "parse-borsh", not(feature = "parse-zero-copy")))]
     {
-        parse_create_event_inner_borsh(data, metadata)
+        parse_create_event_inner_compatible(data, metadata)
     }
 
     #[cfg(feature = "parse-zero-copy")]
@@ -362,16 +371,116 @@ fn parse_create_event_inner(data: &[u8], metadata: EventMetadata) -> Option<DexE
     }
 }
 
-/// Borsh 反序列化解析器 - Create 事件
+/// Compatible CreateEvent parser.
 ///
-/// **优点**: 类型安全、代码简洁、自动验证
-#[cfg(feature = "parse-borsh")]
+/// The IDL added `quote_mint` and `virtual_quote_reserves` to the tail of
+/// `CreateEvent`, so this parser accepts both old and new payload lengths.
+#[cfg(all(feature = "parse-borsh", not(feature = "parse-zero-copy")))]
 #[inline(always)]
-fn parse_create_event_inner_borsh(data: &[u8], metadata: EventMetadata) -> Option<DexEvent> {
-    // CreateTokenEvent 包含多个 String 字段，不是固定大小
-    let mut event = borsh::from_slice::<PumpFunCreateTokenEvent>(data).ok()?;
-    event.metadata = metadata;
-    Some(DexEvent::PumpFunCreate(event))
+fn parse_create_event_inner_compatible(data: &[u8], metadata: EventMetadata) -> Option<DexEvent> {
+    parse_create_event_fields(data, metadata)
+}
+
+#[inline(always)]
+#[cfg(all(feature = "parse-borsh", not(feature = "parse-zero-copy")))]
+fn read_u32_le(data: &[u8], offset: usize) -> Option<u32> {
+    let bytes = data.get(offset..offset + 4)?;
+    Some(u32::from_le_bytes(bytes.try_into().ok()?))
+}
+
+#[inline(always)]
+#[cfg(all(feature = "parse-borsh", not(feature = "parse-zero-copy")))]
+fn read_u64_le(data: &[u8], offset: usize) -> Option<u64> {
+    let bytes = data.get(offset..offset + 8)?;
+    Some(u64::from_le_bytes(bytes.try_into().ok()?))
+}
+
+#[inline(always)]
+#[cfg(all(feature = "parse-borsh", not(feature = "parse-zero-copy")))]
+fn read_i64_le(data: &[u8], offset: usize) -> Option<i64> {
+    let bytes = data.get(offset..offset + 8)?;
+    Some(i64::from_le_bytes(bytes.try_into().ok()?))
+}
+
+#[inline(always)]
+#[cfg(all(feature = "parse-borsh", not(feature = "parse-zero-copy")))]
+fn read_pubkey(data: &[u8], offset: usize) -> Option<solana_sdk::pubkey::Pubkey> {
+    let bytes = data.get(offset..offset + 32)?;
+    let mut out = [0u8; 32];
+    out.copy_from_slice(bytes);
+    Some(solana_sdk::pubkey::Pubkey::new_from_array(out))
+}
+
+#[inline(always)]
+#[cfg(all(feature = "parse-borsh", not(feature = "parse-zero-copy")))]
+fn read_string(data: &[u8], offset: &mut usize) -> Option<String> {
+    let len = read_u32_le(data, *offset)? as usize;
+    *offset = (*offset).checked_add(4)?;
+    let end = (*offset).checked_add(len)?;
+    let bytes = data.get(*offset..end)?;
+    *offset = end;
+    Some(std::str::from_utf8(bytes).ok()?.to_string())
+}
+
+#[cfg(all(feature = "parse-borsh", not(feature = "parse-zero-copy")))]
+fn parse_create_event_fields(data: &[u8], metadata: EventMetadata) -> Option<DexEvent> {
+    let mut offset = 0;
+
+    let name = read_string(data, &mut offset)?;
+    let symbol = read_string(data, &mut offset)?;
+    let uri = read_string(data, &mut offset)?;
+
+    let mint = read_pubkey(data, offset)?;
+    offset += 32;
+    let bonding_curve = read_pubkey(data, offset)?;
+    offset += 32;
+    let user = read_pubkey(data, offset)?;
+    offset += 32;
+    let creator = read_pubkey(data, offset)?;
+    offset += 32;
+    let timestamp = read_i64_le(data, offset)?;
+    offset += 8;
+    let virtual_token_reserves = read_u64_le(data, offset)?;
+    offset += 8;
+    let virtual_sol_reserves = read_u64_le(data, offset)?;
+    offset += 8;
+    let real_token_reserves = read_u64_le(data, offset)?;
+    offset += 8;
+    let token_total_supply = read_u64_le(data, offset)?;
+    offset += 8;
+
+    let token_program = read_pubkey(data, offset).unwrap_or_default();
+    offset += 32;
+    let is_mayhem_mode = data.get(offset).copied().unwrap_or_default() == 1;
+    offset += 1;
+    let is_cashback_enabled = data.get(offset).copied().unwrap_or_default() == 1;
+    offset += 1;
+    let quote_mint = normalize_pumpfun_quote_mint(read_pubkey(data, offset).unwrap_or_default());
+    offset += 32;
+    let virtual_quote_reserves = read_u64_le(data, offset).unwrap_or_default();
+
+    Some(DexEvent::PumpFunCreate(PumpFunCreateTokenEvent {
+        metadata,
+        name,
+        symbol,
+        uri,
+        mint,
+        bonding_curve,
+        user,
+        creator,
+        timestamp,
+        virtual_token_reserves,
+        virtual_sol_reserves,
+        real_token_reserves,
+        token_total_supply,
+        token_program,
+        is_mayhem_mode,
+        is_cashback_enabled,
+        quote_mint,
+        virtual_quote_reserves,
+        ix_name: "create".to_string(),
+        ..Default::default()
+    }))
 }
 
 /// 零拷贝解析器 - Create 事件
@@ -437,6 +546,15 @@ fn parse_create_event_inner_zero_copy(data: &[u8], metadata: EventMetadata) -> O
         // IDL CreateEvent 最后一列: is_cashback_enabled
         let is_cashback_enabled =
             if offset < data.len() { read_bool_unchecked(data, offset) } else { false };
+        offset += 1;
+        let quote_mint = normalize_pumpfun_quote_mint(if offset + 32 <= data.len() {
+            read_pubkey_unchecked(data, offset)
+        } else {
+            solana_sdk::pubkey::Pubkey::default()
+        });
+        offset += 32;
+        let virtual_quote_reserves =
+            if offset + 8 <= data.len() { read_u64_unchecked(data, offset) } else { 0 };
 
         Some(DexEvent::PumpFunCreate(PumpFunCreateTokenEvent {
             metadata,
@@ -455,6 +573,10 @@ fn parse_create_event_inner_zero_copy(data: &[u8], metadata: EventMetadata) -> O
             token_program,
             is_mayhem_mode,
             is_cashback_enabled,
+            quote_mint,
+            virtual_quote_reserves,
+            ix_name: "create".to_string(),
+            ..Default::default()
         }))
     }
 }
@@ -468,7 +590,7 @@ fn parse_create_event_inner_zero_copy(data: &[u8], metadata: EventMetadata) -> O
 /// 根据编译时的 feature flag 自动选择解析器实现
 #[inline(always)]
 fn parse_migrate_event_inner(data: &[u8], metadata: EventMetadata) -> Option<DexEvent> {
-    #[cfg(feature = "parse-borsh")]
+    #[cfg(all(feature = "parse-borsh", not(feature = "parse-zero-copy")))]
     {
         parse_migrate_event_inner_borsh(data, metadata)
     }
@@ -482,7 +604,7 @@ fn parse_migrate_event_inner(data: &[u8], metadata: EventMetadata) -> Option<Dex
 /// Borsh 反序列化解析器 - Migrate 事件
 ///
 /// **优点**: 类型安全、代码简洁、自动验证
-#[cfg(feature = "parse-borsh")]
+#[cfg(all(feature = "parse-borsh", not(feature = "parse-zero-copy")))]
 #[inline(always)]
 fn parse_migrate_event_inner_borsh(data: &[u8], metadata: EventMetadata) -> Option<DexEvent> {
     // MigrateEvent 固定大小
@@ -550,7 +672,50 @@ fn parse_migrate_event_inner_zero_copy(data: &[u8], metadata: EventMetadata) -> 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use solana_sdk::signature::Signature;
+    use solana_sdk::{pubkey::Pubkey, signature::Signature};
+
+    fn push_u64(out: &mut Vec<u8>, value: u64) {
+        out.extend_from_slice(&value.to_le_bytes());
+    }
+
+    fn push_i64(out: &mut Vec<u8>, value: i64) {
+        out.extend_from_slice(&value.to_le_bytes());
+    }
+
+    fn push_pubkey(out: &mut Vec<u8>, value: Pubkey) {
+        out.extend_from_slice(value.as_ref());
+    }
+
+    fn trade_event_data_without_buyback_tail(ix_name: &str) -> Vec<u8> {
+        let mut data = Vec::new();
+        push_pubkey(&mut data, Pubkey::new_unique()); // mint
+        push_u64(&mut data, 1_000); // sol_amount
+        push_u64(&mut data, 2_000); // token_amount
+        data.push(1); // is_buy
+        push_pubkey(&mut data, Pubkey::new_unique()); // user
+        push_i64(&mut data, 123); // timestamp
+        push_u64(&mut data, 10); // virtual_sol_reserves
+        push_u64(&mut data, 20); // virtual_token_reserves
+        push_u64(&mut data, 30); // real_sol_reserves
+        push_u64(&mut data, 40); // real_token_reserves
+        push_pubkey(&mut data, Pubkey::new_unique()); // fee_recipient
+        push_u64(&mut data, 50); // fee_basis_points
+        push_u64(&mut data, 60); // fee
+        push_pubkey(&mut data, Pubkey::new_unique()); // creator
+        push_u64(&mut data, 70); // creator_fee_basis_points
+        push_u64(&mut data, 80); // creator_fee
+        data.push(1); // track_volume
+        push_u64(&mut data, 90); // total_unclaimed_tokens
+        push_u64(&mut data, 100); // total_claimed_tokens
+        push_u64(&mut data, 110); // current_sol_volume
+        push_i64(&mut data, 120); // last_update_timestamp
+        data.extend_from_slice(&(ix_name.len() as u32).to_le_bytes());
+        data.extend_from_slice(ix_name.as_bytes());
+        data.push(1); // mayhem_mode
+        push_u64(&mut data, 130); // cashback_fee_basis_points
+        push_u64(&mut data, 140); // cashback
+        data
+    }
 
     #[test]
     fn test_discriminator_match() {
@@ -574,5 +739,38 @@ mod tests {
         let short_data = vec![0u8; 10];
         let result = parse_trade_event_inner(&short_data, metadata, false);
         assert!(result.is_none());
+    }
+
+    #[test]
+    fn trade_event_parser_accepts_payload_without_latest_tail() {
+        let metadata = EventMetadata {
+            signature: Signature::default(),
+            slot: 10,
+            tx_index: 0,
+            block_time_us: 0,
+            grpc_recv_us: 0,
+            recent_blockhash: None,
+        };
+        let data = trade_event_data_without_buyback_tail("buy_exact_sol_in");
+        let event =
+            parse_pumpfun_inner_instruction(&discriminators::TRADE_EVENT, &data, metadata, true)
+                .expect("legacy tail-compatible trade event");
+
+        match event {
+            DexEvent::PumpFunBuyExactSolIn(t) => {
+                assert_eq!(t.sol_amount, 1_000);
+                assert_eq!(t.token_amount, 2_000);
+                assert_eq!(t.ix_name, "buy_exact_sol_in");
+                assert!(t.track_volume);
+                assert!(t.mayhem_mode);
+                assert_eq!(t.cashback_fee_basis_points, 130);
+                assert_eq!(t.cashback, 140);
+                assert!(t.is_created_buy);
+                assert_eq!(t.buyback_fee_basis_points, 0);
+                assert!(t.shareholders.is_empty());
+                assert_eq!(t.quote_mint, PUMPFUN_SOLSCAN_SOL_QUOTE_MINT);
+            }
+            other => panic!("expected exact buy trade, got {other:?}"),
+        }
     }
 }

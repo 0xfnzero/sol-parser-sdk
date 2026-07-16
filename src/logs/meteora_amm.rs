@@ -211,6 +211,35 @@ pub fn parse_pool_created_from_data(data: &[u8], metadata: EventMetadata) -> Opt
     }))
 }
 
+/// Parse Meteora AMM SetPoolFees event from pre-decoded data
+#[inline(always)]
+pub fn parse_set_pool_fees_from_data(data: &[u8], metadata: EventMetadata) -> Option<DexEvent> {
+    let mut offset = 0;
+
+    let trade_fee_numerator = read_u64_le(data, offset)?;
+    offset += 8;
+
+    let trade_fee_denominator = read_u64_le(data, offset)?;
+    offset += 8;
+
+    let owner_trade_fee_numerator = read_u64_le(data, offset)?;
+    offset += 8;
+
+    let owner_trade_fee_denominator = read_u64_le(data, offset)?;
+    offset += 8;
+
+    let pool = read_pubkey(data, offset)?;
+
+    Some(DexEvent::MeteoraPoolsSetPoolFees(MeteoraPoolsSetPoolFeesEvent {
+        metadata,
+        trade_fee_numerator,
+        trade_fee_denominator,
+        owner_trade_fee_numerator,
+        owner_trade_fee_denominator,
+        pool,
+    }))
+}
+
 /// 解析 Swap 事件
 fn parse_swap_event(
     data: &[u8],

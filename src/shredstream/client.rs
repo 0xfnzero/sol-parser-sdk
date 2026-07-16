@@ -1,27 +1,60 @@
 //! ShredStream 客户端
 //!
-//! 与 gRPC 客户端类似的实现逻辑：
-//! - 先检测同一笔交易中是否有 CREATE 指令
-//! - 如果有，则该交易的 BUY 事件标记为 is_created_buy
+//! `solana_entry::entry::Entry` 在 Agave SDK 中带 `deprecated`（需显式启用不稳定 feature 才消除）；
+//! 本模块仍依赖其 bincode 布局解码 Shred 侧 `entries` 负载。
+#![allow(deprecated)]
 
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
+use std::time::Duration;
 
 use crossbeam_queue::ArrayQueue;
 use futures::StreamExt;
 use solana_entry::entry::Entry as SolanaEntry;
+use solana_sdk::message::VersionedMessage;
 use tokio::sync::Mutex;
 use tokio::task::JoinHandle;
+use tonic::transport::{Channel, Endpoint};
 
 use crate::core::now_micros;
-use crate::instr::program_ids::PUMPFUN_PROGRAM_ID;
+use crate::grpc::types::EventTypeFilter;
 use crate::shredstream::config::ShredStreamConfig;
 use crate::shredstream::proto::{Entry, ShredstreamProxyClient, SubscribeEntriesRequest};
 use crate::DexEvent;
 
-/// PumpFun CREATE 指令的 discriminator（前8字节）
-const PUMPFUN_CREATE_DISCRIMINATOR: [u8; 8] = [24, 30, 200, 40, 5, 28, 7, 119];
-/// PumpFun CREATE_V2 指令的 discriminator
-const PUMPFUN_CREATE_V2_DISCRIMINATOR: [u8; 8] = [214, 144, 76, 236, 95, 139, 49, 180];
+static SHREDSTREAM_DROPPED_EVENTS: AtomicU64 = AtomicU64::new(0);
+
+enum EventSink<'a> {
+    Queue(&'a Arc<ArrayQueue<DexEvent>>),
+    Callback(&'a (dyn Fn(DexEvent) + Send + Sync)),
+}
+
+impl EventSink<'_> {
+    #[inline]
+    fn deliver(&self, event: DexEvent) {
+        match self {
+            EventSink::Queue(queue) => {
+                if queue.push(event).is_err() {
+                    record_shredstream_dropped_event();
+                }
+            }
+            EventSink::Callback(callback) => callback(event),
+        }
+    }
+}
+
+#[inline]
+fn record_shredstream_dropped_event() -> u64 {
+    let dropped = SHREDSTREAM_DROPPED_EVENTS.fetch_add(1, Ordering::Relaxed) + 1;
+    if dropped <= 10 || dropped.is_power_of_two() {
+        log::warn!(
+            target: "sol_parser_sdk::shredstream",
+            "ShredStream event queue is full; dropped event count={}",
+            dropped
+        );
+    }
+    dropped
+}
 
 /// ShredStream 客户端
 #[derive(Clone)]
@@ -44,7 +77,7 @@ impl ShredStreamClient {
     ) -> crate::common::AnyResult<Self> {
         let endpoint = endpoint.into();
         // 测试连接
-        let _ = ShredstreamProxyClient::connect(endpoint.clone()).await?;
+        let _ = Self::connect_client(&endpoint, &config).await?;
 
         Ok(Self { endpoint, config, subscription_handle: Arc::new(Mutex::new(None)) })
     }
@@ -53,6 +86,16 @@ impl ShredStreamClient {
     ///
     /// 返回一个队列，事件会被推送到该队列中
     pub async fn subscribe(&self) -> crate::common::AnyResult<Arc<ArrayQueue<DexEvent>>> {
+        self.subscribe_with_filter(None).await
+    }
+
+    /// 订阅 DEX 事件，并在 ShredStream 热路径中按 SDK 事件类型提前过滤。
+    ///
+    /// 过滤发生在解析分发前，用于低延迟场景避免解析不需要的协议/事件。
+    pub async fn subscribe_with_filter(
+        &self,
+        event_type_filter: Option<EventTypeFilter>,
+    ) -> crate::common::AnyResult<Arc<ArrayQueue<DexEvent>>> {
         // 停止现有订阅
         self.stop().await;
 
@@ -73,7 +116,14 @@ impl ShredStreamClient {
                 }
                 attempts += 1;
 
-                match Self::stream_events(&endpoint, &queue_clone).await {
+                match Self::stream_events(
+                    &endpoint,
+                    &config,
+                    event_type_filter.as_ref(),
+                    EventSink::Queue(&queue_clone),
+                )
+                .await
+                {
                     Ok(_) => {
                         delay = config.reconnect_delay_ms;
                         attempts = 0;
@@ -91,6 +141,59 @@ impl ShredStreamClient {
         Ok(queue)
     }
 
+    /// 订阅 DEX 事件，并在解析热路径中直接回调事件，避免跨任务队列调度。
+    ///
+    /// 这是最低延迟路径；回调会在 ShredStream 读流任务内执行，应避免阻塞 I/O 或重计算。
+    pub async fn subscribe_with_filter_callback<F>(
+        &self,
+        event_type_filter: Option<EventTypeFilter>,
+        callback: F,
+    ) -> crate::common::AnyResult<()>
+    where
+        F: Fn(DexEvent) + Send + Sync + 'static,
+    {
+        self.stop().await;
+
+        let endpoint = self.endpoint.clone();
+        let config = self.config.clone();
+        let callback = Arc::new(callback);
+
+        let handle = tokio::spawn(async move {
+            let mut delay = config.reconnect_delay_ms;
+            let mut attempts = 0u32;
+
+            loop {
+                if config.max_reconnect_attempts > 0 && attempts >= config.max_reconnect_attempts {
+                    log::error!("Max reconnection attempts reached, giving up");
+                    break;
+                }
+                attempts += 1;
+
+                match Self::stream_events_callback(
+                    &endpoint,
+                    &config,
+                    event_type_filter.as_ref(),
+                    callback.clone(),
+                )
+                .await
+                {
+                    Ok(_) => {
+                        delay = config.reconnect_delay_ms;
+                        attempts = 0;
+                    }
+                    Err(e) => {
+                        log::error!("ShredStream error: {} - retry in {}ms", e, delay);
+                        tokio::time::sleep(tokio::time::Duration::from_millis(delay)).await;
+                        delay = (delay * 2).min(60_000);
+                    }
+                }
+            }
+        });
+
+        *self.subscription_handle.lock().await = Some(handle);
+        Ok(())
+    }
+
     /// 停止订阅
     pub async fn stop(&self) {
         if let Some(handle) = self.subscription_handle.lock().await.take() {
@@ -98,24 +201,53 @@ impl ShredStreamClient {
         }
     }
 
+    async fn connect_client(
+        endpoint: &str,
+        config: &ShredStreamConfig,
+    ) -> crate::common::AnyResult<ShredstreamProxyClient<Channel>> {
+        let mut builder = Endpoint::from_shared(endpoint.to_string())?;
+        if config.connection_timeout_ms > 0 {
+            builder = builder.connect_timeout(Duration::from_millis(config.connection_timeout_ms));
+        }
+        let channel = builder.connect().await?;
+        Ok(ShredstreamProxyClient::new(channel)
+            .max_decoding_message_size(config.max_decoding_message_size))
+    }
+
     /// 核心事件流处理
     async fn stream_events(
         endpoint: &str,
-        queue: &Arc<ArrayQueue<DexEvent>>,
+        config: &ShredStreamConfig,
+        event_type_filter: Option<&EventTypeFilter>,
+        sink: EventSink<'_>,
     ) -> Result<(), String> {
-        let mut client = ShredstreamProxyClient::connect(endpoint.to_string())
-            .await
-            .map_err(|e| e.to_string())?;
+        let mut client = Self::connect_client(endpoint, config).await.map_err(|e| e.to_string())?;
         let request = tonic::Request::new(SubscribeEntriesRequest {});
-        let mut stream =
-            client.subscribe_entries(request).await.map_err(|e| e.to_string())?.into_inner();
+        let response = if config.request_timeout_ms > 0 {
+            tokio::time::timeout(
+                Duration::from_millis(config.request_timeout_ms),
+                client.subscribe_entries(request),
+            )
+            .await
+            .map_err(|_| {
+                format!(
+                    "ShredStream subscribe request timed out after {}ms",
+                    config.request_timeout_ms
+                )
+            })?
+            .map_err(|e| e.to_string())?
+        } else {
+            client.subscribe_entries(request).await.map_err(|e| e.to_string())?
+        };
+        let mut stream = response.into_inner();
 
         log::info!("ShredStream connected, receiving entries...");
 
+        let mut events = Vec::with_capacity(4);
         while let Some(message) = stream.next().await {
             match message {
                 Ok(entry) => {
-                    Self::process_entry(entry, queue);
+                    Self::process_entry(entry, event_type_filter, &sink, &mut events);
                 }
                 Err(e) => {
                     log::error!("Stream error: {:?}", e);
@@ -127,9 +259,29 @@ impl ShredStreamClient {
         Ok(())
     }
 
+    async fn stream_events_callback(
+        endpoint: &str,
+        config: &ShredStreamConfig,
+        event_type_filter: Option<&EventTypeFilter>,
+        callback: Arc<dyn Fn(DexEvent) + Send + Sync>,
+    ) -> Result<(), String> {
+        Self::stream_events(
+            endpoint,
+            config,
+            event_type_filter,
+            EventSink::Callback(callback.as_ref()),
+        )
+        .await
+    }
+
     /// 处理单个 Entry 消息
     #[inline]
-    fn process_entry(entry: Entry, queue: &Arc<ArrayQueue<DexEvent>>) {
+    fn process_entry(
+        entry: Entry,
+        event_type_filter: Option<&EventTypeFilter>,
+        sink: &EventSink<'_>,
+        events: &mut Vec<DexEvent>,
+    ) {
         let slot = entry.slot;
         let recv_us = now_micros();
 
@@ -143,129 +295,195 @@ impl ShredStreamClient {
         };
 
         // 处理每个 Entry 中的交易
+        let mut tx_index = 0u64;
         for entry in entries {
-            for (tx_index, transaction) in entry.transactions.iter().enumerate() {
-                Self::process_transaction(transaction, slot, recv_us, tx_index as u64, queue);
+            for transaction in entry.transactions.iter() {
+                events.clear();
+                Self::process_transaction(
+                    transaction,
+                    slot,
+                    recv_us,
+                    tx_index,
+                    event_type_filter,
+                    events,
+                    sink,
+                );
+                tx_index += 1;
             }
         }
     }
 
     /// 处理单个交易
-    ///
-    /// 与 gRPC 实现类似的逻辑：
-    /// 1. 先检测同一笔交易中是否有 PumpFun CREATE 指令
-    /// 2. 如果有，则该交易的 BUY 事件标记为 is_created_buy
     #[inline]
     fn process_transaction(
         transaction: &solana_sdk::transaction::VersionedTransaction,
         slot: u64,
         recv_us: i64,
         tx_index: u64,
-        queue: &Arc<ArrayQueue<DexEvent>>,
+        event_type_filter: Option<&EventTypeFilter>,
+        events: &mut Vec<DexEvent>,
+        sink: &EventSink<'_>,
+    ) {
+        if transaction.signatures.is_empty() {
+            return;
+        }
+
+        Self::parse_transaction_events(
+            transaction,
+            slot,
+            recv_us,
+            tx_index,
+            event_type_filter,
+            events,
+        );
+
+        for event in events.drain(..) {
+            sink.deliver(event);
+        }
+    }
+
+    #[inline]
+    fn parse_transaction_events(
+        transaction: &solana_sdk::transaction::VersionedTransaction,
+        slot: u64,
+        recv_us: i64,
+        tx_index: u64,
+        event_type_filter: Option<&EventTypeFilter>,
+        events: &mut Vec<DexEvent>,
     ) {
         if transaction.signatures.is_empty() {
             return;
         }
 
         let signature = transaction.signatures[0];
-        let accounts: Vec<_> = transaction.message.static_account_keys().to_vec();
+        if let VersionedMessage::V0(m) = &transaction.message {
+            if !m.address_table_lookups.is_empty() {
+                log::trace!(
+                    target: "sol_parser_sdk::shredstream",
+                    "V0 tx uses address lookup tables; shred parser will use static accounts and default placeholders for ALT-loaded accounts"
+                );
+            }
+        }
+        // 热路径：`static_account_keys` 零拷贝、`pump_ix` 内不克隆 CompiledInstruction。
+        super::pump_ix::parse_transaction_dex_events_with_filter(
+            transaction,
+            signature,
+            slot,
+            tx_index,
+            recv_us,
+            event_type_filter,
+            events,
+        );
+        crate::core::pumpfun_fee_enrich::enrich_pumpfun_same_tx_post_merge(events);
 
-        // 提取所有指令
-        let instructions = Self::extract_instructions(transaction);
-
-        // 步骤1: 检测是否有 PumpFun CREATE 指令（与 gRPC 的 detect_pumpfun_create 类似）
-        let has_create = Self::detect_pumpfun_create_instruction(&instructions, &accounts);
-
-        // 步骤2: 解析所有指令
-        for (program_id_index, instruction_data) in instructions.iter() {
-            if let Some(&program_id) = accounts.get(*program_id_index as usize) {
-                // 使用指令解析器解析事件
-                if let Some(mut event) = crate::instr::parse_instruction_unified(
-                    instruction_data,
-                    &accounts,
-                    signature,
-                    slot,
-                    tx_index,
-                    None, // ShredStream 不提供 block_time
-                    recv_us,
-                    None, // 无事件类型过滤
-                    &program_id,
-                ) {
-                    // 如果检测到 CREATE 指令，标记 BUY 事件为 is_created_buy
-                    if has_create {
-                        Self::mark_created_buy(&mut event);
-                    }
-                    let _ = queue.push(event);
-                }
+        for event in events.iter_mut() {
+            if let Some(meta) = event.metadata_mut() {
+                meta.grpc_recv_us = recv_us;
             }
         }
     }
+}
 
-    /// 检测同一笔交易中是否有 PumpFun CREATE 指令
-    ///
-    /// 这与 gRPC 的 detect_pumpfun_create(logs) 功能相同，
-    /// 但 ShredStream 只能从指令中检测
-    #[inline]
-    fn detect_pumpfun_create_instruction(
-        instructions: &[(u8, Vec<u8>)],
-        accounts: &[solana_sdk::pubkey::Pubkey],
-    ) -> bool {
-        for (program_id_index, instruction_data) in instructions {
-            // 检查是否是 PumpFun 程序
-            if let Some(&program_id) = accounts.get(*program_id_index as usize) {
-                if program_id == PUMPFUN_PROGRAM_ID && instruction_data.len() >= 8 {
-                    let disc: [u8; 8] = instruction_data[0..8].try_into().unwrap_or([0; 8]);
-                    // 检查是否是 CREATE 或 CREATE_V2
-                    if disc == PUMPFUN_CREATE_DISCRIMINATOR || disc == PUMPFUN_CREATE_V2_DISCRIMINATOR {
-                        return true;
-                    }
-                }
-            }
-        }
-        false
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::core::events::{EventMetadata, PumpFunCreateTokenEvent};
+    use crate::instr::program_ids::PUMPFUN_PROGRAM_ID;
+    use solana_sdk::hash::Hash;
+    use solana_sdk::message::{
+        compiled_instruction::CompiledInstruction, v0, MessageHeader, VersionedMessage,
+    };
+    use solana_sdk::pubkey::Pubkey;
+    use solana_sdk::signature::Signature;
+    use solana_sdk::transaction::VersionedTransaction;
+    use std::sync::atomic::{AtomicUsize, Ordering as AtomicOrdering};
+
+    fn push_string(data: &mut Vec<u8>, value: &str) {
+        data.extend_from_slice(&(value.len() as u32).to_le_bytes());
+        data.extend_from_slice(value.as_bytes());
     }
 
-    /// 标记 BUY 事件为 is_created_buy
-    ///
-    /// 支持所有买入事件类型：
-    /// - DexEvent::PumpFunBuy
-    /// - DexEvent::PumpFunBuyExactSolIn
-    /// - DexEvent::PumpFunTrade (is_buy = true)
-    #[inline]
-    fn mark_created_buy(event: &mut DexEvent) {
-        match event {
-            DexEvent::PumpFunBuy(e) => {
-                e.is_created_buy = true;
-            }
-            DexEvent::PumpFunBuyExactSolIn(e) => {
-                e.is_created_buy = true;
-            }
-            DexEvent::PumpFunTrade(e) if e.is_buy => {
-                e.is_created_buy = true;
-            }
-            _ => {}
+    fn pumpfun_create_data() -> Vec<u8> {
+        let mut data = Vec::new();
+        data.extend_from_slice(&[24, 30, 200, 40, 5, 28, 7, 119]);
+        push_string(&mut data, "Callback Test");
+        push_string(&mut data, "CBT");
+        push_string(&mut data, "https://example.invalid/callback.json");
+        data.extend_from_slice(Pubkey::new_unique().as_ref());
+        data
+    }
+
+    fn pumpfun_create_tx() -> VersionedTransaction {
+        let mut account_keys = (0..10).map(|_| Pubkey::new_unique()).collect::<Vec<_>>();
+        account_keys.push(PUMPFUN_PROGRAM_ID);
+
+        VersionedTransaction {
+            signatures: vec![Signature::default()],
+            message: VersionedMessage::V0(v0::Message {
+                header: MessageHeader {
+                    num_required_signatures: 1,
+                    num_readonly_signed_accounts: 0,
+                    num_readonly_unsigned_accounts: 0,
+                },
+                account_keys,
+                recent_blockhash: Hash::default(),
+                instructions: vec![CompiledInstruction::new_from_raw_parts(
+                    10,
+                    pumpfun_create_data(),
+                    (0..10).collect(),
+                )],
+                address_table_lookups: Vec::new(),
+            }),
         }
     }
 
-    /// 从版本化交易提取指令
-    fn extract_instructions(
-        transaction: &solana_sdk::transaction::VersionedTransaction,
-    ) -> Vec<(u8, Vec<u8>)> {
-        use solana_sdk::message::VersionedMessage;
+    #[test]
+    fn dropped_counter_increments_without_panicking() {
+        let before = SHREDSTREAM_DROPPED_EVENTS.load(Ordering::Relaxed);
+        let queue = ArrayQueue::new(1);
 
-        match &transaction.message {
-            VersionedMessage::Legacy(msg) => {
-                msg.instructions
-                    .iter()
-                    .map(|ix| (ix.program_id_index, ix.data.clone()))
-                    .collect()
-            }
-            VersionedMessage::V0(msg) => {
-                msg.instructions
-                    .iter()
-                    .map(|ix| (ix.program_id_index, ix.data.clone()))
-                    .collect()
-            }
+        queue
+            .push(DexEvent::PumpFunCreate(PumpFunCreateTokenEvent {
+                metadata: EventMetadata::default(),
+                ..Default::default()
+            }))
+            .expect("first push fits");
+
+        if queue
+            .push(DexEvent::PumpFunCreate(PumpFunCreateTokenEvent {
+                metadata: EventMetadata::default(),
+                ..Default::default()
+            }))
+            .is_err()
+        {
+            record_shredstream_dropped_event();
         }
+
+        assert!(SHREDSTREAM_DROPPED_EVENTS.load(Ordering::Relaxed) > before);
+    }
+
+    #[test]
+    fn callback_path_delivers_events_without_queue() {
+        let entries = vec![SolanaEntry {
+            num_hashes: 1,
+            hash: Hash::default(),
+            transactions: vec![pumpfun_create_tx()],
+        }];
+        let entry = Entry { slot: 42, entries: bincode::serialize(&entries).unwrap() };
+        let count = AtomicUsize::new(0);
+
+        let mut events = Vec::with_capacity(4);
+        ShredStreamClient::process_entry(
+            entry,
+            None,
+            &EventSink::Callback(&|event| {
+                assert!(matches!(event, DexEvent::PumpFunCreate(_)));
+                assert_eq!(event.metadata().slot, 42);
+                count.fetch_add(1, AtomicOrdering::Relaxed);
+            }),
+            &mut events,
+        );
+
+        assert_eq!(count.load(AtomicOrdering::Relaxed), 1);
     }
 }

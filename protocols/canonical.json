@@ -1,0 +1,364 @@
+{
+  "schema_version": 1,
+  "updated_at": "2026-05-30",
+  "source_of_truth": "rust",
+  "notes": [
+    "This file is the cross-language baseline for protocol names, program ids, event names, account event names, and priority discriminators.",
+    "Shyft-to/solana-defi is used as a development oracle for IDLs, sample scenarios, and golden fixtures only; it is not a runtime dependency.",
+    "Raydium LaunchLab is exposed as RaydiumLaunchlab across protocol and event names."
+  ],
+  "protocols": [
+    {
+      "protocol": "PumpFun",
+      "program_ids": ["6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P"],
+      "status": "stable",
+      "event_types": [
+        "PumpFunTrade",
+        "PumpFunBuy",
+        "PumpFunSell",
+        "PumpFunBuyExactSolIn",
+        "PumpFunCreate",
+        "PumpFunCreateV2",
+        "PumpFunComplete",
+        "PumpFunMigrate",
+        "PumpFunMigrateBondingCurveCreator"
+      ],
+      "account_event_types": [
+        "AccountPumpFunGlobal",
+        "AccountPumpFunBondingCurve",
+        "AccountPumpFunGlobalVolumeAccumulator",
+        "AccountPumpFunUserVolumeAccumulator"
+      ]
+    },
+    {
+      "protocol": "PumpSwap",
+      "program_ids": ["pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA"],
+      "status": "stable",
+      "event_types": [
+        "PumpSwapTrade",
+        "PumpSwapBuy",
+        "PumpSwapSell",
+        "PumpSwapCreatePool",
+        "PumpSwapLiquidityAdded",
+        "PumpSwapLiquidityRemoved"
+      ],
+      "account_event_types": ["AccountPumpSwapGlobalConfig", "AccountPumpSwapPool"]
+    },
+    {
+      "protocol": "PumpFees",
+      "program_ids": ["pfeeUxB6jkeY1Hxd7CsFCAjcbHA9rWtchMGdZ6VojVZ"],
+      "status": "stable",
+      "event_types": [
+        "PumpFeesCreateFeeSharingConfig",
+        "PumpFeesInitializeFeeConfig",
+        "PumpFeesResetFeeSharingConfig",
+        "PumpFeesRevokeFeeSharingAuthority",
+        "PumpFeesTransferFeeSharingAuthority",
+        "PumpFeesUpdateAdmin",
+        "PumpFeesUpdateFeeConfig",
+        "PumpFeesUpdateFeeShares",
+        "PumpFeesUpsertFeeTiers"
+      ],
+      "account_event_types": ["AccountPumpFunFeeConfig", "AccountPumpFunSharingConfig"]
+    },
+    {
+      "protocol": "RaydiumLaunchlab",
+      "program_ids": ["LanMV9sAd7wArD4vJFi2qDdfnVhFxYSUg6eADduJ3uj"],
+      "status": "canonical_breaking_rename_to_launchlab",
+      "event_types": ["RaydiumLaunchlabTrade", "RaydiumLaunchlabPoolCreate", "RaydiumLaunchlabMigrateAmm"],
+      "account_event_types": [],
+      "instruction_discriminators": {
+        "initialize": [175, 175, 109, 31, 13, 152, 155, 237],
+        "initialize_v2": [67, 153, 175, 39, 218, 16, 38, 32],
+        "initialize_with_token_2022": [37, 190, 126, 222, 44, 154, 171, 17],
+        "buy_exact_in": [250, 234, 13, 123, 213, 156, 19, 236],
+        "buy_exact_out": [24, 211, 116, 40, 105, 3, 153, 56],
+        "sell_exact_in": "pending_canonicalization",
+        "sell_exact_out": "pending_canonicalization",
+        "migrate_to_amm": [207, 82, 192, 145, 254, 207, 145, 223],
+        "migrate_to_cpswap": [136, 92, 200, 103, 28, 218, 144, 140]
+      },
+      "log_event_discriminators": {
+        "PoolCreateEvent": [151, 215, 226, 9, 118, 161, 115, 174],
+        "TradeEvent": [189, 219, 127, 211, 78, 230, 97, 238]
+      },
+      "oracle_sources": [
+        "Raydium/Typescript/stream_raydium_launchlab_migration",
+        "Raydium/Rust/stream_and_parse_raydium_launchlab_transactions",
+        "Raydium/Rust/stream_and_parse_raydium_launchlab_account"
+      ]
+    },
+    {
+      "protocol": "RaydiumCpmm",
+      "program_ids": ["CPMMoo8L3F4NbTegBCKVNunggL7H1ZpdTHKxQB5qKP1C"],
+      "status": "rust_account_parser_added_needs_golden_oracle",
+      "event_types": [
+        "RaydiumCpmmSwap",
+        "RaydiumCpmmDeposit",
+        "RaydiumCpmmWithdraw",
+        "RaydiumCpmmInitialize"
+      ],
+      "account_event_types": ["AccountRaydiumCpmmAmmConfig", "AccountRaydiumCpmmPoolState"],
+      "instruction_discriminators": {
+        "initialize": [175, 175, 109, 31, 13, 152, 155, 237],
+        "deposit": [242, 35, 198, 137, 82, 225, 242, 182],
+        "withdraw": [183, 18, 70, 156, 148, 109, 161, 34],
+        "swap_base_input": [143, 190, 90, 218, 196, 30, 51, 222],
+        "swap_base_output": [55, 217, 98, 86, 163, 74, 180, 173]
+      },
+      "log_event_discriminators": {
+        "SwapEvent": [64, 198, 205, 232, 38, 8, 113, 226],
+        "LpChangeEvent": [121, 163, 205, 201, 57, 218, 117, 60]
+      },
+      "oracle_sources": [
+        "Raydium/Typescript/stream_and_parse_cpmm_new_pool",
+        "Raydium/Typescript/stream_raydium_cpmm_token_price",
+        "Raydium/Rust/stream_and_parse_raydium_cp_transactions"
+      ]
+    },
+    {
+      "protocol": "RaydiumClmm",
+      "program_ids": ["CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK"],
+      "status": "supported_needs_v2_token_extension_pass",
+      "event_types": [
+        "RaydiumClmmSwap",
+        "RaydiumClmmCreatePool",
+        "RaydiumClmmOpenPosition",
+        "RaydiumClmmOpenPositionWithTokenExtNft",
+        "RaydiumClmmClosePosition",
+        "RaydiumClmmIncreaseLiquidity",
+        "RaydiumClmmDecreaseLiquidity",
+        "RaydiumClmmCollectFee"
+      ],
+      "account_event_types": [
+        "AccountRaydiumClmmAmmConfig",
+        "AccountRaydiumClmmPoolState",
+        "AccountRaydiumClmmTickArrayState"
+      ],
+      "instruction_discriminators": {
+        "create_pool": [233, 146, 209, 142, 207, 104, 64, 188],
+        "open_position": [135, 128, 47, 77, 15, 152, 240, 49],
+        "open_position_v2": [77, 184, 74, 214, 112, 86, 241, 199],
+        "open_position_with_token22_nft": [77, 255, 174, 82, 125, 29, 201, 46],
+        "increase_liquidity": [46, 156, 243, 118, 13, 205, 251, 178],
+        "increase_liquidity_v2": [133, 29, 89, 223, 69, 238, 176, 10],
+        "decrease_liquidity": [160, 38, 208, 111, 104, 91, 44, 1],
+        "decrease_liquidity_v2": [58, 127, 188, 62, 79, 82, 196, 96],
+        "swap": [248, 198, 158, 145, 225, 117, 135, 200],
+        "swap_v2": [43, 4, 237, 11, 26, 201, 30, 98]
+      },
+      "log_event_discriminators": {
+        "PoolCreatedEvent": [25, 94, 75, 47, 112, 99, 53, 63],
+        "SwapEvent": [64, 198, 205, 232, 38, 8, 113, 226],
+        "IncreaseLiquidityEvent": [49, 79, 105, 212, 32, 34, 30, 84],
+        "DecreaseLiquidityEvent": [58, 222, 86, 58, 68, 50, 85, 56]
+      },
+      "oracle_sources": [
+        "Raydium/Typescript/stream_raydium_clmm_token_price",
+        "Raydium/Typescript/stream_and_parse_clmm_new_pool",
+        "Raydium/Rust/stream_and_parse_raydium_clmm_accounts"
+      ]
+    },
+    {
+      "protocol": "RaydiumAmmV4",
+      "program_ids": ["675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8"],
+      "status": "supported_legacy_non_anchor",
+      "event_types": [
+        "RaydiumAmmV4Swap",
+        "RaydiumAmmV4Deposit",
+        "RaydiumAmmV4Withdraw",
+        "RaydiumAmmV4WithdrawPnl",
+        "RaydiumAmmV4Initialize2"
+      ],
+      "account_event_types": [],
+      "instruction_discriminators": {
+        "initialize": null,
+        "initialize2": null,
+        "deposit": null,
+        "withdraw": null,
+        "withdrawPnl": null,
+        "swapBaseIn": null,
+        "swapBaseOut": null
+      },
+      "oracle_sources": [
+        "Raydium/Typescript/stream_raydium_amm_token_price",
+        "Raydium/Rust/stream_and_parse_raydium_accounts"
+      ]
+    },
+    {
+      "protocol": "OrcaWhirlpool",
+      "program_ids": ["whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc"],
+      "status": "rust_account_parser_added_needs_adaptive_fee_token_badge",
+      "event_types": [
+        "OrcaWhirlpoolSwap",
+        "OrcaWhirlpoolLiquidityIncreased",
+        "OrcaWhirlpoolLiquidityDecreased",
+        "OrcaWhirlpoolPoolInitialized"
+      ],
+      "account_event_types": [
+        "AccountOrcaWhirlpool",
+        "AccountOrcaPosition",
+        "AccountOrcaTickArray",
+        "AccountOrcaFeeTier",
+        "AccountOrcaWhirlpoolsConfig"
+      ],
+      "instruction_discriminators": {
+        "initializePool": null,
+        "initializePoolV2": null,
+        "initializePoolWithAdaptiveFee": null,
+        "initializeAdaptiveFeeTier": null,
+        "increaseLiquidityV2": null,
+        "decreaseLiquidityV2": null,
+        "swap": null,
+        "swapV2": null,
+        "twoHopSwapV2": null
+      },
+      "oracle_sources": [
+        "Orca/Typescript/stream_and_parse_all_whirlpool_accounts",
+        "Orca/Typescript/stream_and_parse_orca_transactions_and_detect_buy_sell_events",
+        "Orca/Rust/stream_and_parse_whirlpool_account_updates"
+      ]
+    },
+    {
+      "protocol": "MeteoraPools",
+      "program_ids": ["Eo7WjKq67rjJQSZxS6z3YkapzY3eMj6Xy8X5EQVn5UaB"],
+      "status": "supported_needs_account_parser_pass",
+      "event_types": [
+        "MeteoraPoolsSwap",
+        "MeteoraPoolsAddLiquidity",
+        "MeteoraPoolsRemoveLiquidity",
+        "MeteoraPoolsBootstrapLiquidity",
+        "MeteoraPoolsPoolCreated",
+        "MeteoraPoolsSetPoolFees"
+      ],
+      "account_event_types": ["AccountMeteoraPool"],
+      "log_event_discriminators": {
+        "Swap": null,
+        "AddLiquidity": null,
+        "RemoveLiquidity": null,
+        "BootstrapLiquidity": null,
+        "PoolCreated": null,
+        "SetPoolFees": null
+      },
+      "oracle_sources": [
+        "Meteora/Typescript/stream_meteora_pool_token_price",
+        "Meteora/Rust/stream_and_parse_meteora_pools_accounts"
+      ]
+    },
+    {
+      "protocol": "MeteoraDammV2",
+      "program_ids": ["cpamdpZCGKUy5JxQXB4dcpGPiikHawvSWAd6mEn1sGG"],
+      "status": "supported_needs_golden_oracle",
+      "event_types": [
+        "MeteoraDammV2Swap",
+        "MeteoraDammV2AddLiquidity",
+        "MeteoraDammV2RemoveLiquidity",
+        "MeteoraDammV2CreatePosition",
+        "MeteoraDammV2ClosePosition",
+        "MeteoraDammV2InitializePool"
+      ],
+      "account_event_types": ["AccountMeteoraDammPool", "AccountMeteoraDammPosition"],
+      "instruction_discriminators": {
+        "initialize_pool": [95, 180, 10, 172, 84, 174, 232, 40],
+        "swap": [248, 198, 158, 145, 225, 117, 135, 200],
+        "swap2": [65, 75, 63, 76, 235, 91, 91, 136],
+        "add_liquidity": [181, 157, 89, 67, 143, 182, 52, 72],
+        "remove_liquidity": [80, 85, 209, 72, 24, 206, 177, 108],
+        "create_position": [48, 215, 197, 153, 96, 203, 180, 133],
+        "close_position": [123, 134, 81, 0, 49, 68, 98, 98]
+      },
+      "log_event_discriminators": {
+        "EvtInitializePool": [228, 50, 246, 85, 203, 66, 134, 37],
+        "EvtSwap2": [189, 66, 51, 168, 38, 80, 117, 153],
+        "EvtLiquidityChange": [197, 171, 78, 127, 224, 211, 87, 13],
+        "EvtCreatePosition": [156, 15, 119, 198, 29, 181, 221, 55],
+        "EvtClosePosition": [20, 145, 144, 68, 143, 142, 214, 178]
+      },
+      "oracle_sources": [
+        "Meteora/Typescript/stream_and_parse_meteora_damm_v2_new_pools",
+        "Meteora/Typescript/stream_meteora_damm_v2_token_price",
+        "Meteora/Rust/stream_and_parse_meteora_damm_v2_accounts"
+      ]
+    },
+    {
+      "protocol": "MeteoraDlmm",
+      "program_ids": ["LBUZKhRxPF3XUpBCjp4YzTKgLccjZhTSDM9YuVaPwxo"],
+      "status": "supported_needs_account_parser_pass",
+      "event_types": [
+        "MeteoraDlmmSwap",
+        "MeteoraDlmmAddLiquidity",
+        "MeteoraDlmmRemoveLiquidity",
+        "MeteoraDlmmInitializePool",
+        "MeteoraDlmmInitializeBinArray",
+        "MeteoraDlmmCreatePosition",
+        "MeteoraDlmmClosePosition",
+        "MeteoraDlmmClaimFee"
+      ],
+      "account_event_types": [
+        "AccountMeteoraDlmmLbPair",
+        "AccountMeteoraDlmmBinArray",
+        "AccountMeteoraDlmmPosition"
+      ],
+      "instruction_discriminators": {
+        "initializeLbPair": null,
+        "initializeLbPair2": null,
+        "initializeBinArray": null,
+        "initializePosition": null,
+        "addLiquidity": null,
+        "removeLiquidity": null,
+        "swap": null,
+        "swapExactOut": null
+      },
+      "oracle_sources": [
+        "Meteora/Typescript/stream_meteora_dlmm_token_price",
+        "Meteora/Rust/stream_and_parse_meteora_dlmm_accounts",
+        "Meteora/Rust/stream_and_parse_meteora_dlmm_instructions"
+      ]
+    },
+    {
+      "protocol": "MeteoraDbc",
+      "program_ids": ["dbcij3LWUppWqq96dh6gJWwBifmcGfLSB5D4DuSMaqN"],
+      "status": "rust_log_parser_added_account_instruction_pending",
+      "event_types": [
+        "MeteoraDbcSwap",
+        "MeteoraDbcInitializePool",
+        "MeteoraDbcCurveComplete"
+      ],
+      "planned_event_types": [
+        "MeteoraDbcMigrationDammV2",
+        "MeteoraDbcMigrateMeteoraDamm"
+      ],
+      "account_event_types": [
+        "AccountMeteoraDbcVirtualPool",
+        "AccountMeteoraDbcPoolConfig",
+        "AccountMeteoraDbcConfig"
+      ],
+      "instruction_discriminators": {
+        "initialize_virtual_pool_with_spl_token": [140, 85, 215, 176, 102, 54, 104, 79],
+        "initialize_virtual_pool_with_token2022": [169, 118, 51, 78, 145, 110, 220, 155],
+        "swap": [248, 198, 158, 145, 225, 117, 135, 200],
+        "swap2": [65, 75, 63, 76, 235, 91, 91, 136],
+        "migration_damm_v2": [156, 169, 230, 103, 53, 228, 80, 64],
+        "migrate_meteora_damm": [27, 1, 48, 22, 180, 63, 118, 217]
+      },
+      "log_event_discriminators": {
+        "EvtInitializePool": [228, 50, 246, 85, 203, 66, 134, 37],
+        "EvtSwap": [27, 60, 21, 213, 138, 170, 187, 147],
+        "EvtCurveComplete": [229, 231, 86, 84, 156, 134, 75, 24],
+        "EvtCreateDammV2MigrationMetadata": [103, 111, 132, 168, 140, 253, 150, 114],
+        "EvtCreateMeteoraMigrationMetadata": [99, 167, 133, 63, 214, 143, 175, 139]
+      },
+      "account_discriminators": {
+        "VirtualPool": [213, 224, 5, 209, 98, 69, 119, 92],
+        "PoolConfig": [26, 108, 14, 123, 116, 230, 129, 43],
+        "Config": [155, 12, 170, 224, 30, 250, 204, 130]
+      },
+      "oracle_sources": [
+        "Meteora/Typescript/stream_meteora_dbc_token_price",
+        "Meteora/Typescript/stream_meteora_dbc_new_minted_tokens",
+        "Meteora/Rust/stream_and_parse_meteora_dbc_transaction",
+        "Meteora/Rust/stream_and_parse_meteora_dbc_accounts"
+      ]
+    }
+  ]
+}

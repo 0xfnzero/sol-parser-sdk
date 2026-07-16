@@ -41,11 +41,13 @@ async fn run_example() -> Result<(), Box<dyn std::error::Error>> {
     println!("🚀 Subscribing to Yellowstone gRPC events...");
 
     // Create low-latency configuration
-    let mut config: ClientConfig = ClientConfig::default();
-    config.enable_metrics = true;
-    config.connection_timeout_ms = 10000;
-    config.request_timeout_ms = 30000;
-    config.enable_tls = true;
+    let config = ClientConfig {
+        enable_metrics: true,
+        connection_timeout_ms: 10000,
+        request_timeout_ms: 30000,
+        enable_tls: true,
+        ..Default::default()
+    };
 
     const GRPC_ENDPOINT: &str = "https://solana-yellowstone-grpc.publicnode.com:443";
     const GRPC_AUTH_TOKEN: &str =

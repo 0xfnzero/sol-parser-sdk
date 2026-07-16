@@ -9,8 +9,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     println!("🚀 Quick Test - Subscribing to ALL PumpFun events...");
 
-    let mut config: ClientConfig = ClientConfig::default();
-    config.enable_metrics = true;
+    let config = ClientConfig { enable_metrics: true, ..Default::default() };
 
     // publicnode gRPC 需要 token，可从环境变量 GRPC_AUTH_TOKEN 覆盖
     const GRPC_ENDPOINT: &str = "https://solana-yellowstone-grpc.publicnode.com:443";

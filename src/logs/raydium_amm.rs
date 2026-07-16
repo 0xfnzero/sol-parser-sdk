@@ -256,7 +256,7 @@ pub fn parse_initialize2_from_data(data: &[u8], metadata: EventMetadata) -> Opti
     let user = read_pubkey(data, offset)?;
     offset += 32;
 
-    let nonce = data.get(offset)?.clone();
+    let nonce = *data.get(offset)?;
     offset += 1;
 
     let open_time = read_u64_le(data, offset)?;
@@ -294,6 +294,38 @@ pub fn parse_initialize2_from_data(data: &[u8], metadata: EventMetadata) -> Opti
         user_token_coin: Pubkey::default(),
         user_token_pc: Pubkey::default(),
         user_lp_token_account: Pubkey::default(),
+    }))
+}
+
+/// Parse Raydium AMM V4 WithdrawPnl event from pre-decoded data
+#[inline(always)]
+pub fn parse_withdraw_pnl_from_data(data: &[u8], metadata: EventMetadata) -> Option<DexEvent> {
+    let mut offset = 0;
+
+    let amm = read_pubkey(data, offset)?;
+    offset += 32;
+
+    let pnl_owner = read_pubkey(data, offset)?;
+
+    Some(DexEvent::RaydiumAmmV4WithdrawPnl(RaydiumAmmV4WithdrawPnlEvent {
+        metadata,
+        token_program: Pubkey::default(),
+        amm,
+        amm_config: Pubkey::default(),
+        amm_authority: Pubkey::default(),
+        amm_open_orders: Pubkey::default(),
+        pool_coin_token_account: Pubkey::default(),
+        pool_pc_token_account: Pubkey::default(),
+        coin_pnl_token_account: Pubkey::default(),
+        pc_pnl_token_account: Pubkey::default(),
+        pnl_owner,
+        amm_target_orders: Pubkey::default(),
+        serum_program: Pubkey::default(),
+        serum_market: Pubkey::default(),
+        serum_event_queue: Pubkey::default(),
+        serum_coin_vault_account: Pubkey::default(),
+        serum_pc_vault_account: Pubkey::default(),
+        serum_vault_signer: Pubkey::default(),
     }))
 }
 
@@ -518,7 +550,7 @@ fn parse_initialize2_event(
     let user = read_pubkey(data, offset)?;
     offset += 32;
 
-    let nonce = data.get(offset)?.clone();
+    let nonce = *data.get(offset)?;
     offset += 1;
 
     let open_time = read_u64_le(data, offset)?;

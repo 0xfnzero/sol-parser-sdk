@@ -25,6 +25,12 @@ pub fn unlikely(condition: bool) -> bool {
 }
 
 /// 预取数据到 CPU 缓存（读优化）
+///
+/// # Safety
+///
+/// `ptr` must be a valid pointer for the target platform to prefetch. The
+/// intrinsic does not dereference it, but callers must still only pass pointers
+/// derived from live allocations or documented platform-safe addresses.
 #[inline(always)]
 pub unsafe fn prefetch_read<T>(ptr: *const T) {
     #[cfg(target_arch = "x86_64")]
@@ -35,6 +41,12 @@ pub unsafe fn prefetch_read<T>(ptr: *const T) {
 }
 
 /// 预取数据到 CPU 缓存（写优化）
+///
+/// # Safety
+///
+/// `ptr` must be a valid pointer for the target platform to prefetch. The
+/// intrinsic does not dereference it, but callers must still only pass pointers
+/// derived from live allocations or documented platform-safe addresses.
 #[inline(always)]
 pub unsafe fn prefetch_write<T>(ptr: *const T) {
     #[cfg(target_arch = "x86_64")]

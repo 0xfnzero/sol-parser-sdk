@@ -28,17 +28,31 @@ use solana_sdk::{pubkey::Pubkey, signature::Signature};
 /// - 预分配容量，避免动态扩容
 #[inline] // 零延迟优化：内联
 pub fn parse_transaction_events(
-    _instruction_data: &[u8],
-    _accounts: &[Pubkey],
+    instruction_data: &[u8],
+    accounts: &[Pubkey],
     logs: &[String],
     signature: Signature,
     slot: u64,
-    _tx_index: u64,
+    tx_index: u64,
     block_time_us: Option<i64>,
-    _program_id: &Pubkey,
+    program_id: &Pubkey,
 ) -> SmallVec<[DexEvent; 4]> {
     // 零延迟优化：SmallVec 栈分配
     let mut events = smallvec![]; // 栈分配，容量 4
+
+    if let Some(instr_event) = crate::instr::parse_instruction_unified(
+        instruction_data,
+        accounts,
+        signature,
+        slot,
+        tx_index,
+        block_time_us,
+        0,
+        None,
+        program_id,
+    ) {
+        events.push(instr_event);
+    }
 
     // 2. 解析日志事件 - 大多数日志会成功解析
     for log in logs {
@@ -110,24 +124,32 @@ pub fn parse_transaction_with_listener<T: EventListener>(
 /// 这个版本不做事件合并，确保每个事件都能立即被处理
 /// 适用于需要实时响应的场景
 pub fn parse_transaction_events_streaming<F>(
-    _instruction_data: &[u8],
-    _accounts: &[Pubkey],
+    instruction_data: &[u8],
+    accounts: &[Pubkey],
     logs: &[String],
     signature: Signature,
     slot: u64,
-    _tx_index: u64,
+    tx_index: u64,
     block_time_us: Option<i64>,
-    _program_id: &Pubkey,
+    program_id: &Pubkey,
     mut callback: F,
 ) where
     F: FnMut(DexEvent),
 {
     // 1. 先解析指令事件（如果有） - 立即回调
-    // if let Some(instr_event) = crate::instr::parse_instruction_unified(
-    //     instruction_data, accounts, signature, slot, tx_index, block_time_us, program_id
-    // ) {
-    //     callback(instr_event);  // 立即回调指令事件
-    // }
+    if let Some(instr_event) = crate::instr::parse_instruction_unified(
+        instruction_data,
+        accounts,
+        signature,
+        slot,
+        tx_index,
+        block_time_us,
+        0,
+        None,
+        program_id,
+    ) {
+        callback(instr_event);
+    }
 
     // 2. 逐个解析日志事件 - 每个事件立即回调
     for log in logs {

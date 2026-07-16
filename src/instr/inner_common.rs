@@ -3,12 +3,20 @@
 //! 提供零拷贝、高性能的通用读取函数，供所有协议的 inner instruction 解析器使用
 
 /// 零拷贝读取 u8
+///
+/// # Safety
+///
+/// Caller must ensure `offset` is within `data`.
 #[inline(always)]
 pub unsafe fn read_u8_unchecked(data: &[u8], offset: usize) -> u8 {
     *data.get_unchecked(offset)
 }
 
 /// 零拷贝读取 u16
+///
+/// # Safety
+///
+/// Caller must ensure `offset..offset + 2` is within `data`.
 #[inline(always)]
 pub unsafe fn read_u16_unchecked(data: &[u8], offset: usize) -> u16 {
     let ptr = data.as_ptr().add(offset) as *const u16;
@@ -16,6 +24,10 @@ pub unsafe fn read_u16_unchecked(data: &[u8], offset: usize) -> u16 {
 }
 
 /// 零拷贝读取 u32
+///
+/// # Safety
+///
+/// Caller must ensure `offset..offset + 4` is within `data`.
 #[inline(always)]
 pub unsafe fn read_u32_unchecked(data: &[u8], offset: usize) -> u32 {
     let ptr = data.as_ptr().add(offset) as *const u32;
@@ -23,6 +35,10 @@ pub unsafe fn read_u32_unchecked(data: &[u8], offset: usize) -> u32 {
 }
 
 /// 零拷贝读取 u64
+///
+/// # Safety
+///
+/// Caller must ensure `offset..offset + 8` is within `data`.
 #[inline(always)]
 pub unsafe fn read_u64_unchecked(data: &[u8], offset: usize) -> u64 {
     let ptr = data.as_ptr().add(offset) as *const u64;
@@ -30,6 +46,10 @@ pub unsafe fn read_u64_unchecked(data: &[u8], offset: usize) -> u64 {
 }
 
 /// 零拷贝读取 u128
+///
+/// # Safety
+///
+/// Caller must ensure `offset..offset + 16` is within `data`.
 #[inline(always)]
 pub unsafe fn read_u128_unchecked(data: &[u8], offset: usize) -> u128 {
     let ptr = data.as_ptr().add(offset) as *const u128;
@@ -37,6 +57,10 @@ pub unsafe fn read_u128_unchecked(data: &[u8], offset: usize) -> u128 {
 }
 
 /// 零拷贝读取 i32
+///
+/// # Safety
+///
+/// Caller must ensure `offset..offset + 4` is within `data`.
 #[inline(always)]
 pub unsafe fn read_i32_unchecked(data: &[u8], offset: usize) -> i32 {
     let ptr = data.as_ptr().add(offset) as *const i32;
@@ -44,6 +68,10 @@ pub unsafe fn read_i32_unchecked(data: &[u8], offset: usize) -> i32 {
 }
 
 /// 零拷贝读取 i64
+///
+/// # Safety
+///
+/// Caller must ensure `offset..offset + 8` is within `data`.
 #[inline(always)]
 pub unsafe fn read_i64_unchecked(data: &[u8], offset: usize) -> i64 {
     let ptr = data.as_ptr().add(offset) as *const i64;
@@ -51,6 +79,10 @@ pub unsafe fn read_i64_unchecked(data: &[u8], offset: usize) -> i64 {
 }
 
 /// 零拷贝读取 i128
+///
+/// # Safety
+///
+/// Caller must ensure `offset..offset + 16` is within `data`.
 #[inline(always)]
 pub unsafe fn read_i128_unchecked(data: &[u8], offset: usize) -> i128 {
     let ptr = data.as_ptr().add(offset) as *const i128;
@@ -58,12 +90,20 @@ pub unsafe fn read_i128_unchecked(data: &[u8], offset: usize) -> i128 {
 }
 
 /// 零拷贝读取 bool
+///
+/// # Safety
+///
+/// Caller must ensure `offset` is within `data`.
 #[inline(always)]
 pub unsafe fn read_bool_unchecked(data: &[u8], offset: usize) -> bool {
     *data.get_unchecked(offset) == 1
 }
 
 /// 零拷贝读取 Pubkey (32 bytes)
+///
+/// # Safety
+///
+/// Caller must ensure `offset..offset + 32` is within `data`.
 #[inline(always)]
 pub unsafe fn read_pubkey_unchecked(data: &[u8], offset: usize) -> solana_sdk::pubkey::Pubkey {
     use solana_sdk::pubkey::Pubkey;
@@ -74,6 +114,10 @@ pub unsafe fn read_pubkey_unchecked(data: &[u8], offset: usize) -> solana_sdk::p
 }
 
 /// 零拷贝读取字符串（带长度前缀）
+///
+/// # Safety
+///
+/// Caller must ensure the length-prefixed bytes are readable and valid UTF-8.
 #[inline(always)]
 pub unsafe fn read_string_unchecked(data: &[u8], offset: usize) -> Option<(String, usize)> {
     if data.len() < offset + 4 {

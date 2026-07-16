@@ -137,10 +137,10 @@ pub fn read_bool(data: &[u8], offset: usize) -> Option<bool> {
     Some(data[offset] == 1)
 }
 
-/// 将 prost_types::Timestamp 转换为微秒表示
-pub fn timestamp_to_microseconds(ts: &prost_types::Timestamp) -> i128 {
+/// 将 timestamp (seconds, nanos) 转换为微秒表示
+pub fn timestamp_to_microseconds(seconds: i64, nanos: i32) -> i128 {
     // 用 i128 避免溢出
-    ts.seconds as i128 * 1_000_000 + (ts.nanos as i128 / 1_000)
+    seconds as i128 * 1_000_000 + (nanos as i128 / 1_000)
 }
 
 /// 创建事件元数据的通用函数

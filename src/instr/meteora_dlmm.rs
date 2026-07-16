@@ -204,7 +204,7 @@ fn parse_add_liquidity_instruction(
         pool,
         from: get_account(accounts, 1).unwrap_or_default(),
         position: get_account(accounts, 2).unwrap_or_default(),
-        amounts: [amounts.get(0).copied().unwrap_or(0), amounts.get(1).copied().unwrap_or(0)],
+        amounts: [amounts.first().copied().unwrap_or(0), amounts.get(1).copied().unwrap_or(0)],
         active_bin_id: 0, // 从日志中获取
     }))
 }
@@ -233,7 +233,7 @@ fn parse_remove_liquidity_instruction(
         pool,
         from: get_account(accounts, 1).unwrap_or_default(),
         position: get_account(accounts, 2).unwrap_or_default(),
-        amounts: [amounts.get(0).copied().unwrap_or(0), amounts.get(1).copied().unwrap_or(0)],
+        amounts: [amounts.first().copied().unwrap_or(0), amounts.get(1).copied().unwrap_or(0)],
         active_bin_id: 0, // 从日志中获取
     }))
 }

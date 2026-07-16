@@ -78,6 +78,17 @@ pub fn read_bool(data: &[u8], offset: usize) -> Option<bool> {
     data.get(offset).map(|&b| b != 0)
 }
 
+/// IDL 自定义类型 `OptionBool`（Anchor：`struct { bool }`）在 **指令参数** 中与 `bool` 相同，Borsh 仅占 **1 字节**。
+/// 勿与 Rust `Option<bool>` 的 Borsh 编码（discriminator + inner，共 2 字节）混淆。
+#[inline(always)]
+pub fn read_option_bool_idl(data: &[u8], offset: usize) -> Option<bool> {
+    match data.get(offset).copied()? {
+        0 => Some(false),
+        1 => Some(true),
+        _ => None,
+    }
+}
+
 /// 从指令数据中读取公钥 - SIMD 优化
 #[inline(always)]
 pub fn read_pubkey(data: &[u8], offset: usize) -> Option<Pubkey> {
@@ -119,6 +130,35 @@ pub fn read_bytes(data: &[u8], offset: usize, length: usize) -> Option<&[u8]> {
     Some(&data[offset..offset + length])
 }
 
+/// `create_v2` 指令 payload（**不含** 8 字节 discriminator）：`name, symbol, uri, creator, is_mayhem_mode, is_cashback_enabled`（IDL）。
+/// 其中 `is_cashback_enabled` 为 `OptionBool`，链上与 `bool` 同为 1 字节。
+/// `mint` / `bonding_curve` / `user` 在账户里，不在 data 中。
+#[inline]
+pub fn parse_create_v2_tail_fields(
+    data_after_discriminator: &[u8],
+) -> Option<(Pubkey, bool, bool)> {
+    let mut offset = 0usize;
+    let (_, l) = read_str_unchecked(data_after_discriminator, offset)?;
+    offset += l;
+    let (_, l) = read_str_unchecked(data_after_discriminator, offset)?;
+    offset += l;
+    let (_, l) = read_str_unchecked(data_after_discriminator, offset)?;
+    offset += l;
+    if data_after_discriminator.len() < offset + 32 + 1 {
+        return None;
+    }
+    let creator = read_pubkey(data_after_discriminator, offset)?;
+    offset += 32;
+    let is_mayhem_mode = read_bool(data_after_discriminator, offset)?;
+    offset += 1;
+    let is_cashback_enabled = if offset < data_after_discriminator.len() {
+        read_option_bool_idl(data_after_discriminator, offset).unwrap_or(false)
+    } else {
+        false
+    };
+    Some((creator, is_mayhem_mode, is_cashback_enabled))
+}
+
 /// Read string with 4-byte length prefix (Borsh format)
 /// Returns (string slice, total bytes consumed including length prefix)
 #[inline]
@@ -155,8 +195,8 @@ pub fn get_instruction_account_getter<'a>(
     transaction: &'a Option<Transaction>,
     account_keys: Option<&'a Vec<Vec<u8>>>,
     // 地址表
-    loaded_writable_addresses: &'a Vec<Vec<u8>>,
-    loaded_readonly_addresses: &'a Vec<Vec<u8>>,
+    loaded_writable_addresses: &'a [Vec<u8>],
+    loaded_readonly_addresses: &'a [Vec<u8>],
     index: &(i32, i32), // (outer_index, inner_index)
 ) -> Option<impl Fn(usize) -> Pubkey + 'a> {
     // 1. 获取指令的账户索引数组
@@ -252,8 +292,8 @@ pub fn get_instruction_account_getter_indexed<'a>(
     inner_index: &InnerInstructionsIndex<'a>,
     transaction: &'a Option<Transaction>,
     account_keys: Option<&'a Vec<Vec<u8>>>,
-    loaded_writable_addresses: &'a Vec<Vec<u8>>,
-    loaded_readonly_addresses: &'a Vec<Vec<u8>>,
+    loaded_writable_addresses: &'a [Vec<u8>],
+    loaded_readonly_addresses: &'a [Vec<u8>],
     index: &(i32, i32),
 ) -> Option<impl Fn(usize) -> Pubkey + 'a> {
     let accounts = if index.1 >= 0 {
@@ -291,4 +331,36 @@ pub fn get_instruction_account_getter_indexed<'a>(
         }
         Pubkey::default()
     })
+}
+
+#[cfg(test)]
+mod option_bool_tests {
+    use super::*;
+
+    #[test]
+    fn read_option_bool_idl_strict() {
+        assert_eq!(read_option_bool_idl(&[0], 0), Some(false));
+        assert_eq!(read_option_bool_idl(&[1], 0), Some(true));
+        assert_eq!(read_option_bool_idl(&[2], 0), None);
+    }
+
+    #[test]
+    fn parse_create_v2_tail_matches_anchor_len() {
+        // name "a", "b", "c" + creator (32) + mayhem (1) + OptionBool cashback (1) = 49 bytes payload
+        let mut p = Vec::new();
+        p.extend_from_slice(&(1u32.to_le_bytes()));
+        p.push(b'a');
+        p.extend_from_slice(&(1u32.to_le_bytes()));
+        p.push(b'b');
+        p.extend_from_slice(&(1u32.to_le_bytes()));
+        p.push(b'c');
+        p.extend_from_slice(&[0u8; 32]);
+        p.push(1u8); // mayhem
+        p.push(1u8); // cashback
+        assert_eq!(p.len(), 49);
+        let (creator, mayhem, cb) = parse_create_v2_tail_fields(&p).expect("parse");
+        assert_eq!(creator, Pubkey::default());
+        assert!(mayhem);
+        assert!(cb);
+    }
 }

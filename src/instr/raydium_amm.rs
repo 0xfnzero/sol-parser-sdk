@@ -279,7 +279,7 @@ fn parse_initialize2_instruction(
 ) -> Option<DexEvent> {
     let mut offset = 0;
 
-    let nonce = data.get(offset)?.clone();
+    let nonce = *data.get(offset)?;
     offset += 1;
 
     let open_time = read_u64_le(data, offset)?;

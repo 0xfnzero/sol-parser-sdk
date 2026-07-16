@@ -46,6 +46,27 @@ pub mod discriminators {
 /// Base64 查找器预计算 (用于快速定位)
 static BASE64_FINDER: Lazy<memmem::Finder> = Lazy::new(|| memmem::Finder::new(b"Program data: "));
 
+/// 跳过 ASCII 空白后拷贝 base64 前缀（Explorer / 部分日志会在 base64 中插空格）
+#[inline(always)]
+fn copy_b64_skip_ws_prefix(src: &[u8], out: &mut [u8], max_copy: usize) -> Option<usize> {
+    let cap = max_copy.min(out.len());
+    let mut j = 0usize;
+    for &b in src {
+        if b.is_ascii_whitespace() {
+            continue;
+        }
+        if j >= cap {
+            break;
+        }
+        out[j] = b;
+        j += 1;
+    }
+    if j < 12 {
+        return None;
+    }
+    Some(j)
+}
+
 // ============================================================================
 // 零拷贝解析核心 - 使用栈分配
 // ============================================================================
@@ -61,17 +82,21 @@ fn extract_program_data_zero_copy<'a>(log: &'a str, buf: &'a mut [u8; 2048]) -> 
 
     let data_part = &log[pos + 14..];
     let trimmed = data_part.trim();
+    let body = trimmed.as_bytes();
 
-    // Validate input size before decoding (base64: 4 chars -> 3 bytes, so max input = (2048/3)*4 = ~2730 chars)
-    // Add safety margin to prevent base64-simd assertion failures
-    if trimmed.len() > 2700 {
+    if body.len() > 2700 {
         return None;
     }
 
-    // SIMD-accelerated base64 decoding (AVX2/SSE4/NEON)
     use base64_simd::AsOut;
-    let decoded_slice =
-        base64_simd::STANDARD.decode(trimmed.as_bytes(), buf.as_mut().as_out()).ok()?;
+    const COMPACT_CAP: usize = 2730;
+    let decoded_slice = if body.iter().any(|&b| b.is_ascii_whitespace()) {
+        let mut compact = [0u8; COMPACT_CAP];
+        let n = copy_b64_skip_ws_prefix(body, &mut compact, COMPACT_CAP)?;
+        base64_simd::STANDARD.decode(&compact[..n], buf.as_mut().as_out()).ok()?
+    } else {
+        base64_simd::STANDARD.decode(body, buf.as_mut().as_out()).ok()?
+    };
 
     Some(decoded_slice)
 }
@@ -83,20 +108,16 @@ fn extract_discriminator_simd(log: &str) -> Option<u64> {
     let pos = BASE64_FINDER.find(log_bytes)?;
 
     let data_part = &log[pos + 14..];
-    let trimmed = data_part.trim();
+    let body = data_part.trim().as_bytes();
 
-    if trimmed.len() < 12 {
-        return None;
-    }
-
-    // 只解码前16字节以获取 discriminator (SIMD-accelerated)
     use base64_simd::AsOut;
-    let mut buf = [0u8; 12];
-    base64_simd::STANDARD.decode(&trimmed.as_bytes()[..16], buf.as_mut().as_out()).ok()?;
+    let mut compact = [0u8; 24];
+    let n = copy_b64_skip_ws_prefix(body, &mut compact, 16)?;
+    let mut dec = [0u8; 12];
+    base64_simd::STANDARD.decode(&compact[..n], dec.as_mut().as_out()).ok()?;
 
-    // 使用 unsafe 读取 u64 (零拷贝，无边界检查)
     unsafe {
-        let ptr = buf.as_ptr() as *const u64;
+        let ptr = dec.as_ptr() as *const u64;
         Some(ptr.read_unaligned())
     }
 }
@@ -257,9 +278,8 @@ fn parse_buy_event_optimized(
     block_time_us: Option<i64>,
     grpc_recv_us: i64,
 ) -> Option<DexEvent> {
-    // Updated size check for new fields: min_base_amount_out (u64) + ix_name (String, variable length)
-    // Minimum size: 14个u64 + 7个Pubkey + 1个bool + 5个u64 (new fields) + 4 bytes (min string length)
-    const MIN_REQUIRED_LEN: usize = 14 * 8 + 7 * 32 + 1 + 5 * 8 + 4;
+    // Minimum size through min_base_amount_out plus an empty ix_name string prefix.
+    const MIN_REQUIRED_LEN: usize = 16 * 8 + 7 * 32 + 1 + 5 * 8 + 4;
     if data.len() < MIN_REQUIRED_LEN {
         return None;
     }
@@ -469,7 +489,8 @@ fn parse_create_pool_event_optimized(
     grpc_recv_us: i64,
 ) -> Option<DexEvent> {
     // 一次性边界检查 (含 IDL 最后一列 is_mayhem_mode: bool)
-    const REQUIRED_LEN: usize = 8 + 2 + 32 * 6 + 2 + 8 * 7 + 1 + 1;
+    const CREATE_POOL_EVENT_LEN: usize = 326;
+    const REQUIRED_LEN: usize = CREATE_POOL_EVENT_LEN;
     if data.len() < REQUIRED_LEN {
         return None;
     }
@@ -534,6 +555,7 @@ fn parse_create_pool_event_optimized(
             user_quote_token_account,
             coin_creator,
             is_mayhem_mode,
+            is_cashback_coin: false,
         }))
     }
 }
@@ -694,8 +716,8 @@ pub fn is_event_type(log: &str, discriminator: u64) -> bool {
 /// Parse PumpSwap Buy event from pre-decoded data
 #[inline(always)]
 pub fn parse_buy_from_data(data: &[u8], metadata: EventMetadata) -> Option<DexEvent> {
-    // Updated size check for new fields
-    const MIN_REQUIRED_LEN: usize = 14 * 8 + 7 * 32 + 1 + 5 * 8 + 4;
+    // Minimum size through min_base_amount_out plus an empty ix_name string prefix.
+    const MIN_REQUIRED_LEN: usize = 16 * 8 + 7 * 32 + 1 + 5 * 8 + 4;
     if data.len() < MIN_REQUIRED_LEN {
         return None;
     }
@@ -871,7 +893,8 @@ pub fn parse_sell_from_data(data: &[u8], metadata: EventMetadata) -> Option<DexE
 /// Parse PumpSwap CreatePool event from pre-decoded data
 #[inline(always)]
 pub fn parse_create_pool_from_data(data: &[u8], metadata: EventMetadata) -> Option<DexEvent> {
-    const REQUIRED_LEN: usize = 8 + 2 + 32 * 6 + 2 + 8 * 7 + 1;
+    const CREATE_POOL_EVENT_LEN: usize = 326;
+    const REQUIRED_LEN: usize = CREATE_POOL_EVENT_LEN;
     if data.len() < REQUIRED_LEN {
         return None;
     }
@@ -927,6 +950,7 @@ pub fn parse_create_pool_from_data(data: &[u8], metadata: EventMetadata) -> Opti
             user_quote_token_account,
             coin_creator,
             is_mayhem_mode,
+            is_cashback_coin: false,
         }))
     }
 }
@@ -1112,6 +1136,34 @@ mod tests {
         data
     }
 
+    fn build_create_pool_payload(is_mayhem_mode: bool) -> Vec<u8> {
+        let mut data = vec![0u8; 326];
+
+        write_i64(&mut data, 0, 1_713_498_953);
+        data[8..10].copy_from_slice(&42u16.to_le_bytes());
+        write_pubkey(&mut data, 10, Pubkey::new_from_array([1; 32]));
+        write_pubkey(&mut data, 42, Pubkey::new_from_array([2; 32]));
+        write_pubkey(&mut data, 74, Pubkey::new_from_array([3; 32]));
+        data[106] = 6;
+        data[107] = 9;
+        write_u64(&mut data, 108, 11);
+        write_u64(&mut data, 116, 22);
+        write_u64(&mut data, 124, 33);
+        write_u64(&mut data, 132, 44);
+        write_u64(&mut data, 140, 55);
+        write_u64(&mut data, 148, 66);
+        write_u64(&mut data, 156, 77);
+        data[164] = 8;
+        write_pubkey(&mut data, 165, Pubkey::new_from_array([4; 32]));
+        write_pubkey(&mut data, 197, Pubkey::new_from_array([5; 32]));
+        write_pubkey(&mut data, 229, Pubkey::new_from_array([6; 32]));
+        write_pubkey(&mut data, 261, Pubkey::new_from_array([7; 32]));
+        write_pubkey(&mut data, 293, Pubkey::new_from_array([8; 32]));
+        data[325] = u8::from(is_mayhem_mode);
+
+        data
+    }
+
     #[test]
     fn test_discriminator_simd() {
         // 测试 SIMD discriminator 提取
@@ -1163,5 +1215,25 @@ mod tests {
         assert_eq!(event.cashback, 0);
         assert_eq!(event.coin_creator_fee_basis_points, 155);
         assert_eq!(event.coin_creator_fee, 166);
+    }
+
+    #[test]
+    fn parse_buy_from_data_rejects_truncated_min_base_payload() {
+        assert!(parse_buy_from_data(&vec![0u8; 396], metadata()).is_none());
+        assert!(parse_buy_from_data(&vec![0u8; 397], metadata()).is_some());
+    }
+
+    #[test]
+    fn parse_create_pool_from_data_reads_mayhem_mode() {
+        let event = parse_create_pool_from_data(&build_create_pool_payload(true), metadata())
+            .expect("expected pumpswap create pool event");
+
+        let DexEvent::PumpSwapCreatePool(event) = event else {
+            panic!("expected PumpSwapCreatePool event");
+        };
+
+        assert_eq!(event.index, 42);
+        assert!(event.is_mayhem_mode);
+        assert!(!event.is_cashback_coin);
     }
 }
