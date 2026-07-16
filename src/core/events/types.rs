@@ -629,6 +629,15 @@ pub struct PumpSwapBuyEvent {
     pub cashback_fee_basis_points: u64,
     /// Cashback amount (PUMP_CASHBACK_README)
     pub cashback: u64,
+    pub buyback_fee_basis_points: u64,
+    pub buyback_fee: u64,
+    /// Signed virtual quote reserves appended by the PumpSwap boost upgrade.
+    #[serde(default)]
+    pub virtual_quote_reserves: i128,
+    #[serde(default)]
+    pub can_boost: bool,
+    #[serde(default)]
+    pub base_supply: u64,
 
     // === 额外的信息 ===
     #[borsh(skip)]
@@ -691,6 +700,15 @@ pub struct PumpSwapSellEvent {
     pub cashback_fee_basis_points: u64,
     /// Cashback amount (PUMP_CASHBACK_README)
     pub cashback: u64,
+    pub buyback_fee_basis_points: u64,
+    pub buyback_fee: u64,
+    /// Signed virtual quote reserves appended by the PumpSwap boost upgrade.
+    #[serde(default)]
+    pub virtual_quote_reserves: i128,
+    #[serde(default)]
+    pub can_boost: bool,
+    #[serde(default)]
+    pub base_supply: u64,
 
     // === 额外的信息 ===
     #[borsh(skip)]
@@ -1665,6 +1683,9 @@ pub struct PumpSwapPool {
     pub coin_creator: Pubkey,
     pub is_mayhem_mode: bool,
     pub is_cashback_coin: bool,
+    /// Added by the PumpSwap boost upgrade. Legacy pools decode this as zero.
+    #[serde(default)]
+    pub virtual_quote_reserves: i128,
 }
 
 /// PumpFun Bonding Curve Account Event
@@ -2676,4 +2697,63 @@ pub struct MeteoraDlmmClaimFeeEvent {
     pub owner: Pubkey,    // 32 bytes
     pub fee_x: u64,       // 8 bytes
     pub fee_y: u64,       // 8 bytes
+}
+
+#[cfg(test)]
+mod serde_compat_tests {
+    use super::{PumpSwapBuyEvent, PumpSwapPool, PumpSwapSellEvent};
+    use serde::Serialize;
+    use serde_json::Value;
+
+    fn without_fields<T: Serialize>(value: &T, fields: &[&str]) -> Value {
+        let mut json = serde_json::to_value(value).expect("serialize fixture");
+        let object = json.as_object_mut().expect("fixture must be an object");
+        for field in fields {
+            object.remove(*field);
+        }
+        json
+    }
+
+    #[test]
+    fn pumpswap_buy_accepts_json_from_before_boost_upgrade() {
+        let event = PumpSwapBuyEvent::default();
+        let json = without_fields(&event, &["virtual_quote_reserves", "can_boost", "base_supply"]);
+
+        let decoded: PumpSwapBuyEvent = serde_json::from_value(json).expect("legacy buy JSON");
+        assert_eq!(decoded.virtual_quote_reserves, 0);
+        assert!(!decoded.can_boost);
+        assert_eq!(decoded.base_supply, 0);
+    }
+
+    #[test]
+    fn pumpswap_sell_accepts_json_from_before_boost_upgrade() {
+        let event = PumpSwapSellEvent::default();
+        let json = without_fields(&event, &["virtual_quote_reserves", "can_boost", "base_supply"]);
+
+        let decoded: PumpSwapSellEvent = serde_json::from_value(json).expect("legacy sell JSON");
+        assert_eq!(decoded.virtual_quote_reserves, 0);
+        assert!(!decoded.can_boost);
+        assert_eq!(decoded.base_supply, 0);
+    }
+
+    #[test]
+    fn pumpswap_pool_accepts_json_from_before_boost_upgrade() {
+        let pool = PumpSwapPool::default();
+        let json = without_fields(&pool, &["virtual_quote_reserves"]);
+
+        let decoded: PumpSwapPool = serde_json::from_value(json).expect("legacy pool JSON");
+        assert_eq!(decoded.virtual_quote_reserves, 0);
+    }
+
+    #[test]
+    fn pumpswap_json_preserves_signed_i128_extremes() {
+        for value in [i128::MIN, -1, i128::MAX] {
+            let event =
+                PumpSwapBuyEvent { virtual_quote_reserves: value, ..PumpSwapBuyEvent::default() };
+            let json = serde_json::to_string(&event).expect("serialize signed reserve");
+            let decoded: PumpSwapBuyEvent =
+                serde_json::from_str(&json).expect("deserialize signed reserve");
+            assert_eq!(decoded.virtual_quote_reserves, value);
+        }
+    }
 }
