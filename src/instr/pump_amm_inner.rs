@@ -100,21 +100,14 @@ pub fn parse_pumpswap_inner_instruction(
 /// 根据编译时的 feature flag 自动选择解析器实现
 #[inline(always)]
 fn parse_buy_inner(data: &[u8], metadata: EventMetadata) -> Option<DexEvent> {
-    #[cfg(all(feature = "parse-borsh", not(feature = "parse-zero-copy")))]
-    {
-        parse_buy_inner_borsh(data, metadata)
-    }
-
-    #[cfg(feature = "parse-zero-copy")]
-    {
-        parse_buy_inner_zero_copy(data, metadata)
-    }
+    crate::logs::pump_amm::parse_buy_from_data(data, metadata)
 }
 
 /// Borsh 反序列化解析器 - Buy 事件
 ///
 /// **优点**: 类型安全、代码简洁、自动验证
 #[cfg(all(feature = "parse-borsh", not(feature = "parse-zero-copy")))]
+#[allow(dead_code)]
 #[inline(always)]
 fn parse_buy_inner_borsh(data: &[u8], metadata: EventMetadata) -> Option<DexEvent> {
     crate::logs::pump_amm::parse_buy_from_data(data, metadata)
@@ -124,6 +117,7 @@ fn parse_buy_inner_borsh(data: &[u8], metadata: EventMetadata) -> Option<DexEven
 ///
 /// **优点**: 最快、零拷贝、无验证开销
 #[cfg(feature = "parse-zero-copy")]
+#[allow(dead_code)]
 #[inline(always)]
 fn parse_buy_inner_zero_copy(data: &[u8], metadata: EventMetadata) -> Option<DexEvent> {
     // PumpSwap Buy 事件固定字段到 last_update_timestamp 共 385 bytes.
@@ -321,21 +315,14 @@ fn parse_buy_inner_zero_copy(data: &[u8], metadata: EventMetadata) -> Option<Dex
 /// 根据编译时的 feature flag 自动选择解析器实现
 #[inline(always)]
 fn parse_sell_inner(data: &[u8], metadata: EventMetadata) -> Option<DexEvent> {
-    #[cfg(all(feature = "parse-borsh", not(feature = "parse-zero-copy")))]
-    {
-        parse_sell_inner_borsh(data, metadata)
-    }
-
-    #[cfg(feature = "parse-zero-copy")]
-    {
-        parse_sell_inner_zero_copy(data, metadata)
-    }
+    crate::logs::pump_amm::parse_sell_from_data(data, metadata)
 }
 
 /// Borsh 反序列化解析器 - Sell 事件
 ///
 /// **优点**: 类型安全、代码简洁、自动验证
 #[cfg(all(feature = "parse-borsh", not(feature = "parse-zero-copy")))]
+#[allow(dead_code)]
 #[inline(always)]
 fn parse_sell_inner_borsh(data: &[u8], metadata: EventMetadata) -> Option<DexEvent> {
     crate::logs::pump_amm::parse_sell_from_data(data, metadata)
@@ -345,6 +332,7 @@ fn parse_sell_inner_borsh(data: &[u8], metadata: EventMetadata) -> Option<DexEve
 ///
 /// **优点**: 最快、零拷贝、无验证开销
 #[cfg(feature = "parse-zero-copy")]
+#[allow(dead_code)]
 #[inline(always)]
 fn parse_sell_inner_zero_copy(data: &[u8], metadata: EventMetadata) -> Option<DexEvent> {
     // PumpSwap Sell 事件数据结构 (352 bytes):

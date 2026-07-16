@@ -195,6 +195,44 @@ unsafe fn read_pubkey_unchecked(data: &[u8], offset: usize) -> Pubkey {
     Pubkey::new_from_array(bytes)
 }
 
+const BUY_LEGACY_LEN: usize = 385;
+const BUY_MIN_AND_STRING_PREFIX_LEN: usize = 397;
+const BUY_CASHBACK_TAIL_LEN: usize = 16;
+const BUY_CURRENT_TAIL_LEN: usize = 57;
+const SELL_LEGACY_LEN: usize = 352;
+const SELL_CASHBACK_LEN: usize = 368;
+const SELL_CURRENT_LEN: usize = 409;
+
+#[inline]
+pub(crate) fn validate_buy_payload_layout(data: &[u8]) -> Option<()> {
+    if data.len() == BUY_LEGACY_LEN {
+        return Some(());
+    }
+    if data.len() < BUY_MIN_AND_STRING_PREFIX_LEN {
+        return None;
+    }
+
+    let name_len = u32::from_le_bytes(data.get(393..397)?.try_into().ok()?) as usize;
+    let name_end = BUY_MIN_AND_STRING_PREFIX_LEN.checked_add(name_len)?;
+    let name = data.get(BUY_MIN_AND_STRING_PREFIX_LEN..name_end)?;
+    std::str::from_utf8(name).ok()?;
+
+    match data.len() - name_end {
+        0 | BUY_CASHBACK_TAIL_LEN => Some(()),
+        BUY_CURRENT_TAIL_LEN.. => Some(()),
+        _ => None,
+    }
+}
+
+#[inline]
+pub(crate) fn validate_sell_payload_layout(data: &[u8]) -> Option<()> {
+    match data.len() {
+        SELL_LEGACY_LEN | SELL_CASHBACK_LEN => Some(()),
+        SELL_CURRENT_LEN.. => Some(()),
+        _ => None,
+    }
+}
+
 // ============================================================================
 // Optimized event parsing functions
 // ============================================================================
@@ -284,11 +322,7 @@ fn parse_buy_event_optimized(
     block_time_us: Option<i64>,
     grpc_recv_us: i64,
 ) -> Option<DexEvent> {
-    // Minimum size through min_base_amount_out plus an empty ix_name string prefix.
-    const MIN_REQUIRED_LEN: usize = 16 * 8 + 7 * 32 + 1 + 5 * 8 + 4;
-    if data.len() < MIN_REQUIRED_LEN {
-        return None;
-    }
+    validate_buy_payload_layout(data)?;
 
     unsafe {
         let timestamp = read_i64_unchecked(data, 0);
@@ -323,9 +357,14 @@ fn parse_buy_event_optimized(
         let last_update_timestamp = read_i64_unchecked(data, 377);
 
         // New fields from IDL update
-        let mut offset = 385;
-        let min_base_amount_out = read_u64_unchecked(data, offset);
-        offset += 8;
+        let mut offset = BUY_LEGACY_LEN;
+        let min_base_amount_out = if data.len() == BUY_LEGACY_LEN {
+            0
+        } else {
+            let value = read_u64_unchecked(data, offset);
+            offset += 8;
+            value
+        };
 
         // ix_name: String (4-byte length prefix + content)
         let ix_name = if offset + 4 <= data.len() {
@@ -333,7 +372,7 @@ fn parse_buy_event_optimized(
             offset += 4;
             if offset + len <= data.len() {
                 let string_bytes = &data[offset..offset + len];
-                let s = std::str::from_utf8_unchecked(string_bytes);
+                let s = std::str::from_utf8(string_bytes).ok()?;
                 offset += len;
                 s.to_string()
             } else {
@@ -426,11 +465,7 @@ fn parse_sell_event_optimized(
     block_time_us: Option<i64>,
     grpc_recv_us: i64,
 ) -> Option<DexEvent> {
-    // Legacy payload ends after coin_creator_fee; all later fields are optional tails.
-    const REQUIRED_LEN: usize = 13 * 8 + 8 + 7 * 32;
-    if data.len() < REQUIRED_LEN {
-        return None;
-    }
+    validate_sell_payload_layout(data)?;
 
     unsafe {
         let timestamp = read_i64_unchecked(data, 0);
@@ -754,11 +789,7 @@ pub fn is_event_type(log: &str, discriminator: u64) -> bool {
 /// Parse PumpSwap Buy event from pre-decoded data
 #[inline(always)]
 pub fn parse_buy_from_data(data: &[u8], metadata: EventMetadata) -> Option<DexEvent> {
-    // Minimum size through min_base_amount_out plus an empty ix_name string prefix.
-    const MIN_REQUIRED_LEN: usize = 16 * 8 + 7 * 32 + 1 + 5 * 8 + 4;
-    if data.len() < MIN_REQUIRED_LEN {
-        return None;
-    }
+    validate_buy_payload_layout(data)?;
 
     unsafe {
         let timestamp = read_i64_unchecked(data, 0);
@@ -793,9 +824,14 @@ pub fn parse_buy_from_data(data: &[u8], metadata: EventMetadata) -> Option<DexEv
         let last_update_timestamp = read_i64_unchecked(data, 377);
 
         // New fields from IDL update
-        let mut offset = 385;
-        let min_base_amount_out = read_u64_unchecked(data, offset);
-        offset += 8;
+        let mut offset = BUY_LEGACY_LEN;
+        let min_base_amount_out = if data.len() == BUY_LEGACY_LEN {
+            0
+        } else {
+            let value = read_u64_unchecked(data, offset);
+            offset += 8;
+            value
+        };
 
         // ix_name: String (4-byte length prefix + content)
         let ix_name = if offset + 4 <= data.len() {
@@ -803,7 +839,7 @@ pub fn parse_buy_from_data(data: &[u8], metadata: EventMetadata) -> Option<DexEv
             offset += 4;
             if offset + len <= data.len() {
                 let string_bytes = &data[offset..offset + len];
-                let s = std::str::from_utf8_unchecked(string_bytes);
+                let s = std::str::from_utf8(string_bytes).ok()?;
                 offset += len;
                 s.to_string()
             } else {
@@ -879,14 +915,10 @@ pub fn parse_buy_from_data(data: &[u8], metadata: EventMetadata) -> Option<DexEv
 /// Parse PumpSwap Sell event from pre-decoded data
 #[inline(always)]
 pub fn parse_sell_from_data(data: &[u8], metadata: EventMetadata) -> Option<DexEvent> {
-    const REQUIRED_LEN: usize = 13 * 8 + 8 + 7 * 32;
+    validate_sell_payload_layout(data)?;
     const CASHBACK_FEE_BASIS_POINTS_OFFSET: usize = 352;
     const CASHBACK_OFFSET: usize = 360;
     const CASHBACK_FIELDS_LEN: usize = 16;
-    if data.len() < REQUIRED_LEN {
-        return None;
-    }
-
     unsafe {
         let timestamp = read_i64_unchecked(data, 0);
         let base_amount_in = read_u64_unchecked(data, 8);
@@ -1361,8 +1393,45 @@ mod tests {
 
     #[test]
     fn parse_buy_from_data_rejects_truncated_min_base_payload() {
-        assert!(parse_buy_from_data(&vec![0u8; 396], metadata()).is_none());
+        assert!(parse_buy_from_data(&vec![0u8; 385], metadata()).is_some());
+        for len in 386..397 {
+            assert!(parse_buy_from_data(&vec![0u8; len], metadata()).is_none());
+        }
         assert!(parse_buy_from_data(&vec![0u8; 397], metadata()).is_some());
+    }
+
+    #[test]
+    fn parse_buy_from_data_rejects_partial_or_invalid_variable_tail() {
+        let current = build_buy_payload_with_boost();
+        for len in 401..416 {
+            assert!(parse_buy_from_data(&current[..len], metadata()).is_none());
+        }
+        assert!(parse_buy_from_data(&current[..416], metadata()).is_some());
+        for len in 417..457 {
+            assert!(parse_buy_from_data(&current[..len], metadata()).is_none());
+        }
+        assert!(parse_buy_from_data(&current, metadata()).is_some());
+
+        let mut invalid_utf8 = vec![0u8; 398];
+        invalid_utf8[393..397].copy_from_slice(&1u32.to_le_bytes());
+        invalid_utf8[397] = 0xff;
+        assert!(parse_buy_from_data(&invalid_utf8, metadata()).is_none());
+
+        let mut truncated_name = vec![0u8; 398];
+        truncated_name[393..397].copy_from_slice(&2u32.to_le_bytes());
+        assert!(parse_buy_from_data(&truncated_name, metadata()).is_none());
+    }
+
+    #[test]
+    fn parse_sell_from_data_accepts_only_complete_schema_versions() {
+        let current = build_sell_payload(true, true);
+        assert!(parse_sell_from_data(&current[..352], metadata()).is_some());
+        assert!(parse_sell_from_data(&current[..368], metadata()).is_some());
+        assert!(parse_sell_from_data(&current, metadata()).is_some());
+
+        for len in (353..368).chain(369..409) {
+            assert!(parse_sell_from_data(&current[..len], metadata()).is_none());
+        }
     }
 
     #[test]

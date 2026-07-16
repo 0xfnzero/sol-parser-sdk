@@ -139,6 +139,9 @@ pub fn parse_pool(account: &AccountData, metadata: EventMetadata) -> Option<DexE
     if account.data.len() < POOL_LEGACY_SIZE + 8 {
         return None;
     }
+    if account.data.len() != POOL_LEGACY_SIZE + 8 && account.data.len() < POOL_SIZE + 8 {
+        return None;
+    }
 
     // 检查 discriminator
     if !has_discriminator(&account.data, discriminators::POOL_ACCOUNT) {
@@ -302,5 +305,13 @@ mod tests {
 
         assert_eq!(account.data.len(), 252);
         assert_eq!(pool.virtual_quote_reserves, 0);
+    }
+
+    #[test]
+    fn parse_pool_rejects_partial_current_layout() {
+        for allocated_len in 253..261 {
+            let account = pool_account(Some(987_654_321), allocated_len);
+            assert!(parse_pool(&account, EventMetadata::default()).is_none());
+        }
     }
 }

@@ -44,11 +44,9 @@ async fn run_example() -> Result<(), Box<dyn std::error::Error>> {
     println!();
 
     const GRPC_ENDPOINT: &str = "https://solana-yellowstone-grpc.publicnode.com:443";
-    const GRPC_AUTH_TOKEN: &str =
-        "cd1c3642f88c86f9f8e7f15831faf9f067b997c6ac2b72c81d115e8d071af77a";
     let grpc = YellowstoneGrpc::new_with_config(
-        GRPC_ENDPOINT.to_string(),
-        Some(std::env::var("GRPC_AUTH_TOKEN").unwrap_or_else(|_| GRPC_AUTH_TOKEN.to_string())),
+        std::env::var("GRPC_ENDPOINT").unwrap_or_else(|_| GRPC_ENDPOINT.to_string()),
+        std::env::var("GRPC_AUTH_TOKEN").ok(),
         config,
     )?;
 
@@ -151,8 +149,8 @@ async fn run_example() -> Result<(), Box<dyn std::error::Error>> {
                     _ => None,
                 };
 
-                if let Some(grpc_recv_us) = grpc_recv_us_opt {
-                    let latency_us = (queue_recv_us - grpc_recv_us) as u64;
+                if let Some(grpc_recv_us) = grpc_recv_us_opt.filter(|value| *value > 0) {
+                    let latency_us = queue_recv_us.saturating_sub(grpc_recv_us).max(0) as u64;
 
                     // 更新统计
                     consumer_event_count.fetch_add(1, Ordering::Relaxed);
@@ -219,6 +217,7 @@ async fn run_example() -> Result<(), Box<dyn std::error::Error>> {
     println!("🛑 Press Ctrl+C to stop...\n");
     tokio::signal::ctrl_c().await?;
     println!("\n👋 Shutting down gracefully...");
+    grpc.stop().await;
 
     Ok(())
 }
