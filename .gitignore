@@ -17,6 +17,7 @@ open-source/
 build-cache/
 .cargo/
 .cargo_*
+.DS_Store
 
 deploy.sh
 

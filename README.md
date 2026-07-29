@@ -34,12 +34,6 @@
     <a href="https://discord.gg/vuazbGkqQE">Discord</a>
 </p>
 
-> ☕ **Support This Project**
->
-> This SDK is completely free and open source. However, maintaining and continuously updating it requires significant AI computing resources and token consumption. If this SDK helps with your development, consider making a monthly SOL donation — any amount is appreciated and helps keep this project alive!
->
-> **Donation Wallet:** `6oW7AXz1yRb57pYSxysuXnMs2aR1ha5rzGzReZ1MjPV8`
-
 ---
 
 ## 📦 SDK Versions
@@ -119,16 +113,23 @@ sol-parser-sdk = { path = "../sol-parser-sdk", default-features = false, feature
 
 ```toml
 # Add to your Cargo.toml
-sol-parser-sdk = "0.5.15"
+sol-parser-sdk = "0.6.1"
 ```
 
 Or with the zero-copy parser (maximum performance):
 
 ```toml
-sol-parser-sdk = { version = "0.5.15", default-features = false, features = ["parse-zero-copy"] }
+sol-parser-sdk = { version = "0.6.1", default-features = false, features = ["parse-zero-copy"] }
 ```
 
 ### Release Notes
+
+#### v0.6.1
+
+- Decodes the complete current PumpSwap Buy/Sell event tail across log and CPI/inner-instruction paths: cashback, buyback fees, signed virtual quote reserves, boost eligibility, and base supply.
+- Uses one validated PumpSwap trade decoder for the default and zero-copy feature configurations while preserving historical event layouts.
+- Rejects truncated tails, malformed UTF-8, invalid Borsh booleans, and overflowing string bounds instead of emitting partially decoded events.
+- Keeps older serialized PumpSwap events compatible by defaulting fields introduced by the buyback and boost upgrades.
 
 #### v0.5.15
 
@@ -717,7 +718,7 @@ MIT License
 
 ## 📞 Contact
 
-- **Repository**: https://github.com/0xfnzero/solana-streamer
+- **Repository**: https://github.com/0xfnzero/sol-parser-sdk
 - **Telegram**: https://t.me/fnzero_group
 - **Discord**: https://discord.gg/vuazbGkqQE
 

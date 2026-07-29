@@ -113,29 +113,45 @@ pub unsafe fn read_pubkey_unchecked(data: &[u8], offset: usize) -> solana_sdk::p
     Pubkey::new_from_array(bytes)
 }
 
-/// 零拷贝读取字符串（带长度前缀）
+/// Read a Borsh length-prefixed UTF-8 string.
 ///
 /// # Safety
 ///
-/// Caller must ensure the length-prefixed bytes are readable and valid UTF-8.
+/// This remains `unsafe` for API compatibility. The implementation validates
+/// the prefix, bounds, integer arithmetic, and UTF-8 before returning.
 #[inline(always)]
 pub unsafe fn read_string_unchecked(data: &[u8], offset: usize) -> Option<(String, usize)> {
-    if data.len() < offset + 4 {
-        return None;
-    }
-
-    let len = read_u32_unchecked(data, offset) as usize;
-    if data.len() < offset + 4 + len {
-        return None;
-    }
-
-    let string_bytes = &data[offset + 4..offset + 4 + len];
-    let s = std::str::from_utf8_unchecked(string_bytes);
-    Some((s.to_string(), 4 + len))
+    let content_offset = offset.checked_add(4)?;
+    let len = u32::from_le_bytes(data.get(offset..content_offset)?.try_into().ok()?) as usize;
+    let end = content_offset.checked_add(len)?;
+    let value = std::str::from_utf8(data.get(content_offset..end)?).ok()?.to_owned();
+    Some((value, end.checked_sub(offset)?))
 }
 
 /// 检查数据长度是否足够
 #[inline(always)]
 pub fn check_length(data: &[u8], required: usize) -> bool {
     data.len() >= required
+}
+
+#[cfg(test)]
+mod tests {
+    use super::read_string_unchecked;
+
+    #[test]
+    fn string_reader_validates_bounds_and_utf8() {
+        let valid = [2, 0, 0, 0, b'o', b'k'];
+        assert_eq!(unsafe { read_string_unchecked(&valid, 0) }, Some(("ok".into(), 6)));
+
+        let truncated = [2, 0, 0, 0, b'o'];
+        assert!(unsafe { read_string_unchecked(&truncated, 0) }.is_none());
+
+        let invalid_utf8 = [1, 0, 0, 0, 0xff];
+        assert!(unsafe { read_string_unchecked(&invalid_utf8, 0) }.is_none());
+
+        assert!(unsafe { read_string_unchecked(&valid, usize::MAX) }.is_none());
+
+        let huge_prefix = u32::MAX.to_le_bytes();
+        assert!(unsafe { read_string_unchecked(&huge_prefix, 0) }.is_none());
+    }
 }

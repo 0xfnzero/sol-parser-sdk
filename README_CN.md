@@ -34,12 +34,6 @@
     <a href="https://discord.gg/vuazbGkqQE">Discord</a>
 </p>
 
-> ☕ **支持本项目**
->
-> 本 SDK 完全免费且开源。但维护和持续更新需要消耗大量 AI 算力与 Token。如果这个 SDK 对您的开发有帮助，欢迎每月捐赠任意数量的 SOL，您的支持将帮助这个项目持续运行！
->
-> **捐赠钱包：** `6oW7AXz1yRb57pYSxysuXnMs2aR1ha5rzGzReZ1MjPV8`
-
 ---
 
 ## 📦 SDK 版本
@@ -119,16 +113,23 @@ sol-parser-sdk = { path = "../sol-parser-sdk", default-features = false, feature
 
 ```toml
 # 在 Cargo.toml 中添加
-sol-parser-sdk = "0.5.15"
+sol-parser-sdk = "0.6.1"
 ```
 
 或使用零拷贝解析器（最高性能）：
 
 ```toml
-sol-parser-sdk = { version = "0.5.15", default-features = false, features = ["parse-zero-copy"] }
+sol-parser-sdk = { version = "0.6.1", default-features = false, features = ["parse-zero-copy"] }
 ```
 
 ### 发布说明
+
+#### v0.6.1
+
+- 在日志和 CPI/inner-instruction 路径中完整解析当前 PumpSwap Buy/Sell 事件尾部：cashback、buyback 费用、带符号 virtual quote reserves、boost 标记和 base supply。
+- 默认和 zero-copy feature 统一使用经过校验的 PumpSwap trade decoder，同时保持历史事件布局兼容。
+- 对截断尾部、非法 UTF-8、非法 Borsh bool 和字符串边界溢出直接拒绝，不再输出部分解析的事件。
+- 对 buyback 和 boost 升级新增字段提供默认值，保持旧版序列化 PumpSwap 事件兼容。
 
 #### v0.5.15
 
@@ -715,7 +716,7 @@ MIT License
 
 ## 📞 联系方式
 
-- **仓库**: https://github.com/0xfnzero/solana-streamer
+- **仓库**: https://github.com/0xfnzero/sol-parser-sdk
 - **Telegram**: https://t.me/fnzero_group
 - **Discord**: https://discord.gg/vuazbGkqQE
 

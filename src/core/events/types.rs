@@ -629,7 +629,9 @@ pub struct PumpSwapBuyEvent {
     pub cashback_fee_basis_points: u64,
     /// Cashback amount (PUMP_CASHBACK_README)
     pub cashback: u64,
+    #[serde(default)]
     pub buyback_fee_basis_points: u64,
+    #[serde(default)]
     pub buyback_fee: u64,
     /// Signed virtual quote reserves appended by the PumpSwap boost upgrade.
     #[serde(default)]
@@ -700,7 +702,9 @@ pub struct PumpSwapSellEvent {
     pub cashback_fee_basis_points: u64,
     /// Cashback amount (PUMP_CASHBACK_README)
     pub cashback: u64,
+    #[serde(default)]
     pub buyback_fee_basis_points: u64,
+    #[serde(default)]
     pub buyback_fee: u64,
     /// Signed virtual quote reserves appended by the PumpSwap boost upgrade.
     #[serde(default)]
@@ -2717,9 +2721,20 @@ mod serde_compat_tests {
     #[test]
     fn pumpswap_buy_accepts_json_from_before_boost_upgrade() {
         let event = PumpSwapBuyEvent::default();
-        let json = without_fields(&event, &["virtual_quote_reserves", "can_boost", "base_supply"]);
+        let json = without_fields(
+            &event,
+            &[
+                "buyback_fee_basis_points",
+                "buyback_fee",
+                "virtual_quote_reserves",
+                "can_boost",
+                "base_supply",
+            ],
+        );
 
         let decoded: PumpSwapBuyEvent = serde_json::from_value(json).expect("legacy buy JSON");
+        assert_eq!(decoded.buyback_fee_basis_points, 0);
+        assert_eq!(decoded.buyback_fee, 0);
         assert_eq!(decoded.virtual_quote_reserves, 0);
         assert!(!decoded.can_boost);
         assert_eq!(decoded.base_supply, 0);
@@ -2728,9 +2743,20 @@ mod serde_compat_tests {
     #[test]
     fn pumpswap_sell_accepts_json_from_before_boost_upgrade() {
         let event = PumpSwapSellEvent::default();
-        let json = without_fields(&event, &["virtual_quote_reserves", "can_boost", "base_supply"]);
+        let json = without_fields(
+            &event,
+            &[
+                "buyback_fee_basis_points",
+                "buyback_fee",
+                "virtual_quote_reserves",
+                "can_boost",
+                "base_supply",
+            ],
+        );
 
         let decoded: PumpSwapSellEvent = serde_json::from_value(json).expect("legacy sell JSON");
+        assert_eq!(decoded.buyback_fee_basis_points, 0);
+        assert_eq!(decoded.buyback_fee, 0);
         assert_eq!(decoded.virtual_quote_reserves, 0);
         assert!(!decoded.can_boost);
         assert_eq!(decoded.base_supply, 0);

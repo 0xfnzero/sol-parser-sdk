@@ -133,12 +133,6 @@ unsafe fn read_u64_unchecked(data: &[u8], offset: usize) -> u64 {
     u64::from_le(ptr.read_unaligned())
 }
 
-#[inline(always)]
-unsafe fn read_i128_unchecked(data: &[u8], offset: usize) -> i128 {
-    let ptr = data.as_ptr().add(offset) as *const i128;
-    i128::from_le(ptr.read_unaligned())
-}
-
 /// 读取 i64 (unsafe, 无边界检查)
 #[inline(always)]
 unsafe fn read_i64_unchecked(data: &[u8], offset: usize) -> i64 {
@@ -146,19 +140,88 @@ unsafe fn read_i64_unchecked(data: &[u8], offset: usize) -> i64 {
     i64::from_le(ptr.read_unaligned())
 }
 
+#[derive(Default)]
+struct PumpSwapTradeTail {
+    cashback_fee_basis_points: u64,
+    cashback: u64,
+    buyback_fee_basis_points: u64,
+    buyback_fee: u64,
+    virtual_quote_reserves: i128,
+    can_boost: bool,
+    base_supply: u64,
+}
+
+#[inline(always)]
+fn read_u64_le_at(data: &[u8], offset: usize) -> Option<u64> {
+    let bytes = data.get(offset..offset.checked_add(8)?)?;
+    Some(u64::from_le_bytes(bytes.try_into().ok()?))
+}
+
+#[inline(always)]
+fn read_i128_le_at(data: &[u8], offset: usize) -> Option<i128> {
+    let bytes = data.get(offset..offset.checked_add(16)?)?;
+    Some(i128::from_le_bytes(bytes.try_into().ok()?))
+}
+
+#[inline(always)]
+fn read_borsh_string(data: &[u8], offset: usize) -> Option<(String, usize)> {
+    let content_offset = offset.checked_add(4)?;
+    let len = u32::from_le_bytes(data.get(offset..content_offset)?.try_into().ok()?) as usize;
+    let end = content_offset.checked_add(len)?;
+    let value = std::str::from_utf8(data.get(content_offset..end)?).ok()?.to_owned();
+    Some((value, end))
+}
+
+/// Decode the append-only PumpSwap trade-event tail across released layouts.
+#[inline(always)]
+fn parse_trade_tail(data: &[u8]) -> Option<PumpSwapTradeTail> {
+    const CASHBACK_LEN: usize = 16;
+    const BUYBACK_LEN: usize = 32;
+    const BOOST_LEN: usize = 57;
+
+    if data.is_empty() {
+        return Some(PumpSwapTradeTail::default());
+    }
+    if data.len() < CASHBACK_LEN {
+        return None;
+    }
+
+    let mut tail = PumpSwapTradeTail {
+        cashback_fee_basis_points: read_u64_le_at(data, 0)?,
+        cashback: read_u64_le_at(data, 8)?,
+        ..Default::default()
+    };
+    if data.len() == CASHBACK_LEN {
+        return Some(tail);
+    }
+    if data.len() < BUYBACK_LEN {
+        return None;
+    }
+
+    tail.buyback_fee_basis_points = read_u64_le_at(data, 16)?;
+    tail.buyback_fee = read_u64_le_at(data, 24)?;
+    if data.len() == BUYBACK_LEN {
+        return Some(tail);
+    }
+    if data.len() < BOOST_LEN {
+        return None;
+    }
+
+    tail.virtual_quote_reserves = read_i128_le_at(data, 32)?;
+    tail.can_boost = match data[48] {
+        0 => false,
+        1 => true,
+        _ => return None,
+    };
+    tail.base_supply = read_u64_le_at(data, 49)?;
+    Some(tail)
+}
+
 /// Read u16 (unsafe, no bounds check)
 #[inline(always)]
 unsafe fn read_u16_unchecked(data: &[u8], offset: usize) -> u16 {
     let ptr = data.as_ptr().add(offset) as *const u16;
     u16::from_le(ptr.read_unaligned())
-}
-
-/// Read u32 (unsafe, no bounds check)
-#[allow(dead_code)]
-#[inline(always)]
-unsafe fn read_u32_unchecked(data: &[u8], offset: usize) -> u32 {
-    let ptr = data.as_ptr().add(offset) as *const u32;
-    u32::from_le(ptr.read_unaligned())
 }
 
 /// Read u8 (unsafe, no bounds check)
@@ -195,44 +258,6 @@ unsafe fn read_pubkey_unchecked(data: &[u8], offset: usize) -> Pubkey {
     Pubkey::new_from_array(bytes)
 }
 
-const BUY_LEGACY_LEN: usize = 385;
-const BUY_MIN_AND_STRING_PREFIX_LEN: usize = 397;
-const BUY_CASHBACK_TAIL_LEN: usize = 16;
-const BUY_CURRENT_TAIL_LEN: usize = 57;
-const SELL_LEGACY_LEN: usize = 352;
-const SELL_CASHBACK_LEN: usize = 368;
-const SELL_CURRENT_LEN: usize = 409;
-
-#[inline]
-pub(crate) fn validate_buy_payload_layout(data: &[u8]) -> Option<()> {
-    if data.len() == BUY_LEGACY_LEN {
-        return Some(());
-    }
-    if data.len() < BUY_MIN_AND_STRING_PREFIX_LEN {
-        return None;
-    }
-
-    let name_len = u32::from_le_bytes(data.get(393..397)?.try_into().ok()?) as usize;
-    let name_end = BUY_MIN_AND_STRING_PREFIX_LEN.checked_add(name_len)?;
-    let name = data.get(BUY_MIN_AND_STRING_PREFIX_LEN..name_end)?;
-    std::str::from_utf8(name).ok()?;
-
-    match data.len() - name_end {
-        0 | BUY_CASHBACK_TAIL_LEN => Some(()),
-        BUY_CURRENT_TAIL_LEN.. => Some(()),
-        _ => None,
-    }
-}
-
-#[inline]
-pub(crate) fn validate_sell_payload_layout(data: &[u8]) -> Option<()> {
-    match data.len() {
-        SELL_LEGACY_LEN | SELL_CASHBACK_LEN => Some(()),
-        SELL_CURRENT_LEN.. => Some(()),
-        _ => None,
-    }
-}
-
 // ============================================================================
 // Optimized event parsing functions
 // ============================================================================
@@ -265,12 +290,28 @@ pub fn parse_log(
     let data = &program_data[8..];
 
     let result = match discriminator {
-        discriminators::BUY => {
-            parse_buy_event_optimized(data, signature, slot, tx_index, block_time_us, grpc_recv_us)
-        }
-        discriminators::SELL => {
-            parse_sell_event_optimized(data, signature, slot, tx_index, block_time_us, grpc_recv_us)
-        }
+        discriminators::BUY => parse_buy_from_data(
+            data,
+            EventMetadata {
+                signature,
+                slot,
+                tx_index,
+                block_time_us: block_time_us.unwrap_or(0),
+                grpc_recv_us,
+                recent_blockhash: None,
+            },
+        ),
+        discriminators::SELL => parse_sell_from_data(
+            data,
+            EventMetadata {
+                signature,
+                slot,
+                tx_index,
+                block_time_us: block_time_us.unwrap_or(0),
+                grpc_recv_us,
+                recent_blockhash: None,
+            },
+        ),
         discriminators::CREATE_POOL => parse_create_pool_event_optimized(
             data,
             signature,
@@ -305,250 +346,6 @@ pub fn parse_log(
     }
 
     result
-}
-
-/// Parse buy event (optimized) - BuyEvent from pump_amm.json
-///
-/// Optimizations:
-/// - Use unsafe to eliminate all bounds checks
-/// - Batch bounds check instead of per-field check
-/// - Inline all calls
-#[inline(always)]
-fn parse_buy_event_optimized(
-    data: &[u8],
-    signature: Signature,
-    slot: u64,
-    tx_index: u64,
-    block_time_us: Option<i64>,
-    grpc_recv_us: i64,
-) -> Option<DexEvent> {
-    validate_buy_payload_layout(data)?;
-
-    unsafe {
-        let timestamp = read_i64_unchecked(data, 0);
-        let base_amount_out = read_u64_unchecked(data, 8);
-        let max_quote_amount_in = read_u64_unchecked(data, 16);
-        let user_base_token_reserves = read_u64_unchecked(data, 24);
-        let user_quote_token_reserves = read_u64_unchecked(data, 32);
-        let pool_base_token_reserves = read_u64_unchecked(data, 40);
-        let pool_quote_token_reserves = read_u64_unchecked(data, 48);
-        let quote_amount_in = read_u64_unchecked(data, 56);
-        let lp_fee_basis_points = read_u64_unchecked(data, 64);
-        let lp_fee = read_u64_unchecked(data, 72);
-        let protocol_fee_basis_points = read_u64_unchecked(data, 80);
-        let protocol_fee = read_u64_unchecked(data, 88);
-        let quote_amount_in_with_lp_fee = read_u64_unchecked(data, 96);
-        let user_quote_amount_in = read_u64_unchecked(data, 104);
-
-        let pool = read_pubkey_unchecked(data, 112);
-        let user = read_pubkey_unchecked(data, 144);
-        let user_base_token_account = read_pubkey_unchecked(data, 176);
-        let user_quote_token_account = read_pubkey_unchecked(data, 208);
-        let protocol_fee_recipient = read_pubkey_unchecked(data, 240);
-        let protocol_fee_recipient_token_account = read_pubkey_unchecked(data, 272);
-        let coin_creator = read_pubkey_unchecked(data, 304);
-
-        let coin_creator_fee_basis_points = read_u64_unchecked(data, 336);
-        let coin_creator_fee = read_u64_unchecked(data, 344);
-        let track_volume = read_bool_unchecked(data, 352);
-        let total_unclaimed_tokens = read_u64_unchecked(data, 353);
-        let total_claimed_tokens = read_u64_unchecked(data, 361);
-        let current_sol_volume = read_u64_unchecked(data, 369);
-        let last_update_timestamp = read_i64_unchecked(data, 377);
-
-        // New fields from IDL update
-        let mut offset = BUY_LEGACY_LEN;
-        let min_base_amount_out = if data.len() == BUY_LEGACY_LEN {
-            0
-        } else {
-            let value = read_u64_unchecked(data, offset);
-            offset += 8;
-            value
-        };
-
-        // ix_name: String (4-byte length prefix + content)
-        let ix_name = if offset + 4 <= data.len() {
-            let len = read_u32_unchecked(data, offset) as usize;
-            offset += 4;
-            if offset + len <= data.len() {
-                let string_bytes = &data[offset..offset + len];
-                let s = std::str::from_utf8(string_bytes).ok()?;
-                offset += len;
-                s.to_string()
-            } else {
-                String::new()
-            }
-        } else {
-            String::new()
-        };
-
-        // BuyEvent 新增字段 (PUMP_CASHBACK_README): cashback_fee_basis_points, cashback
-        let cashback_fee_basis_points =
-            if offset + 8 <= data.len() { read_u64_unchecked(data, offset) } else { 0 };
-        offset += 8;
-        let cashback = if offset + 8 <= data.len() { read_u64_unchecked(data, offset) } else { 0 };
-        offset += 8;
-        let buyback_fee_basis_points =
-            if offset + 8 <= data.len() { read_u64_unchecked(data, offset) } else { 0 };
-        offset += 8;
-        let buyback_fee =
-            if offset + 8 <= data.len() { read_u64_unchecked(data, offset) } else { 0 };
-        offset += 8;
-        let virtual_quote_reserves =
-            if offset + 16 <= data.len() { read_i128_unchecked(data, offset) } else { 0 };
-        offset += 16;
-        let can_boost = if offset < data.len() { read_bool_unchecked(data, offset) } else { false };
-        offset += 1;
-        let base_supply =
-            if offset + 8 <= data.len() { read_u64_unchecked(data, offset) } else { 0 };
-
-        let metadata = EventMetadata {
-            signature,
-            slot,
-            tx_index,
-            block_time_us: block_time_us.unwrap_or(0),
-            grpc_recv_us,
-            recent_blockhash: None,
-        };
-
-        Some(DexEvent::PumpSwapBuy(PumpSwapBuyEvent {
-            metadata,
-            timestamp,
-            base_amount_out,
-            max_quote_amount_in,
-            user_base_token_reserves,
-            user_quote_token_reserves,
-            pool_base_token_reserves,
-            pool_quote_token_reserves,
-            quote_amount_in,
-            lp_fee_basis_points,
-            lp_fee,
-            protocol_fee_basis_points,
-            protocol_fee,
-            quote_amount_in_with_lp_fee,
-            user_quote_amount_in,
-            pool,
-            user,
-            user_base_token_account,
-            user_quote_token_account,
-            protocol_fee_recipient,
-            protocol_fee_recipient_token_account,
-            coin_creator,
-            coin_creator_fee_basis_points,
-            coin_creator_fee,
-            track_volume,
-            total_unclaimed_tokens,
-            total_claimed_tokens,
-            current_sol_volume,
-            last_update_timestamp,
-            min_base_amount_out,
-            ix_name,
-            cashback_fee_basis_points,
-            cashback,
-            buyback_fee_basis_points,
-            buyback_fee,
-            virtual_quote_reserves,
-            can_boost,
-            base_supply,
-            ..Default::default()
-        }))
-    }
-}
-
-/// 解析卖出事件 (极限优化)
-#[inline(always)]
-fn parse_sell_event_optimized(
-    data: &[u8],
-    signature: Signature,
-    slot: u64,
-    tx_index: u64,
-    block_time_us: Option<i64>,
-    grpc_recv_us: i64,
-) -> Option<DexEvent> {
-    validate_sell_payload_layout(data)?;
-
-    unsafe {
-        let timestamp = read_i64_unchecked(data, 0);
-        let base_amount_in = read_u64_unchecked(data, 8);
-        let min_quote_amount_out = read_u64_unchecked(data, 16);
-        let user_base_token_reserves = read_u64_unchecked(data, 24);
-        let user_quote_token_reserves = read_u64_unchecked(data, 32);
-        let pool_base_token_reserves = read_u64_unchecked(data, 40);
-        let pool_quote_token_reserves = read_u64_unchecked(data, 48);
-        let quote_amount_out = read_u64_unchecked(data, 56);
-        let lp_fee_basis_points = read_u64_unchecked(data, 64);
-        let lp_fee = read_u64_unchecked(data, 72);
-        let protocol_fee_basis_points = read_u64_unchecked(data, 80);
-        let protocol_fee = read_u64_unchecked(data, 88);
-        let quote_amount_out_without_lp_fee = read_u64_unchecked(data, 96);
-        let user_quote_amount_out = read_u64_unchecked(data, 104);
-
-        let pool = read_pubkey_unchecked(data, 112);
-        let user = read_pubkey_unchecked(data, 144);
-        let user_base_token_account = read_pubkey_unchecked(data, 176);
-        let user_quote_token_account = read_pubkey_unchecked(data, 208);
-        let protocol_fee_recipient = read_pubkey_unchecked(data, 240);
-        let protocol_fee_recipient_token_account = read_pubkey_unchecked(data, 272);
-        let coin_creator = read_pubkey_unchecked(data, 304);
-
-        let coin_creator_fee_basis_points = read_u64_unchecked(data, 336);
-        let coin_creator_fee = read_u64_unchecked(data, 344);
-        // SellEvent 新增字段 (PUMP_CASHBACK_README): cashback_fee_basis_points, cashback
-        let cashback_fee_basis_points =
-            if data.len() >= 360 { read_u64_unchecked(data, 352) } else { 0 };
-        let cashback = if data.len() >= 368 { read_u64_unchecked(data, 360) } else { 0 };
-        let buyback_fee_basis_points =
-            if data.len() >= 376 { read_u64_unchecked(data, 368) } else { 0 };
-        let buyback_fee = if data.len() >= 384 { read_u64_unchecked(data, 376) } else { 0 };
-        let virtual_quote_reserves =
-            if data.len() >= 400 { read_i128_unchecked(data, 384) } else { 0 };
-        let can_boost = if data.len() >= 401 { read_bool_unchecked(data, 400) } else { false };
-        let base_supply = if data.len() >= 409 { read_u64_unchecked(data, 401) } else { 0 };
-
-        let metadata = EventMetadata {
-            signature,
-            slot,
-            tx_index,
-            block_time_us: block_time_us.unwrap_or(0),
-            grpc_recv_us,
-            recent_blockhash: None,
-        };
-
-        Some(DexEvent::PumpSwapSell(PumpSwapSellEvent {
-            metadata,
-            timestamp,
-            base_amount_in,
-            min_quote_amount_out,
-            user_base_token_reserves,
-            user_quote_token_reserves,
-            pool_base_token_reserves,
-            pool_quote_token_reserves,
-            quote_amount_out,
-            lp_fee_basis_points,
-            lp_fee,
-            protocol_fee_basis_points,
-            protocol_fee,
-            quote_amount_out_without_lp_fee,
-            user_quote_amount_out,
-            pool,
-            user,
-            user_base_token_account,
-            user_quote_token_account,
-            protocol_fee_recipient,
-            protocol_fee_recipient_token_account,
-            coin_creator,
-            coin_creator_fee_basis_points,
-            coin_creator_fee,
-            cashback_fee_basis_points,
-            cashback,
-            buyback_fee_basis_points,
-            buyback_fee,
-            virtual_quote_reserves,
-            can_boost,
-            base_supply,
-            ..Default::default()
-        }))
-    }
 }
 
 /// 解析池创建事件 (极限优化)
@@ -789,7 +586,18 @@ pub fn is_event_type(log: &str, discriminator: u64) -> bool {
 /// Parse PumpSwap Buy event from pre-decoded data
 #[inline(always)]
 pub fn parse_buy_from_data(data: &[u8], metadata: EventMetadata) -> Option<DexEvent> {
-    validate_buy_payload_layout(data)?;
+    // Historical events end after last_update_timestamp. Newer layouts append
+    // min_base_amount_out, ix_name, and complete trade-tail schema versions.
+    const LEGACY_LEN: usize = 16 * 8 + 7 * 32 + 1 + 4 * 8;
+    const MIN_REQUIRED_LEN: usize = LEGACY_LEN + 8 + 4;
+    if data.len() != LEGACY_LEN && data.len() < MIN_REQUIRED_LEN {
+        return None;
+    }
+    let track_volume = match data[352] {
+        0 => false,
+        1 => true,
+        _ => return None,
+    };
 
     unsafe {
         let timestamp = read_i64_unchecked(data, 0);
@@ -817,56 +625,19 @@ pub fn parse_buy_from_data(data: &[u8], metadata: EventMetadata) -> Option<DexEv
 
         let coin_creator_fee_basis_points = read_u64_unchecked(data, 336);
         let coin_creator_fee = read_u64_unchecked(data, 344);
-        let track_volume = read_bool_unchecked(data, 352);
         let total_unclaimed_tokens = read_u64_unchecked(data, 353);
         let total_claimed_tokens = read_u64_unchecked(data, 361);
         let current_sol_volume = read_u64_unchecked(data, 369);
         let last_update_timestamp = read_i64_unchecked(data, 377);
 
-        // New fields from IDL update
-        let mut offset = BUY_LEGACY_LEN;
-        let min_base_amount_out = if data.len() == BUY_LEGACY_LEN {
-            0
+        let (min_base_amount_out, ix_name, tail) = if data.len() == LEGACY_LEN {
+            (0, String::new(), PumpSwapTradeTail::default())
         } else {
-            let value = read_u64_unchecked(data, offset);
-            offset += 8;
-            value
+            let min_base_amount_out = read_u64_unchecked(data, LEGACY_LEN);
+            let (ix_name, tail_offset) = read_borsh_string(data, LEGACY_LEN + 8)?;
+            let tail = parse_trade_tail(&data[tail_offset..])?;
+            (min_base_amount_out, ix_name, tail)
         };
-
-        // ix_name: String (4-byte length prefix + content)
-        let ix_name = if offset + 4 <= data.len() {
-            let len = read_u32_unchecked(data, offset) as usize;
-            offset += 4;
-            if offset + len <= data.len() {
-                let string_bytes = &data[offset..offset + len];
-                let s = std::str::from_utf8(string_bytes).ok()?;
-                offset += len;
-                s.to_string()
-            } else {
-                String::new()
-            }
-        } else {
-            String::new()
-        };
-
-        let cashback_fee_basis_points =
-            if offset + 8 <= data.len() { read_u64_unchecked(data, offset) } else { 0 };
-        offset += 8;
-        let cashback = if offset + 8 <= data.len() { read_u64_unchecked(data, offset) } else { 0 };
-        offset += 8;
-        let buyback_fee_basis_points =
-            if offset + 8 <= data.len() { read_u64_unchecked(data, offset) } else { 0 };
-        offset += 8;
-        let buyback_fee =
-            if offset + 8 <= data.len() { read_u64_unchecked(data, offset) } else { 0 };
-        offset += 8;
-        let virtual_quote_reserves =
-            if offset + 16 <= data.len() { read_i128_unchecked(data, offset) } else { 0 };
-        offset += 16;
-        let can_boost = if offset < data.len() { read_bool_unchecked(data, offset) } else { false };
-        offset += 1;
-        let base_supply =
-            if offset + 8 <= data.len() { read_u64_unchecked(data, offset) } else { 0 };
 
         Some(DexEvent::PumpSwapBuy(PumpSwapBuyEvent {
             metadata,
@@ -900,13 +671,13 @@ pub fn parse_buy_from_data(data: &[u8], metadata: EventMetadata) -> Option<DexEv
             last_update_timestamp,
             min_base_amount_out,
             ix_name,
-            cashback_fee_basis_points,
-            cashback,
-            buyback_fee_basis_points,
-            buyback_fee,
-            virtual_quote_reserves,
-            can_boost,
-            base_supply,
+            cashback_fee_basis_points: tail.cashback_fee_basis_points,
+            cashback: tail.cashback,
+            buyback_fee_basis_points: tail.buyback_fee_basis_points,
+            buyback_fee: tail.buyback_fee,
+            virtual_quote_reserves: tail.virtual_quote_reserves,
+            can_boost: tail.can_boost,
+            base_supply: tail.base_supply,
             ..Default::default()
         }))
     }
@@ -915,10 +686,14 @@ pub fn parse_buy_from_data(data: &[u8], metadata: EventMetadata) -> Option<DexEv
 /// Parse PumpSwap Sell event from pre-decoded data
 #[inline(always)]
 pub fn parse_sell_from_data(data: &[u8], metadata: EventMetadata) -> Option<DexEvent> {
-    validate_sell_payload_layout(data)?;
-    const CASHBACK_FEE_BASIS_POINTS_OFFSET: usize = 352;
-    const CASHBACK_OFFSET: usize = 360;
-    const CASHBACK_FIELDS_LEN: usize = 16;
+    // 14 numeric fields, 7 pubkeys, and the two coin-creator fee fields.
+    const REQUIRED_LEN: usize = 14 * 8 + 7 * 32 + 2 * 8;
+    if data.len() < REQUIRED_LEN {
+        return None;
+    }
+
+    let tail = parse_trade_tail(&data[REQUIRED_LEN..])?;
+
     unsafe {
         let timestamp = read_i64_unchecked(data, 0);
         let base_amount_in = read_u64_unchecked(data, 8);
@@ -945,22 +720,6 @@ pub fn parse_sell_from_data(data: &[u8], metadata: EventMetadata) -> Option<DexE
 
         let coin_creator_fee_basis_points = read_u64_unchecked(data, 336);
         let coin_creator_fee = read_u64_unchecked(data, 344);
-        let (cashback_fee_basis_points, cashback) =
-            if data.len() >= CASHBACK_FEE_BASIS_POINTS_OFFSET + CASHBACK_FIELDS_LEN {
-                (
-                    read_u64_unchecked(data, CASHBACK_FEE_BASIS_POINTS_OFFSET),
-                    read_u64_unchecked(data, CASHBACK_OFFSET),
-                )
-            } else {
-                (0, 0)
-            };
-        let buyback_fee_basis_points =
-            if data.len() >= 376 { read_u64_unchecked(data, 368) } else { 0 };
-        let buyback_fee = if data.len() >= 384 { read_u64_unchecked(data, 376) } else { 0 };
-        let virtual_quote_reserves =
-            if data.len() >= 400 { read_i128_unchecked(data, 384) } else { 0 };
-        let can_boost = if data.len() >= 401 { read_bool_unchecked(data, 400) } else { false };
-        let base_supply = if data.len() >= 409 { read_u64_unchecked(data, 401) } else { 0 };
 
         Some(DexEvent::PumpSwapSell(PumpSwapSellEvent {
             metadata,
@@ -987,13 +746,13 @@ pub fn parse_sell_from_data(data: &[u8], metadata: EventMetadata) -> Option<DexE
             coin_creator,
             coin_creator_fee_basis_points,
             coin_creator_fee,
-            cashback_fee_basis_points,
-            cashback,
-            buyback_fee_basis_points,
-            buyback_fee,
-            virtual_quote_reserves,
-            can_boost,
-            base_supply,
+            cashback_fee_basis_points: tail.cashback_fee_basis_points,
+            cashback: tail.cashback,
+            buyback_fee_basis_points: tail.buyback_fee_basis_points,
+            buyback_fee: tail.buyback_fee,
+            virtual_quote_reserves: tail.virtual_quote_reserves,
+            can_boost: tail.can_boost,
+            base_supply: tail.base_supply,
             ..Default::default()
         }))
     }
@@ -1182,6 +941,7 @@ pub fn reset_perf_stats() {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use base64::{engine::general_purpose::STANDARD, Engine as _};
     use solana_sdk::{pubkey::Pubkey, signature::Signature};
 
     fn metadata() -> EventMetadata {
@@ -1203,22 +963,42 @@ mod tests {
         buf[offset..offset + 8].copy_from_slice(&value.to_le_bytes());
     }
 
-    fn write_i128(buf: &mut [u8], offset: usize, value: i128) {
-        buf[offset..offset + 16].copy_from_slice(&value.to_le_bytes());
-    }
-
     fn write_pubkey(buf: &mut [u8], offset: usize, value: Pubkey) {
         buf[offset..offset + 32].copy_from_slice(value.as_ref());
     }
 
-    fn build_sell_payload(include_cashback: bool, include_boost: bool) -> Vec<u8> {
-        let len = if include_boost {
-            409
-        } else if include_cashback {
-            368
-        } else {
-            352
-        };
+    fn append_current_trade_tail(data: &mut Vec<u8>) {
+        data.extend_from_slice(&177u64.to_le_bytes()); // cashback_fee_basis_points
+        data.extend_from_slice(&188u64.to_le_bytes()); // cashback
+        data.extend_from_slice(&199u64.to_le_bytes()); // buyback_fee_basis_points
+        data.extend_from_slice(&211u64.to_le_bytes()); // buyback_fee
+        data.extend_from_slice(&(-987_654_321i128).to_le_bytes());
+        data.push(1); // can_boost
+        data.extend_from_slice(&222u64.to_le_bytes()); // base_supply
+    }
+
+    fn append_buyback_trade_tail(data: &mut Vec<u8>) {
+        data.extend_from_slice(&177u64.to_le_bytes()); // cashback_fee_basis_points
+        data.extend_from_slice(&188u64.to_le_bytes()); // cashback
+        data.extend_from_slice(&199u64.to_le_bytes()); // buyback_fee_basis_points
+        data.extend_from_slice(&211u64.to_le_bytes()); // buyback_fee
+    }
+
+    fn build_buy_payload(include_current_tail: bool) -> Vec<u8> {
+        let mut data = vec![0u8; 393];
+        write_i64(&mut data, 0, 1_713_498_953);
+        write_u64(&mut data, 8, 11);
+        write_u64(&mut data, 385, 22);
+        data.extend_from_slice(&3u32.to_le_bytes());
+        data.extend_from_slice(b"buy");
+        if include_current_tail {
+            append_current_trade_tail(&mut data);
+        }
+        data
+    }
+
+    fn build_sell_payload(include_cashback: bool) -> Vec<u8> {
+        let len = if include_cashback { 368 } else { 352 };
         let mut data = vec![0u8; len];
 
         write_i64(&mut data, 0, 1_713_498_953);
@@ -1251,29 +1031,7 @@ mod tests {
             write_u64(&mut data, 352, 177);
             write_u64(&mut data, 360, 188);
         }
-        if include_boost {
-            write_u64(&mut data, 368, 199);
-            write_u64(&mut data, 376, 211);
-            write_i128(&mut data, 384, -222);
-            data[400] = 1;
-            write_u64(&mut data, 401, 233);
-        }
 
-        data
-    }
-
-    fn build_buy_payload_with_boost() -> Vec<u8> {
-        let mut data = vec![0u8; 457];
-        write_u64(&mut data, 385, 11);
-        data[393..397].copy_from_slice(&3u32.to_le_bytes());
-        data[397..400].copy_from_slice(b"buy");
-        write_u64(&mut data, 400, 22);
-        write_u64(&mut data, 408, 33);
-        write_u64(&mut data, 416, 44);
-        write_u64(&mut data, 424, 55);
-        write_i128(&mut data, 432, -66);
-        data[448] = 1;
-        write_u64(&mut data, 449, 77);
         data
     }
 
@@ -1330,7 +1088,7 @@ mod tests {
 
     #[test]
     fn parse_sell_from_data_preserves_cashback_fields() {
-        let event = parse_sell_from_data(&build_sell_payload(true, false), metadata())
+        let event = parse_sell_from_data(&build_sell_payload(true), metadata())
             .expect("expected pumpswap sell event");
 
         let DexEvent::PumpSwapSell(event) = event else {
@@ -1344,8 +1102,107 @@ mod tests {
     }
 
     #[test]
+    fn parse_current_buy_from_data_reads_virtual_reserves() {
+        let event = parse_buy_from_data(&build_buy_payload(true), metadata())
+            .expect("expected current pumpswap buy event");
+
+        let DexEvent::PumpSwapBuy(event) = event else {
+            panic!("expected PumpSwapBuy event");
+        };
+
+        assert_eq!(event.min_base_amount_out, 22);
+        assert_eq!(event.ix_name, "buy");
+        assert_eq!(event.cashback_fee_basis_points, 177);
+        assert_eq!(event.cashback, 188);
+        assert_eq!(event.buyback_fee_basis_points, 199);
+        assert_eq!(event.buyback_fee, 211);
+        assert_eq!(event.virtual_quote_reserves, -987_654_321);
+        assert!(event.can_boost);
+        assert_eq!(event.base_supply, 222);
+    }
+
+    #[test]
+    fn parse_log_uses_current_buy_layout() {
+        let mut program_data = discriminators::BUY.to_le_bytes().to_vec();
+        program_data.extend_from_slice(&build_buy_payload(true));
+        let log = format!("Program data: {}", STANDARD.encode(program_data));
+
+        let event = parse_log(&log, Signature::default(), 7, 8, Some(9), 10)
+            .expect("expected current pumpswap buy log");
+        let DexEvent::PumpSwapBuy(event) = event else {
+            panic!("expected PumpSwapBuy event");
+        };
+
+        assert_eq!(event.metadata.slot, 7);
+        assert_eq!(event.virtual_quote_reserves, -987_654_321);
+        assert!(event.can_boost);
+    }
+
+    #[test]
+    fn parse_log_uses_current_sell_layout() {
+        let mut payload = build_sell_payload(false);
+        append_current_trade_tail(&mut payload);
+        let mut program_data = discriminators::SELL.to_le_bytes().to_vec();
+        program_data.extend_from_slice(&payload);
+        let log = format!("Program data: {}", STANDARD.encode(program_data));
+
+        let event = parse_log(&log, Signature::default(), 17, 18, Some(19), 20)
+            .expect("expected current pumpswap sell log");
+        let DexEvent::PumpSwapSell(event) = event else {
+            panic!("expected PumpSwapSell event");
+        };
+
+        assert_eq!(event.metadata.slot, 17);
+        assert_eq!(event.virtual_quote_reserves, -987_654_321);
+        assert!(event.can_boost);
+        assert_eq!(event.base_supply, 222);
+    }
+
+    #[test]
+    fn parse_current_sell_from_data_reads_virtual_reserves() {
+        let mut data = build_sell_payload(false);
+        append_current_trade_tail(&mut data);
+        let event =
+            parse_sell_from_data(&data, metadata()).expect("expected current pumpswap sell event");
+
+        let DexEvent::PumpSwapSell(event) = event else {
+            panic!("expected PumpSwapSell event");
+        };
+
+        assert_eq!(event.cashback_fee_basis_points, 177);
+        assert_eq!(event.cashback, 188);
+        assert_eq!(event.buyback_fee_basis_points, 199);
+        assert_eq!(event.buyback_fee, 211);
+        assert_eq!(event.virtual_quote_reserves, -987_654_321);
+        assert!(event.can_boost);
+        assert_eq!(event.base_supply, 222);
+    }
+
+    #[test]
+    fn trade_parsers_preserve_i128_extremes() {
+        let mut buy = build_buy_payload(true);
+        buy[432..448].copy_from_slice(&i128::MIN.to_le_bytes());
+        let DexEvent::PumpSwapBuy(buy) =
+            parse_buy_from_data(&buy, metadata()).expect("expected current buy")
+        else {
+            panic!("expected PumpSwapBuy event");
+        };
+        assert_eq!(buy.virtual_quote_reserves, i128::MIN);
+
+        let mut sell = build_sell_payload(false);
+        append_current_trade_tail(&mut sell);
+        sell[384..400].copy_from_slice(&i128::MAX.to_le_bytes());
+        let DexEvent::PumpSwapSell(sell) =
+            parse_sell_from_data(&sell, metadata()).expect("expected current sell")
+        else {
+            panic!("expected PumpSwapSell event");
+        };
+        assert_eq!(sell.virtual_quote_reserves, i128::MAX);
+    }
+
+    #[test]
     fn parse_sell_from_data_keeps_legacy_payload_compatible() {
-        let event = parse_sell_from_data(&build_sell_payload(false, false), metadata())
+        let event = parse_sell_from_data(&build_sell_payload(false), metadata())
             .expect("expected legacy pumpswap sell event");
 
         let DexEvent::PumpSwapSell(event) = event else {
@@ -1356,39 +1213,51 @@ mod tests {
         assert_eq!(event.cashback, 0);
         assert_eq!(event.coin_creator_fee_basis_points, 155);
         assert_eq!(event.coin_creator_fee, 166);
+        assert_eq!(event.virtual_quote_reserves, 0);
+        assert!(!event.can_boost);
+        assert_eq!(event.base_supply, 0);
     }
 
     #[test]
-    fn parse_sell_from_data_preserves_boost_fields() {
-        let event = parse_sell_from_data(&build_sell_payload(true, true), metadata())
-            .expect("expected upgraded pumpswap sell event");
-        let DexEvent::PumpSwapSell(event) = event else {
-            panic!("expected PumpSwapSell event");
-        };
-
-        assert_eq!(event.buyback_fee_basis_points, 199);
-        assert_eq!(event.buyback_fee, 211);
-        assert_eq!(event.virtual_quote_reserves, -222);
-        assert!(event.can_boost);
-        assert_eq!(event.base_supply, 233);
-    }
-
-    #[test]
-    fn parse_buy_from_data_preserves_boost_fields() {
-        let event = parse_buy_from_data(&build_buy_payload_with_boost(), metadata())
-            .expect("expected upgraded pumpswap buy event");
-        let DexEvent::PumpSwapBuy(event) = event else {
+    fn parse_buyback_layouts_without_boost_fields() {
+        let mut buy = build_buy_payload(false);
+        append_buyback_trade_tail(&mut buy);
+        let DexEvent::PumpSwapBuy(buy) =
+            parse_buy_from_data(&buy, metadata()).expect("expected buyback buy event")
+        else {
             panic!("expected PumpSwapBuy event");
         };
+        assert_eq!(buy.cashback_fee_basis_points, 177);
+        assert_eq!(buy.buyback_fee_basis_points, 199);
+        assert_eq!(buy.buyback_fee, 211);
+        assert_eq!(buy.virtual_quote_reserves, 0);
 
-        assert_eq!(event.ix_name, "buy");
-        assert_eq!(event.cashback_fee_basis_points, 22);
-        assert_eq!(event.cashback, 33);
-        assert_eq!(event.buyback_fee_basis_points, 44);
-        assert_eq!(event.buyback_fee, 55);
-        assert_eq!(event.virtual_quote_reserves, -66);
-        assert!(event.can_boost);
-        assert_eq!(event.base_supply, 77);
+        let mut sell = build_sell_payload(false);
+        append_buyback_trade_tail(&mut sell);
+        let DexEvent::PumpSwapSell(sell) =
+            parse_sell_from_data(&sell, metadata()).expect("expected buyback sell event")
+        else {
+            panic!("expected PumpSwapSell event");
+        };
+        assert_eq!(sell.cashback_fee_basis_points, 177);
+        assert_eq!(sell.buyback_fee_basis_points, 199);
+        assert_eq!(sell.buyback_fee, 211);
+        assert_eq!(sell.virtual_quote_reserves, 0);
+    }
+
+    #[test]
+    fn trade_tail_accepts_only_complete_layouts() {
+        for len in 0..=64 {
+            let tail = vec![0u8; len];
+            let expected = matches!(len, 0 | 16 | 32 | 57..=64);
+            assert_eq!(parse_trade_tail(&tail).is_some(), expected, "tail length {len}");
+        }
+
+        for invalid_bool in 2..=u8::MAX {
+            let mut tail = vec![0u8; 57];
+            tail[48] = invalid_bool;
+            assert!(parse_trade_tail(&tail).is_none(), "bool value {invalid_bool}");
+        }
     }
 
     #[test]
@@ -1401,37 +1270,44 @@ mod tests {
     }
 
     #[test]
-    fn parse_buy_from_data_rejects_partial_or_invalid_variable_tail() {
-        let current = build_buy_payload_with_boost();
-        for len in 401..416 {
-            assert!(parse_buy_from_data(&current[..len], metadata()).is_none());
-        }
-        assert!(parse_buy_from_data(&current[..416], metadata()).is_some());
-        for len in 417..457 {
-            assert!(parse_buy_from_data(&current[..len], metadata()).is_none());
-        }
-        assert!(parse_buy_from_data(&current, metadata()).is_some());
+    fn parse_buy_from_data_rejects_malformed_string_and_partial_tails() {
+        let mut invalid_track_volume = build_buy_payload(false);
+        invalid_track_volume[352] = 2;
+        assert!(parse_buy_from_data(&invalid_track_volume, metadata()).is_none());
 
-        let mut invalid_utf8 = vec![0u8; 398];
-        invalid_utf8[393..397].copy_from_slice(&1u32.to_le_bytes());
+        let mut invalid_utf8 = build_buy_payload(false);
         invalid_utf8[397] = 0xff;
         assert!(parse_buy_from_data(&invalid_utf8, metadata()).is_none());
 
-        let mut truncated_name = vec![0u8; 398];
-        truncated_name[393..397].copy_from_slice(&2u32.to_le_bytes());
-        assert!(parse_buy_from_data(&truncated_name, metadata()).is_none());
+        let legacy = build_buy_payload(false);
+        for partial_len in [1, 15, 17, 31, 33, 56] {
+            let mut partial = legacy.clone();
+            partial.resize(legacy.len() + partial_len, 0);
+            assert!(parse_buy_from_data(&partial, metadata()).is_none());
+        }
+
+        let mut oversized_name = vec![0u8; 397];
+        oversized_name[393..397].copy_from_slice(&u32::MAX.to_le_bytes());
+        assert!(parse_buy_from_data(&oversized_name, metadata()).is_none());
     }
 
     #[test]
-    fn parse_sell_from_data_accepts_only_complete_schema_versions() {
-        let current = build_sell_payload(true, true);
-        assert!(parse_sell_from_data(&current[..352], metadata()).is_some());
-        assert!(parse_sell_from_data(&current[..368], metadata()).is_some());
-        assert!(parse_sell_from_data(&current, metadata()).is_some());
-
-        for len in (353..368).chain(369..409) {
-            assert!(parse_sell_from_data(&current[..len], metadata()).is_none());
+    fn parse_sell_from_data_rejects_partial_or_invalid_boost_tails() {
+        for truncated_len in 336..352 {
+            assert!(parse_sell_from_data(&vec![0u8; truncated_len], metadata()).is_none());
         }
+
+        let legacy = build_sell_payload(false);
+        for partial_len in [1, 15, 17, 31, 33, 56] {
+            let mut partial = legacy.clone();
+            partial.resize(legacy.len() + partial_len, 0);
+            assert!(parse_sell_from_data(&partial, metadata()).is_none());
+        }
+
+        let mut invalid_bool = legacy;
+        append_current_trade_tail(&mut invalid_bool);
+        invalid_bool[352 + 48] = 2;
+        assert!(parse_sell_from_data(&invalid_bool, metadata()).is_none());
     }
 
     #[test]
