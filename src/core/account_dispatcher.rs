@@ -745,10 +745,11 @@ mod tests {
 
         // static keys: [0]=sell_pool [1]=buy_pool [2]=sell_mint [3]=buy_mint
         // [4]=pumpswap program [5]=padding
-        let static_keys: Vec<Vec<u8>> = [sell_pool, buy_pool, sell_mint, buy_mint, PUMPSWAP_PROGRAM, padding]
-            .iter()
-            .map(|k| k.to_bytes().to_vec())
-            .collect();
+        let static_keys: Vec<Vec<u8>> =
+            [sell_pool, buy_pool, sell_mint, buy_mint, PUMPSWAP_PROGRAM, padding]
+                .iter()
+                .map(|k| k.to_bytes().to_vec())
+                .collect();
 
         let mut sell_accounts = vec![5u8; 24];
         sell_accounts[0] = 0; // pool
@@ -764,8 +765,16 @@ mod tests {
                 account_keys: static_keys,
                 recent_blockhash: vec![0u8; 32],
                 instructions: vec![
-                    CompiledInstruction { program_id_index: 4, accounts: sell_accounts, data: vec![0] },
-                    CompiledInstruction { program_id_index: 4, accounts: buy_accounts, data: vec![0] },
+                    CompiledInstruction {
+                        program_id_index: 4,
+                        accounts: sell_accounts,
+                        data: vec![0],
+                    },
+                    CompiledInstruction {
+                        program_id_index: 4,
+                        accounts: buy_accounts,
+                        data: vec![0],
+                    },
                 ],
                 versioned: false,
                 address_table_lookups: Vec::new(),
@@ -782,10 +791,8 @@ mod tests {
     fn token_to_token_route_backfills_each_leg_from_its_own_invoke() {
         let f = token_to_token_fixture();
 
-        let mut sell = DexEvent::PumpSwapSell(PumpSwapSellEvent {
-            pool: f.sell_pool,
-            ..Default::default()
-        });
+        let mut sell =
+            DexEvent::PumpSwapSell(PumpSwapSellEvent { pool: f.sell_pool, ..Default::default() });
         fill_accounts_with_owned_keys(&mut sell, &f.meta, &f.transaction, &f.invokes);
         match sell {
             DexEvent::PumpSwapSell(e) => assert_eq!(
@@ -795,10 +802,8 @@ mod tests {
             _ => unreachable!(),
         }
 
-        let mut buy = DexEvent::PumpSwapBuy(PumpSwapBuyEvent {
-            pool: f.buy_pool,
-            ..Default::default()
-        });
+        let mut buy =
+            DexEvent::PumpSwapBuy(PumpSwapBuyEvent { pool: f.buy_pool, ..Default::default() });
         fill_accounts_with_owned_keys(&mut buy, &f.meta, &f.transaction, &f.invokes);
         match buy {
             DexEvent::PumpSwapBuy(e) => assert_eq!(e.base_mint, f.buy_mint),
@@ -812,10 +817,8 @@ mod tests {
         // Reverse invoke order: the buy leg now comes first.
         f.invokes.get_mut(&PUMPSWAP_PROGRAM).unwrap().reverse();
 
-        let mut sell = DexEvent::PumpSwapSell(PumpSwapSellEvent {
-            pool: f.sell_pool,
-            ..Default::default()
-        });
+        let mut sell =
+            DexEvent::PumpSwapSell(PumpSwapSellEvent { pool: f.sell_pool, ..Default::default() });
         fill_accounts_with_owned_keys(&mut sell, &f.meta, &f.transaction, &f.invokes);
         match sell {
             DexEvent::PumpSwapSell(e) => assert_eq!(e.base_mint, f.sell_mint),
