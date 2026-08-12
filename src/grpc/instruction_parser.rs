@@ -6,7 +6,7 @@
 //! - 可读性：每个步骤都有明确的注释
 
 use crate::core::{
-    events::*, merger::merge_events, pumpfun_fee_enrich::enrich_pumpfun_same_tx_post_merge,
+    events::*, merger::try_merge_events, pumpfun_fee_enrich::enrich_pumpfun_same_tx_post_merge,
 };
 use crate::grpc::types::EventTypeFilter;
 use crate::instr::read_pubkey_fast;
@@ -14,6 +14,30 @@ use solana_sdk::pubkey::Pubkey;
 use solana_sdk::signature::Signature;
 use std::collections::HashMap;
 use yellowstone_grpc_proto::prelude::{Transaction, TransactionStatusMeta};
+
+#[derive(Debug)]
+struct IndexedInstructionEvent {
+    outer_idx: usize,
+    inner_idx: Option<usize>,
+    stack_height: Option<u32>,
+    is_dlmm_event_cpi: bool,
+    event: DexEvent,
+}
+
+#[inline(always)]
+fn is_dlmm_event(event: &DexEvent) -> bool {
+    matches!(
+        event,
+        DexEvent::MeteoraDlmmSwap(_)
+            | DexEvent::MeteoraDlmmAddLiquidity(_)
+            | DexEvent::MeteoraDlmmRemoveLiquidity(_)
+            | DexEvent::MeteoraDlmmInitializePool(_)
+            | DexEvent::MeteoraDlmmInitializeBinArray(_)
+            | DexEvent::MeteoraDlmmCreatePosition(_)
+            | DexEvent::MeteoraDlmmClosePosition(_)
+            | DexEvent::MeteoraDlmmClaimFee(_)
+    )
+}
 
 /// 解析交易中的所有指令事件（instruction + inner instruction）
 ///
@@ -93,7 +117,13 @@ pub fn parse_instructions_enhanced(
             filter,
             is_created_buy,
         ) {
-            result.push((i, None, event)); // (outer_idx, inner_idx, event)
+            result.push(IndexedInstructionEvent {
+                outer_idx: i,
+                inner_idx: None,
+                stack_height: Some(1),
+                is_dlmm_event_cpi: false,
+                event,
+            });
         }
     }
 
@@ -134,7 +164,14 @@ pub fn parse_instructions_enhanced(
             });
 
             if let Some(event) = event {
-                result.push((outer_idx, Some(j), event)); // (outer_idx, Some(inner_idx), event)
+                result.push(IndexedInstructionEvent {
+                    outer_idx,
+                    inner_idx: Some(j),
+                    stack_height: inner_ix.stack_height,
+                    is_dlmm_event_cpi: pid == crate::instr::program_ids::METEORA_DLMM_PROGRAM_ID
+                        && crate::instr::all_inner::meteora_dlmm::is_event_cpi(&inner_ix.data),
+                    event,
+                });
             }
         }
     }
@@ -428,7 +465,7 @@ fn parse_inner_instruction(
 /// 3. 同一 outer 下若有多个 inner，依次链式合并进同一条事件，再输出
 /// 4. 合并后返回更完整的事件
 #[inline(always)]
-fn merge_instruction_events(events: Vec<(usize, Option<usize>, DexEvent)>) -> Vec<DexEvent> {
+fn merge_instruction_events(events: Vec<IndexedInstructionEvent>) -> Vec<DexEvent> {
     if events.is_empty() {
         return Vec::new();
     }
@@ -436,45 +473,110 @@ fn merge_instruction_events(events: Vec<(usize, Option<usize>, DexEvent)>) -> Ve
     // 按 (outer_idx, inner_idx) 排序，确保顺序：同一 outer 下 **主指令在前、inner 在后**
     // （`None` 若用 MAX 会把 outer 排到 inner 后面，导致无法 merge）
     let mut events = events;
-    events.sort_by_key(|(outer, inner, _)| (*outer, inner.map_or(0, |i| i + 1)));
+    events.sort_unstable_by_key(|event| {
+        (event.outer_idx, event.inner_idx.map_or(0, |inner_idx| inner_idx + 1))
+    });
 
     let mut result = Vec::with_capacity(events.len());
-    let mut pending_outer: Option<(usize, DexEvent)> = None;
+    let mut outer_target: Option<(usize, usize)> = None;
+    // Solana's instruction stack is shallow; keep DLMM parent candidates on
+    // the stack so nested DLMM CPIs do not require a hot-path heap allocation.
+    let mut dlmm_targets: [Option<(usize, Option<u32>, usize)>; 8] = [None; 8];
+    let mut dlmm_targets_len = 0usize;
 
-    for (outer_idx, inner_idx, event) in events {
+    for indexed in events {
+        let IndexedInstructionEvent {
+            outer_idx,
+            inner_idx,
+            stack_height,
+            is_dlmm_event_cpi,
+            event,
+        } = indexed;
         match inner_idx {
             None => {
-                // 这是一个 outer instruction
-                // 先处理之前的 pending_outer
-                if let Some((_, outer_event)) = pending_outer.take() {
-                    result.push(outer_event);
+                let is_dlmm = is_dlmm_event(&event);
+                let target_idx = result.len();
+                result.push(event);
+                outer_target = Some((outer_idx, target_idx));
+                dlmm_targets_len = 0;
+                if is_dlmm {
+                    dlmm_targets[0] = Some((outer_idx, stack_height, target_idx));
+                    dlmm_targets_len = 1;
                 }
-                // 保存当前的 outer instruction，等待可能的 inner instruction
-                pending_outer = Some((outer_idx, event));
             }
             Some(_) => {
-                // 这是一个 inner instruction
-                if let Some((pending_outer_idx, mut outer_event)) = pending_outer.take() {
-                    if pending_outer_idx == outer_idx {
-                        // 合并进当前 outer（可多次：多段 inner 链式叠在同一条事件上）
-                        merge_events(&mut outer_event, event);
-                        pending_outer = Some((outer_idx, outer_event));
+                if is_dlmm_event_cpi {
+                    let target = (0..dlmm_targets_len).rev().find_map(|idx| {
+                        let (target_outer, target_height, target_idx) = dlmm_targets[idx]?;
+                        let is_direct_child = match (target_height, stack_height) {
+                            (Some(parent), Some(child)) => child == parent + 1,
+                            _ => true,
+                        };
+                        (target_outer == outer_idx && is_direct_child).then_some((idx, target_idx))
+                    });
+                    if let Some((candidate_idx, target_idx)) = target {
+                        dlmm_targets_len = candidate_idx + 1;
+                        if target_idx < result.len() {
+                            match try_merge_events(&mut result[target_idx], event) {
+                                Ok(()) => continue,
+                                Err(event) => result.push(event),
+                            }
+                            continue;
+                        }
+                    }
+                    result.push(event);
+                    continue;
+                }
+
+                let is_dlmm = is_dlmm_event(&event);
+                let target_idx = if let Some((target_outer, target_idx)) = outer_target {
+                    if target_outer == outer_idx {
+                        match try_merge_events(&mut result[target_idx], event) {
+                            Ok(()) => target_idx,
+                            Err(event) => {
+                                let target_idx = result.len();
+                                result.push(event);
+                                target_idx
+                            }
+                        }
                     } else {
-                        // 不匹配，分别保留
-                        result.push(outer_event);
+                        let target_idx = result.len();
                         result.push(event);
+                        target_idx
                     }
                 } else {
-                    // 没有 pending outer，直接添加 inner event
+                    let target_idx = result.len();
                     result.push(event);
+                    target_idx
+                };
+
+                if is_dlmm {
+                    if let Some(height) = stack_height {
+                        while dlmm_targets_len > 0 {
+                            let Some((candidate_outer, candidate_height, _)) =
+                                dlmm_targets[dlmm_targets_len - 1]
+                            else {
+                                break;
+                            };
+                            if candidate_outer != outer_idx
+                                || candidate_height.is_some_and(|candidate| candidate >= height)
+                            {
+                                dlmm_targets_len -= 1;
+                            } else {
+                                break;
+                            }
+                        }
+                    } else {
+                        dlmm_targets_len = 0;
+                    }
+                    if dlmm_targets_len < dlmm_targets.len() {
+                        dlmm_targets[dlmm_targets_len] =
+                            Some((outer_idx, stack_height, target_idx));
+                        dlmm_targets_len += 1;
+                    }
                 }
             }
         }
-    }
-
-    // 处理最后一个 pending_outer
-    if let Some((_, outer_event)) = pending_outer {
-        result.push(outer_event);
     }
 
     result
@@ -783,8 +885,20 @@ mod tests {
         });
 
         let events = vec![
-            (0, None, outer_event),    // outer instruction at index 0
-            (0, Some(0), inner_event), // inner instruction at index 0
+            IndexedInstructionEvent {
+                outer_idx: 0,
+                inner_idx: None,
+                stack_height: Some(1),
+                is_dlmm_event_cpi: false,
+                event: outer_event,
+            },
+            IndexedInstructionEvent {
+                outer_idx: 0,
+                inner_idx: Some(0),
+                stack_height: Some(2),
+                is_dlmm_event_cpi: false,
+                event: inner_event,
+            },
         ];
 
         let result = merge_instruction_events(events);
@@ -839,8 +953,29 @@ mod tests {
             ..Default::default()
         });
 
-        let events =
-            vec![(0, None, outer_event), (0, Some(0), inner_trade), (0, Some(1), inner_fee_only)];
+        let events = vec![
+            IndexedInstructionEvent {
+                outer_idx: 0,
+                inner_idx: None,
+                stack_height: Some(1),
+                is_dlmm_event_cpi: false,
+                event: outer_event,
+            },
+            IndexedInstructionEvent {
+                outer_idx: 0,
+                inner_idx: Some(0),
+                stack_height: Some(2),
+                is_dlmm_event_cpi: false,
+                event: inner_trade,
+            },
+            IndexedInstructionEvent {
+                outer_idx: 0,
+                inner_idx: Some(1),
+                stack_height: Some(2),
+                is_dlmm_event_cpi: false,
+                event: inner_fee_only,
+            },
+        ];
 
         let result = merge_instruction_events(events);
         assert_eq!(result.len(), 1);
@@ -852,6 +987,102 @@ mod tests {
         } else {
             panic!("Expected PumpFunTrade event");
         }
+    }
+
+    fn dlmm_swap(pool: Pubkey, amount_in: u64, amount_out: u64) -> DexEvent {
+        DexEvent::MeteoraDlmmSwap(MeteoraDlmmSwapEvent {
+            metadata: EventMetadata::default(),
+            pool,
+            from: Pubkey::default(),
+            start_bin_id: 0,
+            end_bin_id: 0,
+            amount_in,
+            amount_out,
+            swap_for_y: false,
+            fee: 0,
+            protocol_fee: 0,
+            fee_bps: 0,
+            host_fee: 0,
+        })
+    }
+
+    fn dlmm_add_liquidity() -> DexEvent {
+        DexEvent::MeteoraDlmmAddLiquidity(MeteoraDlmmAddLiquidityEvent {
+            metadata: EventMetadata::default(),
+            pool: Pubkey::default(),
+            from: Pubkey::default(),
+            position: Pubkey::default(),
+            amounts: [0; 2],
+            active_bin_id: 0,
+        })
+    }
+
+    #[test]
+    fn merge_preserves_unrelated_inner_events() {
+        let events = vec![
+            IndexedInstructionEvent {
+                outer_idx: 0,
+                inner_idx: None,
+                stack_height: Some(1),
+                is_dlmm_event_cpi: false,
+                event: dlmm_swap(Pubkey::default(), 0, 0),
+            },
+            IndexedInstructionEvent {
+                outer_idx: 0,
+                inner_idx: Some(0),
+                stack_height: Some(2),
+                is_dlmm_event_cpi: false,
+                event: dlmm_add_liquidity(),
+            },
+        ];
+
+        let result = merge_instruction_events(events);
+        assert_eq!(result.len(), 2);
+        assert!(matches!(result[0], DexEvent::MeteoraDlmmSwap(_)));
+        assert!(matches!(result[1], DexEvent::MeteoraDlmmAddLiquidity(_)));
+    }
+
+    #[test]
+    fn merge_dlmm_inner_instruction_with_direct_event_cpi() {
+        let first_pool = Pubkey::new_unique();
+        let second_pool = Pubkey::new_unique();
+        let events = vec![
+            IndexedInstructionEvent {
+                outer_idx: 0,
+                inner_idx: Some(0),
+                stack_height: Some(2),
+                is_dlmm_event_cpi: false,
+                event: dlmm_swap(first_pool, 1, 0),
+            },
+            IndexedInstructionEvent {
+                outer_idx: 0,
+                inner_idx: Some(1),
+                stack_height: Some(3),
+                is_dlmm_event_cpi: true,
+                event: dlmm_swap(first_pool, 10, 9),
+            },
+            IndexedInstructionEvent {
+                outer_idx: 0,
+                inner_idx: Some(2),
+                stack_height: Some(2),
+                is_dlmm_event_cpi: false,
+                event: dlmm_swap(second_pool, 2, 0),
+            },
+            IndexedInstructionEvent {
+                outer_idx: 0,
+                inner_idx: Some(3),
+                stack_height: Some(3),
+                is_dlmm_event_cpi: true,
+                event: dlmm_swap(second_pool, 20, 18),
+            },
+        ];
+
+        let result = merge_instruction_events(events);
+        assert_eq!(result.len(), 2);
+        let DexEvent::MeteoraDlmmSwap(first) = &result[0] else { panic!("swap") };
+        let DexEvent::MeteoraDlmmSwap(second) = &result[1] else { panic!("swap") };
+        assert_eq!((first.pool, first.amount_in, first.amount_out), (first_pool, 10, 9));
+        assert_eq!((second.pool, second.amount_in, second.amount_out), (second_pool, 20, 18));
     }
 
     #[test]

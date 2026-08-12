@@ -48,6 +48,12 @@ pub fn read_u32_le(data: &[u8], offset: usize) -> Option<u32> {
     data.get(offset..offset + 4).map(|slice| u32::from_le_bytes(slice.try_into().unwrap()))
 }
 
+/// Read a little-endian `i64` from instruction data.
+#[inline(always)]
+pub fn read_i64_le(data: &[u8], offset: usize) -> Option<i64> {
+    data.get(offset..offset + 8).map(|slice| i64::from_le_bytes(slice.try_into().unwrap()))
+}
+
 /// 从指令数据中读取 u16（小端序）- SIMD 优化
 #[inline(always)]
 pub fn read_u16_le(data: &[u8], offset: usize) -> Option<u16> {

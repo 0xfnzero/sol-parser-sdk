@@ -76,20 +76,20 @@ fn parse_swap_base_in_instruction(
 
     let _minimum_amount_out = read_u64_le(data, offset)?;
 
-    let pool = get_account(accounts, 0)?;
+    let pool = get_account(accounts, 3)?;
     let metadata = create_metadata_simple(signature, slot, tx_index, block_time_us, pool);
 
     Some(DexEvent::RaydiumCpmmSwap(RaydiumCpmmSwapEvent {
         metadata,
 
         // IDL SwapEvent 事件字段 - 从日志填充，这里设置默认值
-        pool_id: Pubkey::default(), // 将从日志填充
-        input_vault_before: 0,      // 将从日志填充
-        output_vault_before: 0,     // 将从日志填充
-        input_amount: 0,            // 将从日志填充
-        output_amount: 0,           // 将从日志填充
-        input_transfer_fee: 0,      // 将从日志填充
-        output_transfer_fee: 0,     // 将从日志填充
+        pool_id: pool,
+        input_vault_before: 0,  // Filled from the event log.
+        output_vault_before: 0, // Filled from the event log.
+        input_amount: 0,        // Filled from the event log.
+        output_amount: 0,       // Filled from the event log.
+        input_transfer_fee: 0,  // Filled from the event log.
+        output_transfer_fee: 0, // Filled from the event log.
         base_input: true,
         // 暂时注释，以后会用，AI禁止改动
         // 指令参数字段
@@ -126,20 +126,20 @@ fn parse_swap_base_out_instruction(
 
     let _amount_out = read_u64_le(data, offset)?;
 
-    let pool = get_account(accounts, 0)?;
+    let pool = get_account(accounts, 3)?;
     let metadata = create_metadata_simple(signature, slot, tx_index, block_time_us, pool);
 
     Some(DexEvent::RaydiumCpmmSwap(RaydiumCpmmSwapEvent {
         metadata,
 
         // IDL SwapEvent 事件字段 - 从日志填充，这里设置默认值
-        pool_id: Pubkey::default(), // 将从日志填充
-        input_vault_before: 0,      // 将从日志填充
-        output_vault_before: 0,     // 将从日志填充
-        input_amount: 0,            // 将从日志填充
-        output_amount: 0,           // 将从日志填充
-        input_transfer_fee: 0,      // 将从日志填充
-        output_transfer_fee: 0,     // 将从日志填充
+        pool_id: pool,
+        input_vault_before: 0,  // Filled from the event log.
+        output_vault_before: 0, // Filled from the event log.
+        input_amount: 0,        // Filled from the event log.
+        output_amount: 0,       // Filled from the event log.
+        input_transfer_fee: 0,  // Filled from the event log.
+        output_transfer_fee: 0, // Filled from the event log.
         base_input: false,
         // 暂时注释，以后会用，AI禁止改动
         // 指令参数字段

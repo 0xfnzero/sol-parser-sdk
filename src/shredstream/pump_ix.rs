@@ -2183,7 +2183,7 @@ mod tests {
     #[test]
     fn unknown_program_outer_uses_filter_to_parse_matching_protocol() {
         let static_keys = vec![RAYDIUM_CPMM_PROGRAM_ID, Pubkey::new_unique()];
-        let ix_accounts = vec![1, 42];
+        let ix_accounts = vec![1, 42, 43, 44];
         let mut data = Vec::new();
         data.extend_from_slice(&crate::instr::raydium_cpmm::discriminators::SWAP_BASE_IN);
         data.extend_from_slice(&100_u64.to_le_bytes());
@@ -2318,7 +2318,7 @@ mod tests {
     #[test]
     fn non_pump_outer_accounts_keep_instruction_length_with_alt_defaults() {
         let static_keys = vec![RAYDIUM_CPMM_PROGRAM_ID, Pubkey::new_unique()];
-        let ix_accounts = vec![1, 42];
+        let ix_accounts = vec![1, 42, 43, 44];
         let mut data = Vec::new();
         data.extend_from_slice(&crate::instr::raydium_cpmm::discriminators::SWAP_BASE_IN);
         data.extend_from_slice(&100_u64.to_le_bytes());

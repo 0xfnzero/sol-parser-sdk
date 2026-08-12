@@ -26,6 +26,14 @@ use crate::core::events::*;
 /// - 预期开销 < 10ns
 #[inline(always)]
 pub fn merge_events(base: &mut DexEvent, inner: DexEvent) {
+    let _ = try_merge_events(base, inner);
+}
+
+/// Try to merge `inner` into `base`, returning the untouched event when the
+/// variants are not compatible. Instruction parsers use this to avoid
+/// silently dropping unrelated inner events that share an outer index.
+#[inline(always)]
+pub fn try_merge_events(base: &mut DexEvent, inner: DexEvent) -> Result<(), DexEvent> {
     use DexEvent::*;
 
     match (base, inner) {
@@ -141,10 +149,16 @@ pub fn merge_events(base: &mut DexEvent, inner: DexEvent) {
         (MeteoraDlmmSwap(b), MeteoraDlmmSwap(i)) => merge_generic(b, i),
         (MeteoraDlmmAddLiquidity(b), MeteoraDlmmAddLiquidity(i)) => merge_generic(b, i),
         (MeteoraDlmmRemoveLiquidity(b), MeteoraDlmmRemoveLiquidity(i)) => merge_generic(b, i),
-        (MeteoraDlmmInitializePool(b), MeteoraDlmmInitializePool(i)) => merge_generic(b, i),
+        (MeteoraDlmmInitializePool(b), MeteoraDlmmInitializePool(i)) => {
+            merge_dlmm_initialize_pool(b, i)
+        }
         (MeteoraDlmmInitializeBinArray(b), MeteoraDlmmInitializeBinArray(i)) => merge_generic(b, i),
-        (MeteoraDlmmCreatePosition(b), MeteoraDlmmCreatePosition(i)) => merge_generic(b, i),
-        (MeteoraDlmmClosePosition(b), MeteoraDlmmClosePosition(i)) => merge_generic(b, i),
+        (MeteoraDlmmCreatePosition(b), MeteoraDlmmCreatePosition(i)) => {
+            merge_dlmm_create_position(b, i)
+        }
+        (MeteoraDlmmClosePosition(b), MeteoraDlmmClosePosition(i)) => {
+            merge_dlmm_close_position(b, i)
+        }
         (MeteoraDlmmClaimFee(b), MeteoraDlmmClaimFee(i)) => merge_generic(b, i),
 
         // ========== RaydiumLaunchlab 系列 ==========
@@ -153,8 +167,10 @@ pub fn merge_events(base: &mut DexEvent, inner: DexEvent) {
         (RaydiumLaunchlabMigrateAmm(b), RaydiumLaunchlabMigrateAmm(i)) => merge_generic(b, i),
 
         // 其他组合不需要合并（类型不匹配）
-        _ => {}
+        (_, inner) => return Err(inner),
     }
+
+    Ok(())
 }
 
 /// 通用合并函数 - 对于大多数事件，inner instruction 包含完整数据
@@ -166,6 +182,40 @@ pub fn merge_events(base: &mut DexEvent, inner: DexEvent) {
 #[inline(always)]
 fn merge_generic<T>(base: &mut T, inner: T) {
     *base = inner;
+}
+
+#[inline(always)]
+fn merge_dlmm_initialize_pool(
+    base: &mut MeteoraDlmmInitializePoolEvent,
+    inner: MeteoraDlmmInitializePoolEvent,
+) {
+    let creator = base.creator;
+    let active_bin_id = base.active_bin_id;
+    *base = inner;
+    base.creator = creator;
+    base.active_bin_id = active_bin_id;
+}
+
+#[inline(always)]
+fn merge_dlmm_create_position(
+    base: &mut MeteoraDlmmCreatePositionEvent,
+    inner: MeteoraDlmmCreatePositionEvent,
+) {
+    let lower_bin_id = base.lower_bin_id;
+    let width = base.width;
+    *base = inner;
+    base.lower_bin_id = lower_bin_id;
+    base.width = width;
+}
+
+#[inline(always)]
+fn merge_dlmm_close_position(
+    base: &mut MeteoraDlmmClosePositionEvent,
+    inner: MeteoraDlmmClosePositionEvent,
+) {
+    let pool = base.pool;
+    *base = inner;
+    base.pool = pool;
 }
 
 // ============================================================================
@@ -756,6 +806,8 @@ fn merge_raydium_amm_v4_swap_log_preferred(
     fill_pk(&mut log.serum_vault_signer, ix.serum_vault_signer);
     fill_pk(&mut log.user_source_token_account, ix.user_source_token_account);
     fill_pk(&mut log.user_destination_token_account, ix.user_destination_token_account);
+    fill_pk(&mut log.user_source_owner, ix.user_source_owner);
+    fill_pk(&mut log.amm, ix.amm);
 }
 
 #[inline]
@@ -1115,6 +1167,34 @@ mod tests {
         });
 
         assert!(!can_merge(&base, &different_sig));
+    }
+
+    #[test]
+    fn dlmm_position_event_keeps_instruction_only_fields() {
+        let pool = Pubkey::new_unique();
+        let position = Pubkey::new_unique();
+        let owner = Pubkey::new_unique();
+        let mut base = DexEvent::MeteoraDlmmCreatePosition(MeteoraDlmmCreatePositionEvent {
+            metadata: EventMetadata::default(),
+            pool,
+            position,
+            owner,
+            lower_bin_id: -42,
+            width: 70,
+        });
+        let inner = DexEvent::MeteoraDlmmCreatePosition(MeteoraDlmmCreatePositionEvent {
+            metadata: EventMetadata::default(),
+            pool,
+            position,
+            owner,
+            lower_bin_id: 0,
+            width: 0,
+        });
+
+        assert!(try_merge_events(&mut base, inner).is_ok());
+        let DexEvent::MeteoraDlmmCreatePosition(event) = base else { panic!("position") };
+        assert_eq!(event.lower_bin_id, -42);
+        assert_eq!(event.width, 70);
     }
 
     #[test]

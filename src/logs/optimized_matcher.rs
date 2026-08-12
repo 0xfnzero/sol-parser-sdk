@@ -248,6 +248,8 @@ mod discriminators {
     // Raydium CPMM discriminators
     pub const RAYDIUM_CPMM_SWAP_BASE_IN: u64 =
         u64::from_le_bytes([143, 190, 90, 218, 196, 30, 51, 222]);
+    pub const RAYDIUM_CPMM_SWAP_EVENT: u64 =
+        u64::from_le_bytes([64, 198, 205, 232, 38, 8, 113, 226]);
     pub const RAYDIUM_CPMM_SWAP_BASE_OUT: u64 =
         u64::from_le_bytes([55, 217, 98, 86, 163, 74, 180, 173]);
     pub const RAYDIUM_CPMM_CREATE_POOL: u64 =
@@ -309,21 +311,26 @@ mod discriminators {
     pub const METEORA_DBC_CURVE_COMPLETE: u64 =
         u64::from_le_bytes([229, 231, 86, 84, 156, 134, 75, 24]);
 
-    // Meteora DLMM discriminators
-    pub const METEORA_DLMM_SWAP: u64 = u64::from_le_bytes([143, 190, 90, 218, 196, 30, 51, 222]);
+    // Meteora DLMM event discriminators. Current DLMM uses Anchor event-CPI
+    // discriminators that overlap with Meteora Pools, so scoped routing is required.
+    pub const METEORA_DLMM_SWAP: u64 = u64::from_le_bytes([81, 108, 227, 190, 205, 208, 10, 196]);
+    pub const METEORA_DLMM_SWAP2: u64 = u64::from_le_bytes([46, 116, 82, 215, 148, 27, 84, 77]);
     pub const METEORA_DLMM_ADD_LIQUIDITY: u64 =
-        u64::from_le_bytes([181, 157, 89, 67, 143, 182, 52, 72]);
+        u64::from_le_bytes([31, 94, 125, 90, 227, 52, 61, 186]);
     pub const METEORA_DLMM_REMOVE_LIQUIDITY: u64 =
-        u64::from_le_bytes([80, 85, 209, 72, 24, 206, 35, 178]);
+        u64::from_le_bytes([116, 244, 97, 232, 103, 31, 152, 58]);
     pub const METEORA_DLMM_INITIALIZE_POOL: u64 =
-        u64::from_le_bytes([95, 180, 10, 172, 84, 174, 232, 40]);
+        u64::from_le_bytes([185, 74, 252, 125, 27, 215, 188, 111]);
     pub const METEORA_DLMM_INITIALIZE_BIN_ARRAY: u64 =
         u64::from_le_bytes([11, 18, 155, 194, 33, 115, 238, 119]);
     pub const METEORA_DLMM_CREATE_POSITION: u64 =
-        u64::from_le_bytes([123, 233, 11, 43, 146, 180, 97, 119]);
+        u64::from_le_bytes([144, 142, 252, 84, 157, 53, 37, 121]);
     pub const METEORA_DLMM_CLOSE_POSITION: u64 =
-        u64::from_le_bytes([94, 168, 102, 45, 59, 122, 137, 54]);
-    pub const METEORA_DLMM_CLAIM_FEE: u64 = u64::from_le_bytes([152, 70, 208, 111, 104, 91, 44, 1]);
+        u64::from_le_bytes([255, 196, 16, 107, 28, 202, 53, 128]);
+    pub const METEORA_DLMM_CLAIM_FEE: u64 =
+        u64::from_le_bytes([75, 122, 154, 48, 140, 74, 123, 163]);
+    pub const METEORA_DLMM_CLAIM_FEE2: u64 =
+        u64::from_le_bytes([232, 171, 242, 97, 58, 77, 35, 45]);
 }
 
 /// Optimized unified log parser with **discriminator predecode, decode-on-match** strategy
@@ -473,7 +480,8 @@ fn unscoped_filter_allows_discriminator(discriminator: u64, filter: &EventTypeFi
             filter_wants_pumpfun_trade_event(filter)
                 || filter.should_include(EventType::RaydiumLaunchlabTrade)
         }
-        // Shared by Raydium CPMM swap-base-in and Meteora DLMM swap.
+        // Legacy DLMM swap overlapped Raydium CPMM. Current DLMM swap overlaps
+        // Meteora Pools swap and is resolved by scoped routing.
         discriminators::RAYDIUM_CPMM_SWAP_BASE_IN => {
             filter.should_include(EventType::RaydiumCpmmSwap)
                 || filter.should_include(EventType::MeteoraDlmmSwap)
@@ -564,6 +572,23 @@ fn parse_log_optimized_inner(
     recent_blockhash: Option<&[u8]>,
     program_id: Option<&Pubkey>,
 ) -> Option<DexEvent> {
+    if program_id == Some(&program_ids::RAYDIUM_AMM_V4_PROGRAM_ID) && log.contains("ray_log: ") {
+        if event_type_filter
+            .map(|filter| !filter.should_include(EventType::RaydiumAmmV4Swap))
+            .unwrap_or(false)
+        {
+            return None;
+        }
+        let metadata = EventMetadata {
+            signature,
+            slot,
+            tx_index,
+            block_time_us: block_time_us.unwrap_or(0),
+            grpc_recv_us,
+            recent_blockhash: recent_blockhash.map(|s| bs58::encode(s).into_string()),
+        };
+        return crate::logs::raydium_amm::parse_ray_log_swap(log, metadata);
+    }
     // Step 1: Find "Program data: " prefix using SIMD
     let log_bytes = log.as_bytes();
     let pos = PROGRAM_DATA_FINDER.find(log_bytes)?;
@@ -884,9 +909,8 @@ fn parse_log_optimized_inner(
             crate::logs::meteora_damm::parse_close_position_from_data(data, metadata)
         }
 
-        // NOTE: Meteora DLMM discriminators conflict with Raydium CPMM!
-        // METEORA_DLMM_SWAP == RAYDIUM_CPMM_SWAP_BASE_IN
-        // Handle DLMM in fallback using log content detection
+        // NOTE: current Meteora DLMM discriminators overlap other Meteora
+        // programs, so DLMM is routed in the program-scoped path.
 
         // Unknown discriminator - try fallback protocols
         _ => {
@@ -1000,7 +1024,8 @@ fn program_scoped_discriminator_to_event_type(
             _ => None,
         },
         program_ids::RAYDIUM_CPMM_PROGRAM_ID => match discriminator {
-            discriminators::RAYDIUM_CPMM_SWAP_BASE_IN
+            discriminators::RAYDIUM_CPMM_SWAP_EVENT
+            | discriminators::RAYDIUM_CPMM_SWAP_BASE_IN
             | discriminators::RAYDIUM_CPMM_SWAP_BASE_OUT => Some(EventType::RaydiumCpmmSwap),
             discriminators::RAYDIUM_CPMM_CREATE_POOL => Some(EventType::RaydiumCpmmInitialize),
             discriminators::RAYDIUM_CPMM_DEPOSIT => Some(EventType::RaydiumCpmmDeposit),
@@ -1070,7 +1095,9 @@ fn program_scoped_discriminator_to_event_type(
             _ => None,
         },
         program_ids::METEORA_DLMM_PROGRAM_ID => match discriminator {
-            discriminators::METEORA_DLMM_SWAP => Some(EventType::MeteoraDlmmSwap),
+            discriminators::METEORA_DLMM_SWAP | discriminators::METEORA_DLMM_SWAP2 => {
+                Some(EventType::MeteoraDlmmSwap)
+            }
             discriminators::METEORA_DLMM_ADD_LIQUIDITY => Some(EventType::MeteoraDlmmAddLiquidity),
             discriminators::METEORA_DLMM_REMOVE_LIQUIDITY => {
                 Some(EventType::MeteoraDlmmRemoveLiquidity)
@@ -1087,7 +1114,9 @@ fn program_scoped_discriminator_to_event_type(
             discriminators::METEORA_DLMM_CLOSE_POSITION => {
                 Some(EventType::MeteoraDlmmClosePosition)
             }
-            discriminators::METEORA_DLMM_CLAIM_FEE => Some(EventType::MeteoraDlmmClaimFee),
+            discriminators::METEORA_DLMM_CLAIM_FEE | discriminators::METEORA_DLMM_CLAIM_FEE2 => {
+                Some(EventType::MeteoraDlmmClaimFee)
+            }
             _ => None,
         },
         _ => None,
@@ -1298,6 +1327,9 @@ fn parse_program_scoped_event(
                 }
             }
             match discriminator {
+                discriminators::RAYDIUM_CPMM_SWAP_EVENT => {
+                    crate::logs::raydium_cpmm::parse_swap_event_from_data(data, metadata)
+                }
                 discriminators::RAYDIUM_CPMM_SWAP_BASE_IN => {
                     crate::logs::raydium_cpmm::parse_swap_base_in_from_data(data, metadata)
                 }
@@ -1454,6 +1486,9 @@ fn parse_program_scoped_event(
                 discriminators::METEORA_DLMM_SWAP => {
                     crate::logs::meteora_dlmm::parse_swap_from_data(data, metadata)
                 }
+                discriminators::METEORA_DLMM_SWAP2 => {
+                    crate::logs::meteora_dlmm::parse_swap2_from_data(data, metadata)
+                }
                 discriminators::METEORA_DLMM_ADD_LIQUIDITY => {
                     crate::logs::meteora_dlmm::parse_add_liquidity_from_data(data, metadata)
                 }
@@ -1461,19 +1496,22 @@ fn parse_program_scoped_event(
                     crate::logs::meteora_dlmm::parse_remove_liquidity_from_data(data, metadata)
                 }
                 discriminators::METEORA_DLMM_INITIALIZE_POOL => {
-                    crate::logs::meteora_dlmm::parse_initialize_pool_from_data(data, metadata)
+                    crate::logs::meteora_dlmm::parse_lb_pair_create_from_data(data, metadata)
                 }
                 discriminators::METEORA_DLMM_INITIALIZE_BIN_ARRAY => {
                     crate::logs::meteora_dlmm::parse_initialize_bin_array_from_data(data, metadata)
                 }
                 discriminators::METEORA_DLMM_CREATE_POSITION => {
-                    crate::logs::meteora_dlmm::parse_create_position_from_data(data, metadata)
+                    crate::logs::meteora_dlmm::parse_position_create_from_data(data, metadata)
                 }
                 discriminators::METEORA_DLMM_CLOSE_POSITION => {
-                    crate::logs::meteora_dlmm::parse_close_position_from_data(data, metadata)
+                    crate::logs::meteora_dlmm::parse_position_close_from_data(data, metadata)
                 }
                 discriminators::METEORA_DLMM_CLAIM_FEE => {
                     crate::logs::meteora_dlmm::parse_claim_fee_from_data(data, metadata)
+                }
+                discriminators::METEORA_DLMM_CLAIM_FEE2 => {
+                    crate::logs::meteora_dlmm::parse_claim_fee2_from_data(data, metadata)
                 }
                 _ => None,
             }
@@ -2037,7 +2075,7 @@ mod tests {
         let dlmm_filter = EventTypeFilter::include_only(vec![EventType::MeteoraDlmmSwap]);
         assert!(filter_allows_discriminator(
             None,
-            discriminators::METEORA_DLMM_SWAP,
+            discriminators::METEORA_DLMM_SWAP2,
             Some(&dlmm_filter),
         ));
 
