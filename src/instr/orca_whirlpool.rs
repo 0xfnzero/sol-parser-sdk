@@ -125,8 +125,11 @@ pub fn parse_instruction(
     let data = &instruction_data[8..];
 
     match instruction_type {
-        OrcaWhirlpoolInstruction::Swap | OrcaWhirlpoolInstruction::SwapV2 => {
-            parse_swap_instruction(data, accounts, signature, slot, tx_index, block_time_us)
+        OrcaWhirlpoolInstruction::Swap => {
+            parse_swap_instruction(data, accounts, 2, signature, slot, tx_index, block_time_us)
+        }
+        OrcaWhirlpoolInstruction::SwapV2 => {
+            parse_swap_instruction(data, accounts, 4, signature, slot, tx_index, block_time_us)
         }
         OrcaWhirlpoolInstruction::IncreaseLiquidity
         | OrcaWhirlpoolInstruction::IncreaseLiquidityV2 => parse_increase_liquidity_instruction(
@@ -164,6 +167,7 @@ pub fn parse_instruction(
 fn parse_swap_instruction(
     data: &[u8],
     accounts: &[Pubkey],
+    whirlpool_index: usize,
     signature: Signature,
     slot: u64,
     tx_index: u64,
@@ -185,7 +189,7 @@ fn parse_swap_instruction(
 
     let a_to_b = read_bool(data, offset)?;
 
-    let whirlpool = get_account(accounts, 1)?;
+    let whirlpool = get_account(accounts, whirlpool_index)?;
     let metadata = create_metadata_simple(signature, slot, tx_index, block_time_us, whirlpool);
 
     Some(DexEvent::OrcaWhirlpoolSwap(OrcaWhirlpoolSwapEvent {

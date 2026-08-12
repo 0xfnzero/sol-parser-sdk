@@ -8,6 +8,7 @@ use solana_sdk::{pubkey::Pubkey, signature::Signature};
 
 /// Raydium CPMM discriminator 常量
 pub mod discriminators {
+    pub const SWAP_EVENT: [u8; 8] = [64, 198, 205, 232, 38, 8, 113, 226];
     pub const SWAP_BASE_IN: [u8; 8] = [143, 190, 90, 218, 196, 30, 51, 222];
     pub const SWAP_BASE_OUT: [u8; 8] = [55, 217, 98, 86, 163, 74, 180, 173];
     pub const CREATE_POOL: [u8; 8] = [233, 146, 209, 142, 207, 104, 64, 188];
@@ -56,6 +57,17 @@ fn parse_structured_log(
     let data = &program_data[8..];
 
     match discriminator {
+        discriminators::SWAP_EVENT => parse_swap_event_from_data(
+            data,
+            create_metadata_simple(
+                signature,
+                slot,
+                tx_index,
+                block_time_us,
+                Pubkey::default(),
+                grpc_recv_us,
+            ),
+        ),
         discriminators::SWAP_BASE_IN => {
             parse_swap_base_in_event(data, signature, slot, tx_index, block_time_us, grpc_recv_us)
         }
@@ -78,6 +90,42 @@ fn parse_structured_log(
 // =============================================================================
 // Public from_data parsers - Accept pre-decoded data, eliminate double decode
 // =============================================================================
+
+/// Parse the stable prefix of the current Anchor `SwapEvent` payload.
+#[inline(always)]
+pub fn parse_swap_event_from_data(data: &[u8], metadata: EventMetadata) -> Option<DexEvent> {
+    if data.len() < 32 + (6 * 8) + 1 {
+        return None;
+    }
+    let mut offset = 0;
+    let pool_id = read_pubkey(data, offset)?;
+    offset += 32;
+    let input_vault_before = read_u64_le(data, offset)?;
+    offset += 8;
+    let output_vault_before = read_u64_le(data, offset)?;
+    offset += 8;
+    let input_amount = read_u64_le(data, offset)?;
+    offset += 8;
+    let output_amount = read_u64_le(data, offset)?;
+    offset += 8;
+    let input_transfer_fee = read_u64_le(data, offset)?;
+    offset += 8;
+    let output_transfer_fee = read_u64_le(data, offset)?;
+    offset += 8;
+    let base_input = read_bool(data, offset)?;
+
+    Some(DexEvent::RaydiumCpmmSwap(RaydiumCpmmSwapEvent {
+        metadata,
+        pool_id,
+        input_vault_before,
+        output_vault_before,
+        input_amount,
+        output_amount,
+        input_transfer_fee,
+        output_transfer_fee,
+        base_input,
+    }))
+}
 
 /// Parse Raydium CPMM SwapBaseIn event from pre-decoded data
 #[inline(always)]

@@ -8,14 +8,24 @@ use solana_sdk::signature::Signature;
 
 /// Meteora DLMM 事件 discriminator 常量
 pub mod discriminators {
-    pub const SWAP_EVENT: [u8; 8] = [143, 190, 90, 218, 196, 30, 51, 222];
-    pub const ADD_LIQUIDITY_EVENT: [u8; 8] = [181, 157, 89, 67, 143, 182, 52, 72];
-    pub const REMOVE_LIQUIDITY_EVENT: [u8; 8] = [80, 85, 209, 72, 24, 206, 35, 178];
-    pub const INITIALIZE_BIN_ARRAY_EVENT: [u8; 8] = [11, 18, 155, 194, 33, 115, 238, 119];
-    pub const INITIALIZE_POOL_EVENT: [u8; 8] = [95, 180, 10, 172, 84, 174, 232, 40];
-    pub const CREATE_POSITION_EVENT: [u8; 8] = [123, 233, 11, 43, 146, 180, 97, 119];
-    pub const CLOSE_POSITION_EVENT: [u8; 8] = [94, 168, 102, 45, 59, 122, 137, 54];
-    pub const CLAIM_FEE_EVENT: [u8; 8] = [152, 70, 208, 111, 104, 91, 44, 1];
+    pub const SWAP_EVENT: [u8; 8] = [81, 108, 227, 190, 205, 208, 10, 196];
+    pub const SWAP2_EVENT: [u8; 8] = [46, 116, 82, 215, 148, 27, 84, 77];
+    pub const ADD_LIQUIDITY_EVENT: [u8; 8] = [31, 94, 125, 90, 227, 52, 61, 186];
+    pub const REMOVE_LIQUIDITY_EVENT: [u8; 8] = [116, 244, 97, 232, 103, 31, 152, 58];
+    pub const INITIALIZE_POOL_EVENT: [u8; 8] = [185, 74, 252, 125, 27, 215, 188, 111];
+    pub const CREATE_POSITION_EVENT: [u8; 8] = [144, 142, 252, 84, 157, 53, 37, 121];
+    pub const CLOSE_POSITION_EVENT: [u8; 8] = [255, 196, 16, 107, 28, 202, 53, 128];
+    pub const CLAIM_FEE_EVENT: [u8; 8] = [75, 122, 154, 48, 140, 74, 123, 163];
+    pub const CLAIM_FEE2_EVENT: [u8; 8] = [232, 171, 242, 97, 58, 77, 35, 45];
+
+    pub const LEGACY_SWAP_EVENT: [u8; 8] = [143, 190, 90, 218, 196, 30, 51, 222];
+    pub const LEGACY_ADD_LIQUIDITY_EVENT: [u8; 8] = [181, 157, 89, 67, 143, 182, 52, 72];
+    pub const LEGACY_REMOVE_LIQUIDITY_EVENT: [u8; 8] = [80, 85, 209, 72, 24, 206, 35, 178];
+    pub const LEGACY_INITIALIZE_BIN_ARRAY_EVENT: [u8; 8] = [11, 18, 155, 194, 33, 115, 238, 119];
+    pub const LEGACY_INITIALIZE_POOL_EVENT: [u8; 8] = [95, 180, 10, 172, 84, 174, 232, 40];
+    pub const LEGACY_CREATE_POSITION_EVENT: [u8; 8] = [123, 233, 11, 43, 146, 180, 97, 119];
+    pub const LEGACY_CLOSE_POSITION_EVENT: [u8; 8] = [94, 168, 102, 45, 59, 122, 137, 54];
+    pub const LEGACY_CLAIM_FEE_EVENT: [u8; 8] = [152, 70, 208, 111, 104, 91, 44, 1];
 }
 
 /// 主要的 Meteora DLMM 日志解析函数
@@ -48,13 +58,26 @@ fn parse_structured_log(
     let data = &program_data[8..];
 
     match discriminator {
-        discriminators::SWAP_EVENT => {
+        discriminators::SWAP_EVENT | discriminators::LEGACY_SWAP_EVENT => {
             parse_swap_event(data, signature, slot, tx_index, block_time_us, grpc_recv_us)
         }
-        discriminators::ADD_LIQUIDITY_EVENT => {
+        discriminators::SWAP2_EVENT => {
+            parse_swap2_event(data, signature, slot, tx_index, block_time_us, grpc_recv_us)
+        }
+        discriminators::ADD_LIQUIDITY_EVENT | discriminators::LEGACY_ADD_LIQUIDITY_EVENT => {
             parse_add_liquidity_event(data, signature, slot, tx_index, block_time_us, grpc_recv_us)
         }
-        discriminators::REMOVE_LIQUIDITY_EVENT => parse_remove_liquidity_event(
+        discriminators::REMOVE_LIQUIDITY_EVENT | discriminators::LEGACY_REMOVE_LIQUIDITY_EVENT => {
+            parse_remove_liquidity_event(
+                data,
+                signature,
+                slot,
+                tx_index,
+                block_time_us,
+                grpc_recv_us,
+            )
+        }
+        discriminators::LEGACY_INITIALIZE_BIN_ARRAY_EVENT => parse_initialize_bin_array_event(
             data,
             signature,
             slot,
@@ -62,7 +85,10 @@ fn parse_structured_log(
             block_time_us,
             grpc_recv_us,
         ),
-        discriminators::INITIALIZE_BIN_ARRAY_EVENT => parse_initialize_bin_array_event(
+        discriminators::INITIALIZE_POOL_EVENT => {
+            parse_lb_pair_create_event(data, signature, slot, tx_index, block_time_us, grpc_recv_us)
+        }
+        discriminators::LEGACY_INITIALIZE_POOL_EVENT => parse_initialize_pool_event(
             data,
             signature,
             slot,
@@ -70,7 +96,7 @@ fn parse_structured_log(
             block_time_us,
             grpc_recv_us,
         ),
-        discriminators::INITIALIZE_POOL_EVENT => parse_initialize_pool_event(
+        discriminators::CREATE_POSITION_EVENT => parse_position_create_event(
             data,
             signature,
             slot,
@@ -78,7 +104,7 @@ fn parse_structured_log(
             block_time_us,
             grpc_recv_us,
         ),
-        discriminators::CREATE_POSITION_EVENT => parse_create_position_event(
+        discriminators::LEGACY_CREATE_POSITION_EVENT => parse_create_position_event(
             data,
             signature,
             slot,
@@ -87,10 +113,16 @@ fn parse_structured_log(
             grpc_recv_us,
         ),
         discriminators::CLOSE_POSITION_EVENT => {
+            parse_position_close_event(data, signature, slot, tx_index, block_time_us, grpc_recv_us)
+        }
+        discriminators::LEGACY_CLOSE_POSITION_EVENT => {
             parse_close_position_event(data, signature, slot, tx_index, block_time_us, grpc_recv_us)
         }
-        discriminators::CLAIM_FEE_EVENT => {
+        discriminators::CLAIM_FEE_EVENT | discriminators::LEGACY_CLAIM_FEE_EVENT => {
             parse_claim_fee_event(data, signature, slot, tx_index, block_time_us, grpc_recv_us)
+        }
+        discriminators::CLAIM_FEE2_EVENT => {
+            parse_claim_fee2_event(data, signature, slot, tx_index, block_time_us, grpc_recv_us)
         }
         _ => None,
     }
@@ -133,6 +165,67 @@ pub fn parse_swap_from_data(data: &[u8], metadata: EventMetadata) -> Option<DexE
 
     let fee_bps = read_u128_le(data, offset)?;
     offset += 16;
+
+    let host_fee = read_u64_le(data, offset)?;
+
+    Some(DexEvent::MeteoraDlmmSwap(MeteoraDlmmSwapEvent {
+        metadata,
+        pool,
+        from,
+        start_bin_id,
+        end_bin_id,
+        amount_in,
+        amount_out,
+        swap_for_y,
+        fee,
+        protocol_fee,
+        fee_bps,
+        host_fee,
+    }))
+}
+
+#[inline(always)]
+pub fn parse_swap2_from_data(data: &[u8], metadata: EventMetadata) -> Option<DexEvent> {
+    if data.len() < 147 {
+        return None;
+    }
+    let mut offset = 0;
+
+    let pool = read_pubkey(data, offset)?;
+    offset += 32;
+
+    let from = read_pubkey(data, offset)?;
+    offset += 32;
+
+    let start_bin_id = read_i32_le(data, offset)?;
+    offset += 4;
+
+    let end_bin_id = read_i32_le(data, offset)?;
+    offset += 4;
+
+    let swap_for_y = read_bool(data, offset)?;
+    offset += 1;
+
+    let fee_bps = read_u128_le(data, offset)?;
+    offset += 16;
+
+    let amount_in = read_u64_le(data, offset)?;
+    offset += 8;
+
+    let _amount_left = read_u64_le(data, offset)?;
+    offset += 8;
+
+    let amount_out = read_u64_le(data, offset)?;
+    offset += 8;
+
+    let fee = read_u64_le(data, offset)?;
+    offset += 8;
+
+    let protocol_fee = read_u64_le(data, offset)?;
+    offset += 8;
+
+    let _limit_order_fee = read_u64_le(data, offset)?;
+    offset += 8;
 
     let host_fee = read_u64_le(data, offset)?;
 
@@ -337,6 +430,71 @@ pub fn parse_claim_fee_from_data(data: &[u8], metadata: EventMetadata) -> Option
     }))
 }
 
+#[inline(always)]
+pub fn parse_claim_fee2_from_data(data: &[u8], metadata: EventMetadata) -> Option<DexEvent> {
+    if data.len() < 116 {
+        return None;
+    }
+    parse_claim_fee_from_data(data, metadata)
+}
+
+#[inline(always)]
+pub fn parse_lb_pair_create_from_data(data: &[u8], metadata: EventMetadata) -> Option<DexEvent> {
+    let mut offset = 0;
+
+    let pool = read_pubkey(data, offset)?;
+    offset += 32;
+
+    let bin_step = read_u16_le(data, offset)?;
+
+    Some(DexEvent::MeteoraDlmmInitializePool(MeteoraDlmmInitializePoolEvent {
+        metadata,
+        pool,
+        creator: Default::default(),
+        active_bin_id: 0,
+        bin_step,
+    }))
+}
+
+#[inline(always)]
+pub fn parse_position_create_from_data(data: &[u8], metadata: EventMetadata) -> Option<DexEvent> {
+    let mut offset = 0;
+
+    let pool = read_pubkey(data, offset)?;
+    offset += 32;
+
+    let position = read_pubkey(data, offset)?;
+    offset += 32;
+
+    let owner = read_pubkey(data, offset)?;
+
+    Some(DexEvent::MeteoraDlmmCreatePosition(MeteoraDlmmCreatePositionEvent {
+        metadata,
+        pool,
+        position,
+        owner,
+        lower_bin_id: 0,
+        width: 0,
+    }))
+}
+
+#[inline(always)]
+pub fn parse_position_close_from_data(data: &[u8], metadata: EventMetadata) -> Option<DexEvent> {
+    let mut offset = 0;
+
+    let position = read_pubkey(data, offset)?;
+    offset += 32;
+
+    let owner = read_pubkey(data, offset)?;
+
+    Some(DexEvent::MeteoraDlmmClosePosition(MeteoraDlmmClosePositionEvent {
+        metadata,
+        pool: Default::default(),
+        position,
+        owner,
+    }))
+}
+
 /// 解析交换事件
 fn parse_swap_event(
     data: &[u8],
@@ -397,6 +555,25 @@ fn parse_swap_event(
         fee_bps,
         host_fee,
     }))
+}
+
+fn parse_swap2_event(
+    data: &[u8],
+    signature: Signature,
+    slot: u64,
+    tx_index: u64,
+    block_time_us: Option<i64>,
+    grpc_recv_us: i64,
+) -> Option<DexEvent> {
+    let metadata = create_metadata_simple(
+        signature,
+        slot,
+        tx_index,
+        block_time_us,
+        Default::default(),
+        grpc_recv_us,
+    );
+    parse_swap2_from_data(data, metadata)
 }
 
 /// 解析添加流动性事件
@@ -649,6 +826,82 @@ fn parse_claim_fee_event(
         fee_x,
         fee_y,
     }))
+}
+
+fn parse_claim_fee2_event(
+    data: &[u8],
+    signature: Signature,
+    slot: u64,
+    tx_index: u64,
+    block_time_us: Option<i64>,
+    grpc_recv_us: i64,
+) -> Option<DexEvent> {
+    let metadata = create_metadata_simple(
+        signature,
+        slot,
+        tx_index,
+        block_time_us,
+        Default::default(),
+        grpc_recv_us,
+    );
+    parse_claim_fee2_from_data(data, metadata)
+}
+
+fn parse_lb_pair_create_event(
+    data: &[u8],
+    signature: Signature,
+    slot: u64,
+    tx_index: u64,
+    block_time_us: Option<i64>,
+    grpc_recv_us: i64,
+) -> Option<DexEvent> {
+    let metadata = create_metadata_simple(
+        signature,
+        slot,
+        tx_index,
+        block_time_us,
+        Default::default(),
+        grpc_recv_us,
+    );
+    parse_lb_pair_create_from_data(data, metadata)
+}
+
+fn parse_position_create_event(
+    data: &[u8],
+    signature: Signature,
+    slot: u64,
+    tx_index: u64,
+    block_time_us: Option<i64>,
+    grpc_recv_us: i64,
+) -> Option<DexEvent> {
+    let metadata = create_metadata_simple(
+        signature,
+        slot,
+        tx_index,
+        block_time_us,
+        Default::default(),
+        grpc_recv_us,
+    );
+    parse_position_create_from_data(data, metadata)
+}
+
+fn parse_position_close_event(
+    data: &[u8],
+    signature: Signature,
+    slot: u64,
+    tx_index: u64,
+    block_time_us: Option<i64>,
+    grpc_recv_us: i64,
+) -> Option<DexEvent> {
+    let metadata = create_metadata_simple(
+        signature,
+        slot,
+        tx_index,
+        block_time_us,
+        Default::default(),
+        grpc_recv_us,
+    );
+    parse_position_close_from_data(data, metadata)
 }
 
 /// 文本回退解析

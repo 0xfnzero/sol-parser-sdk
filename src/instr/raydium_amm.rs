@@ -109,6 +109,7 @@ fn parse_swap_base_in_instruction(
     let amm = get_account(accounts, 1)?;
     let metadata = create_metadata_simple(signature, slot, tx_index, block_time_us, amm);
 
+    let shift = usize::from(accounts.len() == 17);
     Some(DexEvent::RaydiumAmmV4Swap(RaydiumAmmV4SwapEvent {
         metadata,
         amount_in,
@@ -119,20 +120,20 @@ fn parse_swap_base_in_instruction(
         amm,
         amm_authority: get_account(accounts, 2).unwrap_or_default(),
         amm_open_orders: get_account(accounts, 3).unwrap_or_default(),
-        amm_target_orders: get_account(accounts, 4),
-        pool_coin_token_account: get_account(accounts, 5).unwrap_or_default(),
-        pool_pc_token_account: get_account(accounts, 6).unwrap_or_default(),
-        serum_program: get_account(accounts, 7).unwrap_or_default(),
-        serum_market: get_account(accounts, 8).unwrap_or_default(),
-        serum_bids: get_account(accounts, 9).unwrap_or_default(),
-        serum_asks: get_account(accounts, 10).unwrap_or_default(),
-        serum_event_queue: get_account(accounts, 11).unwrap_or_default(),
-        serum_coin_vault_account: get_account(accounts, 12).unwrap_or_default(),
-        serum_pc_vault_account: get_account(accounts, 13).unwrap_or_default(),
-        serum_vault_signer: get_account(accounts, 14).unwrap_or_default(),
-        user_source_token_account: get_account(accounts, 15).unwrap_or_default(),
-        user_destination_token_account: get_account(accounts, 16).unwrap_or_default(),
-        user_source_owner: get_account(accounts, 17).unwrap_or_default(),
+        amm_target_orders: if shift == 0 { get_account(accounts, 4) } else { None },
+        pool_coin_token_account: get_account(accounts, 5 - shift).unwrap_or_default(),
+        pool_pc_token_account: get_account(accounts, 6 - shift).unwrap_or_default(),
+        serum_program: get_account(accounts, 7 - shift).unwrap_or_default(),
+        serum_market: get_account(accounts, 8 - shift).unwrap_or_default(),
+        serum_bids: get_account(accounts, 9 - shift).unwrap_or_default(),
+        serum_asks: get_account(accounts, 10 - shift).unwrap_or_default(),
+        serum_event_queue: get_account(accounts, 11 - shift).unwrap_or_default(),
+        serum_coin_vault_account: get_account(accounts, 12 - shift).unwrap_or_default(),
+        serum_pc_vault_account: get_account(accounts, 13 - shift).unwrap_or_default(),
+        serum_vault_signer: get_account(accounts, 14 - shift).unwrap_or_default(),
+        user_source_token_account: get_account(accounts, 15 - shift).unwrap_or_default(),
+        user_destination_token_account: get_account(accounts, 16 - shift).unwrap_or_default(),
+        user_source_owner: get_account(accounts, 17 - shift).unwrap_or_default(),
     }))
 }
 
@@ -155,6 +156,7 @@ fn parse_swap_base_out_instruction(
     let amm = get_account(accounts, 1)?;
     let metadata = create_metadata_simple(signature, slot, tx_index, block_time_us, amm);
 
+    let shift = usize::from(accounts.len() == 17);
     Some(DexEvent::RaydiumAmmV4Swap(RaydiumAmmV4SwapEvent {
         metadata,
         amount_in: 0,
@@ -165,20 +167,20 @@ fn parse_swap_base_out_instruction(
         amm,
         amm_authority: get_account(accounts, 2).unwrap_or_default(),
         amm_open_orders: get_account(accounts, 3).unwrap_or_default(),
-        amm_target_orders: get_account(accounts, 4),
-        pool_coin_token_account: get_account(accounts, 5).unwrap_or_default(),
-        pool_pc_token_account: get_account(accounts, 6).unwrap_or_default(),
-        serum_program: get_account(accounts, 7).unwrap_or_default(),
-        serum_market: get_account(accounts, 8).unwrap_or_default(),
-        serum_bids: get_account(accounts, 9).unwrap_or_default(),
-        serum_asks: get_account(accounts, 10).unwrap_or_default(),
-        serum_event_queue: get_account(accounts, 11).unwrap_or_default(),
-        serum_coin_vault_account: get_account(accounts, 12).unwrap_or_default(),
-        serum_pc_vault_account: get_account(accounts, 13).unwrap_or_default(),
-        serum_vault_signer: get_account(accounts, 14).unwrap_or_default(),
-        user_source_token_account: get_account(accounts, 15).unwrap_or_default(),
-        user_destination_token_account: get_account(accounts, 16).unwrap_or_default(),
-        user_source_owner: get_account(accounts, 17).unwrap_or_default(),
+        amm_target_orders: if shift == 0 { get_account(accounts, 4) } else { None },
+        pool_coin_token_account: get_account(accounts, 5 - shift).unwrap_or_default(),
+        pool_pc_token_account: get_account(accounts, 6 - shift).unwrap_or_default(),
+        serum_program: get_account(accounts, 7 - shift).unwrap_or_default(),
+        serum_market: get_account(accounts, 8 - shift).unwrap_or_default(),
+        serum_bids: get_account(accounts, 9 - shift).unwrap_or_default(),
+        serum_asks: get_account(accounts, 10 - shift).unwrap_or_default(),
+        serum_event_queue: get_account(accounts, 11 - shift).unwrap_or_default(),
+        serum_coin_vault_account: get_account(accounts, 12 - shift).unwrap_or_default(),
+        serum_pc_vault_account: get_account(accounts, 13 - shift).unwrap_or_default(),
+        serum_vault_signer: get_account(accounts, 14 - shift).unwrap_or_default(),
+        user_source_token_account: get_account(accounts, 15 - shift).unwrap_or_default(),
+        user_destination_token_account: get_account(accounts, 16 - shift).unwrap_or_default(),
+        user_source_owner: get_account(accounts, 17 - shift).unwrap_or_default(),
     }))
 }
 

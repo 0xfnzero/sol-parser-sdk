@@ -81,16 +81,26 @@ enum LogInstrDedupKey {
     /// `sender` 可能仅 ix 填全，不参与键以免与 log 配对失败。
     RaydiumClmmSwap {
         pool: Pubkey,
-        zero_for_one: bool,
+        occurrence: u16,
     },
-    /// 仅 `amm`：用户 ATA 常仅一路有，用 amm+ATA 会导致无法去重。
+    RaydiumCpmmSwap {
+        pool: Pubkey,
+        occurrence: u16,
+    },
     RaydiumAmmV4Swap {
-        amm: Pubkey,
+        base_out: bool,
+        instruction_amount: u64,
+        occurrence: u16,
+    },
+    OrcaWhirlpoolSwap {
+        whirlpool: Pubkey,
+        occurrence: u16,
     },
     MeteoraDlmmSwap {
         pool: Pubkey,
         from: Pubkey,
         swap_for_y: bool,
+        occurrence: u16,
     },
 }
 
@@ -108,7 +118,23 @@ fn pumpswap_ix_lane(ix_name: &str) -> u8 {
     pumpfun_ix_lane(ix_name)
 }
 
-type PumpFunLaneBase = (Pubkey, Pubkey, bool, u8);
+#[derive(Clone, Hash, PartialEq, Eq)]
+enum OccurrenceBase {
+    PumpFun { mint: Pubkey, user: Pubkey, is_buy: bool, lane: u8 },
+    RaydiumClmm(Pubkey),
+    RaydiumCpmm(Pubkey),
+    RaydiumAmmV4 { base_out: bool, amount: u64 },
+    OrcaWhirlpool(Pubkey),
+    MeteoraDlmm { pool: Pubkey, from: Pubkey, swap_for_y: bool },
+}
+
+#[inline]
+fn next_occurrence(base: OccurrenceBase, counts: &mut HashMap<OccurrenceBase, u16>) -> u16 {
+    let entry = counts.entry(base).or_insert(0);
+    let occurrence = *entry;
+    *entry = occurrence.saturating_add(1);
+    occurrence
+}
 
 #[inline]
 fn pumpfun_trade_key_with_occ(
@@ -166,40 +192,74 @@ fn log_instr_dedup_key(ev: &DexEvent) -> Option<LogInstrDedupKey> {
         PumpSwapLiquidityRemoved(r) => {
             Some(LogInstrDedupKey::PumpSwapLiquidityRemoved { pool: r.pool, user: r.user })
         }
-        RaydiumClmmSwap(s) => Some(LogInstrDedupKey::RaydiumClmmSwap {
-            pool: s.pool_state,
-            zero_for_one: s.zero_for_one,
-        }),
-        // CPMM swap 事件体无用户/ATA，仅用池+金额去重会误伤多用户同额；不参与 log/ix 折叠。
-        RaydiumCpmmSwap(_) => None,
-        RaydiumAmmV4Swap(s) => Some(LogInstrDedupKey::RaydiumAmmV4Swap { amm: s.amm }),
-        // Orca swap 事件体当前无 token authority / 用户 ATA 字段，无法安全区分用户。
+        RaydiumClmmSwap(_) => None,
+        RaydiumCpmmSwap(_) | RaydiumAmmV4Swap(_) => None,
         OrcaWhirlpoolSwap(_) => None,
         MeteoraDammV2Swap(_) => None,
-        MeteoraDlmmSwap(s) => Some(LogInstrDedupKey::MeteoraDlmmSwap {
-            pool: s.pool,
-            from: s.from,
-            swap_for_y: s.swap_for_y,
-        }),
+        MeteoraDlmmSwap(_) => None,
         // 无稳定链上指纹或其它路径：不去重
         _ => None,
     }
 }
 
 #[inline]
-fn next_pumpfun_dedup_key(
+fn next_dedup_key(
     ev: &DexEvent,
-    lane_count: &mut HashMap<PumpFunLaneBase, u16>,
+    occurrence_counts: &mut HashMap<OccurrenceBase, u16>,
 ) -> Option<LogInstrDedupKey> {
     use DexEvent::*;
     match ev {
         PumpFunTrade(t) | PumpFunBuy(t) | PumpFunSell(t) | PumpFunBuyExactSolIn(t) => {
             let lane = pumpfun_ix_lane(t.ix_name.as_str());
-            let base = (t.mint, t.user, t.is_buy, lane);
-            let entry = lane_count.entry(base).or_insert(0);
-            let occ = *entry;
-            *entry = occ.saturating_add(1);
+            let occ = next_occurrence(
+                OccurrenceBase::PumpFun { mint: t.mint, user: t.user, is_buy: t.is_buy, lane },
+                occurrence_counts,
+            );
             Some(pumpfun_trade_key_with_occ(t, occ))
+        }
+        RaydiumClmmSwap(s) => {
+            let occurrence =
+                next_occurrence(OccurrenceBase::RaydiumClmm(s.pool_state), occurrence_counts);
+            Some(LogInstrDedupKey::RaydiumClmmSwap { pool: s.pool_state, occurrence })
+        }
+        RaydiumCpmmSwap(s) => {
+            let occurrence =
+                next_occurrence(OccurrenceBase::RaydiumCpmm(s.pool_id), occurrence_counts);
+            Some(LogInstrDedupKey::RaydiumCpmmSwap { pool: s.pool_id, occurrence })
+        }
+        RaydiumAmmV4Swap(s) => {
+            let base_out = s.max_amount_in != 0;
+            let amount = if base_out { s.amount_out } else { s.amount_in };
+            let occurrence = next_occurrence(
+                OccurrenceBase::RaydiumAmmV4 { base_out, amount },
+                occurrence_counts,
+            );
+            Some(LogInstrDedupKey::RaydiumAmmV4Swap {
+                base_out,
+                instruction_amount: amount,
+                occurrence,
+            })
+        }
+        OrcaWhirlpoolSwap(s) => {
+            let occurrence =
+                next_occurrence(OccurrenceBase::OrcaWhirlpool(s.whirlpool), occurrence_counts);
+            Some(LogInstrDedupKey::OrcaWhirlpoolSwap { whirlpool: s.whirlpool, occurrence })
+        }
+        MeteoraDlmmSwap(s) => {
+            let occurrence = next_occurrence(
+                OccurrenceBase::MeteoraDlmm {
+                    pool: s.pool,
+                    from: s.from,
+                    swap_for_y: s.swap_for_y,
+                },
+                occurrence_counts,
+            );
+            Some(LogInstrDedupKey::MeteoraDlmmSwap {
+                pool: s.pool,
+                from: s.from,
+                swap_for_y: s.swap_for_y,
+                occurrence,
+            })
         }
         _ => log_instr_dedup_key(ev),
     }
@@ -213,10 +273,10 @@ pub(crate) fn dedupe_log_instruction_events(
     let cap = log_events.len().saturating_add(instr_events.len());
     let mut out: Vec<DexEvent> = Vec::with_capacity(cap);
     let mut idx_by_key: HashMap<LogInstrDedupKey, usize> = HashMap::new();
-    let mut pump_lane_log: HashMap<PumpFunLaneBase, u16> = HashMap::new();
+    let mut log_occurrences: HashMap<OccurrenceBase, u16> = HashMap::new();
 
     for e in log_events {
-        if let Some(k) = next_pumpfun_dedup_key(&e, &mut pump_lane_log) {
+        if let Some(k) = next_dedup_key(&e, &mut log_occurrences) {
             idx_by_key.insert(k, out.len());
             out.push(e);
         } else {
@@ -224,9 +284,9 @@ pub(crate) fn dedupe_log_instruction_events(
         }
     }
 
-    let mut pump_lane_ix: HashMap<PumpFunLaneBase, u16> = HashMap::new();
+    let mut ix_occurrences: HashMap<OccurrenceBase, u16> = HashMap::new();
     for e in instr_events {
-        if let Some(k) = next_pumpfun_dedup_key(&e, &mut pump_lane_ix) {
+        if let Some(k) = next_dedup_key(&e, &mut ix_occurrences) {
             if let Some(&idx) = idx_by_key.get(&k) {
                 crate::core::merger::merge_grpc_instruction_into_log(&mut out[idx], e);
             } else {
@@ -306,6 +366,51 @@ mod tests {
             }
             e => panic!("expected PumpFunTrade (保留 log 变体), got {:?}", e),
         }
+    }
+
+    fn clmm_swap(pool: Pubkey, zero_for_one: bool, amount_0: u64) -> DexEvent {
+        DexEvent::RaydiumClmmSwap(crate::core::events::RaydiumClmmSwapEvent {
+            metadata: dummy_meta(),
+            pool_state: pool,
+            sender: Pubkey::default(),
+            token_account_0: Pubkey::default(),
+            token_account_1: Pubkey::default(),
+            amount_0,
+            transfer_fee_0: 0,
+            amount_1: 0,
+            transfer_fee_1: 0,
+            zero_for_one,
+            sqrt_price_x64: 0,
+            liquidity: 0,
+            tick: 0,
+        })
+    }
+
+    #[test]
+    fn clmm_log_ix_dedup_ignores_instruction_placeholder_direction() {
+        let pool = Pubkey::new_unique();
+        let merged = dedupe_log_instruction_events(
+            vec![clmm_swap(pool, false, 123)],
+            vec![clmm_swap(pool, true, 0)],
+        );
+        assert_eq!(merged.len(), 1);
+        match &merged[0] {
+            DexEvent::RaydiumClmmSwap(s) => {
+                assert_eq!(s.amount_0, 123);
+                assert!(!s.zero_for_one);
+            }
+            other => panic!("expected RaydiumClmmSwap, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn clmm_same_pool_occurrences_are_retained() {
+        let pool = Pubkey::new_unique();
+        let merged = dedupe_log_instruction_events(
+            vec![clmm_swap(pool, false, 1), clmm_swap(pool, true, 2)],
+            vec![clmm_swap(pool, true, 0), clmm_swap(pool, false, 0)],
+        );
+        assert_eq!(merged.len(), 2);
     }
 
     #[test]
