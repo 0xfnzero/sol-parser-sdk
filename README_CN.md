@@ -113,16 +113,23 @@ sol-parser-sdk = { path = "../sol-parser-sdk", default-features = false, feature
 
 ```toml
 # 在 Cargo.toml 中添加
-sol-parser-sdk = "0.6.1"
+sol-parser-sdk = "0.6.2"
 ```
 
 或使用零拷贝解析器（最高性能）：
 
 ```toml
-sol-parser-sdk = { version = "0.6.1", default-features = false, features = ["parse-zero-copy"] }
+sol-parser-sdk = { version = "0.6.2", default-features = false, features = ["parse-zero-copy"] }
 ```
 
 ### 发布说明
+
+#### v0.6.2
+
+- 支持当前 Meteora DLMM Anchor event-CPI 前缀布局，同时保留 legacy 后缀格式兼容。
+- 按当前官方来源对齐 Meteora DLMM、Raydium CPMM/AMM V4 和 Orca Whirlpool 的事件与账户布局。
+- 使用 occurrence-aware 日志/指令去重和 stack-aware CPI 合并，保留同一交易中的重复 swap 与流动性事件。
+- 加入 2026-08-13 采集的可复用主网交易 fixture，覆盖 Meteora DLMM、PumpFun、PumpSwap、Raydium 和 Orca。
 
 #### v0.6.1
 
