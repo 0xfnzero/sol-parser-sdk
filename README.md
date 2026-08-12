@@ -203,6 +203,22 @@ sol-parser-sdk = { version = "0.6.2", default-features = false, features = ["par
 
 ### Performance Testing
 
+Transaction-cost parsing is opt-in and does not run on the default DEX event path:
+
+```rust
+use sol_parser_sdk::{parse_yellowstone_transaction_cost, SwqosProvider};
+
+let cost = parse_yellowstone_transaction_cost(&transaction, &meta).unwrap();
+let jito_tip = cost.tip_lamports_for(SwqosProvider::Jito);
+```
+
+Yellowstone and RPC results use status metadata for the authoritative transaction fee and
+confirmed tip status. `transaction_fee_lamports` already includes the priority fee; relay tips
+are separate transfers and are added only in `total_fee_and_tip_lamports`. Tip recipients for every
+SWQoS provider supported by `sol-trade-sdk` are recognized automatically, and each `TipPayment`
+identifies its provider. ShredStream can expose requested compute-budget values and outer tip
+transfers, but cannot confirm fees, execution, inner instructions, or ALT-loaded tip recipients.
+
 Test parsing latency with the optimized examples:
 
 ```bash
