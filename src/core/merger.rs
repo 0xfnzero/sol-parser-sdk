@@ -850,7 +850,16 @@ fn merge_raydium_launchlab_pool_create_log_preferred(
     log: &mut RaydiumLaunchlabPoolCreateEvent,
     ix: RaydiumLaunchlabPoolCreateEvent,
 ) {
+    fill_pk(&mut log.payer, ix.payer);
     fill_pk(&mut log.creator, ix.creator);
+    fill_pk(&mut log.global_config, ix.global_config);
+    fill_pk(&mut log.platform_config, ix.platform_config);
+    fill_pk(&mut log.base_mint, ix.base_mint);
+    fill_pk(&mut log.quote_mint, ix.quote_mint);
+    fill_pk(&mut log.base_vault, ix.base_vault);
+    fill_pk(&mut log.quote_vault, ix.quote_vault);
+    fill_pk(&mut log.base_token_program, ix.base_token_program);
+    fill_pk(&mut log.quote_token_program, ix.quote_token_program);
     fill_str_if_empty(&mut log.base_mint_param.name, &ix.base_mint_param.name);
     fill_str_if_empty(&mut log.base_mint_param.symbol, &ix.base_mint_param.symbol);
     fill_str_if_empty(&mut log.base_mint_param.uri, &ix.base_mint_param.uri);
@@ -866,12 +875,22 @@ fn merge_raydium_launchlab_migrate_amm_log_preferred(
     fill_pk(&mut log.user, ix.user);
 }
 
-/// RaydiumLaunchlabTrade 当前无独立「仅 ix 账户」字段；保留占位以便与 dedup 对齐，日后扩展。
 #[inline]
 fn merge_raydium_launchlab_trade_log_preferred(
-    _log: &mut RaydiumLaunchlabTradeEvent,
-    _ix: RaydiumLaunchlabTradeEvent,
+    log: &mut RaydiumLaunchlabTradeEvent,
+    ix: RaydiumLaunchlabTradeEvent,
 ) {
+    fill_pk(&mut log.user, ix.user);
+    fill_pk(&mut log.global_config, ix.global_config);
+    fill_pk(&mut log.platform_config, ix.platform_config);
+    fill_pk(&mut log.user_base_token, ix.user_base_token);
+    fill_pk(&mut log.user_quote_token, ix.user_quote_token);
+    fill_pk(&mut log.base_vault, ix.base_vault);
+    fill_pk(&mut log.quote_vault, ix.quote_vault);
+    fill_pk(&mut log.base_mint, ix.base_mint);
+    fill_pk(&mut log.quote_mint, ix.quote_mint);
+    fill_pk(&mut log.base_token_program, ix.base_token_program);
+    fill_pk(&mut log.quote_token_program, ix.quote_token_program);
 }
 
 #[inline]
