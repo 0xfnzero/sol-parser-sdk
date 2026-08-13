@@ -20,6 +20,10 @@ path = "examples/shredstream_pump_snipe.rs"
 name = "zero_latency_optimizations"
 harness = false
 
+[[bench]]
+name = "transaction_cost"
+harness = false
+
 [features]
 default = ["parse-borsh"]  # 默认使用 Borsh 解析器（类型安全，易维护）
 

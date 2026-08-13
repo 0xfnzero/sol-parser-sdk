@@ -1,6 +1,10 @@
-use sol_parser_sdk::{parse_transaction_from_rpc, DexEvent};
+use sol_parser_sdk::{
+    parse_rpc_transaction_cost, parse_transaction_from_rpc, DexEvent, SwqosProvider,
+};
 use solana_client::rpc_client::RpcClient;
+use solana_client::rpc_config::RpcTransactionConfig;
 use solana_sdk::signature::Signature;
+use solana_transaction_status::UiTransactionEncoding;
 use std::str::FromStr;
 
 fn run_mainnet_tests() -> bool {
@@ -17,6 +21,20 @@ fn rpc_client() -> RpcClient {
 fn parse(signature: &str) -> Vec<DexEvent> {
     let signature = Signature::from_str(signature).expect("valid fixture signature");
     parse_transaction_from_rpc(&rpc_client(), &signature, None)
+        .unwrap_or_else(|error| panic!("{signature}: {error}"))
+}
+
+fn fetch(signature: &str) -> solana_transaction_status::EncodedConfirmedTransactionWithStatusMeta {
+    let signature = Signature::from_str(signature).expect("valid fixture signature");
+    rpc_client()
+        .get_transaction_with_config(
+            &signature,
+            RpcTransactionConfig {
+                encoding: Some(UiTransactionEncoding::Base64),
+                commitment: None,
+                max_supported_transaction_version: Some(0),
+            },
+        )
         .unwrap_or_else(|error| panic!("{signature}: {error}"))
 }
 
@@ -199,4 +217,30 @@ fn current_raydium_launchlab_usd1_trade_exposes_quote_context() {
     assert_eq!(trades[0].metadata.slot, 438_894_516);
     assert_eq!(trades[0].quote_mint.to_string(), USD1_MINT);
     assert_eq!(trades[0].global_config.to_string(), USD1_GLOBAL_CONFIG);
+}
+
+#[test]
+fn current_transaction_cost_with_jito_tip() {
+    if !run_mainnet_tests() {
+        return;
+    }
+    const SIGNATURE: &str =
+        "4yaaD6ywu8epxVTvZEDAGPhdKK2V73XqvLqQWm1KbSFQ1uTk2nnC4uW7xTrpSuQYpTivmDQQawu7x3dFbYC1KuZ6";
+    const TIP_RECIPIENT: &str = "96gYZGLnJYVFmbjzopPSU6QiEV5fGqZNyN9nmNhvrZU5";
+
+    let transaction = fetch(SIGNATURE);
+    let cost = parse_rpc_transaction_cost(&transaction).expect("parse current transaction cost");
+
+    assert_eq!(transaction.slot, 438_900_232);
+    assert_eq!(cost.transaction_fee_lamports, Some(29_242));
+    assert_eq!(cost.compute_units_consumed, Some(135_026));
+    assert_eq!(cost.compute_unit_limit, Some(300_000));
+    assert_eq!(cost.compute_unit_price_micro_lamports, Some(80_805));
+    assert_eq!(cost.priority_fee_lamports, Some(24_242));
+    assert_eq!(cost.tip_lamports, 137_273);
+    assert_eq!(cost.total_fee_and_tip_lamports, Some(166_515));
+    assert_eq!(cost.tip_payments.len(), 1);
+    assert_eq!(cost.tip_payments[0].provider, SwqosProvider::Jito);
+    assert_eq!(cost.tip_payments[0].recipient.to_string(), TIP_RECIPIENT);
+    assert_eq!(cost.tip_lamports_for(SwqosProvider::Jito), 137_273);
 }
