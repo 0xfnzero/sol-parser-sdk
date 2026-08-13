@@ -42,6 +42,7 @@ enum LogInstrDedupKey {
         pool: Pubkey,
         user: Pubkey,
         is_buy: bool,
+        occurrence: u16,
     },
     RaydiumLaunchlabPoolCreate {
         pool: Pubkey,
@@ -121,6 +122,7 @@ fn pumpswap_ix_lane(ix_name: &str) -> u8 {
 #[derive(Clone, Hash, PartialEq, Eq)]
 enum OccurrenceBase {
     PumpFun { mint: Pubkey, user: Pubkey, is_buy: bool, lane: u8 },
+    RaydiumLaunchlab { pool: Pubkey, user: Pubkey, is_buy: bool },
     RaydiumClmm(Pubkey),
     RaydiumCpmm(Pubkey),
     RaydiumAmmV4 { base_out: bool, amount: u64 },
@@ -164,6 +166,7 @@ fn log_instr_dedup_key(ev: &DexEvent) -> Option<LogInstrDedupKey> {
             pool: t.pool_state,
             user: t.user,
             is_buy: t.is_buy,
+            occurrence: 0,
         }),
         RaydiumLaunchlabPoolCreate(p) => {
             Some(LogInstrDedupKey::RaydiumLaunchlabPoolCreate { pool: p.pool_state })
@@ -216,6 +219,22 @@ fn next_dedup_key(
                 occurrence_counts,
             );
             Some(pumpfun_trade_key_with_occ(t, occ))
+        }
+        RaydiumLaunchlabTrade(t) => {
+            let occurrence = next_occurrence(
+                OccurrenceBase::RaydiumLaunchlab {
+                    pool: t.pool_state,
+                    user: t.user,
+                    is_buy: t.is_buy,
+                },
+                occurrence_counts,
+            );
+            Some(LogInstrDedupKey::RaydiumLaunchlabTrade {
+                pool: t.pool_state,
+                user: t.user,
+                is_buy: t.is_buy,
+                occurrence,
+            })
         }
         RaydiumClmmSwap(s) => {
             let occurrence =
@@ -306,7 +325,7 @@ mod tests {
     use super::*;
     use crate::core::events::{
         EventMetadata, PumpFunCreateTokenEvent, PumpFunCreateV2TokenEvent, PumpFunTradeEvent,
-        PumpSwapCreatePoolEvent,
+        PumpSwapCreatePoolEvent, RaydiumLaunchlabTradeEvent, TradeDirection,
     };
     use solana_sdk::{pubkey::Pubkey, signature::Signature};
 
@@ -411,6 +430,59 @@ mod tests {
             vec![clmm_swap(pool, true, 0), clmm_swap(pool, false, 0)],
         );
         assert_eq!(merged.len(), 2);
+    }
+
+    fn launchlab_trade(pool: Pubkey, user: Pubkey, amount_in: u64, quote_mint: Pubkey) -> DexEvent {
+        DexEvent::RaydiumLaunchlabTrade(RaydiumLaunchlabTradeEvent {
+            metadata: dummy_meta(),
+            pool_state: pool,
+            user,
+            amount_in,
+            amount_out: amount_in.saturating_mul(2),
+            is_buy: true,
+            trade_direction: TradeDirection::Buy,
+            exact_in: true,
+            global_config: Pubkey::default(),
+            platform_config: Pubkey::default(),
+            user_base_token: Pubkey::default(),
+            user_quote_token: Pubkey::default(),
+            base_vault: Pubkey::default(),
+            quote_vault: Pubkey::default(),
+            base_mint: Pubkey::default(),
+            quote_mint,
+            base_token_program: Pubkey::default(),
+            quote_token_program: Pubkey::default(),
+        })
+    }
+
+    #[test]
+    fn launchlab_same_pool_occurrences_are_retained_and_enriched_in_order() {
+        let pool = Pubkey::new_unique();
+        let user = Pubkey::new_unique();
+        let first_quote_mint = Pubkey::new_unique();
+        let second_quote_mint = Pubkey::new_unique();
+        let merged = dedupe_log_instruction_events(
+            vec![
+                launchlab_trade(pool, user, 100, Pubkey::default()),
+                launchlab_trade(pool, user, 200, Pubkey::default()),
+            ],
+            vec![
+                launchlab_trade(pool, user, 9_999, first_quote_mint),
+                launchlab_trade(pool, user, 8_888, second_quote_mint),
+            ],
+        );
+
+        assert_eq!(merged.len(), 2);
+        let DexEvent::RaydiumLaunchlabTrade(first) = &merged[0] else {
+            unreachable!();
+        };
+        let DexEvent::RaydiumLaunchlabTrade(second) = &merged[1] else {
+            unreachable!();
+        };
+        assert_eq!(first.amount_in, 100);
+        assert_eq!(first.quote_mint, first_quote_mint);
+        assert_eq!(second.amount_in, 200);
+        assert_eq!(second.quote_mint, second_quote_mint);
     }
 
     #[test]

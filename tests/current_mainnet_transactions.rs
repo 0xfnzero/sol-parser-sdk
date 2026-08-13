@@ -176,3 +176,27 @@ fn current_raydium_clmm_cpmm_amm_v4_and_launchlab() {
     assert_eq!(launchlab[0].amount_in, 511_580_573);
     assert_eq!(launchlab[0].amount_out, 5_169_841_048_834);
 }
+
+#[test]
+fn current_raydium_launchlab_usd1_trade_exposes_quote_context() {
+    if !run_mainnet_tests() {
+        return;
+    }
+    const SIGNATURE: &str =
+        "zuaKyxjpM7G5et2XqZofjjGNczNduGs6g8ipCEeZKKV7h6FFgRNJbXnzfufSZWD3bEacmf8sVktXpZaadQhmVuJ";
+    const USD1_MINT: &str = "USD1ttGY1N17NEEHLmELoaybftRBUSErhqYiQzvEmuB";
+    const USD1_GLOBAL_CONFIG: &str = "EPiZbnrThjyLnoQ6QQzkxeFqyL5uyg9RzNHHAudUPxBz";
+
+    let trades: Vec<_> = parse(SIGNATURE)
+        .into_iter()
+        .filter_map(|event| match event {
+            DexEvent::RaydiumLaunchlabTrade(event) => Some(event),
+            _ => None,
+        })
+        .collect();
+
+    assert_eq!(trades.len(), 1);
+    assert_eq!(trades[0].metadata.slot, 438_894_516);
+    assert_eq!(trades[0].quote_mint.to_string(), USD1_MINT);
+    assert_eq!(trades[0].global_config.to_string(), USD1_GLOBAL_CONFIG);
+}
