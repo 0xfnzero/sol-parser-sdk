@@ -113,16 +113,23 @@ sol-parser-sdk = { path = "../sol-parser-sdk", default-features = false, feature
 
 ```toml
 # 在 Cargo.toml 中添加
-sol-parser-sdk = "0.6.2"
+sol-parser-sdk = "0.6.3"
 ```
 
 或使用零拷贝解析器（最高性能）：
 
 ```toml
-sol-parser-sdk = { version = "0.6.2", default-features = false, features = ["parse-zero-copy"] }
+sol-parser-sdk = { version = "0.6.3", default-features = false, features = ["parse-zero-copy"] }
 ```
 
 ### 发布说明
+
+#### v0.6.3
+
+- 输出当前 Raydium LaunchLab 的 quote mint 和 global configuration 上下文，包括 USD1 池。
+- 增加可选的交易费、优先费、compute budget 和 SWQoS tip 解析，覆盖 sol-trade-sdk 支持的全部服务商。
+- 返回每笔已识别 tip 的服务商和收款地址；未启用交易成本解析时不分配内存，开销可忽略。
+- 增加 2026-08-13 采集的 LaunchLab USD1 和交易成本主网交易 fixture，便于后续复用验证。
 
 #### v0.6.2
 
