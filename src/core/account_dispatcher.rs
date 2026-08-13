@@ -60,6 +60,7 @@ fn find_instruction_invoke_anchored<'a>(
     meta: &TransactionStatusMeta,
     transaction: &Option<Transaction>,
     account_keys: Option<&Vec<Vec<u8>>>,
+    anchor_account_index: usize,
     anchor: &Pubkey,
 ) -> Option<&'a (i32, i32)> {
     if *anchor != Pubkey::default() {
@@ -72,7 +73,7 @@ fn find_instruction_invoke_anchored<'a>(
                 &meta.loaded_readonly_addresses,
                 invoke,
             )
-            .is_some_and(|get_account| get_account(0) == *anchor)
+            .is_some_and(|get_account| get_account(anchor_account_index) == *anchor)
         });
         if anchored.is_some() {
             return anchored;
@@ -146,8 +147,37 @@ macro_rules! fill_event_accounts_anchored {
             let account_keys =
                 $tx.as_ref().and_then(|tx| tx.message.as_ref()).map(|msg| &msg.account_keys);
             if let Some(invoke) =
-                find_instruction_invoke_anchored(invokes, $meta, $tx, account_keys, $anchor)
+                find_instruction_invoke_anchored(invokes, $meta, $tx, account_keys, 0, $anchor)
             {
+                if let Some(get_account) = get_instruction_account_getter(
+                    $meta,
+                    $tx,
+                    account_keys,
+                    &$meta.loaded_writable_addresses,
+                    &$meta.loaded_readonly_addresses,
+                    invoke,
+                ) {
+                    $filler(&get_account);
+                }
+            }
+        }
+    };
+}
+
+/// Pool-anchored account filling for protocols whose pool is not account zero.
+macro_rules! fill_event_accounts_anchored_at {
+    ($event:expr, $meta:expr, $tx:expr, $invokes:expr, $program_id:expr, $anchor_index:expr, $anchor:expr, $filler:expr) => {
+        if let Some(invokes) = $invokes.get($program_id) {
+            let account_keys =
+                $tx.as_ref().and_then(|tx| tx.message.as_ref()).map(|msg| &msg.account_keys);
+            if let Some(invoke) = find_instruction_invoke_anchored(
+                invokes,
+                $meta,
+                $tx,
+                account_keys,
+                $anchor_index,
+                $anchor,
+            ) {
                 if let Some(get_account) = get_instruction_account_getter(
                     $meta,
                     $tx,
@@ -684,24 +714,30 @@ pub fn fill_accounts_with_owned_keys(
 
         // RaydiumLaunchlab
         DexEvent::RaydiumLaunchlabTrade(e) => {
-            fill_event_accounts!(
+            let pool = e.pool_state;
+            fill_event_accounts_anchored_at!(
                 e,
                 meta,
                 transaction,
                 program_invokes,
                 &RAYDIUM_LAUNCHLAB_PROGRAM,
+                4,
+                &pool,
                 |get: &AccountGetter<'_>| {
                     account_fillers::raydium_launchlab::fill_trade_accounts(e, get);
                 }
             );
         }
         DexEvent::RaydiumLaunchlabPoolCreate(e) => {
-            fill_event_accounts!(
+            let pool = e.pool_state;
+            fill_event_accounts_anchored_at!(
                 e,
                 meta,
                 transaction,
                 program_invokes,
                 &RAYDIUM_LAUNCHLAB_PROGRAM,
+                5,
+                &pool,
                 |get: &AccountGetter<'_>| {
                     account_fillers::raydium_launchlab::fill_pool_create_accounts(e, get);
                 }
@@ -715,8 +751,8 @@ pub fn fill_accounts_with_owned_keys(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::core::events::{PumpSwapBuyEvent, PumpSwapSellEvent};
-    use crate::grpc::program_ids::PUMPSWAP_PROGRAM;
+    use crate::core::events::{PumpSwapBuyEvent, PumpSwapSellEvent, RaydiumLaunchlabTradeEvent};
+    use crate::grpc::program_ids::{PUMPSWAP_PROGRAM, RAYDIUM_LAUNCHLAB_PROGRAM};
     use yellowstone_grpc_proto::prelude::{
         CompiledInstruction, Message, MessageHeader, Transaction, TransactionStatusMeta,
     };
@@ -843,5 +879,83 @@ mod tests {
             ),
             _ => unreachable!(),
         }
+    }
+
+    #[test]
+    fn launchlab_trade_backfills_from_matching_pool_invoke() {
+        let first_pool = Pubkey::new_unique();
+        let second_pool = Pubkey::new_unique();
+        let first_quote_mint = Pubkey::new_unique();
+        let second_quote_mint = Pubkey::new_unique();
+        let padding = Pubkey::new_unique();
+        let static_pubkeys = [
+            first_pool,
+            second_pool,
+            first_quote_mint,
+            second_quote_mint,
+            RAYDIUM_LAUNCHLAB_PROGRAM,
+            padding,
+        ];
+        let account_keys = static_pubkeys.iter().map(|key| key.to_bytes().to_vec()).collect();
+        let launchlab_accounts = |pool_index, quote_mint_index| {
+            let mut accounts = vec![5u8; 15];
+            accounts[4] = pool_index;
+            accounts[10] = quote_mint_index;
+            accounts[14] = 4;
+            accounts
+        };
+        let transaction = Some(Transaction {
+            signatures: vec![vec![0u8; 64]],
+            message: Some(Message {
+                header: Some(MessageHeader::default()),
+                account_keys,
+                recent_blockhash: vec![0u8; 32],
+                instructions: vec![
+                    CompiledInstruction {
+                        program_id_index: 4,
+                        accounts: launchlab_accounts(0, 2),
+                        data: vec![0],
+                    },
+                    CompiledInstruction {
+                        program_id_index: 4,
+                        accounts: launchlab_accounts(1, 3),
+                        data: vec![0],
+                    },
+                ],
+                versioned: false,
+                address_table_lookups: Vec::new(),
+            }),
+        });
+        let meta = TransactionStatusMeta::default();
+        let invokes =
+            HashMap::from([(RAYDIUM_LAUNCHLAB_PROGRAM, vec![(0i32, -1i32), (1i32, -1i32)])]);
+        let mut event = DexEvent::RaydiumLaunchlabTrade(RaydiumLaunchlabTradeEvent {
+            metadata: EventMetadata::default(),
+            pool_state: first_pool,
+            user: Pubkey::default(),
+            amount_in: 1,
+            amount_out: 2,
+            is_buy: true,
+            trade_direction: TradeDirection::Buy,
+            exact_in: true,
+            global_config: Pubkey::default(),
+            platform_config: Pubkey::default(),
+            user_base_token: Pubkey::default(),
+            user_quote_token: Pubkey::default(),
+            base_vault: Pubkey::default(),
+            quote_vault: Pubkey::default(),
+            base_mint: Pubkey::default(),
+            quote_mint: Pubkey::default(),
+            base_token_program: Pubkey::default(),
+            quote_token_program: Pubkey::default(),
+        });
+
+        fill_accounts_with_owned_keys(&mut event, &meta, &transaction, &invokes);
+
+        let DexEvent::RaydiumLaunchlabTrade(event) = event else {
+            unreachable!();
+        };
+        assert_eq!(event.quote_mint, first_quote_mint);
+        assert_ne!(event.quote_mint, second_quote_mint);
     }
 }

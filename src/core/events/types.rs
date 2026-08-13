@@ -76,7 +76,25 @@ pub struct RaydiumLaunchlabPoolCreateEvent {
     pub metadata: EventMetadata,
     pub base_mint_param: BaseMintParam,
     pub pool_state: Pubkey,
+    #[serde(default)]
+    pub payer: Pubkey,
     pub creator: Pubkey,
+    #[serde(default)]
+    pub global_config: Pubkey,
+    #[serde(default)]
+    pub platform_config: Pubkey,
+    #[serde(default)]
+    pub base_mint: Pubkey,
+    #[serde(default)]
+    pub quote_mint: Pubkey,
+    #[serde(default)]
+    pub base_vault: Pubkey,
+    #[serde(default)]
+    pub quote_vault: Pubkey,
+    #[serde(default)]
+    pub base_token_program: Pubkey,
+    #[serde(default)]
+    pub quote_token_program: Pubkey,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -106,6 +124,36 @@ pub struct RaydiumLaunchlabTradeEvent {
     pub trade_direction: TradeDirection,
     #[cfg_attr(feature = "parse-borsh", borsh(skip))]
     pub exact_in: bool,
+    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
+    #[serde(default)]
+    pub global_config: Pubkey,
+    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
+    #[serde(default)]
+    pub platform_config: Pubkey,
+    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
+    #[serde(default)]
+    pub user_base_token: Pubkey,
+    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
+    #[serde(default)]
+    pub user_quote_token: Pubkey,
+    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
+    #[serde(default)]
+    pub base_vault: Pubkey,
+    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
+    #[serde(default)]
+    pub quote_vault: Pubkey,
+    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
+    #[serde(default)]
+    pub base_mint: Pubkey,
+    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
+    #[serde(default)]
+    pub quote_mint: Pubkey,
+    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
+    #[serde(default)]
+    pub base_token_program: Pubkey,
+    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
+    #[serde(default)]
+    pub quote_token_program: Pubkey,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
