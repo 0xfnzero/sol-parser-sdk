@@ -113,16 +113,23 @@ sol-parser-sdk = { path = "../sol-parser-sdk", default-features = false, feature
 
 ```toml
 # Add to your Cargo.toml
-sol-parser-sdk = "0.6.2"
+sol-parser-sdk = "0.6.3"
 ```
 
 Or with the zero-copy parser (maximum performance):
 
 ```toml
-sol-parser-sdk = { version = "0.6.2", default-features = false, features = ["parse-zero-copy"] }
+sol-parser-sdk = { version = "0.6.3", default-features = false, features = ["parse-zero-copy"] }
 ```
 
 ### Release Notes
+
+#### v0.6.3
+
+- Exposes current Raydium LaunchLab quote mint and global configuration context, including USD1 pools.
+- Adds opt-in transaction fee, priority fee, compute budget, and SWQoS tip parsing for all providers supported by sol-trade-sdk.
+- Identifies each recognized tip provider and recipient while keeping the disabled transaction-cost path allocation-free and effectively zero-cost.
+- Adds reusable mainnet transaction fixtures captured on 2026-08-13 for LaunchLab USD1 and transaction-cost parsing.
 
 #### v0.6.2
 
