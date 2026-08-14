@@ -38,7 +38,7 @@ fn fetch(signature: &str) -> solana_transaction_status::EncodedConfirmedTransact
         .unwrap_or_else(|error| panic!("{signature}: {error}"))
 }
 
-// These transactions were captured from current mainnet traffic on 2026-08-13.
+// These transactions were captured from current mainnet traffic on 2026-08-13 and 2026-08-14.
 // Run with: RUN_MAINNET_TESTS=1 SOLANA_RPC_URL=<optional archive RPC> cargo test --test current_mainnet_transactions
 
 #[test]
@@ -74,6 +74,29 @@ fn current_meteora_dlmm_swap_and_nested_orca() {
     assert_eq!(orca.len(), 1);
     assert_eq!(orca[0].input_amount, 2_397_194_654);
     assert_eq!(orca[0].output_amount, 942_951_733);
+}
+
+#[test]
+fn current_meteora_dlmm_swap_separates_threshold_from_executed_output() {
+    if !run_mainnet_tests() {
+        return;
+    }
+    const SIGNATURE: &str =
+        "4bo3keYw6cNyKFBPWkyVKBRxx5HR9pqUX7oUCKfaCDHyEHUtcvWf83JMyw8aCw95miYpCibmvZ47yzEU2QgL1SpC";
+    let swaps: Vec<_> = parse(SIGNATURE)
+        .into_iter()
+        .filter_map(|event| match event {
+            DexEvent::MeteoraDlmmSwap(event) => Some(event),
+            _ => None,
+        })
+        .collect();
+
+    assert_eq!(swaps.len(), 1);
+    assert_eq!(swaps[0].metadata.slot, 439_180_262);
+    assert_eq!(swaps[0].amount_in, 15_256_451_464);
+    assert_eq!(swaps[0].min_amount_out, 1_152_138_244);
+    assert_eq!(swaps[0].amount_out, 1_152_143_151);
+    assert!(swaps[0].amount_out > swaps[0].min_amount_out);
 }
 
 #[test]

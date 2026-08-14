@@ -944,6 +944,7 @@ mod tests {
                 metadata: EventMetadata::default(),
                 token_x_mint: Pubkey::default(),
                 token_y_mint: Pubkey::default(),
+                min_amount_out: 0,
                 pool,
                 from: Pubkey::default(),
                 start_bin_id: 0,
