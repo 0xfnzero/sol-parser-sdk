@@ -113,20 +113,23 @@ sol-parser-sdk = { path = "../sol-parser-sdk", default-features = false, feature
 
 ```toml
 # Add to your Cargo.toml
-sol-parser-sdk = "0.6.3"
+sol-parser-sdk = "0.6.4"
 ```
 
 Or with the zero-copy parser (maximum performance):
 
 ```toml
-sol-parser-sdk = { version = "0.6.3", default-features = false, features = ["parse-zero-copy"] }
+sol-parser-sdk = { version = "0.6.4", default-features = false, features = ["parse-zero-copy"] }
 ```
 
 ### Release Notes
 
 #### v0.6.4
 
-- Adds Meteora DLMM Swap event account filler to populate `token_x_mint` and `token_y_mint` from instruction accounts.
+- Adds `token_x_mint` and `token_y_mint` context to current Meteora DLMM swap events.
+- Anchors mint enrichment to each event pool so multi-leg DLMM routes cannot reuse another pool's accounts.
+- Adds reusable mainnet RPC examples captured on 2026-08-14 for direct `swap` and CPI `swap2` parsing.
+- Keeps JSON produced before the new mint fields compatible with Serde deserialization.
 
 #### v0.6.3
 
