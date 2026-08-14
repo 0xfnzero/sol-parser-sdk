@@ -2638,8 +2638,10 @@ pub struct MeteoraDlmmSwapEvent {
     pub metadata: EventMetadata,
 
     #[cfg_attr(feature = "parse-borsh", borsh(skip))]
+    #[serde(default)]
     pub token_x_mint: Pubkey,
     #[cfg_attr(feature = "parse-borsh", borsh(skip))]
+    #[serde(default)]
     pub token_y_mint: Pubkey,
 
     // === Borsh 序列化字段（从 inner instruction data 读取）===
@@ -2758,9 +2760,12 @@ pub struct MeteoraDlmmClaimFeeEvent {
 
 #[cfg(test)]
 mod serde_compat_tests {
-    use super::{PumpSwapBuyEvent, PumpSwapPool, PumpSwapSellEvent};
+    use super::{
+        EventMetadata, MeteoraDlmmSwapEvent, PumpSwapBuyEvent, PumpSwapPool, PumpSwapSellEvent,
+    };
     use serde::Serialize;
     use serde_json::Value;
+    use solana_sdk::pubkey::Pubkey;
 
     fn without_fields<T: Serialize>(value: &T, fields: &[&str]) -> Value {
         let mut json = serde_json::to_value(value).expect("serialize fixture");
@@ -2822,6 +2827,32 @@ mod serde_compat_tests {
 
         let decoded: PumpSwapPool = serde_json::from_value(json).expect("legacy pool JSON");
         assert_eq!(decoded.virtual_quote_reserves, 0);
+    }
+
+    #[test]
+    fn meteora_dlmm_swap_accepts_json_from_before_mint_fields() {
+        let event = MeteoraDlmmSwapEvent {
+            metadata: EventMetadata::default(),
+            token_x_mint: Pubkey::new_unique(),
+            token_y_mint: Pubkey::new_unique(),
+            pool: Pubkey::new_unique(),
+            from: Pubkey::new_unique(),
+            start_bin_id: 1,
+            end_bin_id: 2,
+            amount_in: 3,
+            amount_out: 4,
+            swap_for_y: true,
+            fee: 5,
+            protocol_fee: 6,
+            fee_bps: 7,
+            host_fee: 8,
+        };
+        let json = without_fields(&event, &["token_x_mint", "token_y_mint"]);
+
+        let decoded: MeteoraDlmmSwapEvent =
+            serde_json::from_value(json).expect("legacy Meteora DLMM swap JSON");
+        assert_eq!(decoded.token_x_mint, Pubkey::default());
+        assert_eq!(decoded.token_y_mint, Pubkey::default());
     }
 
     #[test]

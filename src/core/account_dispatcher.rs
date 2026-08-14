@@ -676,12 +676,14 @@ pub fn fill_accounts_with_owned_keys(
 
         // Meteora DLMM
         DexEvent::MeteoraDlmmSwap(e) => {
-            fill_event_accounts!(
+            let pool = e.pool;
+            fill_event_accounts_anchored!(
                 e,
                 meta,
                 transaction,
                 program_invokes,
                 &METEORA_DLMM_PROGRAM,
+                &pool,
                 |get: &AccountGetter<'_>| {
                     account_fillers::meteora::fill_dlmm_swap_accounts(e, get);
                 }
@@ -751,8 +753,12 @@ pub fn fill_accounts_with_owned_keys(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::core::events::{PumpSwapBuyEvent, PumpSwapSellEvent, RaydiumLaunchlabTradeEvent};
-    use crate::grpc::program_ids::{PUMPSWAP_PROGRAM, RAYDIUM_LAUNCHLAB_PROGRAM};
+    use crate::core::events::{
+        MeteoraDlmmSwapEvent, PumpSwapBuyEvent, PumpSwapSellEvent, RaydiumLaunchlabTradeEvent,
+    };
+    use crate::grpc::program_ids::{
+        METEORA_DLMM_PROGRAM, PUMPSWAP_PROGRAM, RAYDIUM_LAUNCHLAB_PROGRAM,
+    };
     use yellowstone_grpc_proto::prelude::{
         CompiledInstruction, Message, MessageHeader, Transaction, TransactionStatusMeta,
     };
@@ -879,6 +885,94 @@ mod tests {
             ),
             _ => unreachable!(),
         }
+    }
+
+    #[test]
+    fn dlmm_route_backfills_each_leg_from_matching_pool_invoke() {
+        let first_pool = Pubkey::new_unique();
+        let second_pool = Pubkey::new_unique();
+        let first_x_mint = Pubkey::new_unique();
+        let first_y_mint = Pubkey::new_unique();
+        let second_x_mint = Pubkey::new_unique();
+        let second_y_mint = Pubkey::new_unique();
+        let padding = Pubkey::new_unique();
+        let static_pubkeys = [
+            first_pool,
+            second_pool,
+            first_x_mint,
+            first_y_mint,
+            second_x_mint,
+            second_y_mint,
+            METEORA_DLMM_PROGRAM,
+            padding,
+        ];
+        let account_keys = static_pubkeys.iter().map(|key| key.to_bytes().to_vec()).collect();
+
+        let dlmm_accounts = |len, pool_index, x_mint_index, y_mint_index| {
+            let mut accounts = vec![7u8; len];
+            accounts[0] = pool_index;
+            accounts[6] = x_mint_index;
+            accounts[7] = y_mint_index;
+            accounts
+        };
+        let transaction = Some(Transaction {
+            signatures: vec![vec![0u8; 64]],
+            message: Some(Message {
+                header: Some(MessageHeader::default()),
+                account_keys,
+                recent_blockhash: vec![0u8; 32],
+                instructions: vec![
+                    CompiledInstruction {
+                        program_id_index: 6,
+                        accounts: dlmm_accounts(20, 0, 2, 3),
+                        data: vec![0],
+                    },
+                    CompiledInstruction {
+                        program_id_index: 6,
+                        accounts: dlmm_accounts(15, 1, 4, 5),
+                        data: vec![0],
+                    },
+                ],
+                versioned: false,
+                address_table_lookups: Vec::new(),
+            }),
+        });
+        let meta = TransactionStatusMeta::default();
+        let invokes = HashMap::from([(METEORA_DLMM_PROGRAM, vec![(0i32, -1i32), (1i32, -1i32)])]);
+        let swap_event = |pool| {
+            DexEvent::MeteoraDlmmSwap(MeteoraDlmmSwapEvent {
+                metadata: EventMetadata::default(),
+                token_x_mint: Pubkey::default(),
+                token_y_mint: Pubkey::default(),
+                pool,
+                from: Pubkey::default(),
+                start_bin_id: 0,
+                end_bin_id: 0,
+                amount_in: 1,
+                amount_out: 1,
+                swap_for_y: false,
+                fee: 0,
+                protocol_fee: 0,
+                fee_bps: 0,
+                host_fee: 0,
+            })
+        };
+
+        let mut first_event = swap_event(first_pool);
+        fill_accounts_with_owned_keys(&mut first_event, &meta, &transaction, &invokes);
+        let DexEvent::MeteoraDlmmSwap(first_event) = first_event else {
+            unreachable!();
+        };
+        assert_eq!(first_event.token_x_mint, first_x_mint);
+        assert_eq!(first_event.token_y_mint, first_y_mint);
+
+        let mut second_event = swap_event(second_pool);
+        fill_accounts_with_owned_keys(&mut second_event, &meta, &transaction, &invokes);
+        let DexEvent::MeteoraDlmmSwap(second_event) = second_event else {
+            unreachable!();
+        };
+        assert_eq!(second_event.token_x_mint, second_x_mint);
+        assert_eq!(second_event.token_y_mint, second_y_mint);
     }
 
     #[test]
