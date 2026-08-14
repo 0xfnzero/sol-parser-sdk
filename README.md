@@ -124,6 +124,10 @@ sol-parser-sdk = { version = "0.6.3", default-features = false, features = ["par
 
 ### Release Notes
 
+#### v0.6.4
+
+- Adds Meteora DLMM Swap event account filler to populate `token_x_mint` and `token_y_mint` from instruction accounts.
+
 #### v0.6.3
 
 - Exposes current Raydium LaunchLab quote mint and global configuration context, including USD1 pools.

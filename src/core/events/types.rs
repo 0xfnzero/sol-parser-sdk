@@ -2637,6 +2637,11 @@ pub struct MeteoraDlmmSwapEvent {
     #[cfg_attr(feature = "parse-borsh", borsh(skip))]
     pub metadata: EventMetadata,
 
+    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
+    pub token_x_mint: Pubkey,
+    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
+    pub token_y_mint: Pubkey,
+
     // === Borsh 序列化字段（从 inner instruction data 读取）===
     pub pool: Pubkey,      // 32 bytes
     pub from: Pubkey,      // 32 bytes
