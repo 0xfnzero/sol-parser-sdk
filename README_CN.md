@@ -113,16 +113,23 @@ sol-parser-sdk = { path = "../sol-parser-sdk", default-features = false, feature
 
 ```toml
 # 在 Cargo.toml 中添加
-sol-parser-sdk = "0.6.3"
+sol-parser-sdk = "0.6.4"
 ```
 
 或使用零拷贝解析器（最高性能）：
 
 ```toml
-sol-parser-sdk = { version = "0.6.3", default-features = false, features = ["parse-zero-copy"] }
+sol-parser-sdk = { version = "0.6.4", default-features = false, features = ["parse-zero-copy"] }
 ```
 
 ### 发布说明
+
+#### v0.6.4
+
+- 为当前 Meteora DLMM swap 事件增加 `token_x_mint` 和 `token_y_mint` 上下文。
+- 按事件池精确匹配 mint 账户，防止多段 DLMM 路由复用其他池的账户。
+- 增加 2026-08-14 采集的主网 RPC 示例，覆盖直接 `swap` 和 CPI `swap2` 解析。
+- 兼容反序列化尚未包含新 mint 字段的旧版 JSON。
 
 #### v0.6.3
 
