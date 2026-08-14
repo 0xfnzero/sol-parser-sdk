@@ -170,6 +170,8 @@ pub fn parse_swap_from_data(data: &[u8], metadata: EventMetadata) -> Option<DexE
 
     Some(DexEvent::MeteoraDlmmSwap(MeteoraDlmmSwapEvent {
         metadata,
+        token_x_mint: solana_sdk::pubkey::Pubkey::default(),
+        token_y_mint: solana_sdk::pubkey::Pubkey::default(),
         pool,
         from,
         start_bin_id,
@@ -231,6 +233,8 @@ pub fn parse_swap2_from_data(data: &[u8], metadata: EventMetadata) -> Option<Dex
 
     Some(DexEvent::MeteoraDlmmSwap(MeteoraDlmmSwapEvent {
         metadata,
+        token_x_mint: solana_sdk::pubkey::Pubkey::default(),
+        token_y_mint: solana_sdk::pubkey::Pubkey::default(),
         pool,
         from,
         start_bin_id,
@@ -543,6 +547,8 @@ fn parse_swap_event(
 
     Some(DexEvent::MeteoraDlmmSwap(MeteoraDlmmSwapEvent {
         metadata,
+        token_x_mint: solana_sdk::pubkey::Pubkey::default(),
+        token_y_mint: solana_sdk::pubkey::Pubkey::default(),
         pool,
         from,
         start_bin_id,
@@ -977,6 +983,8 @@ fn parse_swap_from_text(
 
     Some(DexEvent::MeteoraDlmmSwap(MeteoraDlmmSwapEvent {
         metadata,
+        token_x_mint: solana_sdk::pubkey::Pubkey::default(),
+        token_y_mint: solana_sdk::pubkey::Pubkey::default(),
         pool: solana_sdk::pubkey::Pubkey::default(),
         from: solana_sdk::pubkey::Pubkey::default(),
         start_bin_id: 0,

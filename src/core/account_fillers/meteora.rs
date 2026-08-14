@@ -179,8 +179,13 @@ pub fn fill_pools_remove_liquidity_accounts(
 /// 12: tokenYProgram
 /// 13: eventAuthority
 /// 14: program
-pub fn fill_dlmm_swap_accounts(_e: &mut MeteoraDlmmSwapEvent, _get: &AccountGetter<'_>) {
-    // 事件数据已包含主要信息
+pub fn fill_dlmm_swap_accounts(e: &mut MeteoraDlmmSwapEvent, get: &AccountGetter<'_>) {
+    if e.token_x_mint == Pubkey::default() {
+        e.token_x_mint = get(6);
+    }
+    if e.token_y_mint == Pubkey::default() {
+        e.token_y_mint = get(7);
+    }
 }
 
 /// Meteora DLMM Add Liquidity 账户填充

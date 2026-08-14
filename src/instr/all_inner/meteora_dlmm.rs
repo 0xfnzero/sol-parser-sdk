@@ -204,6 +204,8 @@ fn parse_swap2(data: &[u8], metadata: EventMetadata) -> Option<DexEvent> {
         let host_fee = read_u64_unchecked(data, 137);
         Some(DexEvent::MeteoraDlmmSwap(MeteoraDlmmSwapEvent {
             metadata,
+            token_x_mint: Pubkey::default(),
+            token_y_mint: Pubkey::default(),
             pool,
             from,
             start_bin_id,
@@ -263,6 +265,8 @@ fn parse_swap_zero_copy(data: &[u8], metadata: EventMetadata) -> Option<DexEvent
         let host_fee = read_u64_unchecked(data, 121);
         Some(DexEvent::MeteoraDlmmSwap(MeteoraDlmmSwapEvent {
             metadata,
+            token_x_mint: Pubkey::default(),
+            token_y_mint: Pubkey::default(),
             pool,
             from,
             start_bin_id,

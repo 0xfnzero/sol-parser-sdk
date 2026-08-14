@@ -992,6 +992,8 @@ mod tests {
     fn dlmm_swap(pool: Pubkey, amount_in: u64, amount_out: u64) -> DexEvent {
         DexEvent::MeteoraDlmmSwap(MeteoraDlmmSwapEvent {
             metadata: EventMetadata::default(),
+            token_x_mint: Pubkey::default(),
+            token_y_mint: Pubkey::default(),
             pool,
             from: Pubkey::default(),
             start_bin_id: 0,

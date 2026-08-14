@@ -338,6 +338,8 @@ fn parse_swap_instruction(
 
     Some(DexEvent::MeteoraDlmmSwap(MeteoraDlmmSwapEvent {
         metadata,
+        token_x_mint: Pubkey::default(),
+        token_y_mint: Pubkey::default(),
         pool,
         from: get_account(accounts, 10).unwrap_or_default(),
         start_bin_id: 0,
@@ -368,6 +370,8 @@ fn parse_swap_exact_out_instruction(
 
     Some(DexEvent::MeteoraDlmmSwap(MeteoraDlmmSwapEvent {
         metadata,
+        token_x_mint: Pubkey::default(),
+        token_y_mint: Pubkey::default(),
         pool,
         from: get_account(accounts, 10).unwrap_or_default(),
         start_bin_id: 0,
@@ -405,6 +409,8 @@ fn parse_swap_with_price_impact_instruction(
 
     Some(DexEvent::MeteoraDlmmSwap(MeteoraDlmmSwapEvent {
         metadata,
+        token_x_mint: Pubkey::default(),
+        token_y_mint: Pubkey::default(),
         pool,
         from: get_account(accounts, 10).unwrap_or_default(),
         start_bin_id: 0,
