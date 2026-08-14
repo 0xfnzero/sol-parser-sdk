@@ -146,7 +146,7 @@ pub fn try_merge_events(base: &mut DexEvent, inner: DexEvent) -> Result<(), DexE
         (MeteoraDammV2ClosePosition(b), MeteoraDammV2ClosePosition(i)) => merge_generic(b, i),
 
         // ========== Meteora DLMM 系列 ==========
-        (MeteoraDlmmSwap(b), MeteoraDlmmSwap(i)) => merge_generic(b, i),
+        (MeteoraDlmmSwap(b), MeteoraDlmmSwap(i)) => merge_dlmm_swap(b, i),
         (MeteoraDlmmAddLiquidity(b), MeteoraDlmmAddLiquidity(i)) => merge_generic(b, i),
         (MeteoraDlmmRemoveLiquidity(b), MeteoraDlmmRemoveLiquidity(i)) => merge_generic(b, i),
         (MeteoraDlmmInitializePool(b), MeteoraDlmmInitializePool(i)) => {
@@ -182,6 +182,14 @@ pub fn try_merge_events(base: &mut DexEvent, inner: DexEvent) -> Result<(), DexE
 #[inline(always)]
 fn merge_generic<T>(base: &mut T, inner: T) {
     *base = inner;
+}
+
+#[inline(always)]
+fn merge_dlmm_swap(base: &mut MeteoraDlmmSwapEvent, inner: MeteoraDlmmSwapEvent) {
+    let min_amount_out =
+        if inner.min_amount_out != 0 { inner.min_amount_out } else { base.min_amount_out };
+    *base = inner;
+    base.min_amount_out = min_amount_out;
 }
 
 #[inline(always)]
@@ -894,10 +902,10 @@ fn merge_raydium_launchlab_trade_log_preferred(
 }
 
 #[inline]
-fn merge_meteora_dlmm_swap_log_preferred(
-    _log: &mut MeteoraDlmmSwapEvent,
-    _ix: MeteoraDlmmSwapEvent,
-) {
+fn merge_meteora_dlmm_swap_log_preferred(log: &mut MeteoraDlmmSwapEvent, ix: MeteoraDlmmSwapEvent) {
+    if log.min_amount_out == 0 {
+        log.min_amount_out = ix.min_amount_out;
+    }
 }
 
 /// 将 **instruction 路径**解析结果合并进 **log 路径**事件：`log` 保留链上日志权威数值，
@@ -1022,6 +1030,48 @@ fn pumpfun_trade_from_ix_variant(ix: DexEvent) -> Option<PumpFunTradeEvent> {
 mod tests {
     use super::*;
     use solana_sdk::{pubkey::Pubkey, signature::Signature};
+
+    fn dlmm_swap(min_amount_out: u64, amount_out: u64) -> MeteoraDlmmSwapEvent {
+        MeteoraDlmmSwapEvent {
+            metadata: EventMetadata::default(),
+            token_x_mint: Pubkey::default(),
+            token_y_mint: Pubkey::default(),
+            min_amount_out,
+            pool: Pubkey::new_unique(),
+            from: Pubkey::new_unique(),
+            start_bin_id: 0,
+            end_bin_id: 0,
+            amount_in: 200,
+            amount_out,
+            swap_for_y: true,
+            fee: 1,
+            protocol_fee: 0,
+            fee_bps: 25,
+            host_fee: 0,
+        }
+    }
+
+    #[test]
+    fn dlmm_event_merge_keeps_instruction_threshold_and_executed_output() {
+        let mut base = DexEvent::MeteoraDlmmSwap(dlmm_swap(100, 0));
+        let inner = DexEvent::MeteoraDlmmSwap(dlmm_swap(0, 125));
+
+        assert!(try_merge_events(&mut base, inner).is_ok());
+        let DexEvent::MeteoraDlmmSwap(event) = base else { panic!("swap") };
+        assert_eq!(event.min_amount_out, 100);
+        assert_eq!(event.amount_out, 125);
+    }
+
+    #[test]
+    fn grpc_dlmm_merge_keeps_log_output_and_adds_instruction_threshold() {
+        let mut log = DexEvent::MeteoraDlmmSwap(dlmm_swap(0, 125));
+        let instruction = DexEvent::MeteoraDlmmSwap(dlmm_swap(100, 0));
+
+        merge_grpc_instruction_into_log(&mut log, instruction);
+        let DexEvent::MeteoraDlmmSwap(event) = log else { panic!("swap") };
+        assert_eq!(event.min_amount_out, 100);
+        assert_eq!(event.amount_out, 125);
+    }
 
     #[test]
     fn test_merge_pumpfun_trade() {

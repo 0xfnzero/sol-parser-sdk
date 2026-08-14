@@ -332,6 +332,7 @@ fn parse_swap_instruction(
         return None;
     }
     let amount_in = read_u64_le(data, 0)?;
+    let min_amount_out = read_u64_le(data, 8)?;
 
     let pool = get_account(accounts, 0)?;
     let metadata = create_metadata_simple(signature, slot, tx_index, block_time_us, pool);
@@ -340,6 +341,7 @@ fn parse_swap_instruction(
         metadata,
         token_x_mint: Pubkey::default(),
         token_y_mint: Pubkey::default(),
+        min_amount_out,
         pool,
         from: get_account(accounts, 10).unwrap_or_default(),
         start_bin_id: 0,
@@ -372,6 +374,7 @@ fn parse_swap_exact_out_instruction(
         metadata,
         token_x_mint: Pubkey::default(),
         token_y_mint: Pubkey::default(),
+        min_amount_out: 0,
         pool,
         from: get_account(accounts, 10).unwrap_or_default(),
         start_bin_id: 0,
@@ -411,6 +414,7 @@ fn parse_swap_with_price_impact_instruction(
         metadata,
         token_x_mint: Pubkey::default(),
         token_y_mint: Pubkey::default(),
+        min_amount_out: 0,
         pool,
         from: get_account(accounts, 10).unwrap_or_default(),
         start_bin_id: 0,
@@ -482,6 +486,60 @@ mod tests {
         data.extend_from_slice(&discriminator);
         data.extend_from_slice(payload);
         data
+    }
+
+    #[test]
+    fn exact_in_swap_exposes_threshold_without_claiming_executed_output() {
+        let accounts = accounts(20);
+        let amount_in = 15_256_451_464u64;
+        let min_amount_out = 1_152_138_244u64;
+        let mut payload = Vec::with_capacity(16);
+        payload.extend_from_slice(&amount_in.to_le_bytes());
+        payload.extend_from_slice(&min_amount_out.to_le_bytes());
+
+        for discriminator in [discriminators::SWAP, discriminators::SWAP2] {
+            let event = parse_instruction(
+                &instruction(discriminator, &payload),
+                &accounts,
+                Signature::default(),
+                1,
+                0,
+                None,
+            )
+            .expect("swap");
+            let DexEvent::MeteoraDlmmSwap(event) = event else {
+                panic!("unexpected event");
+            };
+            assert_eq!(event.amount_in, amount_in);
+            assert_eq!(event.min_amount_out, min_amount_out);
+            assert_eq!(event.amount_out, 0);
+        }
+    }
+
+    #[test]
+    fn exact_out_swap_keeps_requested_output_separate_from_threshold() {
+        let accounts = accounts(20);
+        let max_in_amount = 500u64;
+        let out_amount = 400u64;
+        let mut payload = Vec::with_capacity(16);
+        payload.extend_from_slice(&max_in_amount.to_le_bytes());
+        payload.extend_from_slice(&out_amount.to_le_bytes());
+
+        let event = parse_instruction(
+            &instruction(discriminators::SWAP_EXACT_OUT, &payload),
+            &accounts,
+            Signature::default(),
+            1,
+            0,
+            None,
+        )
+        .expect("swap_exact_out");
+        let DexEvent::MeteoraDlmmSwap(event) = event else {
+            panic!("unexpected event");
+        };
+        assert_eq!(event.amount_in, max_in_amount);
+        assert_eq!(event.min_amount_out, 0);
+        assert_eq!(event.amount_out, out_amount);
     }
 
     #[test]
