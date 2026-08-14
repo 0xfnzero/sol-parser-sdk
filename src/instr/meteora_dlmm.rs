@@ -332,6 +332,7 @@ fn parse_swap_instruction(
         return None;
     }
     let amount_in = read_u64_le(data, 0)?;
+    let amount_out = read_u64_le(data, 8).unwrap_or(0);
 
     let pool = get_account(accounts, 0)?;
     let metadata = create_metadata_simple(signature, slot, tx_index, block_time_us, pool);
@@ -345,7 +346,7 @@ fn parse_swap_instruction(
         start_bin_id: 0,
         end_bin_id: 0,
         amount_in,
-        amount_out: 0,
+        amount_out,
         swap_for_y: false,
         fee: 0,
         protocol_fee: 0,
