@@ -113,16 +113,23 @@ sol-parser-sdk = { path = "../sol-parser-sdk", default-features = false, feature
 
 ```toml
 # Add to your Cargo.toml
-sol-parser-sdk = "0.6.4"
+sol-parser-sdk = "0.6.6"
 ```
 
 Or with the zero-copy parser (maximum performance):
 
 ```toml
-sol-parser-sdk = { version = "0.6.4", default-features = false, features = ["parse-zero-copy"] }
+sol-parser-sdk = { version = "0.6.6", default-features = false, features = ["parse-zero-copy"] }
 ```
 
 ### Release Notes
+
+#### v0.6.6
+
+- Adds `pre_token_balance` and `post_token_balance` to PumpFun trade events in raw mint units.
+- Adds `pre_sol_balance` and `post_sol_balance` in lamports, filled directly from transaction metadata without extra RPC calls.
+- Reduces end-to-end PumpFun Yellowstone parsing latency by 34.23% on the captured benchmark fixture, from 6.7349 us to 4.4293 us.
+- Adds reproducible Criterion benchmarks, a captured Yellowstone transaction fixture, and live balance-delta validation.
 
 #### v0.6.4
 

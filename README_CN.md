@@ -113,16 +113,23 @@ sol-parser-sdk = { path = "../sol-parser-sdk", default-features = false, feature
 
 ```toml
 # 在 Cargo.toml 中添加
-sol-parser-sdk = "0.6.4"
+sol-parser-sdk = "0.6.6"
 ```
 
 或使用零拷贝解析器（最高性能）：
 
 ```toml
-sol-parser-sdk = { version = "0.6.4", default-features = false, features = ["parse-zero-copy"] }
+sol-parser-sdk = { version = "0.6.6", default-features = false, features = ["parse-zero-copy"] }
 ```
 
 ### 发布说明
+
+#### v0.6.6
+
+- 为 PumpFun 交易事件增加 `pre_token_balance` 和 `post_token_balance`，单位为 mint 原始精度。
+- 增加以 lamports 为单位的 `pre_sol_balance` 和 `post_sol_balance`，直接从交易 metadata 填充，无需额外 RPC 请求。
+- 在捕获的 Yellowstone 基准 fixture 上，将 PumpFun 端到端解析延迟从 6.7349 us 降至 4.4293 us，降低 34.23%。
+- 增加可复现的 Criterion 基准、Yellowstone 原始交易 fixture 和实时余额 delta 校验。
 
 #### v0.6.4
 
