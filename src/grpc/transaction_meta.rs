@@ -5,10 +5,34 @@
 use std::collections::HashSet;
 use std::sync::Arc;
 
-use crate::instr::read_pubkey_fast;
+use crate::{instr::read_pubkey_fast, DexEvent};
 use solana_sdk::pubkey::Pubkey;
 use solana_sdk::signature::Signature;
 use yellowstone_grpc_proto::prelude::{TokenBalance, Transaction, TransactionStatusMeta};
+
+/// Fill the public recent blockhash field once final events are known.
+///
+/// Encoding after log/instruction deduplication avoids doing the same base58
+/// allocation independently on both parser branches.
+#[inline]
+pub(crate) fn fill_recent_blockhash(events: &mut [DexEvent], transaction: &Option<Transaction>) {
+    let Some(blockhash) = transaction
+        .as_ref()
+        .and_then(|tx| tx.message.as_ref())
+        .map(|message| message.recent_blockhash.as_slice())
+        .filter(|blockhash| !blockhash.is_empty())
+    else {
+        return;
+    };
+
+    let mut metadata = events.iter_mut().filter_map(DexEvent::metadata_mut);
+    let Some(first) = metadata.next() else { return };
+    let encoded = bs58::encode(blockhash).into_string();
+    for item in metadata {
+        item.recent_blockhash = Some(encoded.clone());
+    }
+    first.recent_blockhash = Some(encoded);
+}
 
 /// 32 字节公钥 → base58 地址字符串。
 #[inline]

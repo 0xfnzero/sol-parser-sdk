@@ -18,6 +18,11 @@ use crate::DexEvent;
 static PROGRAM_DATA_FINDER: Lazy<memmem::Finder> =
     Lazy::new(|| memmem::Finder::new(b"Program data: "));
 
+struct ActiveProgram<'a> {
+    encoded: &'a str,
+    pubkey: Pubkey,
+}
+
 /// 解析单笔 Yellowstone 交易更新（含 meta）：并行 logs + enhanced instructions，再 log/ix 去重合并。
 #[inline]
 pub fn parse_subscribe_update_transaction(
@@ -42,6 +47,9 @@ pub(crate) fn parse_transaction_core(
     let sig = extract_signature(&info.signature);
     let slot = tx.slot;
     let idx = info.index;
+    let needs_pumpfun = filter.map(EventTypeFilter::includes_pumpfun).unwrap_or(true);
+    let is_created_buy =
+        needs_pumpfun && crate::logs::optimized_matcher::detect_pumpfun_create(&meta.log_messages);
 
     let (log_events, instr_events) = rayon::join(
         || {
@@ -55,13 +63,30 @@ pub(crate) fn parse_transaction_core(
                 block_us,
                 grpc_us,
                 filter,
+                is_created_buy,
             )
         },
-        || parse_instructions(meta, &info.transaction, sig, slot, idx, block_us, grpc_us, filter),
+        || {
+            parse_instructions(
+                meta,
+                &info.transaction,
+                sig,
+                slot,
+                idx,
+                block_us,
+                grpc_us,
+                filter,
+                is_created_buy,
+            )
+        },
     );
 
-    let events =
+    let mut events =
         crate::grpc::log_instr_dedup::dedupe_log_instruction_events(log_events, instr_events);
+    crate::grpc::transaction_meta::fill_recent_blockhash(&mut events, &info.transaction);
+    for event in &mut events {
+        crate::core::common_filler::fill_token_balances(event, meta, &info.transaction);
+    }
     if let Some(filter) = filter {
         events.into_iter().map(|e| filter.normalize_dex_event(e)).collect()
     } else {
@@ -100,6 +125,9 @@ fn parse_transaction_core_sequential(
     let sig = extract_signature(&info.signature);
     let slot = tx.slot;
     let idx = info.index;
+    let needs_pumpfun = filter.map(EventTypeFilter::includes_pumpfun).unwrap_or(true);
+    let is_created_buy =
+        needs_pumpfun && crate::logs::optimized_matcher::detect_pumpfun_create(&meta.log_messages);
 
     let log_events = parse_logs(
         meta,
@@ -111,12 +139,26 @@ fn parse_transaction_core_sequential(
         block_us,
         grpc_us,
         filter,
+        is_created_buy,
     );
-    let instr_events =
-        parse_instructions(meta, &info.transaction, sig, slot, idx, block_us, grpc_us, filter);
+    let instr_events = parse_instructions(
+        meta,
+        &info.transaction,
+        sig,
+        slot,
+        idx,
+        block_us,
+        grpc_us,
+        filter,
+        is_created_buy,
+    );
 
-    let events =
+    let mut events =
         crate::grpc::log_instr_dedup::dedupe_log_instruction_events(log_events, instr_events);
+    crate::grpc::transaction_meta::fill_recent_blockhash(&mut events, &info.transaction);
+    for event in &mut events {
+        crate::core::common_filler::fill_token_balances(event, meta, &info.transaction);
+    }
     if let Some(filter) = filter {
         events.into_iter().map(|e| filter.normalize_dex_event(e)).collect()
     } else {
@@ -140,22 +182,12 @@ fn parse_logs(
     block_us: Option<i64>,
     grpc_us: i64,
     filter: Option<&EventTypeFilter>,
+    is_created_buy: bool,
 ) -> Vec<DexEvent> {
-    let recent_blockhash = transaction.as_ref().and_then(|t| t.message.as_ref()).and_then(|m| {
-        if m.recent_blockhash.is_empty() {
-            None
-        } else {
-            Some(m.recent_blockhash.clone())
-        }
-    });
-
-    let needs_pumpfun = filter.map(|f| f.includes_pumpfun()).unwrap_or(true);
-    let has_create = needs_pumpfun && crate::logs::optimized_matcher::detect_pumpfun_create(logs);
-
     let mut outer_idx: i32 = -1;
     let mut inner_idx: i32 = -1;
     let mut invokes: HashMap<Pubkey, Vec<(i32, i32)>> = HashMap::with_capacity(8);
-    let mut active_program_stack: Vec<Pubkey> = Vec::with_capacity(8);
+    let mut active_program_stack: Vec<ActiveProgram<'_>> = Vec::with_capacity(8);
     let mut result = Vec::with_capacity(4);
 
     for log in logs {
@@ -166,15 +198,19 @@ fn parse_logs(
             } else {
                 inner_idx += 1;
             }
-            if let Ok(pk) = Pubkey::from_str(pid) {
+            let program_id = crate::grpc::program_ids::known_program_id(pid)
+                .or_else(|| Pubkey::from_str(pid).ok());
+            if let Some(pk) = program_id {
                 active_program_stack.truncate(depth.saturating_sub(1));
-                active_program_stack.push(pk);
-                invokes.entry(pk).or_default().push((outer_idx, inner_idx));
+                active_program_stack.push(ActiveProgram { encoded: pid, pubkey: pk });
+                if crate::grpc::program_ids::needs_invoke_context(&pk) {
+                    invokes.entry(pk).or_default().push((outer_idx, inner_idx));
+                }
             }
         }
 
         if PROGRAM_DATA_FINDER.find(log.as_bytes()).is_some() {
-            let current_program = active_program_stack.last();
+            let current_program = active_program_stack.last().map(|active| &active.pubkey);
             if let Some(mut e) = crate::logs::parse_log_with_program_id(
                 log,
                 sig,
@@ -183,8 +219,8 @@ fn parse_logs(
                 block_us,
                 grpc_us,
                 filter,
-                has_create,
-                recent_blockhash.as_deref(),
+                is_created_buy,
+                None,
                 current_program,
             ) {
                 crate::core::account_dispatcher::fill_accounts_with_owned_keys(
@@ -199,10 +235,9 @@ fn parse_logs(
         }
 
         if let Some(pid) = crate::logs::optimized_matcher::parse_program_complete_info(log) {
-            if let Ok(pk) = Pubkey::from_str(pid) {
-                if let Some(pos) = active_program_stack.iter().rposition(|active| *active == pk) {
-                    active_program_stack.truncate(pos);
-                }
+            if let Some(pos) = active_program_stack.iter().rposition(|active| active.encoded == pid)
+            {
+                active_program_stack.truncate(pos);
             }
         }
     }
@@ -219,8 +254,9 @@ fn parse_instructions(
     block_us: Option<i64>,
     grpc_us: i64,
     filter: Option<&EventTypeFilter>,
+    is_created_buy: bool,
 ) -> Vec<DexEvent> {
-    crate::grpc::instruction_parser::parse_instructions_enhanced(
+    crate::grpc::instruction_parser::parse_instructions_enhanced_with_created_buy(
         meta,
         transaction,
         sig,
@@ -229,5 +265,6 @@ fn parse_instructions(
         block_us,
         grpc_us,
         filter,
+        is_created_buy,
     )
 }

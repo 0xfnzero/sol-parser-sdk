@@ -210,49 +210,63 @@ fn next_dedup_key(
     ev: &DexEvent,
     occurrence_counts: &mut HashMap<OccurrenceBase, u16>,
 ) -> Option<LogInstrDedupKey> {
+    let occurrence =
+        occurrence_base(ev).map(|base| next_occurrence(base, occurrence_counts)).unwrap_or(0);
+    dedup_key_with_occurrence(ev, occurrence)
+}
+
+#[inline]
+fn occurrence_base(ev: &DexEvent) -> Option<OccurrenceBase> {
     use DexEvent::*;
     match ev {
         PumpFunTrade(t) | PumpFunBuy(t) | PumpFunSell(t) | PumpFunBuyExactSolIn(t) => {
             let lane = pumpfun_ix_lane(t.ix_name.as_str());
-            let occ = next_occurrence(
-                OccurrenceBase::PumpFun { mint: t.mint, user: t.user, is_buy: t.is_buy, lane },
-                occurrence_counts,
-            );
-            Some(pumpfun_trade_key_with_occ(t, occ))
+            Some(OccurrenceBase::PumpFun { mint: t.mint, user: t.user, is_buy: t.is_buy, lane })
         }
-        RaydiumLaunchlabTrade(t) => {
-            let occurrence = next_occurrence(
-                OccurrenceBase::RaydiumLaunchlab {
-                    pool: t.pool_state,
-                    user: t.user,
-                    is_buy: t.is_buy,
-                },
-                occurrence_counts,
-            );
-            Some(LogInstrDedupKey::RaydiumLaunchlabTrade {
-                pool: t.pool_state,
-                user: t.user,
-                is_buy: t.is_buy,
-                occurrence,
-            })
+        RaydiumLaunchlabTrade(t) => Some(OccurrenceBase::RaydiumLaunchlab {
+            pool: t.pool_state,
+            user: t.user,
+            is_buy: t.is_buy,
+        }),
+        RaydiumClmmSwap(s) => Some(OccurrenceBase::RaydiumClmm(s.pool_state)),
+        RaydiumCpmmSwap(s) => Some(OccurrenceBase::RaydiumCpmm(s.pool_id)),
+        RaydiumAmmV4Swap(s) => {
+            let base_out = s.max_amount_in != 0;
+            let amount = if base_out { s.amount_out } else { s.amount_in };
+            Some(OccurrenceBase::RaydiumAmmV4 { base_out, amount })
         }
+        OrcaWhirlpoolSwap(s) => Some(OccurrenceBase::OrcaWhirlpool(s.whirlpool)),
+        MeteoraDlmmSwap(s) => Some(OccurrenceBase::MeteoraDlmm {
+            pool: s.pool,
+            from: s.from,
+            swap_for_y: s.swap_for_y,
+        }),
+        _ => None,
+    }
+}
+
+#[inline]
+fn dedup_key_with_occurrence(ev: &DexEvent, occurrence: u16) -> Option<LogInstrDedupKey> {
+    use DexEvent::*;
+    match ev {
+        PumpFunTrade(t) | PumpFunBuy(t) | PumpFunSell(t) | PumpFunBuyExactSolIn(t) => {
+            Some(pumpfun_trade_key_with_occ(t, occurrence))
+        }
+        RaydiumLaunchlabTrade(t) => Some(LogInstrDedupKey::RaydiumLaunchlabTrade {
+            pool: t.pool_state,
+            user: t.user,
+            is_buy: t.is_buy,
+            occurrence,
+        }),
         RaydiumClmmSwap(s) => {
-            let occurrence =
-                next_occurrence(OccurrenceBase::RaydiumClmm(s.pool_state), occurrence_counts);
             Some(LogInstrDedupKey::RaydiumClmmSwap { pool: s.pool_state, occurrence })
         }
         RaydiumCpmmSwap(s) => {
-            let occurrence =
-                next_occurrence(OccurrenceBase::RaydiumCpmm(s.pool_id), occurrence_counts);
             Some(LogInstrDedupKey::RaydiumCpmmSwap { pool: s.pool_id, occurrence })
         }
         RaydiumAmmV4Swap(s) => {
             let base_out = s.max_amount_in != 0;
             let amount = if base_out { s.amount_out } else { s.amount_in };
-            let occurrence = next_occurrence(
-                OccurrenceBase::RaydiumAmmV4 { base_out, amount },
-                occurrence_counts,
-            );
             Some(LogInstrDedupKey::RaydiumAmmV4Swap {
                 base_out,
                 instruction_amount: amount,
@@ -260,26 +274,14 @@ fn next_dedup_key(
             })
         }
         OrcaWhirlpoolSwap(s) => {
-            let occurrence =
-                next_occurrence(OccurrenceBase::OrcaWhirlpool(s.whirlpool), occurrence_counts);
             Some(LogInstrDedupKey::OrcaWhirlpoolSwap { whirlpool: s.whirlpool, occurrence })
         }
-        MeteoraDlmmSwap(s) => {
-            let occurrence = next_occurrence(
-                OccurrenceBase::MeteoraDlmm {
-                    pool: s.pool,
-                    from: s.from,
-                    swap_for_y: s.swap_for_y,
-                },
-                occurrence_counts,
-            );
-            Some(LogInstrDedupKey::MeteoraDlmmSwap {
-                pool: s.pool,
-                from: s.from,
-                swap_for_y: s.swap_for_y,
-                occurrence,
-            })
-        }
+        MeteoraDlmmSwap(s) => Some(LogInstrDedupKey::MeteoraDlmmSwap {
+            pool: s.pool,
+            from: s.from,
+            swap_for_y: s.swap_for_y,
+            occurrence,
+        }),
         _ => log_instr_dedup_key(ev),
     }
 }
@@ -289,6 +291,30 @@ pub(crate) fn dedupe_log_instruction_events(
     log_events: Vec<DexEvent>,
     instr_events: Vec<DexEvent>,
 ) -> Vec<DexEvent> {
+    if instr_events.is_empty() || (log_events.is_empty() && instr_events.len() == 1) {
+        let mut out = if instr_events.is_empty() { log_events } else { instr_events };
+        crate::core::pumpfun_fee_enrich::enrich_pumpfun_same_tx_post_merge(&mut out);
+        return out;
+    }
+
+    if log_events.len() == 1 && instr_events.len() == 1 {
+        let mut log_event = log_events.into_iter().next().expect("length checked");
+        let instr_event = instr_events.into_iter().next().expect("length checked");
+        let same_key = dedup_key_with_occurrence(&log_event, 0)
+            .zip(dedup_key_with_occurrence(&instr_event, 0))
+            .is_some_and(|(log_key, instr_key)| log_key == instr_key);
+        let mut out = Vec::with_capacity(if same_key { 1 } else { 2 });
+        if same_key {
+            crate::core::merger::merge_grpc_instruction_into_log(&mut log_event, instr_event);
+            out.push(log_event);
+        } else {
+            out.push(log_event);
+            out.push(instr_event);
+        }
+        crate::core::pumpfun_fee_enrich::enrich_pumpfun_same_tx_post_merge(&mut out);
+        return out;
+    }
+
     let cap = log_events.len().saturating_add(instr_events.len());
     let mut out: Vec<DexEvent> = Vec::with_capacity(cap);
     let mut idx_by_key: HashMap<LogInstrDedupKey, usize> = HashMap::new();

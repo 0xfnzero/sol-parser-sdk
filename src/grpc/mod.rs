@@ -42,6 +42,16 @@ pub use yellowstone_tx_parse::{
     parse_subscribe_update_transaction, parse_subscribe_update_transaction_low_latency,
 };
 
+/// Criterion-only access to the internal log/instruction deduplicator.
+#[cfg(feature = "perf-stats")]
+#[doc(hidden)]
+pub fn benchmark_dedupe_log_instruction_events(
+    log_events: Vec<crate::DexEvent>,
+    instr_events: Vec<crate::DexEvent>,
+) -> Vec<crate::DexEvent> {
+    log_instr_dedup::dedupe_log_instruction_events(log_events, instr_events)
+}
+
 // 事件解析器重新导出
 pub use event_parser::*;
 

@@ -241,6 +241,25 @@ pub struct PumpFunTradeEvent {
     #[borsh(skip)]
     pub min_tokens_out: u64, // buy_exact*.args.min_tokens_out
 
+    // === Transaction balance fields (raw units, filled from Yellowstone transaction meta) ===
+    /// User's base-mint token balance before this transaction. `None` when transaction meta is
+    /// unavailable (for example, ShredStream events).
+    #[borsh(skip)]
+    #[serde(default)]
+    pub pre_token_balance: Option<u64>,
+    /// User's base-mint token balance after this transaction.
+    #[borsh(skip)]
+    #[serde(default)]
+    pub post_token_balance: Option<u64>,
+    /// User's native SOL balance in lamports before this transaction.
+    #[borsh(skip)]
+    #[serde(default)]
+    pub pre_sol_balance: Option<u64>,
+    /// User's native SOL balance in lamports after this transaction.
+    #[borsh(skip)]
+    #[serde(default)]
+    pub post_sol_balance: Option<u64>,
+
     // === 指令账户字段 (从指令账户填充，不在 Borsh 数据中) ===
     #[borsh(skip)]
     pub global: Pubkey, // legacy 0 / v2 0

@@ -63,22 +63,43 @@ pub fn parse_instructions_enhanced(
     grpc_us: i64,
     filter: Option<&EventTypeFilter>,
 ) -> Vec<DexEvent> {
+    let needs_pumpfun = filter.map(EventTypeFilter::includes_pumpfun).unwrap_or(true);
+    let is_created_buy =
+        needs_pumpfun && crate::logs::optimized_matcher::detect_pumpfun_create(&meta.log_messages);
+    let mut events = parse_instructions_enhanced_with_created_buy(
+        meta,
+        transaction,
+        sig,
+        slot,
+        tx_idx,
+        block_us,
+        grpc_us,
+        filter,
+        is_created_buy,
+    );
+    crate::grpc::transaction_meta::fill_recent_blockhash(&mut events, transaction);
+    events
+}
+
+#[inline]
+pub(crate) fn parse_instructions_enhanced_with_created_buy(
+    meta: &TransactionStatusMeta,
+    transaction: &Option<Transaction>,
+    sig: Signature,
+    slot: u64,
+    tx_idx: u64,
+    block_us: Option<i64>,
+    grpc_us: i64,
+    filter: Option<&EventTypeFilter>,
+    is_created_buy: bool,
+) -> Vec<DexEvent> {
     let Some(tx) = transaction else { return Vec::new() };
     let Some(msg) = &tx.message else { return Vec::new() };
-
-    let recent_blockhash = if msg.recent_blockhash.is_empty() {
-        None
-    } else {
-        Some(bs58::encode(&msg.recent_blockhash).into_string())
-    };
 
     // 提前检查：是否需要解析 instruction（根据 filter）
     if !should_parse_instructions(filter) {
         return Vec::new();
     }
-
-    // 与 log 解析一致：同笔交易内若有 PumpFun create，则本 tx 的 buy 事件标记为 is_created_buy（创建者首次买入）
-    let is_created_buy = crate::logs::optimized_matcher::detect_pumpfun_create(&meta.log_messages);
 
     // 构建账户查找表
     let keys_len = msg.account_keys.len();
@@ -94,14 +115,16 @@ pub fn parse_instructions_enhanced(
     };
 
     let mut result = Vec::with_capacity(8);
-    let mut invokes: HashMap<Pubkey, Vec<(i32, i32)>> = HashMap::with_capacity(8);
+    let mut invokes: HashMap<Pubkey, Vec<(i32, i32)>> = HashMap::new();
 
     // 步骤 1: 解析所有主指令
     for (i, ix) in msg.instructions.iter().enumerate() {
         let pid = get_key(ix.program_id_index as usize)
             .map_or(Pubkey::default(), |k| read_pubkey_fast(k));
 
-        invokes.entry(pid).or_default().push((i as i32, -1));
+        if crate::grpc::program_ids::needs_invoke_context(&pid) {
+            invokes.entry(pid).or_default().push((i as i32, -1));
+        }
 
         // 解析主指令（8字节 discriminator）
         if let Some(event) = parse_outer_instruction(
@@ -135,7 +158,9 @@ pub fn parse_instructions_enhanced(
             let pid = get_key(inner_ix.program_id_index as usize)
                 .map_or(Pubkey::default(), |k| read_pubkey_fast(k));
 
-            invokes.entry(pid).or_default().push((outer_idx as i32, j as i32));
+            if crate::grpc::program_ids::needs_invoke_context(&pid) {
+                invokes.entry(pid).or_default().push((outer_idx as i32, j as i32));
+            }
 
             let event = parse_inner_compiled_instruction_if_supported(
                 &inner_ix.data,
@@ -179,12 +204,6 @@ pub fn parse_instructions_enhanced(
     // 步骤 3: 合并相关事件（instruction + inner instruction）
     let mut merged = merge_instruction_events(result);
     enrich_pumpfun_same_tx_post_merge(&mut merged);
-
-    for e in merged.iter_mut() {
-        if let Some(m) = e.metadata_mut() {
-            m.recent_blockhash = recent_blockhash.clone();
-        }
-    }
 
     // 步骤 4: 填充账户上下文（invokes 与 fill_data 均使用 Pubkey 键，无堆泄漏）
     let mut final_result = Vec::with_capacity(merged.len());
@@ -308,6 +327,9 @@ fn parse_outer_instruction<'a>(
     filter: Option<&EventTypeFilter>,
     _is_created_buy: bool,
 ) -> Option<DexEvent> {
+    if !crate::instr::normal_instruction_data_may_parse(program_id, data) {
+        return None;
+    }
     parse_compiled_instruction(
         data,
         program_id,
