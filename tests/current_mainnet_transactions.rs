@@ -32,7 +32,7 @@ fn fetch(signature: &str) -> solana_transaction_status::EncodedConfirmedTransact
             RpcTransactionConfig {
                 encoding: Some(UiTransactionEncoding::Base64),
                 commitment: None,
-                max_supported_transaction_version: Some(0),
+                max_supported_transaction_version: Some(1),
             },
         )
         .unwrap_or_else(|error| panic!("{signature}: {error}"))

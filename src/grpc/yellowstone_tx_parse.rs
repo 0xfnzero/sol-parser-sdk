@@ -2,7 +2,6 @@
 //! 从 [`super::client`] 抽出，供 crate 内与下游 streamer 复用。
 
 use std::collections::HashMap;
-use std::str::FromStr;
 
 use memchr::memmem;
 use once_cell::sync::Lazy;
@@ -44,7 +43,9 @@ pub(crate) fn parse_transaction_core(
     let Some(info) = &tx.transaction else { return Vec::new() };
     let Some(meta) = &info.meta else { return Vec::new() };
 
-    let sig = extract_signature(&info.signature);
+    let Some(sig) = try_yellowstone_signature(&info.signature) else {
+        return Vec::new();
+    };
     let slot = tx.slot;
     let idx = info.index;
     let needs_pumpfun = filter.map(EventTypeFilter::includes_pumpfun).unwrap_or(true);
@@ -122,7 +123,9 @@ fn parse_transaction_core_sequential(
         return Vec::new();
     };
 
-    let sig = extract_signature(&info.signature);
+    let Some(sig) = try_yellowstone_signature(&info.signature) else {
+        return Vec::new();
+    };
     let slot = tx.slot;
     let idx = info.index;
     let needs_pumpfun = filter.map(EventTypeFilter::includes_pumpfun).unwrap_or(true);
@@ -166,11 +169,6 @@ fn parse_transaction_core_sequential(
     }
 }
 
-#[inline(always)]
-pub(crate) fn extract_signature(bytes: &[u8]) -> solana_sdk::signature::Signature {
-    try_yellowstone_signature(bytes).expect("yellowstone signature must be 64 bytes")
-}
-
 #[inline]
 fn parse_logs(
     meta: &TransactionStatusMeta,
@@ -198,14 +196,11 @@ fn parse_logs(
             } else {
                 inner_idx += 1;
             }
-            let program_id = crate::grpc::program_ids::known_program_id(pid)
-                .or_else(|| Pubkey::from_str(pid).ok());
-            if let Some(pk) = program_id {
-                active_program_stack.truncate(depth.saturating_sub(1));
-                active_program_stack.push(ActiveProgram { encoded: pid, pubkey: pk });
-                if crate::grpc::program_ids::needs_invoke_context(&pk) {
-                    invokes.entry(pk).or_default().push((outer_idx, inner_idx));
-                }
+            let pk = crate::grpc::program_ids::known_program_id(pid).unwrap_or_default();
+            active_program_stack.truncate(depth - 1);
+            active_program_stack.push(ActiveProgram { encoded: pid, pubkey: pk });
+            if crate::grpc::program_ids::needs_invoke_context(&pk) {
+                invokes.entry(pk).or_default().push((outer_idx, inner_idx));
             }
         }
 

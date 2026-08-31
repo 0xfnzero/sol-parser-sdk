@@ -1,4 +1,4 @@
-use prost14::Message;
+use prost::Message;
 use sol_parser_sdk::grpc::{
     instruction_parser::parse_instructions_enhanced, parse_subscribe_update_transaction,
     parse_subscribe_update_transaction_low_latency, try_yellowstone_signature, EventType,
@@ -71,4 +71,13 @@ fn fixture_parser_paths_are_equivalent_and_balances_are_consistent() {
         assert_eq!(token_delta, trade.token_amount);
         assert!(trade.metadata.recent_blockhash.is_some());
     }
+}
+
+#[test]
+fn malformed_signature_is_rejected_without_panicking() {
+    let mut transaction = fixture();
+    transaction.transaction.as_mut().expect("transaction info").signature.truncate(63);
+
+    assert!(parse_subscribe_update_transaction(&transaction, 0, None, None).is_empty());
+    assert!(parse_subscribe_update_transaction_low_latency(&transaction, 0, None, None).is_empty());
 }

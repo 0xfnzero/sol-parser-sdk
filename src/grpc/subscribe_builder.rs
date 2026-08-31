@@ -18,6 +18,7 @@ fn tx_filter_to_proto(f: &TransactionFilter) -> SubscribeRequestFilterTransactio
         account_include: f.account_include.clone(),
         account_exclude: f.account_exclude.clone(),
         account_required: f.account_required.clone(),
+        ..Default::default()
     }
 }
 

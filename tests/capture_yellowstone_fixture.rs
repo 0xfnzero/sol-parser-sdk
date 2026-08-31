@@ -1,5 +1,5 @@
-use futures_util::StreamExt;
-use prost14::Message;
+use futures::StreamExt;
+use prost::Message;
 use sol_parser_sdk::grpc::{
     build_subscribe_request, connect_yellowstone_geyser, parse_subscribe_update_transaction,
     GeyserConnectConfig, Protocol, TransactionFilter,

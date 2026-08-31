@@ -1,7 +1,8 @@
 [package]
 name = "sol-parser-sdk"
-version = "0.6.6"
+version = "0.7.0"
 edition = "2021"
+rust-version = "1.91"
 authors = ["William <byteblock6@gmail.com>", "sgxiang <sgxiang@gmail.com>", "wei <1415121722@qq.com>"]
 repository = "https://github.com/0xfnzero/sol-parser-sdk"
 description = "A lightweight Rust library for real-time event streaming from Solana DEX trading programs. Supports PumpFun, PumpSwap, Raydium LaunchLab, and Raydium protocols with Yellowstone gRPC and ShredStream."
@@ -45,6 +46,18 @@ harness = false
 name = "yellowstone_transaction"
 harness = false
 
+[[bench]]
+name = "shred_entry_decode"
+harness = false
+
+[[bench]]
+name = "rpc_transaction"
+harness = false
+
+[[bench]]
+name = "micro_batch_buffer"
+harness = false
+
 [features]
 default = ["parse-borsh"]  # 默认使用 Borsh 解析器（类型安全，易维护）
 
@@ -57,82 +70,44 @@ perf-stats = []   # 启用性能统计
 ultra-perf = []   # 极限性能模式（启用所有 unsafe 优化）
 
 [dependencies]
-# Pin to 3.3.x: solana-keypair 3.1.2 + solana-signature 3.4.x can fail to compile (DecodeError / from_source)
-# when publishing without local patches; 3.3.x matches solana-keypair's own dependency range.
-solana-signature = { version = "3.3.0", default-features = false, features = ["std", "alloc", "verify"] }
-solana-sdk = "3.0.0"
-
-solana-client = "3.1.12"
-solana-program = "3.0.0"
-solana-rpc-client = "3.1.12"
-solana-rpc-client-api = "3.1.12"
-solana-transaction-status = "3.1.12"
-solana-account-decoder = "3.1.12"
-solana-hash = "3.0.0"
-solana-entry = "3.0.0"
-solana-system-interface = { version = "3.0.0", features = ["bincode"] }
-solana-rpc-client-nonce-utils = "3.1.12"
-solana-perf = "3.1.12"
-solana-metrics = "3.1.12"
-spl-associated-token-account = "6.0.0"
+solana-sdk = "=4.0.1"
+solana-client = "=4.2.2"
+solana-transaction-status = { version = "=4.2.2", features = ["agave-unstable-api"] }
+solana-transaction-error = { version = "=3.3.2", features = ["wincode"] }
+solana-entry = { version = "=4.2.2", features = ["agave-unstable-api"] }
 borsh = { version = "1.5.3", features = ["derive"] }
 serde = { version = "1.0.215", features = ["derive"] }
-serde_json = "1.0.134"
 serde-big-array = "0.5.1"
 futures = "0.3.31"
-futures-util = "0.3.31"
 base64 = "0.22.1"
 base64-simd = "0.8"
 bs58 = "0.5.1"
 memchr = "2.7"
-rand = "0.9.0"
-bincode = "1.3.3"
+wincode = "=0.5.5"
 anyhow = "1.0.90"
-yellowstone-grpc-client = "12.1.0"
-yellowstone-grpc-proto = "12.4.0"
-tokio = { version = "1.42.0", features = ["full", "rt-multi-thread"]}
-tonic = { version = "0.13", features = ["transport"] }
+yellowstone-grpc-client = "=13.5.0"
+yellowstone-grpc-proto = "=12.7.0"
+tokio = { version = "1.42.0", features = ["full"] }
+tonic = { version = "0.14.5", features = ["transport"] }
+tonic-prost = "0.14.5"
 rustls = { version = "0.23.23", features = ["ring"], default-features = false }
-ring = "0.17"
-rustls-native-certs = "0.8.1"
-tokio-rustls = "0.26.1"
-tokio-stream = "0.1"
-http-body-util = "0.1"
 log = "0.4.22"
 chrono = "0.4.39"
-regex = "1"
-tracing = "0.1.41"
-thiserror = "2.0.11"
-async-trait = "0.1.86"
-lazy_static = "1.5.0"
 once_cell = "1.20.3"
-dashmap = "6.0.1"
-prost = "0.13"
-prost-types = "0.13"
-num_enum = "0.7.3"
-num-derive = "0.4.2"
-num-traits = "0.2.19"
-hex = "0.4.3"
-bytemuck = { version = "1.4.0" }
-arrayref = "0.3.6"
-borsh-derive = "1.5.5"
-indicatif = "0.18.0"
-maplit = "1.0.2"
-env_logger = "0.11.8"
-crossbeam = "0.8.4"
-crossbeam-channel = "0.5"
+prost = "0.14.3"
 crossbeam-queue = "0.3.12"
 rayon = "1.10"
-parking_lot = "0.12.1"
 wide = "0.7"
-spl-token = "7.0.0"
-spl-token-2022 = "6.0.0"
+spl-token = { version = "9.0.0", default-features = false, features = ["no-entrypoint"] }
+spl-token-2022 = { version = "11.0.0", default-features = false, features = ["no-entrypoint"] }
+# spl-list-view 0.1.0 does not compile with spl-pod 0.7.3.
+spl-pod = "=0.7.2"
 libc = "0.2"
 smallvec = "1.13"  # 零延迟优化：栈分配小数组
 
 [dev-dependencies]
 criterion = { version = "0.7.0", features = ["html_reports"] }
-prost14 = { package = "prost", version = "0.14" }
+serde_json = "1.0.134"
 [profile.release]
 opt-level = 3
 lto = "thin"          # Thin LTO: 快速编译 + 良好优化（2-3分钟 vs 6分钟）
@@ -143,6 +118,11 @@ incremental = true    # 启用增量编译（后续编译更快）
 
 [profile.release.package."*"]
 opt-level = 3
+codegen-units = 1
+
+[profile.bench]
+opt-level = 3
+lto = "thin"
 codegen-units = 1
 
 # 极限性能配置文件（仅在需要榨取最后 5% 性能时使用，编译时间 6+ 分钟）

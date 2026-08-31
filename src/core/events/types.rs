@@ -2664,6 +2664,12 @@ pub struct MeteoraDlmmSwapEvent {
     pub token_y_mint: Pubkey,
     #[cfg_attr(feature = "parse-borsh", borsh(skip))]
     #[serde(default)]
+    pub user_token_in: Pubkey,
+    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
+    #[serde(default)]
+    pub user_token_out: Pubkey,
+    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
+    #[serde(default)]
     /// Minimum output accepted by an exact-in instruction; zero when instruction context is absent.
     pub min_amount_out: u64,
 
@@ -2858,6 +2864,8 @@ mod serde_compat_tests {
             metadata: EventMetadata::default(),
             token_x_mint: Pubkey::new_unique(),
             token_y_mint: Pubkey::new_unique(),
+            user_token_in: Pubkey::new_unique(),
+            user_token_out: Pubkey::new_unique(),
             min_amount_out: 9,
             pool: Pubkey::new_unique(),
             from: Pubkey::new_unique(),
@@ -2871,12 +2879,17 @@ mod serde_compat_tests {
             fee_bps: 7,
             host_fee: 8,
         };
-        let json = without_fields(&event, &["token_x_mint", "token_y_mint", "min_amount_out"]);
+        let json = without_fields(
+            &event,
+            &["token_x_mint", "token_y_mint", "user_token_in", "user_token_out", "min_amount_out"],
+        );
 
         let decoded: MeteoraDlmmSwapEvent =
             serde_json::from_value(json).expect("legacy Meteora DLMM swap JSON");
         assert_eq!(decoded.token_x_mint, Pubkey::default());
         assert_eq!(decoded.token_y_mint, Pubkey::default());
+        assert_eq!(decoded.user_token_in, Pubkey::default());
+        assert_eq!(decoded.user_token_out, Pubkey::default());
         assert_eq!(decoded.min_amount_out, 0);
     }
 

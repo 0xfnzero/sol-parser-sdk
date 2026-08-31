@@ -25,7 +25,7 @@ fn main() {
     let config = RpcTransactionConfig {
         encoding: Some(UiTransactionEncoding::Base64),
         commitment: None,
-        max_supported_transaction_version: Some(0),
+        max_supported_transaction_version: Some(1),
     };
 
     println!("Fetching transaction...\n");
@@ -91,11 +91,8 @@ fn main() {
                 {
                     let bytes = base64::engine::general_purpose::STANDARD.decode(data).unwrap();
                     let versioned_tx: solana_sdk::transaction::VersionedTransaction =
-                        bincode::deserialize(&bytes).unwrap();
-                    match &versioned_tx.message {
-                        solana_sdk::message::VersionedMessage::Legacy(m) => m.account_keys.clone(),
-                        solana_sdk::message::VersionedMessage::V0(m) => m.account_keys.clone(),
-                    }
+                        wincode::deserialize(&bytes).unwrap();
+                    versioned_tx.message.static_account_keys().to_vec()
                 } else {
                     vec![]
                 };
@@ -163,58 +160,36 @@ fn main() {
     {
         let bytes = base64::engine::general_purpose::STANDARD.decode(data).unwrap();
         let versioned_tx: solana_sdk::transaction::VersionedTransaction =
-            bincode::deserialize(&bytes).unwrap();
+            wincode::deserialize(&bytes).unwrap();
 
-        match &versioned_tx.message {
-            solana_sdk::message::VersionedMessage::Legacy(m) => {
-                println!("Message type: Legacy");
-                println!("Account keys: {}", m.account_keys.len());
-                for (i, key) in m.account_keys.iter().enumerate() {
-                    println!("  [{}]: {}", i, key);
-                }
-                println!("\nInstructions: {}", m.instructions.len());
-                for (i, ix) in m.instructions.iter().enumerate() {
-                    println!(
-                        "  Instruction #{}: program_id_index={}, data_len={}",
-                        i,
-                        ix.program_id_index,
-                        ix.data.len()
-                    );
-                    let program_key = &m.account_keys[ix.program_id_index as usize];
-                    println!("    Program: {}", program_key);
-
-                    if ix.data.len() >= 8 {
-                        let disc: [u8; 8] = ix.data[..8].try_into().unwrap();
-                        println!("    Discriminator: {:?}", disc);
-                    }
-                }
-            }
-            solana_sdk::message::VersionedMessage::V0(m) => {
-                println!("Message type: V0");
-                println!("Account keys: {}", m.account_keys.len());
-                for (i, key) in m.account_keys.iter().enumerate() {
-                    println!("  [{}]: {}", i, key);
-                }
-                println!("\nInstructions: {}", m.instructions.len());
-                for (i, ix) in m.instructions.iter().enumerate() {
-                    println!(
-                        "  Instruction #{}: program_id_index={}, data_len={}",
-                        i,
-                        ix.program_id_index,
-                        ix.data.len()
-                    );
-                    if (ix.program_id_index as usize) < m.account_keys.len() {
-                        let program_key = &m.account_keys[ix.program_id_index as usize];
-                        println!("    Program: {}", program_key);
-                    }
-
-                    if ix.data.len() >= 8 {
-                        let disc: [u8; 8] = ix.data[..8].try_into().unwrap();
-                        println!("    Discriminator: {:?}", disc);
-                    }
-                }
-            }
+        let message_type = match &versioned_tx.message {
+            solana_sdk::message::VersionedMessage::Legacy(_) => "Legacy",
+            solana_sdk::message::VersionedMessage::V0(_) => "V0",
+            solana_sdk::message::VersionedMessage::V1(_) => "V1",
         };
+        let account_keys = versioned_tx.message.static_account_keys();
+        let instructions = versioned_tx.message.instructions();
+        println!("Message type: {}", message_type);
+        println!("Account keys: {}", account_keys.len());
+        for (i, key) in account_keys.iter().enumerate() {
+            println!("  [{}]: {}", i, key);
+        }
+        println!("\nInstructions: {}", instructions.len());
+        for (i, ix) in instructions.iter().enumerate() {
+            println!(
+                "  Instruction #{}: program_id_index={}, data_len={}",
+                i,
+                ix.program_id_index,
+                ix.data.len()
+            );
+            if let Some(program_key) = account_keys.get(ix.program_id_index as usize) {
+                println!("    Program: {}", program_key);
+            }
+            if ix.data.len() >= 8 {
+                let disc: [u8; 8] = ix.data[..8].try_into().unwrap();
+                println!("    Discriminator: {:?}", disc);
+            }
+        }
     }
 
     println!("\n=== Now checking sol-parser-sdk parsing ===");

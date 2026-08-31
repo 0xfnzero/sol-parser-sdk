@@ -237,31 +237,15 @@ fn detect_pumpfun_create_mints(
 ) -> (PumpMintSet, PumpMintSet) {
     let mut created_mints = PumpMintSet::new();
     let mut mayhem_mints = PumpMintSet::new();
-    match message {
-        VersionedMessage::Legacy(msg) => {
-            for ix in &msg.instructions {
-                scan_create_mint_from_ix(
-                    ix.program_id_index,
-                    &ix.accounts,
-                    &ix.data,
-                    static_keys,
-                    &mut created_mints,
-                    &mut mayhem_mints,
-                );
-            }
-        }
-        VersionedMessage::V0(msg) => {
-            for ix in &msg.instructions {
-                scan_create_mint_from_ix(
-                    ix.program_id_index,
-                    &ix.accounts,
-                    &ix.data,
-                    static_keys,
-                    &mut created_mints,
-                    &mut mayhem_mints,
-                );
-            }
-        }
+    for ix in message.instructions() {
+        scan_create_mint_from_ix(
+            ix.program_id_index,
+            &ix.accounts,
+            &ix.data,
+            static_keys,
+            &mut created_mints,
+            &mut mayhem_mints,
+        );
     }
     (created_mints, mayhem_mints)
 }
@@ -538,43 +522,21 @@ fn parse_transaction_pump_events_with_filter(
     } else {
         (PumpMintSet::new(), PumpMintSet::new())
     };
-    match &transaction.message {
-        VersionedMessage::Legacy(msg) => {
-            for ix in &msg.instructions {
-                dispatch_shred_outer(
-                    ix.program_id_index,
-                    &ix.accounts,
-                    &ix.data,
-                    static_keys,
-                    signature,
-                    slot,
-                    tx_index,
-                    recv_us,
-                    filter,
-                    &created_mints,
-                    &mayhem_mints,
-                    events,
-                );
-            }
-        }
-        VersionedMessage::V0(msg) => {
-            for ix in &msg.instructions {
-                dispatch_shred_outer(
-                    ix.program_id_index,
-                    &ix.accounts,
-                    &ix.data,
-                    static_keys,
-                    signature,
-                    slot,
-                    tx_index,
-                    recv_us,
-                    filter,
-                    &created_mints,
-                    &mayhem_mints,
-                    events,
-                );
-            }
-        }
+    for ix in transaction.message.instructions() {
+        dispatch_shred_outer(
+            ix.program_id_index,
+            &ix.accounts,
+            &ix.data,
+            static_keys,
+            signature,
+            slot,
+            tx_index,
+            recv_us,
+            filter,
+            &created_mints,
+            &mayhem_mints,
+            events,
+        );
     }
 }
 
@@ -1591,6 +1553,29 @@ mod tests {
                 "ShredStream outer parser missing {program_id}"
             );
         }
+    }
+
+    #[test]
+    fn shred_dlmm_swap_exposes_user_token_accounts() {
+        let mut account_keys = unique_accounts(16);
+        account_keys[15] = METEORA_DLMM_PROGRAM_ID;
+        let user_token_in = account_keys[4];
+        let user_token_out = account_keys[5];
+        let tx = v0_tx(
+            15,
+            account_keys,
+            ix_accounts(15),
+            instruction_data(crate::instr::meteora_dlmm::discriminators::SWAP, 500, 450),
+        );
+
+        let events = parse_shred_events_like_client(&tx);
+
+        assert_eq!(events.len(), 1);
+        let DexEvent::MeteoraDlmmSwap(event) = &events[0] else {
+            panic!("expected MeteoraDlmmSwap, got {:?}", events[0]);
+        };
+        assert_eq!(event.user_token_in, user_token_in);
+        assert_eq!(event.user_token_out, user_token_out);
     }
 
     #[test]

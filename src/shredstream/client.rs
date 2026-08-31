@@ -62,6 +62,7 @@ pub struct ShredStreamClient {
     endpoint: String,
     config: ShredStreamConfig,
     subscription_handle: Arc<Mutex<Option<JoinHandle<()>>>>,
+    subscription_lifecycle: Arc<Mutex<()>>,
 }
 
 impl ShredStreamClient {
@@ -79,7 +80,12 @@ impl ShredStreamClient {
         // 测试连接
         let _ = Self::connect_client(&endpoint, &config).await?;
 
-        Ok(Self { endpoint, config, subscription_handle: Arc::new(Mutex::new(None)) })
+        Ok(Self {
+            endpoint,
+            config,
+            subscription_handle: Arc::new(Mutex::new(None)),
+            subscription_lifecycle: Arc::new(Mutex::new(())),
+        })
     }
 
     /// 订阅 DEX 事件（自动重连）
@@ -96,8 +102,8 @@ impl ShredStreamClient {
         &self,
         event_type_filter: Option<EventTypeFilter>,
     ) -> crate::common::AnyResult<Arc<ArrayQueue<DexEvent>>> {
-        // 停止现有订阅
-        self.stop().await;
+        let _lifecycle = self.subscription_lifecycle.lock().await;
+        self.stop_without_lifecycle_lock().await;
 
         let queue = Arc::new(ArrayQueue::new(100_000));
         let queue_clone = Arc::clone(&queue);
@@ -125,6 +131,8 @@ impl ShredStreamClient {
                 .await
                 {
                     Ok(_) => {
+                        log::warn!("ShredStream ended cleanly - reconnecting in {}ms", delay);
+                        tokio::time::sleep(tokio::time::Duration::from_millis(delay.max(1))).await;
                         delay = config.reconnect_delay_ms;
                         attempts = 0;
                     }
@@ -152,7 +160,8 @@ impl ShredStreamClient {
     where
         F: Fn(DexEvent) + Send + Sync + 'static,
     {
-        self.stop().await;
+        let _lifecycle = self.subscription_lifecycle.lock().await;
+        self.stop_without_lifecycle_lock().await;
 
         let endpoint = self.endpoint.clone();
         let config = self.config.clone();
@@ -178,6 +187,8 @@ impl ShredStreamClient {
                 .await
                 {
                     Ok(_) => {
+                        log::warn!("ShredStream ended cleanly - reconnecting in {}ms", delay);
+                        tokio::time::sleep(tokio::time::Duration::from_millis(delay.max(1))).await;
                         delay = config.reconnect_delay_ms;
                         attempts = 0;
                     }
@@ -196,8 +207,14 @@ impl ShredStreamClient {
 
     /// 停止订阅
     pub async fn stop(&self) {
+        let _lifecycle = self.subscription_lifecycle.lock().await;
+        self.stop_without_lifecycle_lock().await;
+    }
+
+    async fn stop_without_lifecycle_lock(&self) {
         if let Some(handle) = self.subscription_handle.lock().await.take() {
             handle.abort();
+            let _ = handle.await;
         }
     }
 
@@ -286,7 +303,7 @@ impl ShredStreamClient {
         let recv_us = now_micros();
 
         // 反序列化 Entry 数据
-        let entries = match bincode::deserialize::<Vec<SolanaEntry>>(&entry.entries) {
+        let entries = match wincode::deserialize::<Vec<SolanaEntry>>(&entry.entries) {
             Ok(e) => e,
             Err(e) => {
                 log::debug!("Failed to deserialize entries: {}", e);
@@ -298,6 +315,11 @@ impl ShredStreamClient {
         let mut tx_index = 0u64;
         for entry in entries {
             for transaction in entry.transactions.iter() {
+                if transaction.sanitize().is_err() {
+                    log::debug!("Ignoring unsanitized ShredStream transaction");
+                    tx_index += 1;
+                    continue;
+                }
                 events.clear();
                 Self::process_transaction(
                     transaction,
@@ -324,10 +346,6 @@ impl ShredStreamClient {
         events: &mut Vec<DexEvent>,
         sink: &EventSink<'_>,
     ) {
-        if transaction.signatures.is_empty() {
-            return;
-        }
-
         Self::parse_transaction_events(
             transaction,
             slot,
@@ -351,11 +369,9 @@ impl ShredStreamClient {
         event_type_filter: Option<&EventTypeFilter>,
         events: &mut Vec<DexEvent>,
     ) {
-        if transaction.signatures.is_empty() {
+        let Some(&signature) = transaction.signatures.first() else {
             return;
-        }
-
-        let signature = transaction.signatures[0];
+        };
         if let VersionedMessage::V0(m) = &transaction.message {
             if !m.address_table_lookups.is_empty() {
                 log::trace!(
@@ -423,7 +439,7 @@ mod tests {
                 header: MessageHeader {
                     num_required_signatures: 1,
                     num_readonly_signed_accounts: 0,
-                    num_readonly_unsigned_accounts: 0,
+                    num_readonly_unsigned_accounts: 1,
                 },
                 account_keys,
                 recent_blockhash: Hash::default(),
@@ -469,7 +485,7 @@ mod tests {
             hash: Hash::default(),
             transactions: vec![pumpfun_create_tx()],
         }];
-        let entry = Entry { slot: 42, entries: bincode::serialize(&entries).unwrap() };
+        let entry = Entry { slot: 42, entries: wincode::serialize(&entries).unwrap() };
         let count = AtomicUsize::new(0);
 
         let mut events = Vec::with_capacity(4);
@@ -485,5 +501,57 @@ mod tests {
         );
 
         assert_eq!(count.load(AtomicOrdering::Relaxed), 1);
+    }
+
+    #[test]
+    fn wincode_decodes_solana4_v1_entries() {
+        let entries = vec![SolanaEntry {
+            num_hashes: 1,
+            hash: Hash::new_unique(),
+            transactions: vec![VersionedTransaction {
+                signatures: vec![Signature::from([9; 64])],
+                message: VersionedMessage::V1(solana_sdk::message::v1::Message {
+                    header: MessageHeader { num_required_signatures: 1, ..Default::default() },
+                    config: solana_sdk::message::v1::TransactionConfig::empty()
+                        .with_compute_unit_limit(250_000)
+                        .with_priority_fee(1_500),
+                    lifetime_specifier: Hash::new_unique(),
+                    account_keys: vec![Pubkey::new_unique()],
+                    instructions: Vec::new(),
+                }),
+            }],
+        }];
+        let bytes = wincode::serialize(&entries).expect("serialize V1 Entry");
+        let decoded: Vec<SolanaEntry> = wincode::deserialize(&bytes).expect("decode V1 Entry");
+
+        assert_eq!(decoded, entries);
+    }
+
+    #[test]
+    fn process_entry_rejects_unsanitized_transactions() {
+        let mut transaction = pumpfun_create_tx();
+        let VersionedMessage::V0(message) = &mut transaction.message else {
+            panic!("expected V0 fixture");
+        };
+        message.instructions[0].program_id_index = u8::MAX;
+        let entries = vec![SolanaEntry {
+            num_hashes: 1,
+            hash: Hash::default(),
+            transactions: vec![transaction],
+        }];
+        let entry = Entry { slot: 42, entries: wincode::serialize(&entries).unwrap() };
+        let count = AtomicUsize::new(0);
+        let mut events = Vec::with_capacity(4);
+
+        ShredStreamClient::process_entry(
+            entry,
+            None,
+            &EventSink::Callback(&|_| {
+                count.fetch_add(1, AtomicOrdering::Relaxed);
+            }),
+            &mut events,
+        );
+
+        assert_eq!(count.load(AtomicOrdering::Relaxed), 0);
     }
 }

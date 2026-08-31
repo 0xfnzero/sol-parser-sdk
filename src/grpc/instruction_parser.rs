@@ -539,10 +539,11 @@ fn merge_instruction_events(events: Vec<IndexedInstructionEvent>) -> Vec<DexEven
                     if let Some((candidate_idx, target_idx)) = target {
                         dlmm_targets_len = candidate_idx + 1;
                         if target_idx < result.len() {
-                            match try_merge_events(&mut result[target_idx], event) {
-                                Ok(()) => continue,
-                                Err(event) => result.push(event),
+                            let mut unmerged = None;
+                            if try_merge_events(&mut result[target_idx], event, &mut unmerged) {
+                                continue;
                             }
+                            result.push(unmerged.expect("unmerged event remains available"));
                             continue;
                         }
                     }
@@ -553,13 +554,13 @@ fn merge_instruction_events(events: Vec<IndexedInstructionEvent>) -> Vec<DexEven
                 let is_dlmm = is_dlmm_event(&event);
                 let target_idx = if let Some((target_outer, target_idx)) = outer_target {
                     if target_outer == outer_idx {
-                        match try_merge_events(&mut result[target_idx], event) {
-                            Ok(()) => target_idx,
-                            Err(event) => {
-                                let target_idx = result.len();
-                                result.push(event);
-                                target_idx
-                            }
+                        let mut unmerged = None;
+                        if try_merge_events(&mut result[target_idx], event, &mut unmerged) {
+                            target_idx
+                        } else {
+                            let target_idx = result.len();
+                            result.push(unmerged.expect("unmerged event remains available"));
+                            target_idx
                         }
                     } else {
                         let target_idx = result.len();
@@ -726,6 +727,7 @@ mod tests {
                 }],
                 versioned: true,
                 address_table_lookups: Vec::new(),
+                config: None,
             }),
         };
         (meta, Some(tx))
@@ -1016,6 +1018,8 @@ mod tests {
             metadata: EventMetadata::default(),
             token_x_mint: Pubkey::default(),
             token_y_mint: Pubkey::default(),
+            user_token_in: Pubkey::default(),
+            user_token_out: Pubkey::default(),
             min_amount_out: 0,
             pool,
             from: Pubkey::default(),
@@ -1173,6 +1177,7 @@ mod tests {
                 ],
                 versioned: true,
                 address_table_lookups: Vec::new(),
+                config: None,
             }),
         });
 

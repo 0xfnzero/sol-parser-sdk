@@ -1,5 +1,5 @@
 use criterion::{criterion_group, criterion_main, Criterion};
-use prost14::Message;
+use prost::Message;
 use sol_parser_sdk::grpc::{
     parse_subscribe_update_transaction_low_latency, EventType, EventTypeFilter,
 };

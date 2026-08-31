@@ -114,59 +114,6 @@ fn parse_position_close(data: &[u8], metadata: EventMetadata) -> Option<DexEvent
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn swap2_payload() -> Vec<u8> {
-        let mut data = vec![0u8; 147];
-        data[72] = 1;
-        data[73..89].copy_from_slice(&25u128.to_le_bytes());
-        data[89..97].copy_from_slice(&100u64.to_le_bytes());
-        data[105..113].copy_from_slice(&90u64.to_le_bytes());
-        data[113..121].copy_from_slice(&3u64.to_le_bytes());
-        data[121..129].copy_from_slice(&2u64.to_le_bytes());
-        data[137..145].copy_from_slice(&1u64.to_le_bytes());
-        data
-    }
-
-    #[test]
-    fn parses_current_anchor_event_cpi_prefix_layout() {
-        let mut disc = [0u8; 16];
-        disc[..8].copy_from_slice(&EVENT_CPI_PREFIX);
-        disc[8..].copy_from_slice(&discriminators::SWAP2);
-
-        let event = parse(&disc, &swap2_payload(), EventMetadata::default()).expect("swap2");
-        let DexEvent::MeteoraDlmmSwap(event) = event else {
-            panic!("unexpected event");
-        };
-        assert_eq!(event.amount_in, 100);
-        assert_eq!(event.amount_out, 90);
-        assert_eq!(event.fee, 3);
-    }
-
-    #[test]
-    fn keeps_legacy_event_cpi_suffix_layout() {
-        let mut disc = [0u8; 16];
-        disc[..8].copy_from_slice(&discriminators::SWAP2);
-        disc[8..].copy_from_slice(&LEGACY_EVENT_CPI_SUFFIX);
-        assert!(parse(&disc, &swap2_payload(), EventMetadata::default()).is_some());
-    }
-
-    #[test]
-    fn current_position_events_use_current_idl_lengths() {
-        let mut create_disc = [0u8; 16];
-        create_disc[..8].copy_from_slice(&EVENT_CPI_PREFIX);
-        create_disc[8..].copy_from_slice(&discriminators::CREATE_POSITION);
-        assert!(parse(&create_disc, &[0u8; 96], EventMetadata::default()).is_some());
-
-        let mut close_disc = [0u8; 16];
-        close_disc[..8].copy_from_slice(&EVENT_CPI_PREFIX);
-        close_disc[8..].copy_from_slice(&discriminators::CLOSE_POSITION);
-        assert!(parse(&close_disc, &[0u8; 64], EventMetadata::default()).is_some());
-    }
-}
-
 // ============================================================================
 // Swap Event
 // ============================================================================
@@ -206,6 +153,8 @@ fn parse_swap2(data: &[u8], metadata: EventMetadata) -> Option<DexEvent> {
             metadata,
             token_x_mint: Pubkey::default(),
             token_y_mint: Pubkey::default(),
+            user_token_in: Pubkey::default(),
+            user_token_out: Pubkey::default(),
             min_amount_out: 0,
             pool,
             from,
@@ -268,6 +217,8 @@ fn parse_swap_zero_copy(data: &[u8], metadata: EventMetadata) -> Option<DexEvent
             metadata,
             token_x_mint: Pubkey::default(),
             token_y_mint: Pubkey::default(),
+            user_token_in: Pubkey::default(),
+            user_token_out: Pubkey::default(),
             min_amount_out: 0,
             pool,
             from,
@@ -515,5 +466,58 @@ fn parse_claim_fee_zero_copy(data: &[u8], metadata: EventMetadata) -> Option<Dex
             fee_x,
             fee_y,
         }))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn swap2_payload() -> Vec<u8> {
+        let mut data = vec![0u8; 147];
+        data[72] = 1;
+        data[73..89].copy_from_slice(&25u128.to_le_bytes());
+        data[89..97].copy_from_slice(&100u64.to_le_bytes());
+        data[105..113].copy_from_slice(&90u64.to_le_bytes());
+        data[113..121].copy_from_slice(&3u64.to_le_bytes());
+        data[121..129].copy_from_slice(&2u64.to_le_bytes());
+        data[137..145].copy_from_slice(&1u64.to_le_bytes());
+        data
+    }
+
+    #[test]
+    fn parses_current_anchor_event_cpi_prefix_layout() {
+        let mut disc = [0u8; 16];
+        disc[..8].copy_from_slice(&EVENT_CPI_PREFIX);
+        disc[8..].copy_from_slice(&discriminators::SWAP2);
+
+        let event = parse(&disc, &swap2_payload(), EventMetadata::default()).expect("swap2");
+        let DexEvent::MeteoraDlmmSwap(event) = event else {
+            panic!("unexpected event");
+        };
+        assert_eq!(event.amount_in, 100);
+        assert_eq!(event.amount_out, 90);
+        assert_eq!(event.fee, 3);
+    }
+
+    #[test]
+    fn keeps_legacy_event_cpi_suffix_layout() {
+        let mut disc = [0u8; 16];
+        disc[..8].copy_from_slice(&discriminators::SWAP2);
+        disc[8..].copy_from_slice(&LEGACY_EVENT_CPI_SUFFIX);
+        assert!(parse(&disc, &swap2_payload(), EventMetadata::default()).is_some());
+    }
+
+    #[test]
+    fn current_position_events_use_current_idl_lengths() {
+        let mut create_disc = [0u8; 16];
+        create_disc[..8].copy_from_slice(&EVENT_CPI_PREFIX);
+        create_disc[8..].copy_from_slice(&discriminators::CREATE_POSITION);
+        assert!(parse(&create_disc, &[0u8; 96], EventMetadata::default()).is_some());
+
+        let mut close_disc = [0u8; 16];
+        close_disc[..8].copy_from_slice(&EVENT_CPI_PREFIX);
+        close_disc[8..].copy_from_slice(&discriminators::CLOSE_POSITION);
+        assert!(parse(&close_disc, &[0u8; 64], EventMetadata::default()).is_some());
     }
 }

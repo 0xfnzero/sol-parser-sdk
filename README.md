@@ -113,16 +113,24 @@ sol-parser-sdk = { path = "../sol-parser-sdk", default-features = false, feature
 
 ```toml
 # Add to your Cargo.toml
-sol-parser-sdk = "0.6.6"
+sol-parser-sdk = "0.7.0"
 ```
 
 Or with the zero-copy parser (maximum performance):
 
 ```toml
-sol-parser-sdk = { version = "0.6.6", default-features = false, features = ["parse-zero-copy"] }
+sol-parser-sdk = { version = "0.7.0", default-features = false, features = ["parse-zero-copy"] }
 ```
 
 ### Release Notes
+
+#### v0.7.0
+
+- Upgrades the public Solana types to Solana 4, including Legacy, V0, and V1 transaction messages.
+- Uses `wincode 0.5.5` in production ShredStream and RPC transaction decode paths. On the reproducible 21,000-byte Entry benchmark, decode latency dropped from the previous bincode baseline of 39.005 us/op to 8.956 us/op (77.0%, 4.36x faster).
+- Removes unused direct dependencies and aligns the Agave dependency family. The normal dependency graph dropped from 658 to 533 package/version entries, while duplicated crate names dropped from 111 to 28.
+- Requires Rust 1.91 or newer for the Solana 4 client dependency stack.
+- Adds Meteora DLMM user token account context and preserves backward-compatible Serde defaults.
 
 #### v0.6.6
 

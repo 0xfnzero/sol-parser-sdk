@@ -1,6 +1,6 @@
 use sol_parser_sdk::grpc::{
-    AccountFilter, ClientConfig, EventType, EventTypeFilter, OrderMode, Protocol,
-    TransactionFilter, YellowstoneGrpc,
+    ClientConfig, EventType, EventTypeFilter, OrderMode, Protocol, TransactionFilter,
+    YellowstoneGrpc,
 };
 use sol_parser_sdk::DexEvent;
 use std::time::{Duration, Instant};
@@ -32,7 +32,7 @@ async fn live_pumpfun_trade_has_consistent_balances() {
     let queue = grpc
         .subscribe_dex_events(
             vec![TransactionFilter::for_protocols(&protocols)],
-            vec![AccountFilter::for_protocols(&protocols)],
+            Vec::new(),
             Some(event_filter),
         )
         .await
@@ -61,10 +61,16 @@ async fn live_pumpfun_trade_has_consistent_balances() {
                 pre_token - post_token
             };
             assert!(token_delta > 0, "trade must change the user's token balance");
+            assert_eq!(
+                token_delta, trade.token_amount,
+                "token balance delta must equal the parsed trade amount"
+            );
             println!(
-                "verified {} {}: event amount {}, token {} -> {}, SOL {} -> {} lamports",
+                "verified {} {}: user {}, quote {}, event amount {}, token {} -> {}, SOL {} -> {} lamports",
                 trade.metadata.signature,
                 if trade.is_buy { "buy" } else { "sell" },
+                trade.user,
+                trade.quote_mint,
                 trade.token_amount,
                 pre_token,
                 post_token,

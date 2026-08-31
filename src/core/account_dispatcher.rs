@@ -820,6 +820,7 @@ mod tests {
                 ],
                 versioned: false,
                 address_table_lookups: Vec::new(),
+                config: None,
             }),
         });
         let meta = TransactionStatusMeta::default();
@@ -895,6 +896,10 @@ mod tests {
         let first_y_mint = Pubkey::new_unique();
         let second_x_mint = Pubkey::new_unique();
         let second_y_mint = Pubkey::new_unique();
+        let first_user_token_in = Pubkey::new_unique();
+        let first_user_token_out = Pubkey::new_unique();
+        let second_user_token_in = Pubkey::new_unique();
+        let second_user_token_out = Pubkey::new_unique();
         let padding = Pubkey::new_unique();
         let static_pubkeys = [
             first_pool,
@@ -903,18 +908,25 @@ mod tests {
             first_y_mint,
             second_x_mint,
             second_y_mint,
+            first_user_token_in,
+            first_user_token_out,
+            second_user_token_in,
+            second_user_token_out,
             METEORA_DLMM_PROGRAM,
             padding,
         ];
         let account_keys = static_pubkeys.iter().map(|key| key.to_bytes().to_vec()).collect();
 
-        let dlmm_accounts = |len, pool_index, x_mint_index, y_mint_index| {
-            let mut accounts = vec![7u8; len];
-            accounts[0] = pool_index;
-            accounts[6] = x_mint_index;
-            accounts[7] = y_mint_index;
-            accounts
-        };
+        let dlmm_accounts =
+            |len, pool_index, user_in_index, user_out_index, x_mint_index, y_mint_index| {
+                let mut accounts = vec![11u8; len];
+                accounts[0] = pool_index;
+                accounts[4] = user_in_index;
+                accounts[5] = user_out_index;
+                accounts[6] = x_mint_index;
+                accounts[7] = y_mint_index;
+                accounts
+            };
         let transaction = Some(Transaction {
             signatures: vec![vec![0u8; 64]],
             message: Some(Message {
@@ -923,18 +935,19 @@ mod tests {
                 recent_blockhash: vec![0u8; 32],
                 instructions: vec![
                     CompiledInstruction {
-                        program_id_index: 6,
-                        accounts: dlmm_accounts(20, 0, 2, 3),
+                        program_id_index: 10,
+                        accounts: dlmm_accounts(20, 0, 6, 7, 2, 3),
                         data: vec![0],
                     },
                     CompiledInstruction {
-                        program_id_index: 6,
-                        accounts: dlmm_accounts(15, 1, 4, 5),
+                        program_id_index: 10,
+                        accounts: dlmm_accounts(15, 1, 8, 9, 4, 5),
                         data: vec![0],
                     },
                 ],
                 versioned: false,
                 address_table_lookups: Vec::new(),
+                config: None,
             }),
         });
         let meta = TransactionStatusMeta::default();
@@ -944,6 +957,8 @@ mod tests {
                 metadata: EventMetadata::default(),
                 token_x_mint: Pubkey::default(),
                 token_y_mint: Pubkey::default(),
+                user_token_in: Pubkey::default(),
+                user_token_out: Pubkey::default(),
                 min_amount_out: 0,
                 pool,
                 from: Pubkey::default(),
@@ -966,6 +981,8 @@ mod tests {
         };
         assert_eq!(first_event.token_x_mint, first_x_mint);
         assert_eq!(first_event.token_y_mint, first_y_mint);
+        assert_eq!(first_event.user_token_in, first_user_token_in);
+        assert_eq!(first_event.user_token_out, first_user_token_out);
 
         let mut second_event = swap_event(second_pool);
         fill_accounts_with_owned_keys(&mut second_event, &meta, &transaction, &invokes);
@@ -974,6 +991,8 @@ mod tests {
         };
         assert_eq!(second_event.token_x_mint, second_x_mint);
         assert_eq!(second_event.token_y_mint, second_y_mint);
+        assert_eq!(second_event.user_token_in, second_user_token_in);
+        assert_eq!(second_event.user_token_out, second_user_token_out);
     }
 
     #[test]
@@ -1019,6 +1038,7 @@ mod tests {
                 ],
                 versioned: false,
                 address_table_lookups: Vec::new(),
+                config: None,
             }),
         });
         let meta = TransactionStatusMeta::default();

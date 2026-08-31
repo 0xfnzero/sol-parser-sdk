@@ -27,7 +27,7 @@ fn main() {
     let config = RpcTransactionConfig {
         encoding: Some(UiTransactionEncoding::Base64),
         commitment: None,
-        max_supported_transaction_version: Some(0),
+        max_supported_transaction_version: Some(1),
     };
 
     println!("Fetching transaction...\n");

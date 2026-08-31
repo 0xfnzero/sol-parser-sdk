@@ -113,16 +113,24 @@ sol-parser-sdk = { path = "../sol-parser-sdk", default-features = false, feature
 
 ```toml
 # 在 Cargo.toml 中添加
-sol-parser-sdk = "0.6.6"
+sol-parser-sdk = "0.7.0"
 ```
 
 或使用零拷贝解析器（最高性能）：
 
 ```toml
-sol-parser-sdk = { version = "0.6.6", default-features = false, features = ["parse-zero-copy"] }
+sol-parser-sdk = { version = "0.7.0", default-features = false, features = ["parse-zero-copy"] }
 ```
 
 ### 发布说明
+
+#### v0.7.0
+
+- 将公开 Solana 类型升级到 Solana 4，完整覆盖 Legacy、V0 和 V1 交易消息。
+- 在生产 ShredStream 和 RPC 交易解码路径使用 `wincode 0.5.5`。同一份 21,000 字节 Entry 可复现基准中，解码延迟从旧 bincode 基线的 39.005 us/op 降到 8.956 us/op，降低 77.0%，速度提升 4.36 倍。
+- 删除未使用的直接依赖并对齐 Agave 依赖族。normal 依赖图从 658 个 package/version 项降到 533 个，重复 crate 名从 111 个降到 28 个。
+- Solana 4 client 依赖栈要求最低 Rust 版本为 1.91。
+- 为 Meteora DLMM 增加用户 token 账户上下文，并通过 Serde 默认值保持旧数据兼容。
 
 #### v0.6.6
 

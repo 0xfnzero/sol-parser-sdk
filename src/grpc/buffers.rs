@@ -194,11 +194,11 @@ impl MicroBatchBuffer {
             return Vec::new();
         }
 
-        // 按 (slot, tx_index) 排序
-        self.events.sort_unstable_by_key(|(slot, tx_index, _)| (*slot, *tx_index));
+        // Stable sort preserves parser order for multiple events from one transaction.
+        self.events.sort_by_key(|(slot, tx_index, _)| (*slot, *tx_index));
 
-        let result: Vec<DexEvent> =
-            std::mem::take(&mut self.events).into_iter().map(|(_, _, event)| event).collect();
+        let mut result = Vec::with_capacity(self.events.len());
+        result.extend(self.events.drain(..).map(|(_, _, event)| event));
 
         self.window_start_us = 0;
         result
@@ -208,6 +208,11 @@ impl MicroBatchBuffer {
     #[inline]
     pub fn should_flush(&self, now_us: i64, window_us: u64) -> bool {
         !self.events.is_empty() && (now_us - self.window_start_us) as u64 >= window_us
+    }
+
+    #[inline]
+    pub fn is_empty(&self) -> bool {
+        self.events.is_empty()
     }
 }
 

@@ -180,6 +180,12 @@ pub fn fill_pools_remove_liquidity_accounts(
 /// 13: eventAuthority
 /// 14: program
 pub fn fill_dlmm_swap_accounts(e: &mut MeteoraDlmmSwapEvent, get: &AccountGetter<'_>) {
+    if e.user_token_in == Pubkey::default() {
+        e.user_token_in = get(4);
+    }
+    if e.user_token_out == Pubkey::default() {
+        e.user_token_out = get(5);
+    }
     if e.token_x_mint == Pubkey::default() {
         e.token_x_mint = get(6);
     }

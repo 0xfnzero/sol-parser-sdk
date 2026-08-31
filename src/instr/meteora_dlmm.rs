@@ -341,6 +341,8 @@ fn parse_swap_instruction(
         metadata,
         token_x_mint: Pubkey::default(),
         token_y_mint: Pubkey::default(),
+        user_token_in: get_account(accounts, 4).unwrap_or_default(),
+        user_token_out: get_account(accounts, 5).unwrap_or_default(),
         min_amount_out,
         pool,
         from: get_account(accounts, 10).unwrap_or_default(),
@@ -374,6 +376,8 @@ fn parse_swap_exact_out_instruction(
         metadata,
         token_x_mint: Pubkey::default(),
         token_y_mint: Pubkey::default(),
+        user_token_in: get_account(accounts, 4).unwrap_or_default(),
+        user_token_out: get_account(accounts, 5).unwrap_or_default(),
         min_amount_out: 0,
         pool,
         from: get_account(accounts, 10).unwrap_or_default(),
@@ -414,6 +418,8 @@ fn parse_swap_with_price_impact_instruction(
         metadata,
         token_x_mint: Pubkey::default(),
         token_y_mint: Pubkey::default(),
+        user_token_in: get_account(accounts, 4).unwrap_or_default(),
+        user_token_out: get_account(accounts, 5).unwrap_or_default(),
         min_amount_out: 0,
         pool,
         from: get_account(accounts, 10).unwrap_or_default(),
@@ -513,6 +519,8 @@ mod tests {
             assert_eq!(event.amount_in, amount_in);
             assert_eq!(event.min_amount_out, min_amount_out);
             assert_eq!(event.amount_out, 0);
+            assert_eq!(event.user_token_in, accounts[4]);
+            assert_eq!(event.user_token_out, accounts[5]);
         }
     }
 
@@ -525,21 +533,53 @@ mod tests {
         payload.extend_from_slice(&max_in_amount.to_le_bytes());
         payload.extend_from_slice(&out_amount.to_le_bytes());
 
-        let event = parse_instruction(
-            &instruction(discriminators::SWAP_EXACT_OUT, &payload),
-            &accounts,
-            Signature::default(),
-            1,
-            0,
-            None,
-        )
-        .expect("swap_exact_out");
-        let DexEvent::MeteoraDlmmSwap(event) = event else {
-            panic!("unexpected event");
-        };
-        assert_eq!(event.amount_in, max_in_amount);
-        assert_eq!(event.min_amount_out, 0);
-        assert_eq!(event.amount_out, out_amount);
+        for discriminator in [discriminators::SWAP_EXACT_OUT, discriminators::SWAP_EXACT_OUT2] {
+            let event = parse_instruction(
+                &instruction(discriminator, &payload),
+                &accounts,
+                Signature::default(),
+                1,
+                0,
+                None,
+            )
+            .expect("swap_exact_out");
+            let DexEvent::MeteoraDlmmSwap(event) = event else {
+                panic!("unexpected event");
+            };
+            assert_eq!(event.amount_in, max_in_amount);
+            assert_eq!(event.min_amount_out, 0);
+            assert_eq!(event.amount_out, out_amount);
+            assert_eq!(event.user_token_in, accounts[4]);
+            assert_eq!(event.user_token_out, accounts[5]);
+        }
+    }
+
+    #[test]
+    fn price_impact_swap_exposes_user_token_accounts() {
+        let accounts = accounts(20);
+        let mut payload = Vec::with_capacity(11);
+        payload.extend_from_slice(&500u64.to_le_bytes());
+        payload.push(0); // no active-id limit
+        payload.extend_from_slice(&25u16.to_le_bytes());
+
+        for discriminator in
+            [discriminators::SWAP_WITH_PRICE_IMPACT, discriminators::SWAP_WITH_PRICE_IMPACT2]
+        {
+            let event = parse_instruction(
+                &instruction(discriminator, &payload),
+                &accounts,
+                Signature::default(),
+                1,
+                0,
+                None,
+            )
+            .expect("swap_with_price_impact");
+            let DexEvent::MeteoraDlmmSwap(event) = event else {
+                panic!("unexpected event");
+            };
+            assert_eq!(event.user_token_in, accounts[4]);
+            assert_eq!(event.user_token_out, accounts[5]);
+        }
     }
 
     #[test]

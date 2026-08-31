@@ -26,14 +26,19 @@ use crate::core::events::*;
 /// - 预期开销 < 10ns
 #[inline(always)]
 pub fn merge_events(base: &mut DexEvent, inner: DexEvent) {
-    let _ = try_merge_events(base, inner);
+    let mut unmerged = None;
+    let _ = try_merge_events(base, inner, &mut unmerged);
 }
 
-/// Try to merge `inner` into `base`, returning the untouched event when the
-/// variants are not compatible. Instruction parsers use this to avoid
-/// silently dropping unrelated inner events that share an outer index.
+/// Try to merge `inner` into `base` without allocating or returning the large
+/// event enum by value. On mismatch, the untouched event is written to
+/// `unmerged` for the caller to recover.
 #[inline(always)]
-pub fn try_merge_events(base: &mut DexEvent, inner: DexEvent) -> Result<(), DexEvent> {
+pub fn try_merge_events(
+    base: &mut DexEvent,
+    inner: DexEvent,
+    unmerged: &mut Option<DexEvent>,
+) -> bool {
     use DexEvent::*;
 
     match (base, inner) {
@@ -167,10 +172,13 @@ pub fn try_merge_events(base: &mut DexEvent, inner: DexEvent) -> Result<(), DexE
         (RaydiumLaunchlabMigrateAmm(b), RaydiumLaunchlabMigrateAmm(i)) => merge_generic(b, i),
 
         // 其他组合不需要合并（类型不匹配）
-        (_, inner) => return Err(inner),
+        (_, event) => {
+            *unmerged = Some(event);
+            return false;
+        }
     }
 
-    Ok(())
+    true
 }
 
 /// 通用合并函数 - 对于大多数事件，inner instruction 包含完整数据
@@ -188,8 +196,20 @@ fn merge_generic<T>(base: &mut T, inner: T) {
 fn merge_dlmm_swap(base: &mut MeteoraDlmmSwapEvent, inner: MeteoraDlmmSwapEvent) {
     let min_amount_out =
         if inner.min_amount_out != 0 { inner.min_amount_out } else { base.min_amount_out };
+    let user_token_in = if inner.user_token_in != Pubkey::default() {
+        inner.user_token_in
+    } else {
+        base.user_token_in
+    };
+    let user_token_out = if inner.user_token_out != Pubkey::default() {
+        inner.user_token_out
+    } else {
+        base.user_token_out
+    };
     *base = inner;
     base.min_amount_out = min_amount_out;
+    base.user_token_in = user_token_in;
+    base.user_token_out = user_token_out;
 }
 
 #[inline(always)]
@@ -903,6 +923,8 @@ fn merge_raydium_launchlab_trade_log_preferred(
 
 #[inline]
 fn merge_meteora_dlmm_swap_log_preferred(log: &mut MeteoraDlmmSwapEvent, ix: MeteoraDlmmSwapEvent) {
+    fill_pk(&mut log.user_token_in, ix.user_token_in);
+    fill_pk(&mut log.user_token_out, ix.user_token_out);
     if log.min_amount_out == 0 {
         log.min_amount_out = ix.min_amount_out;
     }
@@ -1029,6 +1051,17 @@ fn pumpfun_trade_from_ix_variant(ix: DexEvent) -> Option<PumpFunTradeEvent> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn incompatible_merge_leaves_both_events_unchanged() {
+        let mut base = DexEvent::Error("base".to_string());
+        let inner = DexEvent::Error("inner".to_string());
+        let mut unmerged = None;
+
+        assert!(!try_merge_events(&mut base, inner, &mut unmerged));
+        assert!(matches!(base, DexEvent::Error(ref message) if message == "base"));
+        assert!(matches!(unmerged, Some(DexEvent::Error(ref message)) if message == "inner"));
+    }
     use solana_sdk::{pubkey::Pubkey, signature::Signature};
 
     fn dlmm_swap(min_amount_out: u64, amount_out: u64) -> MeteoraDlmmSwapEvent {
@@ -1036,6 +1069,8 @@ mod tests {
             metadata: EventMetadata::default(),
             token_x_mint: Pubkey::default(),
             token_y_mint: Pubkey::default(),
+            user_token_in: Pubkey::new_unique(),
+            user_token_out: Pubkey::new_unique(),
             min_amount_out,
             pool: Pubkey::new_unique(),
             from: Pubkey::new_unique(),
@@ -1053,24 +1088,40 @@ mod tests {
 
     #[test]
     fn dlmm_event_merge_keeps_instruction_threshold_and_executed_output() {
-        let mut base = DexEvent::MeteoraDlmmSwap(dlmm_swap(100, 0));
-        let inner = DexEvent::MeteoraDlmmSwap(dlmm_swap(0, 125));
+        let base_event = dlmm_swap(100, 0);
+        let expected_user_token_in = base_event.user_token_in;
+        let expected_user_token_out = base_event.user_token_out;
+        let mut inner_event = dlmm_swap(0, 125);
+        inner_event.user_token_in = Pubkey::default();
+        inner_event.user_token_out = Pubkey::default();
+        let mut base = DexEvent::MeteoraDlmmSwap(base_event);
+        let inner = DexEvent::MeteoraDlmmSwap(inner_event);
 
-        assert!(try_merge_events(&mut base, inner).is_ok());
+        assert!(try_merge_events(&mut base, inner, &mut None));
         let DexEvent::MeteoraDlmmSwap(event) = base else { panic!("swap") };
         assert_eq!(event.min_amount_out, 100);
         assert_eq!(event.amount_out, 125);
+        assert_eq!(event.user_token_in, expected_user_token_in);
+        assert_eq!(event.user_token_out, expected_user_token_out);
     }
 
     #[test]
     fn grpc_dlmm_merge_keeps_log_output_and_adds_instruction_threshold() {
-        let mut log = DexEvent::MeteoraDlmmSwap(dlmm_swap(0, 125));
-        let instruction = DexEvent::MeteoraDlmmSwap(dlmm_swap(100, 0));
+        let mut log_event = dlmm_swap(0, 125);
+        log_event.user_token_in = Pubkey::default();
+        log_event.user_token_out = Pubkey::default();
+        let instruction_event = dlmm_swap(100, 0);
+        let expected_user_token_in = instruction_event.user_token_in;
+        let expected_user_token_out = instruction_event.user_token_out;
+        let mut log = DexEvent::MeteoraDlmmSwap(log_event);
+        let instruction = DexEvent::MeteoraDlmmSwap(instruction_event);
 
         merge_grpc_instruction_into_log(&mut log, instruction);
         let DexEvent::MeteoraDlmmSwap(event) = log else { panic!("swap") };
         assert_eq!(event.min_amount_out, 100);
         assert_eq!(event.amount_out, 125);
+        assert_eq!(event.user_token_in, expected_user_token_in);
+        assert_eq!(event.user_token_out, expected_user_token_out);
     }
 
     #[test]
@@ -1260,7 +1311,7 @@ mod tests {
             width: 0,
         });
 
-        assert!(try_merge_events(&mut base, inner).is_ok());
+        assert!(try_merge_events(&mut base, inner, &mut None));
         let DexEvent::MeteoraDlmmCreatePosition(event) = base else { panic!("position") };
         assert_eq!(event.lower_bin_id, -42);
         assert_eq!(event.width, 70);

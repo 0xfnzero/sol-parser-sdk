@@ -15,7 +15,7 @@ pub mod shredstream {
         /// 槽位号
         #[prost(uint64, tag = "1")]
         pub slot: u64,
-        /// 序列化的 Entry 数据（Vec<SolanaEntry> 的 bincode 编码）
+        /// Serialized `Vec<SolanaEntry>` data, decoded with Solana 4's wincode schema.
         #[prost(bytes = "vec", tag = "2")]
         pub entries: ::prost::alloc::vec::Vec<u8>,
     }
@@ -71,7 +71,7 @@ pub mod shredstream {
             self.inner.ready().await.map_err(|e| {
                 tonic::Status::unknown(format!("Service was not ready: {}", e.into()))
             })?;
-            let codec = tonic::codec::ProstCodec::default();
+            let codec = tonic_prost::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/shredstream.ShredstreamProxy/SubscribeEntries",
             );

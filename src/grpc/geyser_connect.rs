@@ -2,7 +2,7 @@
 
 use std::time::Duration;
 
-use yellowstone_grpc_client::{ClientTlsConfig, GeyserGrpcClient, Interceptor};
+use yellowstone_grpc_client::{ClientTlsConfig, GeyserGrpcClient};
 
 /// 连接 Geyser 的常用选项（与业务无关）。
 #[derive(Debug, Clone)]
@@ -26,7 +26,7 @@ impl Default for GeyserConnectConfig {
 pub async fn connect_yellowstone_geyser(
     endpoint: &str,
     config: GeyserConnectConfig,
-) -> Result<GeyserGrpcClient<impl Interceptor>, String> {
+) -> Result<GeyserGrpcClient, String> {
     let _ = rustls::crypto::ring::default_provider().install_default();
 
     let mut builder = GeyserGrpcClient::build_from_shared(endpoint.to_string())

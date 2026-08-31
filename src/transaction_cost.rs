@@ -5,13 +5,14 @@
 
 use serde::{Deserialize, Serialize};
 use solana_sdk::{pubkey, pubkey::Pubkey, transaction::VersionedTransaction};
+use solana_transaction_status::EncodedConfirmedTransactionWithStatusMeta;
 use yellowstone_grpc_proto::prelude::{InnerInstruction, Transaction, TransactionStatusMeta};
 
 use crate::rpc_parser::{convert_rpc_to_grpc, ParseError};
-use solana_transaction_status::EncodedConfirmedTransactionWithStatusMeta;
 
 const COMPUTE_BUDGET_PROGRAM_ID: Pubkey = pubkey!("ComputeBudget111111111111111111111111111111");
 const SYSTEM_PROGRAM_ID: Pubkey = pubkey!("11111111111111111111111111111111");
+const MAX_COMPUTE_UNIT_LIMIT: u32 = 1_400_000;
 const MICRO_LAMPORTS_PER_LAMPORT: u128 = 1_000_000;
 const SET_COMPUTE_UNIT_LIMIT_TAG: u8 = 2;
 const SET_COMPUTE_UNIT_PRICE_TAG: u8 = 3;
@@ -317,6 +318,8 @@ impl TransactionCost {
 struct ScanState {
     compute_unit_limit: Option<u32>,
     compute_unit_price_micro_lamports: Option<u64>,
+    direct_priority_fee_lamports: Option<u64>,
+    is_v1: bool,
     seen_compute_budget_tags: u8,
     invalid_compute_budget: bool,
     tip_lamports: u64,
@@ -324,6 +327,16 @@ struct ScanState {
 }
 
 impl ScanState {
+    #[inline]
+    fn with_v1_fields(compute_unit_limit: Option<u32>, priority_fee: Option<u64>) -> Self {
+        Self {
+            compute_unit_limit,
+            direct_priority_fee_lamports: priority_fee,
+            is_v1: true,
+            ..Self::default()
+        }
+    }
+
     #[inline]
     fn finish(
         mut self,
@@ -335,10 +348,11 @@ impl ScanState {
             self.compute_unit_limit = None;
             self.compute_unit_price_micro_lamports = None;
         }
-        let priority_fee_lamports = self
-            .compute_unit_limit
-            .zip(self.compute_unit_price_micro_lamports)
-            .map(|(limit, price)| priority_fee_lamports(limit, price));
+        let priority_fee_lamports = self.direct_priority_fee_lamports.or_else(|| {
+            self.compute_unit_limit.zip(self.compute_unit_price_micro_lamports).map(
+                |(limit, price)| priority_fee_lamports(limit.min(MAX_COMPUTE_UNIT_LIMIT), price),
+            )
+        });
         TransactionCost {
             transaction_fee_lamports,
             total_fee_and_tip_lamports: transaction_fee_lamports
@@ -354,7 +368,7 @@ impl ScanState {
     }
 }
 
-/// Parses costs from a base64-encoded RPC transaction response.
+/// Parses costs from a binary-encoded RPC transaction response.
 pub fn parse_rpc_transaction_cost(
     transaction: &EncodedConfirmedTransactionWithStatusMeta,
 ) -> Result<TransactionCost, ParseError> {
@@ -384,7 +398,11 @@ pub fn parse_yellowstone_transaction_cost(
         pubkey_from_bytes(meta.loaded_readonly_addresses.get(readonly_index)?)
     };
 
-    let mut state = ScanState::default();
+    let mut state = message
+        .config
+        .as_ref()
+        .map(|config| ScanState::with_v1_fields(config.compute_unit_limit, config.priority_fee))
+        .unwrap_or_default();
     for instruction in &message.instructions {
         scan_instruction(
             instruction.program_id_index as usize,
@@ -414,7 +432,14 @@ pub fn parse_shred_transaction_cost(transaction: &VersionedTransaction) -> Trans
     let message = &transaction.message;
     let static_keys = message.static_account_keys();
     let get_key = |index: usize| static_keys.get(index).copied();
-    let mut state = ScanState::default();
+    let mut state = match message {
+        solana_sdk::message::VersionedMessage::V1(message) => ScanState::with_v1_fields(
+            message.config.compute_unit_limit,
+            message.config.priority_fee,
+        ),
+        solana_sdk::message::VersionedMessage::Legacy(_)
+        | solana_sdk::message::VersionedMessage::V0(_) => ScanState::default(),
+    };
     for instruction in message.instructions() {
         scan_instruction(
             instruction.program_id_index as usize,
@@ -455,7 +480,7 @@ fn scan_instruction<F>(
     let Some(program_id) = get_key(program_id_index) else {
         return;
     };
-    if program_id == COMPUTE_BUDGET_PROGRAM_ID {
+    if program_id == COMPUTE_BUDGET_PROGRAM_ID && !state.is_v1 {
         scan_compute_budget(data, state);
     } else if scan_tips && program_id == SYSTEM_PROGRAM_ID {
         scan_system_transfer(accounts, data, get_key, state);
@@ -556,13 +581,20 @@ fn pubkey_from_bytes(bytes: &[u8]) -> Option<Pubkey> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use base64::Engine as _;
+    use solana_client::rpc_response::UiTransactionError;
     use solana_sdk::{
         hash::Hash,
         message::{
-            compiled_instruction::CompiledInstruction as SdkInstruction, v0, MessageHeader,
+            compiled_instruction::CompiledInstruction as SdkInstruction, v0, v1, MessageHeader,
             VersionedMessage,
         },
         signature::Signature,
+    };
+    use solana_transaction_status::{
+        option_serializer::OptionSerializer, EncodedConfirmedTransactionWithStatusMeta,
+        EncodedTransaction, EncodedTransactionWithStatusMeta, TransactionBinaryEncoding,
+        UiTransactionStatusMeta,
     };
     use yellowstone_grpc_proto::prelude::{
         CompiledInstruction, InnerInstructions, Message, TransactionError, TransactionStatusMeta,
@@ -592,6 +624,35 @@ mod tests {
         data: Vec<u8>,
     ) -> CompiledInstruction {
         CompiledInstruction { program_id_index, accounts, data }
+    }
+
+    fn v1_transaction() -> VersionedTransaction {
+        let source = Pubkey::new_unique();
+        VersionedTransaction {
+            signatures: vec![Signature::from([7; 64])],
+            message: VersionedMessage::V1(v1::Message {
+                header: MessageHeader {
+                    num_required_signatures: 1,
+                    num_readonly_signed_accounts: 0,
+                    num_readonly_unsigned_accounts: 2,
+                },
+                config: v1::TransactionConfig::empty()
+                    .with_compute_unit_limit(234_567)
+                    .with_priority_fee(4_321),
+                lifetime_specifier: Hash::new_unique(),
+                account_keys: vec![
+                    source,
+                    JITO_TIP_ACCOUNTS[0],
+                    SYSTEM_PROGRAM_ID,
+                    COMPUTE_BUDGET_PROGRAM_ID,
+                ],
+                instructions: vec![
+                    SdkInstruction::new_from_raw_parts(3, compute_limit(999_999), vec![]),
+                    SdkInstruction::new_from_raw_parts(3, compute_price(999_999), vec![]),
+                    SdkInstruction::new_from_raw_parts(2, transfer(42), vec![0, 1]),
+                ],
+            }),
+        }
     }
 
     #[test]
@@ -634,6 +695,28 @@ mod tests {
         assert_eq!(cost.tip_payments[0].provider, SwqosProvider::Jito);
         assert_eq!(cost.tip_payments[0].recipient, JITO_TIP_ACCOUNTS[0]);
         assert_eq!(cost.tip_lamports_for(SwqosProvider::Jito), 137_273);
+    }
+
+    #[test]
+    fn legacy_priority_fee_uses_runtime_clamp_but_exposes_requested_limit() {
+        let transaction = Transaction {
+            signatures: vec![],
+            message: Some(Message {
+                account_keys: vec![COMPUTE_BUDGET_PROGRAM_ID.to_bytes().to_vec()],
+                instructions: vec![
+                    grpc_instruction(0, vec![], compute_limit(2_000_000)),
+                    grpc_instruction(0, vec![], compute_price(1_000_000)),
+                ],
+                ..Default::default()
+            }),
+        };
+
+        let cost =
+            parse_yellowstone_transaction_cost(&transaction, &TransactionStatusMeta::default())
+                .expect("transaction cost");
+
+        assert_eq!(cost.compute_unit_limit, Some(2_000_000));
+        assert_eq!(cost.priority_fee_lamports, Some(1_400_000));
     }
 
     #[test]
@@ -780,6 +863,139 @@ mod tests {
         assert!(!cost.tip_payments_confirmed);
         assert_eq!(cost.priority_fee_lamports, Some(1_001));
         assert_eq!(cost.tip_lamports, 42);
+    }
+
+    #[test]
+    fn v1_shred_cost_uses_inline_config_and_ignores_compute_budget_instructions() {
+        let transaction = v1_transaction();
+        let bytes = wincode::serialize(&transaction).expect("serialize V1 transaction");
+        let decoded: VersionedTransaction =
+            wincode::deserialize(&bytes).expect("deserialize V1 transaction");
+
+        assert_eq!(decoded, transaction);
+        let cost = parse_shred_transaction_cost(&decoded);
+        assert_eq!(cost.compute_unit_limit, Some(234_567));
+        assert_eq!(cost.compute_unit_price_micro_lamports, None);
+        assert_eq!(cost.priority_fee_lamports, Some(4_321));
+        assert_eq!(cost.tip_lamports, 42);
+    }
+
+    #[test]
+    fn yellowstone_v1_cost_uses_inline_config_and_ignores_compute_budget_instructions() {
+        let transaction = Transaction {
+            signatures: vec![],
+            message: Some(Message {
+                account_keys: vec![COMPUTE_BUDGET_PROGRAM_ID.to_bytes().to_vec()],
+                instructions: vec![
+                    grpc_instruction(0, vec![], compute_limit(999_999)),
+                    grpc_instruction(0, vec![], compute_price(999_999)),
+                ],
+                config: Some(yellowstone_grpc_proto::prelude::TransactionConfig {
+                    priority_fee: Some(4_321),
+                    compute_unit_limit: Some(234_567),
+                    loaded_accounts_data_size_limit: None,
+                    heap_size: None,
+                }),
+                ..Default::default()
+            }),
+        };
+
+        let cost =
+            parse_yellowstone_transaction_cost(&transaction, &TransactionStatusMeta::default())
+                .expect("transaction cost");
+
+        assert_eq!(cost.compute_unit_limit, Some(234_567));
+        assert_eq!(cost.compute_unit_price_micro_lamports, None);
+        assert_eq!(cost.priority_fee_lamports, Some(4_321));
+    }
+
+    #[test]
+    fn rpc_cost_preserves_v1_inline_config_through_base64_conversion() {
+        let bytes = wincode::serialize(&v1_transaction()).expect("serialize V1 transaction");
+        let transaction = EncodedConfirmedTransactionWithStatusMeta {
+            slot: 42,
+            transaction: EncodedTransactionWithStatusMeta {
+                transaction: EncodedTransaction::Binary(
+                    base64::engine::general_purpose::STANDARD.encode(bytes),
+                    TransactionBinaryEncoding::Base64,
+                ),
+                meta: Some(UiTransactionStatusMeta {
+                    err: None,
+                    status: Ok(()),
+                    fee: 9_321,
+                    pre_balances: vec![],
+                    post_balances: vec![],
+                    inner_instructions: OptionSerializer::None,
+                    log_messages: OptionSerializer::None,
+                    pre_token_balances: OptionSerializer::None,
+                    post_token_balances: OptionSerializer::None,
+                    rewards: OptionSerializer::None,
+                    loaded_addresses: OptionSerializer::None,
+                    return_data: OptionSerializer::None,
+                    compute_units_consumed: OptionSerializer::Some(123_456),
+                    cost_units: OptionSerializer::None,
+                }),
+                version: None,
+            },
+            block_time: None,
+            transaction_index: None,
+        };
+
+        let cost = parse_rpc_transaction_cost(&transaction).expect("parse V1 RPC cost");
+        assert_eq!(cost.transaction_fee_lamports, Some(9_321));
+        assert_eq!(cost.compute_units_consumed, Some(123_456));
+        assert_eq!(cost.compute_unit_limit, Some(234_567));
+        assert_eq!(cost.compute_unit_price_micro_lamports, None);
+        assert_eq!(cost.priority_fee_lamports, Some(4_321));
+        assert_eq!(cost.tip_lamports, 42);
+        assert_eq!(cost.total_fee_and_tip_lamports, Some(9_363));
+    }
+
+    #[test]
+    fn failed_rpc_transaction_does_not_confirm_rolled_back_tip() {
+        let bytes = wincode::serialize(&v1_transaction()).expect("serialize V1 transaction");
+        let ui_error: UiTransactionError =
+            solana_sdk::transaction::TransactionError::AccountInUse.into();
+        let transaction = EncodedConfirmedTransactionWithStatusMeta {
+            slot: 42,
+            transaction: EncodedTransactionWithStatusMeta {
+                transaction: EncodedTransaction::Binary(
+                    base64::engine::general_purpose::STANDARD.encode(bytes),
+                    TransactionBinaryEncoding::Base64,
+                ),
+                meta: Some(UiTransactionStatusMeta {
+                    err: Some(ui_error.clone()),
+                    status: Err(ui_error),
+                    fee: 9_321,
+                    pre_balances: vec![],
+                    post_balances: vec![],
+                    inner_instructions: OptionSerializer::None,
+                    log_messages: OptionSerializer::None,
+                    pre_token_balances: OptionSerializer::None,
+                    post_token_balances: OptionSerializer::None,
+                    rewards: OptionSerializer::None,
+                    loaded_addresses: OptionSerializer::None,
+                    return_data: OptionSerializer::None,
+                    compute_units_consumed: OptionSerializer::Some(123_456),
+                    cost_units: OptionSerializer::None,
+                }),
+                version: None,
+            },
+            block_time: None,
+            transaction_index: None,
+        };
+
+        let (meta, _) = convert_rpc_to_grpc(&transaction).expect("convert failed RPC meta");
+        let decoded_error: solana_sdk::transaction::TransactionError =
+            wincode::deserialize(&meta.err.expect("failed status").err)
+                .expect("deserialize transaction error");
+        assert_eq!(decoded_error, solana_sdk::transaction::TransactionError::AccountInUse);
+
+        let cost = parse_rpc_transaction_cost(&transaction).expect("parse failed RPC cost");
+        assert!(!cost.tip_payments_confirmed);
+        assert_eq!(cost.tip_lamports, 0);
+        assert!(cost.tip_payments.is_empty());
+        assert_eq!(cost.total_fee_and_tip_lamports, Some(9_321));
     }
 
     #[test]

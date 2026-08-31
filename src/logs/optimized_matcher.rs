@@ -1695,51 +1695,36 @@ pub fn detect_pumpfun_create(logs: &[String]) -> bool {
     logs.iter().any(|log| PUMPFUN_CREATE_FINDER.find(log.as_bytes()).is_some())
 }
 
-/// SIMD 优化的 "invoke [" 查找器
 static INVOKE_FINDER: Lazy<memmem::Finder> = Lazy::new(|| memmem::Finder::new(b"invoke ["));
 
-/// 从日志中解析指令调用信息 (SIMD 优化版本)
+/// Parse the canonical `Program <id> invoke [<depth>]` runtime log line.
 /// 返回 (program_id, depth)
 #[inline]
 pub fn parse_invoke_info(log: &str) -> Option<(&str, usize)> {
-    let log_bytes = log.as_bytes();
-
-    // SIMD 快速查找 "invoke ["
-    let invoke_start = INVOKE_FINDER.find(log_bytes)?;
-    let bracket_start = invoke_start + 8; // "invoke [" 长度
-
-    // 边界检查
-    if bracket_start >= log_bytes.len() {
+    let bytes = log.as_bytes();
+    if !bytes.starts_with(b"Program ") || !bytes.ends_with(b"]") {
+        return None;
+    }
+    let invoke_start = INVOKE_FINDER.find(bytes)?;
+    if invoke_start <= 8 || bytes.get(invoke_start - 1) != Some(&b' ') {
+        return None;
+    }
+    let depth_start = invoke_start + b"invoke [".len();
+    let depth_bytes = bytes.get(depth_start..bytes.len() - 1)?;
+    if depth_bytes.is_empty() {
         return None;
     }
 
-    // 解析深度数字，直到遇到 ']'
     let mut depth = 0usize;
-    for &byte in &log_bytes[bracket_start..] {
-        match byte {
-            b'0'..=b'9' => {
-                depth = depth * 10 + (byte - b'0') as usize;
-            }
-            b']' => break,
-            _ => return None, // 遇到非数字非']'字符，解析失败
+    for &byte in depth_bytes {
+        if !byte.is_ascii_digit() {
+            return None;
         }
+        let digit = (byte - b'0') as usize;
+        depth = depth.checked_mul(10)?.checked_add(digit)?;
     }
-
-    // 提取程序ID：从 "Program " 开始到 " invoke" 结束
-    if invoke_start < 8 {
-        return None; // 没有足够空间放 "Program "
-    }
-
-    let program_start = 8; // "Program " 的长度
-    let program_end = invoke_start - 1; // " invoke" 前面的空格位置
-
-    if program_end <= program_start {
-        return None;
-    }
-
-    let program_id = std::str::from_utf8(&log_bytes[program_start..program_end]).ok()?;
-
-    Some((program_id, depth))
+    let program_id = log.get(8..invoke_start - 1)?;
+    (depth > 0).then_some((program_id, depth))
 }
 
 /// Parse `Program <id> success` or `Program <id> failed: ...` completion lines.
@@ -2341,5 +2326,22 @@ mod tests {
             ),
             Some("CPMMoo8L3F4NbTegBCKVNunggL7H1ZpdTHKxQB5qKP1C")
         );
+    }
+
+    #[test]
+    fn invoke_parser_accepts_only_complete_positive_depth_lines() {
+        assert_eq!(
+            parse_invoke_info("Program 11111111111111111111111111111111 invoke [12]"),
+            Some(("11111111111111111111111111111111", 12))
+        );
+        for malformed in [
+            "prefix Program 11111111111111111111111111111111 invoke [1]",
+            "Program 11111111111111111111111111111111 invoke [0]",
+            "Program 11111111111111111111111111111111 invoke [1",
+            "Program 11111111111111111111111111111111 invoke []",
+            "Program 11111111111111111111111111111111 invoke [1] trailing",
+        ] {
+            assert_eq!(parse_invoke_info(malformed), None, "accepted {malformed}");
+        }
     }
 }
