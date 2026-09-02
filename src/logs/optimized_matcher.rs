@@ -296,6 +296,8 @@ mod discriminators {
         u64::from_le_bytes([175, 242, 8, 157, 30, 247, 185, 169]);
     pub const METEORA_DAMM_REMOVE_LIQUIDITY: u64 =
         u64::from_le_bytes([87, 46, 88, 98, 175, 96, 34, 91]);
+    pub const METEORA_DAMM_LIQUIDITY_CHANGE: u64 =
+        u64::from_le_bytes([197, 171, 78, 127, 224, 211, 87, 13]);
     pub const METEORA_DAMM_INITIALIZE_POOL: u64 =
         u64::from_le_bytes([228, 50, 246, 85, 203, 66, 134, 37]);
     pub const METEORA_DAMM_CREATE_POSITION: u64 =
@@ -899,6 +901,9 @@ fn parse_log_optimized_inner(
         discriminators::METEORA_DAMM_REMOVE_LIQUIDITY => {
             crate::logs::meteora_damm::parse_remove_liquidity_from_data(data, metadata)
         }
+        discriminators::METEORA_DAMM_LIQUIDITY_CHANGE => {
+            crate::logs::meteora_damm::parse_liquidity_change_from_data(data, metadata)
+        }
         discriminators::METEORA_DAMM_INITIALIZE_POOL => {
             crate::logs::meteora_damm::parse_initialize_pool_from_data(data, metadata)
         }
@@ -1075,6 +1080,9 @@ fn program_scoped_discriminator_to_event_type(
             discriminators::METEORA_DAMM_REMOVE_LIQUIDITY => {
                 Some(EventType::MeteoraDammV2RemoveLiquidity)
             }
+            // Current DAMM v2 uses one discriminator for add/remove; `change_type`
+            // in the payload selects the public event type after decoding.
+            discriminators::METEORA_DAMM_LIQUIDITY_CHANGE => None,
             discriminators::METEORA_DAMM_INITIALIZE_POOL => {
                 Some(EventType::MeteoraDammV2InitializePool)
             }
@@ -1444,6 +1452,12 @@ fn parse_program_scoped_event(
                 }
                 discriminators::METEORA_DAMM_REMOVE_LIQUIDITY => {
                     crate::logs::meteora_damm::parse_remove_liquidity_from_data(data, metadata)
+                }
+                discriminators::METEORA_DAMM_LIQUIDITY_CHANGE => {
+                    let event = crate::logs::meteora_damm::parse_liquidity_change_from_data(
+                        data, metadata,
+                    )?;
+                    apply_event_type_filter(event, event_type_filter)
                 }
                 discriminators::METEORA_DAMM_INITIALIZE_POOL => {
                     crate::logs::meteora_damm::parse_initialize_pool_from_data(data, metadata)

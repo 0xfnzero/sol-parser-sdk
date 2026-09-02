@@ -113,16 +113,22 @@ sol-parser-sdk = { path = "../sol-parser-sdk", default-features = false, feature
 
 ```toml
 # 在 Cargo.toml 中添加
-sol-parser-sdk = "0.7.0"
+sol-parser-sdk = "0.7.1"
 ```
 
 或使用零拷贝解析器（最高性能）：
 
 ```toml
-sol-parser-sdk = { version = "0.7.0", default-features = false, features = ["parse-zero-copy"] }
+sol-parser-sdk = { version = "0.7.1", default-features = false, features = ["parse-zero-copy"] }
 ```
 
 ### 发布说明
+
+#### v0.7.1
+
+- 修复当前 Meteora DAMM v2 `EvtSwap2` 的 180 字节布局、三种 SwapMode、transfer fee、reserve 字段，以及主网 fee 布局升级前后的语义。
+- 增加当前统一的 `EvtLiquidityChange` discriminator，并根据 `change_type` 在日志、优化匹配器和 inner instruction 路径中精确路由为 AddLiquidity 或 RemoveLiquidity。
+- 增加可复现的 DAMM v2 Swap 与 AddLiquidity 主网 RPC 回归测试。
 
 #### v0.7.0
 

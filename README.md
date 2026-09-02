@@ -113,16 +113,22 @@ sol-parser-sdk = { path = "../sol-parser-sdk", default-features = false, feature
 
 ```toml
 # Add to your Cargo.toml
-sol-parser-sdk = "0.7.0"
+sol-parser-sdk = "0.7.1"
 ```
 
 Or with the zero-copy parser (maximum performance):
 
 ```toml
-sol-parser-sdk = { version = "0.7.0", default-features = false, features = ["parse-zero-copy"] }
+sol-parser-sdk = { version = "0.7.1", default-features = false, features = ["parse-zero-copy"] }
 ```
 
 ### Release Notes
+
+#### v0.7.1
+
+- Fixes current Meteora DAMM v2 `EvtSwap2` parsing for the 180-byte layout, all three swap modes, transfer fees, reserves, and the mainnet fee-layout upgrade boundary.
+- Adds the current unified `EvtLiquidityChange` discriminator and routes its `change_type` to exact AddLiquidity or RemoveLiquidity events across log, optimized, and inner-instruction paths.
+- Adds reproducible mainnet RPC regression tests for DAMM v2 Swap and AddLiquidity transactions.
 
 #### v0.7.0
 

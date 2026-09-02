@@ -2485,6 +2485,45 @@ pub struct MeteoraDammV2SwapEvent {
     pub actual_amount_in: u64,
     #[cfg_attr(feature = "parse-borsh", borsh(skip))]
     pub current_timestamp: u64,
+    #[serde(default)]
+    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
+    pub collect_fee_mode: u8,
+    #[serde(default)]
+    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
+    pub amount_0: u64,
+    #[serde(default)]
+    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
+    pub amount_1: u64,
+    #[serde(default)]
+    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
+    pub swap_mode: u8,
+    #[serde(default)]
+    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
+    pub excluded_fee_input_amount: u64,
+    #[serde(default)]
+    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
+    pub amount_left: u64,
+    #[serde(default)]
+    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
+    pub claiming_fee: u64,
+    #[serde(default)]
+    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
+    pub compounding_fee: u64,
+    #[serde(default)]
+    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
+    pub included_transfer_fee_amount_in: u64,
+    #[serde(default)]
+    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
+    pub included_transfer_fee_amount_out: u64,
+    #[serde(default)]
+    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
+    pub excluded_transfer_fee_amount_out: u64,
+    #[serde(default)]
+    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
+    pub reserve_a_amount: u64,
+    #[serde(default)]
+    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
+    pub reserve_b_amount: u64,
     // ---------- 账号 -------------
     #[cfg_attr(feature = "parse-borsh", borsh(skip))]
     pub token_a_vault: Pubkey,
@@ -2502,7 +2541,7 @@ pub struct MeteoraDammV2SwapEvent {
 
 /// Meteora DAMM V2 Add Liquidity Event
 #[cfg_attr(feature = "parse-borsh", derive(BorshDeserialize))]
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct MeteoraDammV2AddLiquidityEvent {
     #[cfg_attr(feature = "parse-borsh", borsh(skip))]
     pub metadata: EventMetadata,
@@ -2525,11 +2564,17 @@ pub struct MeteoraDammV2AddLiquidityEvent {
     pub total_amount_a: u64,
     #[cfg_attr(feature = "parse-borsh", borsh(skip))]
     pub total_amount_b: u64,
+    #[serde(default)]
+    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
+    pub reserve_a_amount: u64,
+    #[serde(default)]
+    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
+    pub reserve_b_amount: u64,
 }
 
 /// Meteora DAMM V2 Remove Liquidity Event
 #[cfg_attr(feature = "parse-borsh", derive(BorshDeserialize))]
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct MeteoraDammV2RemoveLiquidityEvent {
     #[cfg_attr(feature = "parse-borsh", borsh(skip))]
     pub metadata: EventMetadata,
@@ -2548,6 +2593,18 @@ pub struct MeteoraDammV2RemoveLiquidityEvent {
     pub token_a_amount_threshold: u64,
     #[cfg_attr(feature = "parse-borsh", borsh(skip))]
     pub token_b_amount_threshold: u64,
+    #[serde(default)]
+    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
+    pub total_amount_a: u64,
+    #[serde(default)]
+    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
+    pub total_amount_b: u64,
+    #[serde(default)]
+    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
+    pub reserve_a_amount: u64,
+    #[serde(default)]
+    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
+    pub reserve_b_amount: u64,
 }
 
 /// Meteora DAMM V2 Initialize Pool Event
