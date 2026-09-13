@@ -692,6 +692,14 @@ fn parse_create_v2_instruction(
     let is_mayhem_mode = read_bool(data, offset)?;
     offset += 1;
     let is_cashback_enabled = read_option_bool_idl(data, offset).unwrap_or(false);
+    if offset < data.len() {
+        offset += 1;
+    }
+    let creator_fee_bps = read_option_u64_idl(data, offset).unwrap_or_default();
+    if offset + 8 <= data.len() {
+        offset += 8;
+    }
+    let is_holder_reward = read_option_bool_idl(data, offset).unwrap_or_default();
 
     let mint = acc[0];
     let bonding_curve = acc[2];
@@ -726,6 +734,8 @@ fn parse_create_v2_instruction(
         program: acc[15],
         is_mayhem_mode,
         is_cashback_enabled,
+        creator_fee_bps,
+        is_holder_reward,
         quote_mint,
         quote_vault,
         quote_token_program,

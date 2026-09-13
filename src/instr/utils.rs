@@ -95,6 +95,13 @@ pub fn read_option_bool_idl(data: &[u8], offset: usize) -> Option<bool> {
     }
 }
 
+/// IDL custom type `OptionU64` is a one-field struct and uses the same 8-byte
+/// little-endian representation as `u64` when present.
+#[inline(always)]
+pub fn read_option_u64_idl(data: &[u8], offset: usize) -> Option<u64> {
+    read_u64_le(data, offset)
+}
+
 /// 从指令数据中读取公钥 - SIMD 优化
 #[inline(always)]
 pub fn read_pubkey(data: &[u8], offset: usize) -> Option<Pubkey> {
@@ -136,13 +143,13 @@ pub fn read_bytes(data: &[u8], offset: usize, length: usize) -> Option<&[u8]> {
     Some(&data[offset..offset + length])
 }
 
-/// `create_v2` 指令 payload（**不含** 8 字节 discriminator）：`name, symbol, uri, creator, is_mayhem_mode, is_cashback_enabled`（IDL）。
-/// 其中 `is_cashback_enabled` 为 `OptionBool`，链上与 `bool` 同为 1 字节。
+/// `create_v2` instruction payload without the discriminator. All fields after
+/// `is_mayhem_mode` are trailing and optional for backward compatibility.
 /// `mint` / `bonding_curve` / `user` 在账户里，不在 data 中。
 #[inline]
 pub fn parse_create_v2_tail_fields(
     data_after_discriminator: &[u8],
-) -> Option<(Pubkey, bool, bool)> {
+) -> Option<(Pubkey, bool, bool, u64, bool)> {
     let mut offset = 0usize;
     let (_, l) = read_str_unchecked(data_after_discriminator, offset)?;
     offset += l;
@@ -162,7 +169,16 @@ pub fn parse_create_v2_tail_fields(
     } else {
         false
     };
-    Some((creator, is_mayhem_mode, is_cashback_enabled))
+    if offset < data_after_discriminator.len() {
+        offset += 1;
+    }
+    let creator_fee_bps = read_option_u64_idl(data_after_discriminator, offset).unwrap_or_default();
+    if offset + 8 <= data_after_discriminator.len() {
+        offset += 8;
+    }
+    let is_holder_reward =
+        read_option_bool_idl(data_after_discriminator, offset).unwrap_or_default();
+    Some((creator, is_mayhem_mode, is_cashback_enabled, creator_fee_bps, is_holder_reward))
 }
 
 /// Read string with 4-byte length prefix (Borsh format)
@@ -364,9 +380,33 @@ mod option_bool_tests {
         p.push(1u8); // mayhem
         p.push(1u8); // cashback
         assert_eq!(p.len(), 49);
-        let (creator, mayhem, cb) = parse_create_v2_tail_fields(&p).expect("parse");
+        let (creator, mayhem, cb, creator_fee_bps, holder_reward) =
+            parse_create_v2_tail_fields(&p).expect("parse");
         assert_eq!(creator, Pubkey::default());
         assert!(mayhem);
         assert!(cb);
+        assert_eq!(creator_fee_bps, 0);
+        assert!(!holder_reward);
+    }
+
+    #[test]
+    fn parse_create_v2_tail_reads_holder_rewards_fields() {
+        let mut p = Vec::new();
+        for value in ["a", "b", "c"] {
+            p.extend_from_slice(&(value.len() as u32).to_le_bytes());
+            p.extend_from_slice(value.as_bytes());
+        }
+        p.extend_from_slice(&[0u8; 32]);
+        p.push(0); // mayhem
+        p.push(0); // cashback (deprecated)
+        p.extend_from_slice(&250u64.to_le_bytes());
+        p.push(1); // holder rewards
+
+        let (_, mayhem, cashback, creator_fee_bps, holder_reward) =
+            parse_create_v2_tail_fields(&p).expect("parse");
+        assert!(!mayhem);
+        assert!(!cashback);
+        assert_eq!(creator_fee_bps, 250);
+        assert!(holder_reward);
     }
 }

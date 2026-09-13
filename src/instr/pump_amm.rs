@@ -314,6 +314,9 @@ fn parse_create_pool_instruction(
         coin_creator: read_pubkey(data, 18).unwrap_or_default(),
         is_mayhem_mode: read_bool(data, 50).unwrap_or_default(),
         is_cashback_coin: read_option_bool_idl(data, 51).unwrap_or_default(),
+        creator_fee_bps: read_option_u64_idl(data, 52).unwrap_or_default(),
+        can_edit_creator_fee: read_option_bool_idl(data, 60).unwrap_or_default(),
+        is_holder_reward: read_option_bool_idl(data, 61).unwrap_or_default(),
         ..Default::default()
     }))
 }

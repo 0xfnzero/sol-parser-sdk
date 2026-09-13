@@ -346,6 +346,8 @@ fn merge_pumpfun_trade(base: &mut PumpFunTradeEvent, inner: PumpFunTradeEvent) {
         put_u64_if_nonzero(&mut base.virtual_quote_reserves, inner.virtual_quote_reserves);
         put_u64_if_nonzero(&mut base.real_quote_reserves, inner.real_quote_reserves);
         base.is_cashback_coin |= inner.is_cashback_coin;
+        base.holder_rewards_bps = inner.holder_rewards_bps;
+        base.holder_rewards = inner.holder_rewards;
     } else {
         put_u64_if_nonzero(&mut base.fee, inner.fee);
         put_u64_if_nonzero(&mut base.creator_fee, inner.creator_fee);
@@ -369,6 +371,8 @@ fn merge_pumpfun_trade(base: &mut PumpFunTradeEvent, inner: PumpFunTradeEvent) {
         put_u64_if_nonzero(&mut base.quote_amount, inner.quote_amount);
         put_u64_if_nonzero(&mut base.virtual_quote_reserves, inner.virtual_quote_reserves);
         put_u64_if_nonzero(&mut base.real_quote_reserves, inner.real_quote_reserves);
+        put_u64_if_nonzero(&mut base.holder_rewards_bps, inner.holder_rewards_bps);
+        put_u64_if_nonzero(&mut base.holder_rewards, inner.holder_rewards);
         put_i64_if_nonzero(&mut base.timestamp, inner.timestamp);
         put_i64_if_nonzero(&mut base.last_update_timestamp, inner.last_update_timestamp);
         if !inner.ix_name.is_empty() {
@@ -445,6 +449,8 @@ fn merge_pumpfun_create(base: &mut PumpFunCreateTokenEvent, inner: PumpFunCreate
     put_pk_if_set(&mut base.quote_vault, inner.quote_vault);
     put_pk_if_set(&mut base.quote_token_program, inner.quote_token_program);
     put_u64_if_nonzero(&mut base.virtual_quote_reserves, inner.virtual_quote_reserves);
+    put_u64_if_nonzero(&mut base.creator_fee_bps, inner.creator_fee_bps);
+    base.is_holder_reward |= inner.is_holder_reward;
 }
 
 /// 合并 PumpFun CreateV2 事件
@@ -482,6 +488,8 @@ fn merge_pumpfun_create_v2(base: &mut PumpFunCreateV2TokenEvent, inner: PumpFunC
     put_pk_if_set(&mut base.event_authority, inner.event_authority);
     put_pk_if_set(&mut base.program, inner.program);
     put_pk_if_set(&mut base.observed_fee_recipient, inner.observed_fee_recipient);
+    put_u64_if_nonzero(&mut base.creator_fee_bps, inner.creator_fee_bps);
+    base.is_holder_reward |= inner.is_holder_reward;
 }
 
 /// 合并 PumpFun Migrate 事件
@@ -653,11 +661,15 @@ fn merge_pumpfun_create_log_preferred(
     fill_pk(&mut log.quote_vault, ix.quote_vault);
     fill_pk(&mut log.quote_token_program, ix.quote_token_program);
     put_u64_if_nonzero(&mut log.virtual_quote_reserves, ix.virtual_quote_reserves);
+    if log.creator_fee_bps == 0 {
+        log.creator_fee_bps = ix.creator_fee_bps;
+    }
     if log.ix_name.is_empty() && !ix.ix_name.is_empty() {
         log.ix_name = ix.ix_name;
     }
     log.is_mayhem_mode |= ix.is_mayhem_mode;
     log.is_cashback_enabled |= ix.is_cashback_enabled;
+    log.is_holder_reward |= ix.is_holder_reward;
 }
 
 #[inline]
@@ -684,11 +696,15 @@ fn merge_pumpfun_create_v2_into_create_log_preferred(
     fill_pk(&mut log.quote_vault, ix.quote_vault);
     fill_pk(&mut log.quote_token_program, ix.quote_token_program);
     put_u64_if_nonzero(&mut log.virtual_quote_reserves, ix.virtual_quote_reserves);
+    if log.creator_fee_bps == 0 {
+        log.creator_fee_bps = ix.creator_fee_bps;
+    }
     if log.ix_name.is_empty() && !ix.ix_name.is_empty() {
         log.ix_name = ix.ix_name;
     }
     log.is_mayhem_mode |= ix.is_mayhem_mode;
     log.is_cashback_enabled |= ix.is_cashback_enabled;
+    log.is_holder_reward |= ix.is_holder_reward;
 }
 
 #[inline]
@@ -715,11 +731,15 @@ fn merge_pumpfun_create_into_create_v2_log_preferred(
     fill_pk(&mut log.quote_vault, ix.quote_vault);
     fill_pk(&mut log.quote_token_program, ix.quote_token_program);
     put_u64_if_nonzero(&mut log.virtual_quote_reserves, ix.virtual_quote_reserves);
+    if log.creator_fee_bps == 0 {
+        log.creator_fee_bps = ix.creator_fee_bps;
+    }
     if log.ix_name.is_empty() && !ix.ix_name.is_empty() {
         log.ix_name = ix.ix_name;
     }
     log.is_mayhem_mode |= ix.is_mayhem_mode;
     log.is_cashback_enabled |= ix.is_cashback_enabled;
+    log.is_holder_reward |= ix.is_holder_reward;
 }
 
 #[inline]
@@ -738,6 +758,9 @@ fn merge_pumpfun_create_v2_log_preferred(
     fill_pk(&mut log.quote_vault, ix.quote_vault);
     fill_pk(&mut log.quote_token_program, ix.quote_token_program);
     put_u64_if_nonzero(&mut log.virtual_quote_reserves, ix.virtual_quote_reserves);
+    if log.creator_fee_bps == 0 {
+        log.creator_fee_bps = ix.creator_fee_bps;
+    }
     if log.ix_name.is_empty() && !ix.ix_name.is_empty() {
         log.ix_name = ix.ix_name;
     }
@@ -754,6 +777,7 @@ fn merge_pumpfun_create_v2_log_preferred(
     fill_pk(&mut log.event_authority, ix.event_authority);
     fill_pk(&mut log.program, ix.program);
     fill_pk(&mut log.observed_fee_recipient, ix.observed_fee_recipient);
+    log.is_holder_reward |= ix.is_holder_reward;
 }
 
 #[inline]
@@ -862,6 +886,11 @@ fn merge_pumpswap_create_pool_log_preferred(
     fill_pk(&mut log.coin_creator, ix.coin_creator);
     log.is_mayhem_mode |= ix.is_mayhem_mode;
     log.is_cashback_coin |= ix.is_cashback_coin;
+    if log.creator_fee_bps == 0 {
+        log.creator_fee_bps = ix.creator_fee_bps;
+    }
+    log.can_edit_creator_fee |= ix.can_edit_creator_fee;
+    log.is_holder_reward |= ix.is_holder_reward;
 }
 
 #[inline]
@@ -1162,6 +1191,8 @@ mod tests {
             token_amount: 2000,
             is_buy: true,
             user: Pubkey::new_unique(),
+            holder_rewards_bps: 300,
+            holder_rewards: 400,
             ..Default::default()
         });
 
@@ -1173,12 +1204,32 @@ mod tests {
             assert_eq!(trade.sol_amount, 1000);
             assert_eq!(trade.token_amount, 2000);
             assert!(trade.is_buy);
+            assert_eq!(trade.holder_rewards_bps, 300);
+            assert_eq!(trade.holder_rewards, 400);
             // 账户上下文保留
             assert_ne!(trade.bonding_curve, Pubkey::default());
             assert_ne!(trade.associated_bonding_curve, Pubkey::default());
         } else {
             panic!("Expected PumpFunTrade event");
         }
+    }
+
+    #[test]
+    fn merge_pumpfun_trade_non_leg_propagates_holder_rewards() {
+        let mut base = DexEvent::PumpFunTrade(PumpFunTradeEvent::default());
+        let inner = DexEvent::PumpFunTrade(PumpFunTradeEvent {
+            holder_rewards_bps: 300,
+            holder_rewards: 400,
+            ..Default::default()
+        });
+
+        merge_events(&mut base, inner);
+
+        let DexEvent::PumpFunTrade(trade) = base else {
+            panic!("expected PumpFunTrade event");
+        };
+        assert_eq!(trade.holder_rewards_bps, 300);
+        assert_eq!(trade.holder_rewards, 400);
     }
 
     #[test]
@@ -1384,5 +1435,43 @@ mod tests {
             }
             _ => panic!("variant preserved"),
         }
+    }
+
+    #[test]
+    fn pumpfun_create_merge_propagates_holder_rewards_fields() {
+        let mut base = DexEvent::PumpFunCreate(PumpFunCreateTokenEvent {
+            creator_fee_bps: 125,
+            ..Default::default()
+        });
+        let inner = DexEvent::PumpFunCreate(PumpFunCreateTokenEvent {
+            creator_fee_bps: 300,
+            is_holder_reward: true,
+            ..Default::default()
+        });
+
+        merge_events(&mut base, inner);
+
+        let DexEvent::PumpFunCreate(event) = base else { panic!("create") };
+        assert_eq!(event.creator_fee_bps, 300);
+        assert!(event.is_holder_reward);
+    }
+
+    #[test]
+    fn grpc_create_merge_keeps_log_fee_and_adds_instruction_holder_reward() {
+        let mut log = DexEvent::PumpFunCreate(PumpFunCreateTokenEvent {
+            creator_fee_bps: 300,
+            ..Default::default()
+        });
+        let instruction = DexEvent::PumpFunCreateV2(PumpFunCreateV2TokenEvent {
+            creator_fee_bps: 500,
+            is_holder_reward: true,
+            ..Default::default()
+        });
+
+        merge_grpc_instruction_into_log(&mut log, instruction);
+
+        let DexEvent::PumpFunCreate(event) = log else { panic!("create") };
+        assert_eq!(event.creator_fee_bps, 300);
+        assert!(event.is_holder_reward);
     }
 }

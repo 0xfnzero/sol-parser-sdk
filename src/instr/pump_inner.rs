@@ -298,6 +298,8 @@ fn parse_trade_event_inner_zero_copy(
             quote_amount,
             virtual_quote_reserves,
             real_quote_reserves,
+            holder_rewards_bps,
+            holder_rewards,
         ) = crate::logs::pump::read_trade_event_extensions(data, &mut offset)?;
 
         // Inner instruction 只包含日志数据，不含指令上下文账户；is_created_buy 由外层根据同 tx 是否含 create 传入
@@ -336,6 +338,8 @@ fn parse_trade_event_inner_zero_copy(
             quote_amount,
             virtual_quote_reserves,
             real_quote_reserves,
+            holder_rewards_bps,
+            holder_rewards,
             is_cashback_coin: cashback_fee_basis_points > 0,
             ..Default::default() // 其他账户字段由 instruction 提供
         };
@@ -458,6 +462,10 @@ fn parse_create_event_fields(data: &[u8], metadata: EventMetadata) -> Option<Dex
     let quote_mint = normalize_pumpfun_quote_mint(read_pubkey(data, offset).unwrap_or_default());
     offset += 32;
     let virtual_quote_reserves = read_u64_le(data, offset).unwrap_or_default();
+    offset += 8;
+    let creator_fee_bps = read_u64_le(data, offset).unwrap_or_default();
+    offset += 8;
+    let is_holder_reward = data.get(offset).copied().unwrap_or_default() == 1;
 
     Some(DexEvent::PumpFunCreate(PumpFunCreateTokenEvent {
         metadata,
@@ -478,6 +486,8 @@ fn parse_create_event_fields(data: &[u8], metadata: EventMetadata) -> Option<Dex
         is_cashback_enabled,
         quote_mint,
         virtual_quote_reserves,
+        creator_fee_bps,
+        is_holder_reward,
         ix_name: "create".to_string(),
         ..Default::default()
     }))
@@ -555,6 +565,12 @@ fn parse_create_event_inner_zero_copy(data: &[u8], metadata: EventMetadata) -> O
         offset += 32;
         let virtual_quote_reserves =
             if offset + 8 <= data.len() { read_u64_unchecked(data, offset) } else { 0 };
+        offset += 8;
+        let creator_fee_bps =
+            if offset + 8 <= data.len() { read_u64_unchecked(data, offset) } else { 0 };
+        offset += 8;
+        let is_holder_reward =
+            if offset < data.len() { read_bool_unchecked(data, offset) } else { false };
 
         Some(DexEvent::PumpFunCreate(PumpFunCreateTokenEvent {
             metadata,
@@ -575,6 +591,8 @@ fn parse_create_event_inner_zero_copy(data: &[u8], metadata: EventMetadata) -> O
             is_cashback_enabled,
             quote_mint,
             virtual_quote_reserves,
+            creator_fee_bps,
+            is_holder_reward,
             ix_name: "create".to_string(),
             ..Default::default()
         }))

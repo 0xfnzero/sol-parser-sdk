@@ -189,7 +189,7 @@ fn scan_create_mint_from_ix(
     push_unique_mint(created_mints, mint);
     if disc == discriminators::CREATE_V2 {
         let is_mayhem = crate::instr::utils::parse_create_v2_tail_fields(&data[8..])
-            .map(|(_, m, _)| m)
+            .map(|(_, m, _, _, _)| m)
             .unwrap_or(false);
         if is_mayhem {
             push_unique_mint(mayhem_mints, mint);
@@ -221,7 +221,7 @@ fn scan_create_mint_from_unknown_program_ix(
     push_unique_mint(created_mints, mint);
     if disc == discriminators::CREATE_V2 {
         let is_mayhem = crate::instr::utils::parse_create_v2_tail_fields(&data[8..])
-            .map(|(_, m, _)| m)
+            .map(|(_, m, _, _, _)| m)
             .unwrap_or(false);
         if is_mayhem {
             push_unique_mint(mayhem_mints, mint);
@@ -773,6 +773,14 @@ fn parse_create_v2_instruction(
     let is_mayhem_mode = read_bool(payload, offset).unwrap_or(false);
     offset += 1;
     let is_cashback_enabled = read_option_bool_idl(payload, offset).unwrap_or(false);
+    if offset < payload.len() {
+        offset += 1;
+    }
+    let creator_fee_bps = read_u64_le(payload, offset).unwrap_or_default();
+    if offset + 8 <= payload.len() {
+        offset += 8;
+    }
+    let is_holder_reward = read_option_bool_idl(payload, offset).unwrap_or_default();
 
     let mint = get_account(0)?;
     let bonding_curve = get_account(2).unwrap_or_default();
@@ -815,6 +823,8 @@ fn parse_create_v2_instruction(
         program: get_account(15).unwrap_or_default(),
         is_mayhem_mode,
         is_cashback_enabled,
+        creator_fee_bps,
+        is_holder_reward,
         quote_mint,
         quote_vault,
         quote_token_program,

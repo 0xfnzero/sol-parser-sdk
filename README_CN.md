@@ -113,16 +113,23 @@ sol-parser-sdk = { path = "../sol-parser-sdk", default-features = false, feature
 
 ```toml
 # 在 Cargo.toml 中添加
-sol-parser-sdk = "0.7.2"
+sol-parser-sdk = "0.7.3"
 ```
 
 或使用零拷贝解析器（最高性能）：
 
 ```toml
-sol-parser-sdk = { version = "0.7.2", default-features = false, features = ["parse-zero-copy"] }
+sol-parser-sdk = { version = "0.7.3", default-features = false, features = ["parse-zero-copy"] }
 ```
 
 ### 发布说明
+
+#### v0.7.3
+
+- 将内置 PumpFun、PumpSwap 与 Pump Fees IDL 同步到 `pump-public-docs` 当前官方定义。
+- 在 instruction、log、account、RPC、gRPC 与 ShredStream 解析链路中补齐 creator fee、holder reward、quote、cashback、buyback 和池配置字段。
+- 修复 outer instruction 与 event-CPI 合并时 PumpFun holder reward 数值丢失，并保持多语言事件 schema 一致。
+- 拒绝已知 PumpSwap trade 与 CreatePool 字段的截断尾部，同时继续兼容完整历史布局和未来追加字段。
 
 #### v0.7.2
 

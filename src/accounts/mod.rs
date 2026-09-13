@@ -409,6 +409,15 @@ fn parse_pumpfun_account(account: &AccountData, metadata: EventMetadata) -> Opti
     }
     if has_discriminator(&account.data, BONDING_CURVE_DISCRIMINATOR) {
         let data = &account.data[8..];
+        const LEGACY_BODY_LEN: usize = 107;
+        const CREATOR_FEE_BODY_LEN: usize = 116;
+        const HOLDER_REWARD_BODY_LEN: usize = 117;
+        if data.len() != LEGACY_BODY_LEN
+            && data.len() != CREATOR_FEE_BODY_LEN
+            && data.len() < HOLDER_REWARD_BODY_LEN
+        {
+            return None;
+        }
         let mut offset = 0usize;
         let virtual_token_reserves = read_u64_le(data, offset)?;
         offset += 8;
@@ -429,6 +438,12 @@ fn parse_pumpfun_account(account: &AccountData, metadata: EventMetadata) -> Opti
         let is_cashback_coin = read_u8(data, offset)? != 0;
         offset += 1;
         let quote_mint = read_pubkey(data, offset)?;
+        offset += 32;
+        let creator_fee_bps = read_u64_le(data, offset).unwrap_or_default();
+        offset += 8;
+        let can_edit_creator_fee = read_u8(data, offset).unwrap_or_default() != 0;
+        offset += 1;
+        let is_holder_reward = read_u8(data, offset).unwrap_or_default() != 0;
 
         return Some(DexEvent::PumpFunBondingCurveAccount(PumpFunBondingCurveAccountEvent {
             metadata,
@@ -444,6 +459,9 @@ fn parse_pumpfun_account(account: &AccountData, metadata: EventMetadata) -> Opti
                 is_mayhem_mode,
                 is_cashback_coin,
                 quote_mint,
+                creator_fee_bps,
+                can_edit_creator_fee,
+                is_holder_reward,
             },
         }));
     }
@@ -591,6 +609,9 @@ mod tests {
         data.push(1);
         data.push(0);
         let quote_mint = push_pk(&mut data, 8);
+        data.extend_from_slice(&250u64.to_le_bytes());
+        data.push(1);
+        data.push(1);
         let account = AccountData {
             pubkey: Pubkey::new_unique(),
             executable: false,
@@ -612,9 +633,22 @@ mod tests {
                 assert!(e.bonding_curve.complete);
                 assert!(e.bonding_curve.is_mayhem_mode);
                 assert!(!e.bonding_curve.is_cashback_coin);
+                assert_eq!(e.bonding_curve.creator_fee_bps, 250);
+                assert!(e.bonding_curve.can_edit_creator_fee);
+                assert!(e.bonding_curve.is_holder_reward);
             }
             other => panic!("expected bonding curve account, got {other:?}"),
         }
+
+        for body_len in 108..116 {
+            let mut partial = account.clone();
+            partial.data.truncate(8 + body_len);
+            assert!(parse_account_unified(&partial, metadata(), Some(&filter)).is_none());
+        }
+
+        let mut creator_fee_layout = account.clone();
+        creator_fee_layout.data.truncate(8 + 116);
+        assert!(parse_account_unified(&creator_fee_layout, metadata(), Some(&filter)).is_some());
     }
 
     #[test]

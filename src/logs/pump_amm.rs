@@ -149,6 +149,8 @@ struct PumpSwapTradeTail {
     virtual_quote_reserves: i128,
     can_boost: bool,
     base_supply: u64,
+    holder_rewards_bps: u64,
+    holder_rewards: u64,
 }
 
 #[inline(always)]
@@ -178,6 +180,7 @@ fn parse_trade_tail(data: &[u8]) -> Option<PumpSwapTradeTail> {
     const CASHBACK_LEN: usize = 16;
     const BUYBACK_LEN: usize = 32;
     const BOOST_LEN: usize = 57;
+    const HOLDER_REWARDS_LEN: usize = 73;
 
     if data.is_empty() {
         return Some(PumpSwapTradeTail::default());
@@ -214,6 +217,13 @@ fn parse_trade_tail(data: &[u8]) -> Option<PumpSwapTradeTail> {
         _ => return None,
     };
     tail.base_supply = read_u64_le_at(data, 49)?;
+    if data.len() != BOOST_LEN && data.len() < HOLDER_REWARDS_LEN {
+        return None;
+    }
+    if data.len() >= HOLDER_REWARDS_LEN {
+        tail.holder_rewards_bps = read_u64_le_at(data, 57)?;
+        tail.holder_rewards = read_u64_le_at(data, 65)?;
+    }
     Some(tail)
 }
 
@@ -360,8 +370,11 @@ fn parse_create_pool_event_optimized(
 ) -> Option<DexEvent> {
     // 一次性边界检查 (含 IDL 最后一列 is_mayhem_mode: bool)
     const CREATE_POOL_EVENT_LEN: usize = 326;
+    const CREATOR_FEE_EVENT_LEN: usize = 335;
     const REQUIRED_LEN: usize = CREATE_POOL_EVENT_LEN;
-    if data.len() < REQUIRED_LEN {
+    if data.len() < REQUIRED_LEN
+        || (data.len() != CREATE_POOL_EVENT_LEN && data.len() < CREATOR_FEE_EVENT_LEN)
+    {
         return None;
     }
 
@@ -392,6 +405,9 @@ fn parse_create_pool_event_optimized(
         let user_quote_token_account = read_pubkey_unchecked(data, 261);
         let coin_creator = read_pubkey_unchecked(data, 293);
         let is_mayhem_mode = read_bool_unchecked(data, 325);
+        let creator_fee_bps = if data.len() >= 334 { read_u64_unchecked(data, 326) } else { 0 };
+        let can_edit_creator_fee = data.len() > 334 && read_bool_unchecked(data, 334);
+        let is_holder_reward = data.len() > 335 && read_bool_unchecked(data, 335);
 
         let metadata = EventMetadata {
             signature,
@@ -426,6 +442,9 @@ fn parse_create_pool_event_optimized(
             coin_creator,
             is_mayhem_mode,
             is_cashback_coin: false,
+            creator_fee_bps,
+            can_edit_creator_fee,
+            is_holder_reward,
         }))
     }
 }
@@ -678,6 +697,8 @@ pub fn parse_buy_from_data(data: &[u8], metadata: EventMetadata) -> Option<DexEv
             virtual_quote_reserves: tail.virtual_quote_reserves,
             can_boost: tail.can_boost,
             base_supply: tail.base_supply,
+            holder_rewards_bps: tail.holder_rewards_bps,
+            holder_rewards: tail.holder_rewards,
             ..Default::default()
         }))
     }
@@ -753,6 +774,8 @@ pub fn parse_sell_from_data(data: &[u8], metadata: EventMetadata) -> Option<DexE
             virtual_quote_reserves: tail.virtual_quote_reserves,
             can_boost: tail.can_boost,
             base_supply: tail.base_supply,
+            holder_rewards_bps: tail.holder_rewards_bps,
+            holder_rewards: tail.holder_rewards,
             ..Default::default()
         }))
     }
@@ -762,8 +785,11 @@ pub fn parse_sell_from_data(data: &[u8], metadata: EventMetadata) -> Option<DexE
 #[inline(always)]
 pub fn parse_create_pool_from_data(data: &[u8], metadata: EventMetadata) -> Option<DexEvent> {
     const CREATE_POOL_EVENT_LEN: usize = 326;
+    const CREATOR_FEE_EVENT_LEN: usize = 335;
     const REQUIRED_LEN: usize = CREATE_POOL_EVENT_LEN;
-    if data.len() < REQUIRED_LEN {
+    if data.len() < REQUIRED_LEN
+        || (data.len() != CREATE_POOL_EVENT_LEN && data.len() < CREATOR_FEE_EVENT_LEN)
+    {
         return None;
     }
 
@@ -794,6 +820,9 @@ pub fn parse_create_pool_from_data(data: &[u8], metadata: EventMetadata) -> Opti
         let user_quote_token_account = read_pubkey_unchecked(data, 261);
         let coin_creator = read_pubkey_unchecked(data, 293);
         let is_mayhem_mode = data.len() > 325 && read_bool_unchecked(data, 325);
+        let creator_fee_bps = if data.len() >= 334 { read_u64_unchecked(data, 326) } else { 0 };
+        let can_edit_creator_fee = data.len() > 334 && read_bool_unchecked(data, 334);
+        let is_holder_reward = data.len() > 335 && read_bool_unchecked(data, 335);
 
         Some(DexEvent::PumpSwapCreatePool(PumpSwapCreatePoolEvent {
             metadata,
@@ -819,6 +848,9 @@ pub fn parse_create_pool_from_data(data: &[u8], metadata: EventMetadata) -> Opti
             coin_creator,
             is_mayhem_mode,
             is_cashback_coin: false,
+            creator_fee_bps,
+            can_edit_creator_fee,
+            is_holder_reward,
         }))
     }
 }
@@ -975,6 +1007,8 @@ mod tests {
         data.extend_from_slice(&(-987_654_321i128).to_le_bytes());
         data.push(1); // can_boost
         data.extend_from_slice(&222u64.to_le_bytes()); // base_supply
+        data.extend_from_slice(&233u64.to_le_bytes()); // holder_rewards_bps
+        data.extend_from_slice(&244u64.to_le_bytes()); // holder_rewards
     }
 
     fn append_buyback_trade_tail(data: &mut Vec<u8>) {
@@ -1059,6 +1093,9 @@ mod tests {
         write_pubkey(&mut data, 261, Pubkey::new_from_array([7; 32]));
         write_pubkey(&mut data, 293, Pubkey::new_from_array([8; 32]));
         data[325] = u8::from(is_mayhem_mode);
+        data.extend_from_slice(&250u64.to_le_bytes());
+        data.push(1);
+        data.push(1);
 
         data
     }
@@ -1118,7 +1155,11 @@ mod tests {
         assert_eq!(event.buyback_fee, 211);
         assert_eq!(event.virtual_quote_reserves, -987_654_321);
         assert!(event.can_boost);
+        assert_eq!(event.holder_rewards_bps, 233);
+        assert_eq!(event.holder_rewards, 244);
         assert_eq!(event.base_supply, 222);
+        assert_eq!(event.holder_rewards_bps, 233);
+        assert_eq!(event.holder_rewards, 244);
     }
 
     #[test]
@@ -1247,9 +1288,9 @@ mod tests {
 
     #[test]
     fn trade_tail_accepts_only_complete_layouts() {
-        for len in 0..=64 {
+        for len in 0..=80 {
             let tail = vec![0u8; len];
-            let expected = matches!(len, 0 | 16 | 32 | 57..=64);
+            let expected = matches!(len, 0 | 16 | 32 | 57 | 73..=80);
             assert_eq!(parse_trade_tail(&tail).is_some(), expected, "tail length {len}");
         }
 
@@ -1311,7 +1352,7 @@ mod tests {
     }
 
     #[test]
-    fn parse_create_pool_from_data_reads_mayhem_mode() {
+    fn parse_create_pool_from_data_reads_current_fields() {
         let event = parse_create_pool_from_data(&build_create_pool_payload(true), metadata())
             .expect("expected pumpswap create pool event");
 
@@ -1322,5 +1363,20 @@ mod tests {
         assert_eq!(event.index, 42);
         assert!(event.is_mayhem_mode);
         assert!(!event.is_cashback_coin);
+        assert_eq!(event.creator_fee_bps, 250);
+        assert!(event.can_edit_creator_fee);
+        assert!(event.is_holder_reward);
+    }
+
+    #[test]
+    fn parse_create_pool_accepts_only_complete_layouts() {
+        for len in 326..=336 {
+            let expected = len == 326 || len >= 335;
+            assert_eq!(
+                parse_create_pool_from_data(&vec![0u8; len], metadata()).is_some(),
+                expected,
+                "create pool length {len}"
+            );
+        }
     }
 }

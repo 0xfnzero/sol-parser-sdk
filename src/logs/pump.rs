@@ -127,7 +127,7 @@ pub unsafe fn read_u16_unchecked(data: &[u8], offset: usize) -> u16 {
 }
 
 const MAX_TRADE_SHAREHOLDERS: usize = 64;
-type TradeEventExtensions = (u64, u64, Vec<PumpFeesShareholder>, Pubkey, u64, u64, u64);
+type TradeEventExtensions = (u64, u64, Vec<PumpFeesShareholder>, Pubkey, u64, u64, u64, u64, u64);
 
 #[inline(always)]
 unsafe fn read_optional_u64(data: &[u8], offset: &mut usize) -> u64 {
@@ -191,6 +191,8 @@ pub(crate) unsafe fn read_trade_event_extensions(
     let quote_amount = read_optional_u64(data, offset);
     let virtual_quote_reserves = read_optional_u64(data, offset);
     let real_quote_reserves = read_optional_u64(data, offset);
+    let holder_rewards_bps = read_optional_u64(data, offset);
+    let holder_rewards = read_optional_u64(data, offset);
     Some((
         buyback_fee_basis_points,
         buyback_fee,
@@ -199,6 +201,8 @@ pub(crate) unsafe fn read_trade_event_extensions(
         quote_amount,
         virtual_quote_reserves,
         real_quote_reserves,
+        holder_rewards_bps,
+        holder_rewards,
     ))
 }
 
@@ -419,6 +423,12 @@ fn parse_create_event_optimized(
         offset += 32;
         let virtual_quote_reserves =
             if offset + 8 <= data.len() { read_u64_unchecked(data, offset) } else { 0 };
+        offset += 8;
+        let creator_fee_bps =
+            if offset + 8 <= data.len() { read_u64_unchecked(data, offset) } else { 0 };
+        offset += 8;
+        let is_holder_reward =
+            if offset < data.len() { read_bool_unchecked(data, offset) } else { false };
 
         let metadata = EventMetadata {
             signature,
@@ -450,6 +460,8 @@ fn parse_create_event_optimized(
             is_cashback_enabled,
             quote_mint,
             virtual_quote_reserves,
+            creator_fee_bps,
+            is_holder_reward,
             ix_name: "create".to_string(),
             ..Default::default()
         }))
@@ -582,6 +594,8 @@ fn parse_trade_event_optimized(
             quote_amount,
             virtual_quote_reserves,
             real_quote_reserves,
+            holder_rewards_bps,
+            holder_rewards,
         ) = read_trade_event_extensions(data, &mut offset)?;
 
         let metadata = EventMetadata {
@@ -628,6 +642,8 @@ fn parse_trade_event_optimized(
             quote_amount,
             virtual_quote_reserves,
             real_quote_reserves,
+            holder_rewards_bps,
+            holder_rewards,
             is_cashback_coin: cashback_fee_basis_points > 0,
             amount: 0,
             max_sol_cost: 0,
@@ -912,6 +928,8 @@ pub fn parse_trade_from_data(
             quote_amount,
             virtual_quote_reserves,
             real_quote_reserves,
+            holder_rewards_bps,
+            holder_rewards,
         ) = read_trade_event_extensions(data, &mut offset)?;
 
         let trade_event = PumpFunTradeEvent {
@@ -949,6 +967,8 @@ pub fn parse_trade_from_data(
             quote_amount,
             virtual_quote_reserves,
             real_quote_reserves,
+            holder_rewards_bps,
+            holder_rewards,
             is_cashback_coin: cashback_fee_basis_points > 0,
             amount: 0,
             max_sol_cost: 0,
@@ -1099,6 +1119,12 @@ pub fn parse_create_from_data(data: &[u8], metadata: EventMetadata) -> Option<De
         offset += 32;
         let virtual_quote_reserves =
             if offset + 8 <= data.len() { read_u64_unchecked(data, offset) } else { 0 };
+        offset += 8;
+        let creator_fee_bps =
+            if offset + 8 <= data.len() { read_u64_unchecked(data, offset) } else { 0 };
+        offset += 8;
+        let is_holder_reward =
+            if offset < data.len() { read_bool_unchecked(data, offset) } else { false };
 
         Some(DexEvent::PumpFunCreate(PumpFunCreateTokenEvent {
             metadata,
@@ -1119,6 +1145,8 @@ pub fn parse_create_from_data(data: &[u8], metadata: EventMetadata) -> Option<De
             is_cashback_enabled,
             quote_mint,
             virtual_quote_reserves,
+            creator_fee_bps,
+            is_holder_reward,
             ix_name: "create".to_string(),
             ..Default::default()
         }))

@@ -35,7 +35,9 @@ pub const GLOBAL_CONFIG_SIZE: usize = 32 + 8 + 8 + 1 + 32 * 8 + 8 + 32;
 /// - 1   byte  is_cashback_coin
 /// - 16  bytes virtual_quote_reserves (current layout only)
 pub const POOL_LEGACY_SIZE: usize = 244;
-pub const POOL_SIZE: usize = 253;
+pub const POOL_BOOST_SIZE: usize = 253;
+pub const POOL_CREATOR_FEE_SIZE: usize = 262;
+pub const POOL_SIZE: usize = 263;
 
 /// 解析 PumpSwap Global Config 账户
 ///
@@ -139,7 +141,12 @@ pub fn parse_pool(account: &AccountData, metadata: EventMetadata) -> Option<DexE
     if account.data.len() < POOL_LEGACY_SIZE + 8 {
         return None;
     }
-    if account.data.len() != POOL_LEGACY_SIZE + 8 && account.data.len() < POOL_SIZE + 8 {
+    let body_len = account.data.len() - 8;
+    if body_len != POOL_LEGACY_SIZE
+        && body_len != POOL_BOOST_SIZE
+        && body_len != POOL_CREATOR_FEE_SIZE
+        && body_len < POOL_SIZE
+    {
         return None;
     }
 
@@ -192,6 +199,13 @@ pub fn parse_pool(account: &AccountData, metadata: EventMetadata) -> Option<DexE
         .get(offset..offset + 16)
         .map(|bytes| i128::from_le_bytes(bytes.try_into().expect("checked i128 slice")))
         .unwrap_or_default();
+    offset += 16;
+
+    let creator_fee_bps = read_u64_le(data, offset).unwrap_or_default();
+    offset += 8;
+    let can_edit_creator_fee = read_u8(data, offset).unwrap_or_default() != 0;
+    offset += 1;
+    let is_holder_reward = read_u8(data, offset).unwrap_or_default() != 0;
 
     let pool = PumpSwapPool {
         pool_bump,
@@ -207,6 +221,9 @@ pub fn parse_pool(account: &AccountData, metadata: EventMetadata) -> Option<DexE
         is_mayhem_mode,
         is_cashback_coin,
         virtual_quote_reserves,
+        creator_fee_bps,
+        can_edit_creator_fee,
+        is_holder_reward,
     };
 
     Some(DexEvent::PumpSwapPoolAccount(PumpSwapPoolAccountEvent {
@@ -276,8 +293,8 @@ mod tests {
     }
 
     #[test]
-    fn parse_current_261_byte_pool_reads_virtual_reserves() {
-        let account = pool_account(Some(-987_654_321), 8 + POOL_SIZE);
+    fn parse_boost_261_byte_pool_reads_virtual_reserves() {
+        let account = pool_account(Some(-987_654_321), 8 + POOL_BOOST_SIZE);
         let pool = parsed_pool(&account);
 
         assert_eq!(account.data.len(), 261);
@@ -288,6 +305,36 @@ mod tests {
         assert!(pool.is_mayhem_mode);
         assert!(pool.is_cashback_coin);
         assert_eq!(pool.virtual_quote_reserves, -987_654_321);
+        assert_eq!(pool.creator_fee_bps, 0);
+        assert!(!pool.can_edit_creator_fee);
+        assert!(!pool.is_holder_reward);
+    }
+
+    #[test]
+    fn parse_current_271_byte_pool_reads_creator_fee_fields() {
+        let mut account = pool_account(Some(-987_654_321), 8 + POOL_SIZE);
+        account.data[261..269].copy_from_slice(&250u64.to_le_bytes());
+        account.data[269] = 1;
+        account.data[270] = 1;
+        let pool = parsed_pool(&account);
+
+        assert_eq!(account.data.len(), 271);
+        assert_eq!(pool.virtual_quote_reserves, -987_654_321);
+        assert_eq!(pool.creator_fee_bps, 250);
+        assert!(pool.can_edit_creator_fee);
+        assert!(pool.is_holder_reward);
+    }
+
+    #[test]
+    fn parse_creator_fee_270_byte_pool_defaults_holder_reward() {
+        let mut account = pool_account(Some(-987_654_321), 8 + POOL_CREATOR_FEE_SIZE);
+        account.data[261..269].copy_from_slice(&250u64.to_le_bytes());
+        account.data[269] = 1;
+        let pool = parsed_pool(&account);
+
+        assert_eq!(pool.creator_fee_bps, 250);
+        assert!(pool.can_edit_creator_fee);
+        assert!(!pool.is_holder_reward);
     }
 
     #[test]
@@ -309,8 +356,8 @@ mod tests {
 
     #[test]
     fn parse_pool_rejects_partial_current_layout() {
-        for allocated_len in 253..261 {
-            let account = pool_account(Some(987_654_321), allocated_len);
+        for body_len in (245..253).chain(254..262) {
+            let account = pool_account(Some(987_654_321), 8 + body_len);
             assert!(parse_pool(&account, EventMetadata::default()).is_none());
         }
     }

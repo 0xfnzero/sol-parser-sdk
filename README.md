@@ -113,16 +113,23 @@ sol-parser-sdk = { path = "../sol-parser-sdk", default-features = false, feature
 
 ```toml
 # Add to your Cargo.toml
-sol-parser-sdk = "0.7.2"
+sol-parser-sdk = "0.7.3"
 ```
 
 Or with the zero-copy parser (maximum performance):
 
 ```toml
-sol-parser-sdk = { version = "0.7.2", default-features = false, features = ["parse-zero-copy"] }
+sol-parser-sdk = { version = "0.7.3", default-features = false, features = ["parse-zero-copy"] }
 ```
 
 ### Release Notes
+
+#### v0.7.3
+
+- Syncs the vendored PumpFun, PumpSwap, and Pump Fees IDLs with the current official `pump-public-docs` definitions.
+- Adds current creator-fee, holder-reward, quote, cashback, buyback, and pool configuration fields across instruction, log, account, RPC, gRPC, and ShredStream parsing paths.
+- Preserves PumpFun holder-reward values when merging outer instructions with event-CPI data and keeps the multi-language event schema aligned.
+- Rejects truncated known PumpSwap trade and CreatePool tails while retaining complete historical layouts and forward-compatible appended fields.
 
 #### v0.7.2
 

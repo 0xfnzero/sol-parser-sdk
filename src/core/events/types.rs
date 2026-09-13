@@ -223,6 +223,12 @@ pub struct PumpFunTradeEvent {
     pub quote_amount: u64,
     pub virtual_quote_reserves: u64,
     pub real_quote_reserves: u64,
+    /// Holder rewards fee rate. Zero for regular coins and legacy events.
+    #[serde(default)]
+    pub holder_rewards_bps: u64,
+    /// Holder rewards amount. Zero for regular coins and legacy events.
+    #[serde(default)]
+    pub holder_rewards: u64,
     /// 是否返现代币（由 cashback_fee_basis_points > 0 推导，供 sol-trade-sdk 等构造 sell 指令用）
     #[borsh(skip)]
     pub is_cashback_coin: bool,
@@ -524,6 +530,12 @@ pub struct PumpFunCreateTokenEvent {
     /// Initial virtual quote reserves. For SOL pools this is the SOL-side reserve;
     /// for USDC pools this is the USDC-side reserve.
     pub virtual_quote_reserves: u64,
+    /// Coin-specific creator fee rate. Zero means the standard fee schedule.
+    #[serde(default)]
+    pub creator_fee_bps: u64,
+    /// Whether creator fees are distributed to holders.
+    #[serde(default)]
+    pub is_holder_reward: bool,
     /// Original PumpFun instruction name: `"create"` or `"create_v2"`.
     #[borsh(skip)]
     pub ix_name: String,
@@ -585,6 +597,10 @@ pub struct PumpFunCreateV2TokenEvent {
     pub quote_token_program: Pubkey,
     #[borsh(skip)]
     pub virtual_quote_reserves: u64,
+    #[serde(default)]
+    pub creator_fee_bps: u64,
+    #[serde(default)]
+    pub is_holder_reward: bool,
     /// Original PumpFun instruction name: `"create"` or `"create_v2"`.
     #[borsh(skip)]
     pub ix_name: String,
@@ -699,6 +715,10 @@ pub struct PumpSwapBuyEvent {
     pub can_boost: bool,
     #[serde(default)]
     pub base_supply: u64,
+    #[serde(default)]
+    pub holder_rewards_bps: u64,
+    #[serde(default)]
+    pub holder_rewards: u64,
 
     // === 额外的信息 ===
     #[borsh(skip)]
@@ -772,6 +792,10 @@ pub struct PumpSwapSellEvent {
     pub can_boost: bool,
     #[serde(default)]
     pub base_supply: u64,
+    #[serde(default)]
+    pub holder_rewards_bps: u64,
+    #[serde(default)]
+    pub holder_rewards: u64,
 
     // === 额外的信息 ===
     #[borsh(skip)]
@@ -832,6 +856,15 @@ pub struct PumpSwapCreatePoolEvent {
     /// not carry this value, so log-only parses keep the default `false`.
     #[serde(default)]
     pub is_cashback_coin: bool,
+    /// Coin-specific creator fee rate carried over from the bonding curve.
+    #[serde(default)]
+    pub creator_fee_bps: u64,
+    /// Reserved by the program; currently always false.
+    #[serde(default)]
+    pub can_edit_creator_fee: bool,
+    /// Whether creator fees are distributed to holders.
+    #[serde(default)]
+    pub is_holder_reward: bool,
 }
 
 /// PumpSwap Pool Created Event - 指令解析版本
@@ -1749,6 +1782,12 @@ pub struct PumpSwapPool {
     /// Added by the PumpSwap boost upgrade. Legacy pools decode this as zero.
     #[serde(default)]
     pub virtual_quote_reserves: i128,
+    #[serde(default)]
+    pub creator_fee_bps: u64,
+    #[serde(default)]
+    pub can_edit_creator_fee: bool,
+    #[serde(default)]
+    pub is_holder_reward: bool,
 }
 
 /// PumpFun Bonding Curve Account Event
@@ -1771,6 +1810,12 @@ pub struct PumpFunBondingCurve {
     pub is_mayhem_mode: bool,
     pub is_cashback_coin: bool,
     pub quote_mint: Pubkey,
+    #[serde(default)]
+    pub creator_fee_bps: u64,
+    #[serde(default)]
+    pub can_edit_creator_fee: bool,
+    #[serde(default)]
+    pub is_holder_reward: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

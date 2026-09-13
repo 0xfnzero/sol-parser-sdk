@@ -813,6 +813,8 @@ mod tests {
                     quote_vault: e.quote_vault,
                     quote_token_program: e.quote_token_program,
                     virtual_quote_reserves: e.virtual_quote_reserves,
+                    creator_fee_bps: e.creator_fee_bps,
+                    is_holder_reward: e.is_holder_reward,
                     ix_name: e.ix_name.clone(),
                     is_mayhem_mode: e.is_mayhem_mode,
                     is_cashback_enabled: e.is_cashback_enabled,
