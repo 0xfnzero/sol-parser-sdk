@@ -373,7 +373,7 @@ pub fn parse_instruction_unified(
             event_type_filter,
         );
     }
-    // RaydiumLaunchlab / Raydium LaunchLab
+    // RaydiumLaunchlab / LaunchLab
     else if *program_id == RAYDIUM_LAUNCHLAB_PROGRAM_ID {
         if event_type_filter.is_some() && !event_type_filter.unwrap().includes_raydium_launchlab() {
             return None;

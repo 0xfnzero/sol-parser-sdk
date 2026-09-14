@@ -77,7 +77,9 @@ pub static PROTOCOL_PROGRAM_IDS: Lazy<HashMap<Protocol, Vec<&'static str>>> = La
     map.insert(Protocol::PumpFun, vec![PUMPFUN_PROGRAM_ID]);
     map.insert(Protocol::PumpSwap, vec![PUMPSWAP_PROGRAM_ID]);
     map.insert(Protocol::PumpFees, vec![PUMPSWAP_FEES_PROGRAM_ID]);
-    map.insert(Protocol::RaydiumLaunchlab, vec![RAYDIUM_LAUNCHLAB_PROGRAM_ID]);
+    for protocol in [Protocol::LaunchLab, Protocol::StonkFun, Protocol::RaydiumLaunchlab] {
+        map.insert(protocol, vec![RAYDIUM_LAUNCHLAB_PROGRAM_ID]);
+    }
     map.insert(Protocol::RaydiumCpmm, vec![RAYDIUM_CPMM_PROGRAM_ID]);
     map.insert(Protocol::RaydiumClmm, vec![RAYDIUM_CLMM_PROGRAM_ID]);
     map.insert(Protocol::RaydiumAmmV4, vec![RAYDIUM_AMM_V4_PROGRAM_ID]);

@@ -1,4 +1,4 @@
-//! Raydium LaunchLab 日志解析器
+//! LaunchLab 日志解析器
 //!
 //! 底层按 `idls/raydium_launchpad.json` 的真实 event discriminator 和 Borsh
 //! 布局解析，对外事件名统一为 `RaydiumLaunchlab*`。
@@ -7,7 +7,7 @@ use super::utils::*;
 use crate::core::events::*;
 use solana_sdk::{pubkey::Pubkey, signature::Signature};
 
-/// Raydium LaunchLab event discriminators from `idls/raydium_launchpad.json`.
+/// LaunchLab event discriminators from `idls/raydium_launchpad.json`.
 pub mod discriminators {
     pub const CLAIM_VESTED: [u8; 8] = [21, 194, 114, 87, 120, 211, 226, 32];
     pub const CREATE_VESTING: [u8; 8] = [150, 152, 11, 179, 52, 210, 191, 125];
@@ -15,16 +15,16 @@ pub mod discriminators {
     pub const TRADE: [u8; 8] = [189, 219, 127, 211, 78, 230, 97, 238];
 }
 
-/// Raydium LaunchLab 程序 ID
+/// LaunchLab 程序 ID
 pub const PROGRAM_ID: &str = "LanMV9sAd7wArD4vJFi2qDdfnVhFxYSUg6eADduJ3uj";
 
-/// 检查日志是否来自 Raydium LaunchLab 程序
+/// 检查日志是否来自 LaunchLab 程序
 pub fn is_raydium_launchlab_log(log: &str) -> bool {
     log.contains(&format!("Program {} invoke", PROGRAM_ID))
         || log.contains(&format!("Program {} success", PROGRAM_ID))
 }
 
-/// 主要的 Raydium LaunchLab 日志解析函数
+/// 主要的 LaunchLab 日志解析函数
 pub fn parse_log(
     log: &str,
     signature: Signature,
@@ -56,7 +56,7 @@ pub fn parse_log(
     }
 }
 
-/// Parse Raydium LaunchLab TradeEvent from pre-decoded event data.
+/// Parse LaunchLab TradeEvent from pre-decoded event data.
 #[inline]
 pub fn parse_trade_from_data(data: &[u8], metadata: EventMetadata) -> Option<DexEvent> {
     const TRADE_EVENT_LEN: usize = 32 + 13 * 8 + 3;
@@ -65,8 +65,19 @@ pub fn parse_trade_from_data(data: &[u8], metadata: EventMetadata) -> Option<Dex
     }
 
     let pool_state = read_pubkey(data, 0)?;
+    let total_base_sell = read_u64_le(data, 32)?;
+    let virtual_base = read_u64_le(data, 40)?;
+    let virtual_quote = read_u64_le(data, 48)?;
+    let real_base_before = read_u64_le(data, 56)?;
+    let real_quote_before = read_u64_le(data, 64)?;
+    let real_base_after = read_u64_le(data, 72)?;
+    let real_quote_after = read_u64_le(data, 80)?;
     let amount_in = read_u64_le(data, 88)?;
     let amount_out = read_u64_le(data, 96)?;
+    let protocol_fee = read_u64_le(data, 104)?;
+    let platform_fee = read_u64_le(data, 112)?;
+    let creator_fee = read_u64_le(data, 120)?;
+    let share_fee = read_u64_le(data, 128)?;
     let trade_direction = *data.get(136)?;
     if trade_direction > 1 {
         return None;
@@ -81,6 +92,12 @@ pub fn parse_trade_from_data(data: &[u8], metadata: EventMetadata) -> Option<Dex
     }
     let exact_in = exact_in_raw == 1;
     let is_buy = trade_direction == 0;
+    let pool_status = match pool_status {
+        0 => RaydiumLaunchlabPoolStatus::Fund,
+        1 => RaydiumLaunchlabPoolStatus::Migrate,
+        2 => RaydiumLaunchlabPoolStatus::Trade,
+        _ => return None,
+    };
 
     Some(DexEvent::RaydiumLaunchlabTrade(RaydiumLaunchlabTradeEvent {
         metadata,
@@ -89,7 +106,19 @@ pub fn parse_trade_from_data(data: &[u8], metadata: EventMetadata) -> Option<Dex
         amount_in,
         amount_out,
         is_buy,
+        total_base_sell,
+        virtual_base,
+        virtual_quote,
+        real_base_before,
+        real_quote_before,
+        real_base_after,
+        real_quote_after,
+        protocol_fee,
+        platform_fee,
+        creator_fee,
+        share_fee,
         trade_direction: if is_buy { TradeDirection::Buy } else { TradeDirection::Sell },
+        pool_status,
         exact_in,
         global_config: Pubkey::default(),
         platform_config: Pubkey::default(),
@@ -101,10 +130,13 @@ pub fn parse_trade_from_data(data: &[u8], metadata: EventMetadata) -> Option<Dex
         quote_mint: Pubkey::default(),
         base_token_program: Pubkey::default(),
         quote_token_program: Pubkey::default(),
+        system_program: Pubkey::default(),
+        platform_associated_account: Pubkey::default(),
+        creator_associated_account: Pubkey::default(),
     }))
 }
 
-/// Parse Raydium LaunchLab PoolCreateEvent from pre-decoded event data.
+/// Parse LaunchLab PoolCreateEvent from pre-decoded event data.
 #[inline]
 pub fn parse_pool_create_from_data(data: &[u8], metadata: EventMetadata) -> Option<DexEvent> {
     let mut offset = 0usize;
@@ -155,4 +187,50 @@ fn read_borsh_string(data: &[u8], offset: &mut usize) -> Option<String> {
 fn read_u32_le(data: &[u8], offset: usize) -> Option<u32> {
     let bytes = data.get(offset..offset + 4)?;
     Some(u32::from_le_bytes(bytes.try_into().ok()?))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn current_trade_layout_preserves_reserves_and_all_fee_legs() {
+        let mut data = Vec::with_capacity(139);
+        data.extend_from_slice(Pubkey::new_unique().as_ref());
+        for value in [
+            793_100_000_000_000_u64,
+            1_073_025_605_597_286,
+            21_191_598_554,
+            284_268_264_059_232,
+            7_637_455_325,
+            284_320_641_177_089,
+            7_639_369_834,
+            1_938_744,
+            52_377_117_857,
+            4_847,
+            19_388,
+            0,
+            0,
+        ] {
+            data.extend_from_slice(&value.to_le_bytes());
+        }
+        data.extend_from_slice(&[0, 0, 1]);
+
+        let DexEvent::RaydiumLaunchlabTrade(event) =
+            parse_trade_from_data(&data, EventMetadata::default()).expect("trade")
+        else {
+            panic!("LaunchLab trade")
+        };
+
+        assert_eq!(event.total_base_sell, 793_100_000_000_000);
+        assert_eq!(event.amount_in, 1_938_744);
+        assert_eq!(event.amount_out, 52_377_117_857);
+        assert_eq!(event.protocol_fee, 4_847);
+        assert_eq!(event.platform_fee, 19_388);
+        assert_eq!(event.creator_fee, 0);
+        assert_eq!(event.share_fee, 0);
+        assert_eq!(event.pool_status, RaydiumLaunchlabPoolStatus::Fund);
+        assert!(event.is_buy);
+        assert!(event.exact_in);
+    }
 }

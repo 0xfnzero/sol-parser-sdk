@@ -478,6 +478,7 @@ mod tests {
             quote_mint,
             base_token_program: Pubkey::default(),
             quote_token_program: Pubkey::default(),
+            ..Default::default()
         })
     }
 

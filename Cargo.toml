@@ -1,11 +1,11 @@
 [package]
 name = "sol-parser-sdk"
-version = "0.7.3"
+version = "0.7.4"
 edition = "2021"
 rust-version = "1.91"
 authors = ["William <byteblock6@gmail.com>", "sgxiang <sgxiang@gmail.com>", "wei <1415121722@qq.com>"]
 repository = "https://github.com/0xfnzero/sol-parser-sdk"
-description = "A lightweight Rust library for real-time event streaming from Solana DEX trading programs. Supports PumpFun, PumpSwap, Raydium LaunchLab, and Raydium protocols with Yellowstone gRPC and ShredStream."
+description = "A lightweight Rust library for real-time event streaming from Solana DEX trading programs. Supports PumpFun, PumpSwap, LaunchLab, and Raydium protocols with Yellowstone gRPC and ShredStream."
 license = "MIT"
 keywords = ["solana", "streaming", "events", "grpc", "shredstream"]
 readme = "README.md"

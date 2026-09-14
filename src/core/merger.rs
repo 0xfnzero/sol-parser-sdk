@@ -959,6 +959,9 @@ fn merge_raydium_launchlab_trade_log_preferred(
     fill_pk(&mut log.quote_mint, ix.quote_mint);
     fill_pk(&mut log.base_token_program, ix.base_token_program);
     fill_pk(&mut log.quote_token_program, ix.quote_token_program);
+    fill_pk(&mut log.system_program, ix.system_program);
+    fill_pk(&mut log.platform_associated_account, ix.platform_associated_account);
+    fill_pk(&mut log.creator_associated_account, ix.creator_associated_account);
 }
 
 #[inline]

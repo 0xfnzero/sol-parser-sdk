@@ -1,13 +1,13 @@
-//! Raydium LaunchLab 账户填充模块
+//! LaunchLab 账户填充模块
 
 use crate::core::events::*;
 use solana_sdk::pubkey::Pubkey;
 
 pub type AccountGetter<'a> = dyn Fn(usize) -> Pubkey + 'a;
 
-/// Fills account context for a Raydium LaunchLab trade event.
+/// Fills account context for a LaunchLab trade event.
 ///
-/// Raydium LaunchLab trade instruction account mapping:
+/// LaunchLab trade instruction account mapping:
 /// 0: payer, 2: global_config, 3: platform_config, 4: pool_state,
 /// 5-8: user token accounts and vaults, 9-12: mints and token programs.
 pub fn fill_trade_accounts(e: &mut RaydiumLaunchlabTradeEvent, get: &AccountGetter<'_>) {
@@ -49,9 +49,9 @@ pub fn fill_trade_accounts(e: &mut RaydiumLaunchlabTradeEvent, get: &AccountGett
     }
 }
 
-/// Fills account context for a Raydium LaunchLab pool-create event.
+/// Fills account context for a LaunchLab pool-create event.
 ///
-/// Raydium LaunchLab initialize instruction account mapping:
+/// LaunchLab initialize instruction account mapping:
 /// All current initialize variants share indices 0-9. `initialize` and
 /// `initialize_v2` use token-program indices 11-12, while
 /// `initialize_with_token_2022` uses indices 10-11.

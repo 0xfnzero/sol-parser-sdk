@@ -124,7 +124,7 @@ pub fn detect_log_type(log: &str) -> LogType {
         return LogType::RaydiumCpmm;
     }
 
-    // Raydium LaunchLab (RaydiumLaunchlab)
+    // LaunchLab (RaydiumLaunchlab)
     if RAYDIUM_LAUNCHLAB_FINDER.find(log_bytes).is_some() {
         return LogType::RaydiumLaunchlab;
     }
@@ -179,7 +179,7 @@ mod discriminators {
     pub const PUMPFUN_MIGRATE: u64 = u64::from_le_bytes([189, 233, 93, 185, 92, 148, 234, 148]);
     pub const PUMPFUN_MIGRATE_BONDING_CURVE_CREATOR: u64 =
         u64::from_le_bytes([155, 167, 104, 220, 213, 108, 243, 3]);
-    // Raydium LaunchLab event discriminators. `TRADE` intentionally equals
+    // LaunchLab event discriminators. `TRADE` intentionally equals
     // PumpFun's TradeEvent discriminator, so gRPC must route logs with program
     // context instead of discriminator alone.
     pub const RAYDIUM_LAUNCHLAB_POOL_CREATE: u64 =
@@ -486,7 +486,7 @@ fn filter_wants_launchlab_trade_event(filter: &EventTypeFilter) -> bool {
 #[inline(always)]
 fn unscoped_filter_allows_discriminator(discriminator: u64, filter: &EventTypeFilter) -> bool {
     match discriminator {
-        // Shared by Pump.fun trade and Raydium LaunchLab/RaydiumLaunchlab trade.
+        // Shared by Pump.fun trade and LaunchLab/RaydiumLaunchlab trade.
         discriminators::PUMPFUN_TRADE => {
             filter_wants_pumpfun_trade_event(filter)
                 || filter.should_include(EventType::RaydiumLaunchlabTrade)
@@ -691,7 +691,7 @@ fn parse_log_optimized_inner(
 
     // Check hot-path discriminators first (ordered by frequency)
     if likely(discriminator == discriminators::PUMPFUN_TRADE) {
-        // Shared by PumpFun and Raydium LaunchLab. Without program context,
+        // Shared by PumpFun and LaunchLab. Without program context,
         // avoid parsing protocols the filter does not request.
         return parse_unscoped_pumpfun_launchlab_trade(
             data,

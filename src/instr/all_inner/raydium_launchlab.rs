@@ -1,6 +1,6 @@
 use crate::core::events::{DexEvent, EventMetadata};
 
-// Raydium LaunchLab CPI event parser.
+// LaunchLab CPI event parser.
 //
 // CPI event data uses a 16-byte prefix: 8-byte event discriminator from
 // `idls/raydium_launchpad.json` plus Anchor's event CPI marker.
@@ -11,7 +11,7 @@ pub mod discriminators {
         [189, 219, 127, 211, 78, 230, 97, 238, 155, 167, 108, 32, 122, 76, 173, 64];
 }
 
-/// Parse Raydium LaunchLab CPI event data.
+/// Parse LaunchLab CPI event data.
 #[inline]
 pub fn parse(disc: &[u8; 16], data: &[u8], metadata: EventMetadata) -> Option<DexEvent> {
     match *disc {

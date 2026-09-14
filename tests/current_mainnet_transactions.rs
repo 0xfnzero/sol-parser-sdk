@@ -299,6 +299,74 @@ fn current_raydium_launchlab_usd1_trade_exposes_quote_context() {
 }
 
 #[test]
+fn current_stonkfun_reward_trade_preserves_platform_quote_accounts_and_fees() {
+    if !run_mainnet_tests() {
+        return;
+    }
+    const SIGNATURE: &str =
+        "4Pb4vgRq6rAFi5NmMZMsfBvuwVVsvBqhySfPS3naMksujvEiGtPjxRLape7V82ZVQvxt7P8YKPCL6RSWTreMUFrY";
+
+    let trades: Vec<_> = parse(SIGNATURE)
+        .into_iter()
+        .filter_map(|event| match event {
+            DexEvent::RaydiumLaunchlabTrade(event) => Some(event),
+            _ => None,
+        })
+        .collect();
+
+    assert_eq!(trades.len(), 1);
+    let trade = &trades[0];
+    assert_eq!(trade.metadata.slot, 446_924_673);
+    assert_eq!(trade.stonkfun_mode(), Some(sol_parser_sdk::core::events::StonkFunMode::Reward));
+    assert_eq!(trade.amount_in, 1_938_744);
+    assert_eq!(trade.amount_out, 52_377_117_857);
+    assert_eq!((trade.protocol_fee, trade.platform_fee), (4_847, 19_388));
+    assert_eq!(trade.creator_fee, 0);
+    assert_eq!(trade.share_fee, 0);
+    assert_eq!(trade.global_config.to_string(), "7em1KfyK7cGENxXhLXn17sRbUHB3WJY3rUqwcsxQFmy1");
+    assert_eq!(trade.platform_config.to_string(), "6BwHHDg3u1854jC8PDLXvR4spTcLNaoBxLJNGC4nTESt");
+    assert_eq!(trade.base_mint.to_string(), "BJ56gcrMNKDzVwjQXKToya9cAcMZvN9pz6ZzUejxQary");
+    assert_eq!(trade.quote_mint.to_string(), "CARDSccUMFKoPRZxt5vt3ksUbxEFEcnZ3H2pd3dKxYjp");
+    assert_eq!(trade.base_token_program.to_string(), "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb");
+    assert_eq!(
+        trade.quote_token_program.to_string(),
+        "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+    );
+    assert_eq!(trade.system_program.to_string(), "11111111111111111111111111111111");
+    assert_eq!(
+        trade.platform_associated_account.to_string(),
+        "hD6YgNjkVtaw5snL74P1VmUrQtGUoGAkgwHgtsWsj1H"
+    );
+    assert_eq!(
+        trade.creator_associated_account.to_string(),
+        "GZrRchHGgeZXRjv2wEfCyUHfiChc8NNjxwJJijokWBnp"
+    );
+}
+
+#[test]
+fn current_stonkfun_graduated_cpmm_swap_parses_from_mainnet() {
+    if !run_mainnet_tests() {
+        return;
+    }
+    const SIGNATURE: &str =
+        "3jiXX1AXnQfve1FCHwqUUXoM2BpS2jZEDNB7S6UXLdHGQa3VmBoWNVw9A2gTLbvEZeSU697s9XKgKDqxaR92Qqcz";
+    const POOL: &str = "BUVzsLLLG7GWoyJVoU31pXiBveazA6GXTavZ9VD3CwS9";
+
+    let swaps: Vec<_> = parse(SIGNATURE)
+        .into_iter()
+        .filter_map(|event| match event {
+            DexEvent::RaydiumCpmmSwap(event) if event.pool_id.to_string() == POOL => Some(event),
+            _ => None,
+        })
+        .collect();
+
+    assert_eq!(swaps.len(), 1);
+    assert_eq!(swaps[0].metadata.slot, 446_943_741);
+    assert!(swaps[0].input_amount > 0);
+    assert!(swaps[0].output_amount > 0);
+}
+
+#[test]
 fn current_transaction_cost_with_jito_tip() {
     if !run_mainnet_tests() {
         return;

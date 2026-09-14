@@ -10,9 +10,9 @@ use solana_sdk::pubkey::Pubkey;
 /// PumpFun program ID as Pubkey constant
 pub const PUMPFUN_PROGRAM_ID: Pubkey = pubkey!("6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P");
 
-/// Raydium LaunchLab program ID as Pubkey constant.
+/// LaunchLab program ID as Pubkey constant.
 ///
-/// Parser routes the Raydium LaunchLab IDL (`idls/raydium_launchpad.json`).
+/// Parser routes the LaunchLab IDL (`idls/raydium_launchpad.json`).
 pub const RAYDIUM_LAUNCHLAB_PROGRAM_ID: Pubkey =
     pubkey!("LanMV9sAd7wArD4vJFi2qDdfnVhFxYSUg6eADduJ3uj");
 

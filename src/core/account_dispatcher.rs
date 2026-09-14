@@ -1084,6 +1084,7 @@ mod tests {
             quote_mint: Pubkey::default(),
             base_token_program: Pubkey::default(),
             quote_token_program: Pubkey::default(),
+            ..Default::default()
         });
 
         fill_accounts_with_owned_keys(&mut event, &meta, &transaction, &invokes);

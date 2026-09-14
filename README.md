@@ -54,7 +54,7 @@ This SDK is available in multiple languages:
 | Area | Coverage |
 |------|----------|
 | Parser inputs | Yellowstone gRPC, ShredStream, RPC transactions, encoded transactions, protocol account data |
-| DEX protocols | PumpFun, PumpSwap, Pump Fees, Raydium LaunchLab, Raydium CPMM, Raydium CLMM, Raydium AMM V4, Meteora DAMM v2, Meteora DLMM, Meteora DBC, Orca Whirlpool |
+| DEX protocols | PumpFun, PumpSwap, Pump Fees, LaunchLab (including StonkFun), Raydium CPMM, Raydium CLMM, Raydium AMM V4, Meteora DAMM v2, Meteora DLMM, Meteora DBC, Orca Whirlpool |
 | Parser backends | Default Borsh parser for maintainability, optional zero-copy parser for latency-sensitive hot paths |
 | Related SDK | Use [solana-streamer](https://github.com/0xfnzero/solana-streamer) when you want a higher-level streaming facade over this parser core |
 
@@ -113,16 +113,32 @@ sol-parser-sdk = { path = "../sol-parser-sdk", default-features = false, feature
 
 ```toml
 # Add to your Cargo.toml
-sol-parser-sdk = "0.7.3"
+sol-parser-sdk = "0.7.4"
 ```
 
 Or with the zero-copy parser (maximum performance):
 
 ```toml
-sol-parser-sdk = { version = "0.7.3", default-features = false, features = ["parse-zero-copy"] }
+sol-parser-sdk = { version = "0.7.4", default-features = false, features = ["parse-zero-copy"] }
 ```
 
 ### Release Notes
+
+#### v0.7.4
+
+- Adds `Protocol::StonkFun` and `Protocol::LaunchLab` as the preferred subscription names; the old `Protocol::RaydiumLaunchlab` remains compatible.
+- Identifies StonkFun standard and reward pools from their official LaunchLab platform configuration accounts.
+- Parses the complete current LaunchLab trade event, including reserves, all fee legs, pool status, and the three appended trade accounts.
+- Supports the current 18-account LaunchLab trade instruction layout and preserves the appended accounts when merging log and instruction events.
+- Adds a real mainnet StonkFun reward-pool transaction regression using signature `4Pb4vgRq6rAFi5NmMZMsfBvuwVVsvBqhySfPS3naMksujvEiGtPjxRLape7V82ZVQvxt7P8YKPCL6RSWTreMUFrY`.
+- Adds a real mainnet graduated StonkFun CPMM swap regression using signature `3jiXX1AXnQfve1FCHwqUUXoM2BpS2jZEDNB7S6UXLdHGQa3VmBoWNVw9A2gTLbvEZeSU697s9XKgKDqxaR92Qqcz`.
+
+Run the gated mainnet parser regression with:
+
+```bash
+RUN_MAINNET_TESTS=1 cargo test --test current_mainnet_transactions current_stonkfun_reward_trade_preserves_platform_quote_accounts_and_fees -- --nocapture
+RUN_MAINNET_TESTS=1 cargo test --test current_mainnet_transactions current_stonkfun_graduated_cpmm_swap_parses_from_mainnet -- --nocapture
+```
 
 #### v0.7.3
 
@@ -172,7 +188,7 @@ sol-parser-sdk = { version = "0.7.3", default-features = false, features = ["par
 
 #### v0.6.3
 
-- Exposes current Raydium LaunchLab quote mint and global configuration context, including USD1 pools.
+- Exposes current LaunchLab quote mint and global configuration context, including USD1 pools.
 - Adds opt-in transaction fee, priority fee, compute budget, and SWQoS tip parsing for all providers supported by sol-trade-sdk.
 - Identifies each recognized tip provider and recipient while keeping the disabled transaction-cost path allocation-free and effectively zero-cost.
 - Adds reusable mainnet transaction fixtures captured on 2026-08-13 for LaunchLab USD1 and transaction-cost parsing.
@@ -315,7 +331,7 @@ cargo run --example pumpswap_ordered --release
 | Meteora DAMM V2 events | `cargo run --example meteora_damm_grpc --release` | [examples/meteora_damm_grpc.rs](https://github.com/0xfnzero/sol-parser-sdk/blob/main/examples/meteora_damm_grpc.rs) |
 | Parse Meteora DAMM tx by signature | `TX_SIGNATURE=<sig> cargo run --example parse_meteora_damm_tx --release` | [examples/parse_meteora_damm_tx.rs](https://github.com/0xfnzero/sol-parser-sdk/blob/main/examples/parse_meteora_damm_tx.rs) |
 | **Non-Pump DEX dry-run scenarios** | | |
-| Raydium LaunchLab migration filter | `cargo run --example raydium_launchlab_migration` | [examples/raydium_launchlab_migration.rs](https://github.com/0xfnzero/sol-parser-sdk/blob/main/examples/raydium_launchlab_migration.rs) |
+| LaunchLab migration filter | `cargo run --example raydium_launchlab_migration` | [examples/raydium_launchlab_migration.rs](https://github.com/0xfnzero/sol-parser-sdk/blob/main/examples/raydium_launchlab_migration.rs) |
 | Raydium CPMM new pool filter | `cargo run --example raydium_cpmm_new_pool` | [examples/raydium_cpmm_new_pool.rs](https://github.com/0xfnzero/sol-parser-sdk/blob/main/examples/raydium_cpmm_new_pool.rs) |
 | Raydium CLMM token price math | `cargo run --example raydium_clmm_token_price` | [examples/raydium_clmm_token_price.rs](https://github.com/0xfnzero/sol-parser-sdk/blob/main/examples/raydium_clmm_token_price.rs) |
 | Orca Whirlpool token price math | `cargo run --example orca_whirlpool_token_price` | [examples/orca_whirlpool_token_price.rs](https://github.com/0xfnzero/sol-parser-sdk/blob/main/examples/orca_whirlpool_token_price.rs) |
@@ -475,7 +491,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 - ✅ **PumpFun** - Meme coin trading (ultra-fast zero-copy path, incl. v2 instructions)
 - ✅ **Pump Fees** - Pump fee-sharing configuration events
 - ✅ **PumpSwap** - PumpFun swap protocol
-- ✅ **Raydium LaunchLab** - Token launch platform
+- ✅ **LaunchLab** - Token launch platform, including StonkFun attribution
 - ✅ **Raydium AMM V4** - Automated Market Maker
 - ✅ **Raydium CLMM** - Concentrated Liquidity
 - ✅ **Raydium CPMM** - Concentrated Pool
@@ -496,7 +512,7 @@ Each protocol supports:
 
 | Protocol | Events | Accounts | Examples | Language constants |
 |----------|--------|----------|----------|--------------------|
-| Raydium LaunchLab | Trade, pool create, migrate | Pending | Migration, buy/sell oracle planned | Rust, Node, Python, Go |
+| LaunchLab | Trade, pool create, migrate | Pending | Migration, buy/sell oracle planned | Rust, Node, Python, Go |
 | Raydium CPMM | Swap, deposit, withdraw, initialize | AmmConfig, PoolState | New pool, token price | Rust, Node, Python, Go |
 | Raydium CLMM | Swap, pool, position, liquidity | AmmConfig, PoolState, TickArray | Token price | Rust, Node, Python, Go |
 | Raydium AMM V4 | Swap, deposit, withdraw, initialize2 | Pending | Token price oracle planned | Rust, Node, Python, Go |

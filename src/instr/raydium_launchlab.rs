@@ -1,4 +1,4 @@
-//! Raydium LaunchLab 指令解析器
+//! LaunchLab 指令解析器
 //!
 //! 底层按 `idls/raydium_launchpad.json` 的真实 instruction discriminator
 //! 和账户布局解析，对外事件名统一为 `RaydiumLaunchlab*`。
@@ -8,7 +8,7 @@ use super::utils::*;
 use crate::core::events::*;
 use solana_sdk::{pubkey::Pubkey, signature::Signature};
 
-/// Raydium LaunchLab instruction discriminators from `idls/raydium_launchpad.json`.
+/// LaunchLab instruction discriminators from `idls/raydium_launchpad.json`.
 pub mod discriminators {
     pub const BUY_EXACT_IN: [u8; 8] = [250, 234, 13, 123, 213, 156, 19, 236];
     pub const BUY_EXACT_OUT: [u8; 8] = [24, 211, 116, 40, 105, 3, 153, 56];
@@ -21,10 +21,10 @@ pub mod discriminators {
     pub const SELL_EXACT_OUT: [u8; 8] = [95, 200, 71, 34, 8, 9, 11, 166];
 }
 
-/// Raydium LaunchLab 程序 ID
+/// LaunchLab 程序 ID
 pub const PROGRAM_ID_PUBKEY: Pubkey = program_ids::RAYDIUM_LAUNCHLAB_PROGRAM_ID;
 
-/// 主要的 Raydium LaunchLab 指令解析函数
+/// 主要的 LaunchLab 指令解析函数
 pub fn parse_instruction(
     instruction_data: &[u8],
     accounts: &[Pubkey],
@@ -137,7 +137,19 @@ fn parse_trade_instruction(
         amount_in,
         amount_out,
         is_buy,
+        total_base_sell: 0,
+        virtual_base: 0,
+        virtual_quote: 0,
+        real_base_before: 0,
+        real_quote_before: 0,
+        real_base_after: 0,
+        real_quote_after: 0,
+        protocol_fee: 0,
+        platform_fee: 0,
+        creator_fee: 0,
+        share_fee: 0,
         trade_direction: if is_buy { TradeDirection::Buy } else { TradeDirection::Sell },
+        pool_status: RaydiumLaunchlabPoolStatus::Fund,
         exact_in,
         global_config: get_account(accounts, 2).unwrap_or_default(),
         platform_config: get_account(accounts, 3).unwrap_or_default(),
@@ -149,6 +161,9 @@ fn parse_trade_instruction(
         quote_mint: get_account(accounts, 10).unwrap_or_default(),
         base_token_program: get_account(accounts, 11).unwrap_or_default(),
         quote_token_program: get_account(accounts, 12).unwrap_or_default(),
+        system_program: get_account(accounts, 15).unwrap_or_default(),
+        platform_associated_account: get_account(accounts, 16).unwrap_or_default(),
+        creator_associated_account: get_account(accounts, 17).unwrap_or_default(),
     }))
 }
 
@@ -233,7 +248,7 @@ mod tests {
 
     #[test]
     fn trade_instruction_exposes_current_idl_account_context() {
-        let accounts: Vec<_> = (0..15).map(|_| Pubkey::new_unique()).collect();
+        let accounts: Vec<_> = (0..18).map(|_| Pubkey::new_unique()).collect();
 
         for discriminator in [
             discriminators::BUY_EXACT_IN,
@@ -258,6 +273,9 @@ mod tests {
             assert_eq!(event.global_config, accounts[2]);
             assert_eq!(event.platform_config, accounts[3]);
             assert_eq!(event.pool_state, accounts[4]);
+            assert_eq!(event.system_program, accounts[15]);
+            assert_eq!(event.platform_associated_account, accounts[16]);
+            assert_eq!(event.creator_associated_account, accounts[17]);
             assert_eq!(event.user_base_token, accounts[5]);
             assert_eq!(event.user_quote_token, accounts[6]);
             assert_eq!(event.base_vault, accounts[7]);
@@ -267,6 +285,27 @@ mod tests {
             assert_eq!(event.base_token_program, accounts[11]);
             assert_eq!(event.quote_token_program, accounts[12]);
         }
+    }
+
+    #[test]
+    fn trade_instruction_identifies_stonkfun_reward_platform() {
+        let mut accounts: Vec<_> = (0..18).map(|_| Pubkey::new_unique()).collect();
+        accounts[3] = STONKFUN_REWARD_PLATFORM_CONFIG;
+
+        let DexEvent::RaydiumLaunchlabTrade(event) = parse_instruction(
+            &trade_data(discriminators::BUY_EXACT_IN),
+            &accounts,
+            Signature::default(),
+            1,
+            2,
+            Some(3),
+        )
+        .expect("trade") else {
+            panic!("LaunchLab trade")
+        };
+
+        assert!(event.is_stonkfun());
+        assert_eq!(event.stonkfun_mode(), Some(StonkFunMode::Reward));
     }
 
     #[test]

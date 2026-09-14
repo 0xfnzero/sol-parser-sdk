@@ -54,7 +54,7 @@
 | 方向 | 覆盖范围 |
 |------|----------|
 | 解析输入 | Yellowstone gRPC、ShredStream、RPC 交易、编码交易、协议账户数据 |
-| DEX 协议 | PumpFun、PumpSwap、Pump Fees、Raydium LaunchLab、Raydium CPMM、Raydium CLMM、Raydium AMM V4、Meteora DAMM v2、Meteora DLMM、Meteora DBC、Orca Whirlpool |
+| DEX 协议 | PumpFun、PumpSwap、Pump Fees、LaunchLab（含 StonkFun）、Raydium CPMM、Raydium CLMM、Raydium AMM V4、Meteora DAMM v2、Meteora DLMM、Meteora DBC、Orca Whirlpool |
 | 解析后端 | 默认 Borsh 解析器便于维护，也可为低延迟热路径启用 zero-copy 解析器 |
 | 相关 SDK | 如果需要更高层的事件流封装，请使用 [solana-streamer](https://github.com/0xfnzero/solana-streamer) |
 
@@ -113,16 +113,32 @@ sol-parser-sdk = { path = "../sol-parser-sdk", default-features = false, feature
 
 ```toml
 # 在 Cargo.toml 中添加
-sol-parser-sdk = "0.7.3"
+sol-parser-sdk = "0.7.4"
 ```
 
 或使用零拷贝解析器（最高性能）：
 
 ```toml
-sol-parser-sdk = { version = "0.7.3", default-features = false, features = ["parse-zero-copy"] }
+sol-parser-sdk = { version = "0.7.4", default-features = false, features = ["parse-zero-copy"] }
 ```
 
 ### 发布说明
+
+#### v0.7.4
+
+- 新增首选订阅名称 `Protocol::StonkFun` 与 `Protocol::LaunchLab`；旧的 `Protocol::RaydiumLaunchlab` 继续兼容。
+- 根据 StonkFun 官方 LaunchLab platform config 识别 standard 与 reward 两种池。
+- 完整解析当前 LaunchLab trade event，包括储备量、全部手续费、池状态与新增的三个尾部交易账户。
+- 支持当前 18 账户 LaunchLab 交易指令布局，并在日志事件与指令事件合并时保留新增账户。
+- 新增真实主网 StonkFun reward 池交易回归测试，交易签名为 `4Pb4vgRq6rAFi5NmMZMsfBvuwVVsvBqhySfPS3naMksujvEiGtPjxRLape7V82ZVQvxt7P8YKPCL6RSWTreMUFrY`。
+- 新增真实主网 StonkFun 毕业后 CPMM swap 回归测试，交易签名为 `3jiXX1AXnQfve1FCHwqUUXoM2BpS2jZEDNB7S6UXLdHGQa3VmBoWNVw9A2gTLbvEZeSU697s9XKgKDqxaR92Qqcz`。
+
+运行受环境变量保护的真实主网解析回归：
+
+```bash
+RUN_MAINNET_TESTS=1 cargo test --test current_mainnet_transactions current_stonkfun_reward_trade_preserves_platform_quote_accounts_and_fees -- --nocapture
+RUN_MAINNET_TESTS=1 cargo test --test current_mainnet_transactions current_stonkfun_graduated_cpmm_swap_parses_from_mainnet -- --nocapture
+```
 
 #### v0.7.3
 
@@ -172,7 +188,7 @@ sol-parser-sdk = { version = "0.7.3", default-features = false, features = ["par
 
 #### v0.6.3
 
-- 输出当前 Raydium LaunchLab 的 quote mint 和 global configuration 上下文，包括 USD1 池。
+- 输出当前 LaunchLab 的 quote mint 和 global configuration 上下文，包括 USD1 池。
 - 增加可选的交易费、优先费、compute budget 和 SWQoS tip 解析，覆盖 sol-trade-sdk 支持的全部服务商。
 - 返回每笔已识别 tip 的服务商和收款地址；未启用交易成本解析时不分配内存，开销可忽略。
 - 增加 2026-08-13 采集的 LaunchLab USD1 和交易成本主网交易 fixture，便于后续复用验证。
@@ -300,7 +316,7 @@ cargo run --example pumpswap_ordered --release
 | Meteora DAMM V2 事件 | `cargo run --example meteora_damm_grpc --release` | [examples/meteora_damm_grpc.rs](https://github.com/0xfnzero/sol-parser-sdk/blob/main/examples/meteora_damm_grpc.rs) |
 | 按签名解析 Meteora DAMM 交易 | `TX_SIGNATURE=<sig> cargo run --example parse_meteora_damm_tx --release` | [examples/parse_meteora_damm_tx.rs](https://github.com/0xfnzero/sol-parser-sdk/blob/main/examples/parse_meteora_damm_tx.rs) |
 | **非 Pump DEX dry-run 场景** | | |
-| Raydium LaunchLab migration 过滤 | `cargo run --example raydium_launchlab_migration` | [examples/raydium_launchlab_migration.rs](https://github.com/0xfnzero/sol-parser-sdk/blob/main/examples/raydium_launchlab_migration.rs) |
+| LaunchLab migration 过滤 | `cargo run --example raydium_launchlab_migration` | [examples/raydium_launchlab_migration.rs](https://github.com/0xfnzero/sol-parser-sdk/blob/main/examples/raydium_launchlab_migration.rs) |
 | Raydium CPMM 新池过滤 | `cargo run --example raydium_cpmm_new_pool` | [examples/raydium_cpmm_new_pool.rs](https://github.com/0xfnzero/sol-parser-sdk/blob/main/examples/raydium_cpmm_new_pool.rs) |
 | Raydium CLMM 价格计算 | `cargo run --example raydium_clmm_token_price` | [examples/raydium_clmm_token_price.rs](https://github.com/0xfnzero/sol-parser-sdk/blob/main/examples/raydium_clmm_token_price.rs) |
 | Orca Whirlpool 价格计算 | `cargo run --example orca_whirlpool_token_price` | [examples/orca_whirlpool_token_price.rs](https://github.com/0xfnzero/sol-parser-sdk/blob/main/examples/orca_whirlpool_token_price.rs) |
@@ -460,7 +476,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 - ✅ **PumpFun** - Meme 币交易（超快零拷贝路径，含 v2 指令）
 - ✅ **Pump Fees** - Pump 费用分成配置事件
 - ✅ **PumpSwap** - PumpFun 交换协议
-- ✅ **Raydium LaunchLab** - 代币发射平台
+- ✅ **LaunchLab** - 代币发射平台，支持识别 StonkFun
 - ✅ **Raydium AMM V4** - 自动做市商
 - ✅ **Raydium CLMM** - 集中流动性做市
 - ✅ **Raydium CPMM** - 集中池做市
@@ -481,7 +497,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 | 协议 | 事件 | 账户 | 示例 | 语言常量 |
 |------|------|------|------|----------|
-| Raydium LaunchLab | Trade、PoolCreate、Migrate | 待补 | Migration、buy/sell oracle 规划中 | Rust、Node、Python、Go |
+| LaunchLab | Trade、PoolCreate、Migrate | 待补 | Migration、buy/sell oracle 规划中 | Rust、Node、Python、Go |
 | Raydium CPMM | Swap、Deposit、Withdraw、Initialize | AmmConfig、PoolState | New pool、token price | Rust、Node、Python、Go |
 | Raydium CLMM | Swap、Pool、Position、Liquidity | AmmConfig、PoolState、TickArray | Token price | Rust、Node、Python、Go |
 | Raydium AMM V4 | Swap、Deposit、Withdraw、Initialize2 | 待补 | Token price oracle 规划中 | Rust、Node、Python、Go |
