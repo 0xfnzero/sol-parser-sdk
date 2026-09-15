@@ -9,6 +9,8 @@ use solana_sdk::{pubkey::Pubkey, signature::Signature};
 
 /// Meteora DAMM V2 discriminator 常量
 pub mod discriminators {
+    pub const SWAP: [u8; 8] = [248, 198, 158, 145, 225, 117, 135, 200];
+    pub const SWAP2: [u8; 8] = [65, 75, 63, 76, 235, 91, 91, 136];
     pub const SWAP_LOG: [u8; 8] = [27, 60, 21, 213, 138, 170, 187, 147];
     pub const SWAP2_LOG: [u8; 8] = [189, 66, 51, 168, 38, 80, 117, 153];
     pub const CREATE_POSITION_LOG: [u8; 8] = [156, 15, 119, 198, 29, 181, 221, 55];

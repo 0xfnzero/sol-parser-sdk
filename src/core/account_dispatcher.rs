@@ -99,6 +99,53 @@ fn instruction_has_discriminator(
         .is_some_and(|disc| disc == discriminator)
 }
 
+fn find_damm_v2_swap_invoke<'a>(
+    invokes: &'a [(i32, i32)],
+    meta: &TransactionStatusMeta,
+    transaction: &Option<Transaction>,
+    pool: Pubkey,
+) -> Option<(&'a (i32, i32), usize)> {
+    if pool == Pubkey::default() {
+        return None;
+    }
+    let account_keys = transaction.as_ref()?.message.as_ref().map(|msg| &msg.account_keys);
+    let mut matches = invokes.iter().filter_map(|invoke| {
+        let (data, accounts) = if invoke.1 >= 0 {
+            let ix = meta
+                .inner_instructions
+                .iter()
+                .find(|group| group.index == invoke.0 as u32)?
+                .instructions
+                .get(invoke.1 as usize)?;
+            (ix.data.as_slice(), ix.accounts.as_slice())
+        } else {
+            let ix = transaction.as_ref()?.message.as_ref()?.instructions.get(invoke.0 as usize)?;
+            (ix.data.as_slice(), ix.accounts.as_slice())
+        };
+        use crate::instr::meteora_damm::discriminators::{SWAP, SWAP2};
+        if !matches!(data.get(..8), Some(disc) if disc == SWAP || disc == SWAP2)
+            || !(13..=14).contains(&accounts.len())
+        {
+            return None;
+        }
+        let get = get_instruction_account_getter(
+            meta,
+            transaction,
+            account_keys,
+            &meta.loaded_writable_addresses,
+            &meta.loaded_readonly_addresses,
+            invoke,
+        )?;
+        (get(1) == pool
+            && get(accounts.len() - 1) == crate::grpc::program_ids::METEORA_DAMM_V2_PROGRAM)
+            .then_some((invoke, accounts.len()))
+    });
+    let matched = matches.next()?;
+    // The event carries a pool, but no per-invoke position: repeated swaps in
+    // the same pool cannot safely be assigned to individual events.
+    matches.next().is_none().then_some(matched)
+}
+
 fn find_pumpfun_create_invoke<'a>(
     invokes: &'a [(i32, i32)],
     transaction: &Option<Transaction>,
@@ -565,16 +612,30 @@ fn fill_accounts_with_lookup<L: InvokeLookup + ?Sized>(
 
         // Meteora DAMM V2
         DexEvent::MeteoraDammV2Swap(e) => {
-            fill_event_accounts!(
-                e,
-                meta,
-                transaction,
-                program_invokes,
-                &METEORA_DAMM_V2_PROGRAM,
-                |get: &AccountGetter<'_>| {
-                    account_fillers::meteora::fill_damm_v2_swap_accounts(e, get);
+            if let Some(invokes) = program_invokes.get_invokes(&METEORA_DAMM_V2_PROGRAM) {
+                if let Some((invoke, account_count)) =
+                    find_damm_v2_swap_invoke(invokes, meta, transaction, e.pool)
+                {
+                    let keys = transaction
+                        .as_ref()
+                        .and_then(|tx| tx.message.as_ref())
+                        .map(|msg| &msg.account_keys);
+                    if let Some(get) = get_instruction_account_getter(
+                        meta,
+                        transaction,
+                        keys,
+                        &meta.loaded_writable_addresses,
+                        &meta.loaded_readonly_addresses,
+                        invoke,
+                    ) {
+                        account_fillers::meteora::fill_damm_v2_swap_accounts(
+                            e,
+                            &get,
+                            account_count,
+                        );
+                    }
                 }
-            );
+            }
         }
         DexEvent::MeteoraDammV2CreatePosition(e) => {
             fill_event_accounts!(
@@ -873,6 +934,65 @@ mod tests {
             DexEvent::PumpSwapBuy(e) => assert_eq!(e.base_mint, f.buy_mint),
             _ => unreachable!(),
         }
+    }
+
+    #[test]
+    fn damm_swap_only_uses_matching_pool_and_real_swap_instruction() {
+        let pools = [Pubkey::new_unique(), Pubkey::new_unique()];
+        let mints = [Pubkey::new_unique(), Pubkey::new_unique()];
+        let program = crate::grpc::program_ids::METEORA_DAMM_V2_PROGRAM;
+        let keys: Vec<Vec<u8>> = [pools[0], pools[1], mints[0], mints[1], program]
+            .iter()
+            .map(|key| key.to_bytes().to_vec())
+            .collect();
+        let swap_ix = |pool_idx: u8, mint_idx: u8, disc: [u8; 8]| {
+            let mut accounts = vec![4u8; 14];
+            accounts[1] = pool_idx;
+            accounts[6] = mint_idx;
+            CompiledInstruction { program_id_index: 4, accounts, data: disc.to_vec() }
+        };
+        let transaction = Some(Transaction {
+            signatures: vec![vec![0; 64]],
+            message: Some(Message {
+                header: Some(MessageHeader::default()),
+                account_keys: keys,
+                recent_blockhash: vec![0; 32],
+                instructions: vec![
+                    swap_ix(0, 2, crate::instr::meteora_damm::discriminators::SWAP),
+                    swap_ix(1, 3, crate::instr::meteora_damm::discriminators::SWAP2),
+                    swap_ix(0, 3, [0; 8]),
+                ],
+                versioned: false,
+                address_table_lookups: Vec::new(),
+                config: None,
+            }),
+        });
+        let meta = TransactionStatusMeta::default();
+        let invokes = HashMap::from([(program, vec![(2, -1), (1, -1), (0, -1)])]);
+        for (pool, mint) in pools.into_iter().zip(mints) {
+            let mut event =
+                DexEvent::MeteoraDammV2Swap(MeteoraDammV2SwapEvent { pool, ..Default::default() });
+            fill_accounts_with_owned_keys(&mut event, &meta, &transaction, &invokes);
+            let DexEvent::MeteoraDammV2Swap(swap) = event else { unreachable!() };
+            assert_eq!(swap.token_a_mint, mint);
+            assert_eq!(swap.pool, pool);
+        }
+        let mut missing = DexEvent::MeteoraDammV2Swap(MeteoraDammV2SwapEvent {
+            pool: Pubkey::new_unique(),
+            ..Default::default()
+        });
+        fill_accounts_with_owned_keys(&mut missing, &meta, &transaction, &invokes);
+        let DexEvent::MeteoraDammV2Swap(swap) = missing else { unreachable!() };
+        assert_eq!(swap.token_a_mint, Pubkey::default());
+
+        let mut ambiguous = DexEvent::MeteoraDammV2Swap(MeteoraDammV2SwapEvent {
+            pool: pools[0],
+            ..Default::default()
+        });
+        let repeated = HashMap::from([(program, vec![(0, -1), (0, -1)])]);
+        fill_accounts_with_owned_keys(&mut ambiguous, &meta, &transaction, &repeated);
+        let DexEvent::MeteoraDammV2Swap(swap) = ambiguous else { unreachable!() };
+        assert_eq!(swap.token_a_mint, Pubkey::default());
     }
 
     #[test]

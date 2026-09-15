@@ -69,6 +69,47 @@ fn current_meteora_damm_v2_swap() {
 }
 
 #[test]
+fn issue_82_damm_v2_swaps_have_real_accounts() {
+    if !run_mainnet_tests() {
+        return;
+    }
+    for (signature, pool, mint_a, vault_a) in [
+        (
+            "4vPzV2JPbDZghNgE6pYQhcjTFrNQt1V2A23bRXCpmYRQdjmKTGYgrfiLWXdXrdZpBu1CrWWLQoJxbL7GnoQJLRhv",
+            "GSKh9Q5BmhwWNvr9phx7ei1gNkpVLBTqqx9GbMTfwcxE",
+            "8qecx8juVNhpkAkUpcAY7LFoBLrWTnk7SUqvEmPGA55i",
+            "3wfYBNJXsntMjsYgJ6YM2T5CbzShoRYnqG58os9pD5Nk",
+        ),
+        (
+            "4CBrBEWnoo3TKMMbBx8zscYqVcLrrCDwWykKjGUWfASABGQz7RKLJD7mCKm7pWyGaxRaBaapMqnrSwCy3ZHFCS9W",
+            "52388vAjCySRMBjuQJD36iQ2941hKEzTpU46M7MjZeoM",
+            "Eikjz9BPLatgiemV52q8fkoEeCysULahcPk8WzSSEsb4",
+            "31REzdmgf2FJCgRaEdDvMQynVPMzVcaDWBLN8Lxr1bzX",
+        ),
+    ] {
+        let swaps: Vec<_> = parse(signature).into_iter().filter_map(|event| match event {
+            DexEvent::MeteoraDammV2Swap(swap) => Some(swap),
+            _ => None,
+        }).collect();
+        assert_eq!(swaps.len(), 1, "{signature}");
+        let swap = &swaps[0];
+        assert_eq!(swap.metadata.slot, 447_312_514);
+        assert_eq!(swap.pool.to_string(), pool);
+        assert_eq!(swap.token_a_mint.to_string(), mint_a);
+        assert_eq!(swap.token_b_mint.to_string(), "So11111111111111111111111111111111111111112");
+        assert_eq!(swap.token_a_vault.to_string(), vault_a);
+        assert_ne!(swap.token_b_vault, solana_sdk::pubkey::Pubkey::default());
+        assert_ne!(swap.payer, solana_sdk::pubkey::Pubkey::default());
+        assert_ne!(swap.input_token_account, solana_sdk::pubkey::Pubkey::default());
+        assert_ne!(swap.output_token_account, solana_sdk::pubkey::Pubkey::default());
+        assert_eq!(swap.token_a_program.to_string(), "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb");
+        assert_eq!(swap.token_b_program.to_string(), "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA");
+        assert_eq!(swap.program.to_string(), "cpamdpZCGKUy5JxQXB4dcpGPiikHawvSWAd6mEn1sGG");
+        assert_eq!(swap.referral_token_account, None);
+    }
+}
+
+#[test]
 fn current_meteora_damm_v2_add_liquidity() {
     if !run_mainnet_tests() {
         return;

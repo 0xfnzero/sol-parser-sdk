@@ -2672,6 +2672,27 @@ pub struct MeteoraDammV2SwapEvent {
     #[cfg_attr(feature = "parse-borsh", borsh(skip))]
     pub reserve_b_amount: u64,
     // ---------- 账号 -------------
+    #[serde(default)]
+    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
+    pub pool_authority: Pubkey,
+    #[serde(default)]
+    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
+    pub input_token_account: Pubkey,
+    #[serde(default)]
+    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
+    pub output_token_account: Pubkey,
+    #[serde(default)]
+    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
+    pub payer: Pubkey,
+    #[serde(default)]
+    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
+    pub referral_token_account: Option<Pubkey>,
+    #[serde(default)]
+    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
+    pub event_authority: Pubkey,
+    #[serde(default)]
+    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
+    pub program: Pubkey,
     #[cfg_attr(feature = "parse-borsh", borsh(skip))]
     pub token_a_vault: Pubkey,
     #[cfg_attr(feature = "parse-borsh", borsh(skip))]

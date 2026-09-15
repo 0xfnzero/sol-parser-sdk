@@ -113,16 +113,22 @@ sol-parser-sdk = { path = "../sol-parser-sdk", default-features = false, feature
 
 ```toml
 # 在 Cargo.toml 中添加
-sol-parser-sdk = "0.7.4"
+sol-parser-sdk = "0.7.5"
 ```
 
 或使用零拷贝解析器（最高性能）：
 
 ```toml
-sol-parser-sdk = { version = "0.7.4", default-features = false, features = ["parse-zero-copy"] }
+sol-parser-sdk = { version = "0.7.5", default-features = false, features = ["parse-zero-copy"] }
 ```
 
 ### 发布说明
+
+#### v0.7.5
+
+- 根据相同池的真实 swap/swap2 指令补全 Meteora DAMM v2 的 mint、vault、payer、token program 等全部账户，并正确处理可选 referral 账户。
+- 避免从其他池或同池多次 swap 的不确定指令中错误填充账户。
+- 使用 solana-streamer issue #82 的两笔真实主网交易验证默认及 zero-copy 解析路径。
 
 #### v0.7.4
 

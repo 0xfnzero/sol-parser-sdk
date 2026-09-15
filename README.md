@@ -113,16 +113,22 @@ sol-parser-sdk = { path = "../sol-parser-sdk", default-features = false, feature
 
 ```toml
 # Add to your Cargo.toml
-sol-parser-sdk = "0.7.4"
+sol-parser-sdk = "0.7.5"
 ```
 
 Or with the zero-copy parser (maximum performance):
 
 ```toml
-sol-parser-sdk = { version = "0.7.4", default-features = false, features = ["parse-zero-copy"] }
+sol-parser-sdk = { version = "0.7.5", default-features = false, features = ["parse-zero-copy"] }
 ```
 
 ### Release Notes
+
+#### v0.7.5
+
+- Backfills Meteora DAMM v2 swap/swap2 mint, vault, payer, token-program, and remaining instruction accounts from the matching pool's real swap instruction, including optional referral handling.
+- Avoids assigning accounts from a different pool or from ambiguous repeated swaps in the same pool.
+- Verifies both transactions reported in solana-streamer issue #82 with live mainnet RPC regressions for the default and zero-copy parsers.
 
 #### v0.7.4
 
