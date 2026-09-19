@@ -107,6 +107,7 @@ fn parse_swap_base_in_instruction(
         // output_vault: Pubkey::default(),
         // input_token_mint: Pubkey::default(),
         // output_token_mint: Pubkey::default(),
+        ..Default::default()
     }))
 }
 
@@ -157,6 +158,7 @@ fn parse_swap_base_out_instruction(
         // output_vault: Pubkey::default(),
         // input_token_mint: Pubkey::default(),
         // output_token_mint: Pubkey::default(),
+        ..Default::default()
     }))
 }
 

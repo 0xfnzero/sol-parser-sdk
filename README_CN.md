@@ -113,16 +113,22 @@ sol-parser-sdk = { path = "../sol-parser-sdk", default-features = false, feature
 
 ```toml
 # 在 Cargo.toml 中添加
-sol-parser-sdk = "0.7.5"
+sol-parser-sdk = "0.7.6"
 ```
 
 或使用零拷贝解析器（最高性能）：
 
 ```toml
-sol-parser-sdk = { version = "0.7.5", default-features = false, features = ["parse-zero-copy"] }
+sol-parser-sdk = { version = "0.7.6", default-features = false, features = ["parse-zero-copy"] }
 ```
 
 ### 发布说明
+
+#### v0.7.6
+
+- 以事件自身池地址锚定 Raydium CLMM/CPMM、Orca Whirlpool、Meteora DLMM、Raydium AMM 的账户回填，避免多跳路由把兄弟 swap 的 vault/config 填错。
+- 在 CPMM/CLMM/Whirlpool/DLMM/AMM swap 事件上暴露指令账户字段（config、vault、mint、observation、tick array / bitmap extension 等）。
+- 收紧 account filler 与 merger 使用的 invoke 匹配辅助逻辑。
 
 #### v0.7.5
 

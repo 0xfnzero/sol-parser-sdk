@@ -113,16 +113,22 @@ sol-parser-sdk = { path = "../sol-parser-sdk", default-features = false, feature
 
 ```toml
 # Add to your Cargo.toml
-sol-parser-sdk = "0.7.5"
+sol-parser-sdk = "0.7.6"
 ```
 
 Or with the zero-copy parser (maximum performance):
 
 ```toml
-sol-parser-sdk = { version = "0.7.5", default-features = false, features = ["parse-zero-copy"] }
+sol-parser-sdk = { version = "0.7.6", default-features = false, features = ["parse-zero-copy"] }
 ```
 
 ### Release Notes
+
+#### v0.7.6
+
+- Anchors Raydium CLMM/CPMM, Orca Whirlpool, Meteora DLMM, and Raydium AMM account fills on the event's own pool so multi-hop routes no longer cross-fill vaults or configs from a sibling swap.
+- Exposes instruction account fields on CPMM/CLMM/Whirlpool/DLMM/AMM swap events (config, vaults, mints, observation, tick arrays / bitmap extension where applicable).
+- Tightens invoke matching helpers used by account fillers and merger paths.
 
 #### v0.7.5
 

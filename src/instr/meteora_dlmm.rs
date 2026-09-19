@@ -355,6 +355,7 @@ fn parse_swap_instruction(
         protocol_fee: 0,
         fee_bps: 0,
         host_fee: 0,
+        ..Default::default()
     }))
 }
 
@@ -390,6 +391,7 @@ fn parse_swap_exact_out_instruction(
         protocol_fee: 0,
         fee_bps: 0,
         host_fee: 0,
+        ..Default::default()
     }))
 }
 
@@ -432,6 +434,7 @@ fn parse_swap_with_price_impact_instruction(
         protocol_fee: 0,
         fee_bps: 0,
         host_fee: 0,
+        ..Default::default()
     }))
 }
 

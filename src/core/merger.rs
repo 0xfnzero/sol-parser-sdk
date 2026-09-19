@@ -842,6 +842,18 @@ fn merge_raydium_clmm_swap_log_preferred(log: &mut RaydiumClmmSwapEvent, ix: Ray
     fill_pk(&mut log.token_account_0, ix.token_account_0);
     fill_pk(&mut log.token_account_1, ix.token_account_1);
     fill_pk(&mut log.sender, ix.sender);
+    fill_pk(&mut log.amm_config, ix.amm_config);
+    fill_pk(&mut log.input_vault, ix.input_vault);
+    fill_pk(&mut log.output_vault, ix.output_vault);
+    fill_pk(&mut log.observation_state, ix.observation_state);
+    fill_pk(&mut log.input_mint, ix.input_mint);
+    fill_pk(&mut log.output_mint, ix.output_mint);
+    if log.tick_array_bitmap_extension.is_none() {
+        log.tick_array_bitmap_extension = ix.tick_array_bitmap_extension;
+    }
+    if log.tick_arrays.is_empty() && !ix.tick_arrays.is_empty() {
+        log.tick_arrays = ix.tick_arrays;
+    }
 }
 
 #[inline]
@@ -1126,6 +1138,7 @@ mod tests {
             protocol_fee: 0,
             fee_bps: 25,
             host_fee: 0,
+        ..Default::default()
         }
     }
 

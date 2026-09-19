@@ -16,6 +16,9 @@ pub enum RaydiumAmmV4Instruction {
     WithdrawPnl = 7,
     SwapBaseIn = 9,
     SwapBaseOut = 11,
+    /// Post 2026-07-22 OpenBook removal — 8 accounts, no serum market.
+    SwapBaseInV2 = 16,
+    SwapBaseOutV2 = 17,
 }
 
 impl RaydiumAmmV4Instruction {
@@ -28,6 +31,8 @@ impl RaydiumAmmV4Instruction {
             7 => Some(Self::WithdrawPnl),
             9 => Some(Self::SwapBaseIn),
             11 => Some(Self::SwapBaseOut),
+            16 => Some(Self::SwapBaseInV2),
+            17 => Some(Self::SwapBaseOutV2),
             _ => None,
         }
     }
@@ -37,6 +42,8 @@ impl RaydiumAmmV4Instruction {
 pub mod discriminators {
     pub const SWAP_BASE_IN: u8 = 9;
     pub const SWAP_BASE_OUT: u8 = 11;
+    pub const SWAP_BASE_IN_V2: u8 = 16;
+    pub const SWAP_BASE_OUT_V2: u8 = 17;
     pub const DEPOSIT: u8 = 3;
     pub const WITHDRAW: u8 = 4;
     pub const INITIALIZE2: u8 = 1;
@@ -75,6 +82,22 @@ pub fn parse_instruction(
             tx_index,
             block_time_us,
         ),
+        RaydiumAmmV4Instruction::SwapBaseInV2 => parse_swap_base_in_v2_instruction(
+            data,
+            accounts,
+            signature,
+            slot,
+            tx_index,
+            block_time_us,
+        ),
+        RaydiumAmmV4Instruction::SwapBaseOutV2 => parse_swap_base_out_v2_instruction(
+            data,
+            accounts,
+            signature,
+            slot,
+            tx_index,
+            block_time_us,
+        ),
         RaydiumAmmV4Instruction::Deposit => {
             parse_deposit_instruction(data, accounts, signature, slot, tx_index, block_time_us)
         }
@@ -88,6 +111,86 @@ pub fn parse_instruction(
             parse_withdraw_pnl_instruction(data, accounts, signature, slot, tx_index, block_time_us)
         }
     }
+}
+
+/// SwapBaseInV2 (tag 16): tokenProgram, amm, authority, coinVault, pcVault, userSrc, userDst, owner
+fn parse_swap_base_in_v2_instruction(
+    data: &[u8],
+    accounts: &[Pubkey],
+    signature: Signature,
+    slot: u64,
+    tx_index: u64,
+    block_time_us: Option<i64>,
+) -> Option<DexEvent> {
+    let amount_in = read_u64_le(data, 0)?;
+    let minimum_amount_out = read_u64_le(data, 8)?;
+    let amm = get_account(accounts, 1)?;
+    let metadata = create_metadata_simple(signature, slot, tx_index, block_time_us, amm);
+    Some(DexEvent::RaydiumAmmV4Swap(RaydiumAmmV4SwapEvent {
+        metadata,
+        amount_in,
+        minimum_amount_out,
+        max_amount_in: 0,
+        amount_out: 0,
+        token_program: get_account(accounts, 0).unwrap_or_default(),
+        amm,
+        amm_authority: get_account(accounts, 2).unwrap_or_default(),
+        amm_open_orders: Pubkey::default(),
+        amm_target_orders: None,
+        pool_coin_token_account: get_account(accounts, 3).unwrap_or_default(),
+        pool_pc_token_account: get_account(accounts, 4).unwrap_or_default(),
+        serum_program: Pubkey::default(),
+        serum_market: Pubkey::default(),
+        serum_bids: Pubkey::default(),
+        serum_asks: Pubkey::default(),
+        serum_event_queue: Pubkey::default(),
+        serum_coin_vault_account: Pubkey::default(),
+        serum_pc_vault_account: Pubkey::default(),
+        serum_vault_signer: Pubkey::default(),
+        user_source_token_account: get_account(accounts, 5).unwrap_or_default(),
+        user_destination_token_account: get_account(accounts, 6).unwrap_or_default(),
+        user_source_owner: get_account(accounts, 7).unwrap_or_default(),
+    }))
+}
+
+/// SwapBaseOutV2 (tag 17): same 8-account layout as V2 in.
+fn parse_swap_base_out_v2_instruction(
+    data: &[u8],
+    accounts: &[Pubkey],
+    signature: Signature,
+    slot: u64,
+    tx_index: u64,
+    block_time_us: Option<i64>,
+) -> Option<DexEvent> {
+    let max_amount_in = read_u64_le(data, 0)?;
+    let amount_out = read_u64_le(data, 8)?;
+    let amm = get_account(accounts, 1)?;
+    let metadata = create_metadata_simple(signature, slot, tx_index, block_time_us, amm);
+    Some(DexEvent::RaydiumAmmV4Swap(RaydiumAmmV4SwapEvent {
+        metadata,
+        amount_in: 0,
+        minimum_amount_out: 0,
+        max_amount_in,
+        amount_out,
+        token_program: get_account(accounts, 0).unwrap_or_default(),
+        amm,
+        amm_authority: get_account(accounts, 2).unwrap_or_default(),
+        amm_open_orders: Pubkey::default(),
+        amm_target_orders: None,
+        pool_coin_token_account: get_account(accounts, 3).unwrap_or_default(),
+        pool_pc_token_account: get_account(accounts, 4).unwrap_or_default(),
+        serum_program: Pubkey::default(),
+        serum_market: Pubkey::default(),
+        serum_bids: Pubkey::default(),
+        serum_asks: Pubkey::default(),
+        serum_event_queue: Pubkey::default(),
+        serum_coin_vault_account: Pubkey::default(),
+        serum_pc_vault_account: Pubkey::default(),
+        serum_vault_signer: Pubkey::default(),
+        user_source_token_account: get_account(accounts, 5).unwrap_or_default(),
+        user_destination_token_account: get_account(accounts, 6).unwrap_or_default(),
+        user_source_owner: get_account(accounts, 7).unwrap_or_default(),
+    }))
 }
 
 /// 解析 SwapBaseIn 指令

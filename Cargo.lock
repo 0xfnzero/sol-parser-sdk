@@ -3724,7 +3724,7 @@ dependencies = [
 
 [[package]]
 name = "sol-parser-sdk"
-version = "0.7.5"
+version = "0.7.6"
 dependencies = [
  "anyhow",
  "base58-turbo",

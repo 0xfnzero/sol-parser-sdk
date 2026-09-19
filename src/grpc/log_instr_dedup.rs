@@ -428,6 +428,7 @@ mod tests {
             sqrt_price_x64: 0,
             liquidity: 0,
             tick: 0,
+        ..Default::default()
         })
     }
 

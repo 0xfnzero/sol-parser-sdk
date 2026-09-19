@@ -248,23 +248,21 @@ pub fn fill_pools_remove_liquidity_accounts(
 
 /// Meteora DLMM Swap 账户填充
 ///
-/// swap instruction account mapping (based on IDL):
-/// 0: lbPair
-/// 1: binArrayBitmapExtension
-/// 2: reserveX
-/// 3: reserveY
-/// 4: userTokenIn
-/// 5: userTokenOut
-/// 6: tokenXMint
-/// 7: tokenYMint
-/// 8: oracle
-/// 9: hostFeeIn
-/// 10: user
-/// 11: tokenXProgram
-/// 12: tokenYProgram
-/// 13: eventAuthority
-/// 14: program
+/// `swap` (v1) fixed accounts (IDL):
+/// 0..12 shared, 13: eventAuthority, 14: program, remaining: bin arrays
+///
+/// `swap2` fixed accounts (IDL):
+/// 0: lbPair, 1: binArrayBitmapExtension (optional), 2: reserveX, 3: reserveY,
+/// 4: userTokenIn, 5: userTokenOut, 6: tokenXMint, 7: tokenYMint,
+/// 8: oracle, 9: hostFeeIn (optional), 10: user, 11: tokenXProgram, 12: tokenYProgram,
+/// 13: memoProgram, 14: eventAuthority, 15: program, remaining: bin arrays
 pub fn fill_dlmm_swap_accounts(e: &mut MeteoraDlmmSwapEvent, get: &AccountGetter<'_>) {
+    /// Official Memo program id used by Meteora `swap2` / `swap_*2`.
+    const MEMO_PROGRAM: Pubkey = solana_sdk::pubkey!("MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr");
+
+    if e.pool == Pubkey::default() {
+        e.pool = get(0);
+    }
     if e.user_token_in == Pubkey::default() {
         e.user_token_in = get(4);
     }
@@ -276,6 +274,48 @@ pub fn fill_dlmm_swap_accounts(e: &mut MeteoraDlmmSwapEvent, get: &AccountGetter
     }
     if e.token_y_mint == Pubkey::default() {
         e.token_y_mint = get(7);
+    }
+    if e.reserve_x == Pubkey::default() {
+        e.reserve_x = get(2);
+    }
+    if e.reserve_y == Pubkey::default() {
+        e.reserve_y = get(3);
+    }
+    if e.oracle == Pubkey::default() {
+        e.oracle = get(8);
+    }
+    if e.token_x_program == Pubkey::default() {
+        e.token_x_program = get(11);
+    }
+    if e.token_y_program == Pubkey::default() {
+        e.token_y_program = get(12);
+    }
+
+    // swap2 inserts memo_program at index 13; swap (v1) has event_authority there.
+    let is_swap2 = get(13) == MEMO_PROGRAM;
+    let program_idx = if is_swap2 { 15 } else { 14 };
+    let bins_start = if is_swap2 { 16 } else { 15 };
+
+    if e.bitmap_extension.is_none() {
+        let ext = get(1);
+        // Unused optional accounts are often the program id placeholder.
+        let program = get(program_idx);
+        if ext != Pubkey::default() && ext != e.pool && ext != program {
+            e.bitmap_extension = Some(ext);
+        }
+    }
+    if e.bin_arrays.is_empty() {
+        let mut bins = Vec::new();
+        let mut idx = bins_start;
+        while idx < bins_start + 16 {
+            let key = get(idx);
+            if key == Pubkey::default() {
+                break;
+            }
+            bins.push(key);
+            idx += 1;
+        }
+        e.bin_arrays = bins;
     }
 }
 
@@ -323,4 +363,34 @@ pub fn fill_dlmm_remove_liquidity_accounts(
     _get: &AccountGetter<'_>,
 ) {
     // 事件数据已包含主要信息
+}
+
+#[cfg(test)]
+mod dlmm_swap_tests {
+    use super::*;
+
+    #[test]
+    fn swap2_bin_arrays_start_after_memo_and_program() {
+        let memo = solana_sdk::pubkey!("MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr");
+        let mut accounts: Vec<_> = (0..18).map(|_| Pubkey::new_unique()).collect();
+        accounts[13] = memo;
+        let bin0 = accounts[16];
+        let bin1 = accounts[17];
+        let mut e = MeteoraDlmmSwapEvent::default();
+        fill_dlmm_swap_accounts(&mut e, &|i| accounts.get(i).copied().unwrap_or_default());
+        assert_eq!(e.bin_arrays, vec![bin0, bin1]);
+        assert_eq!(e.reserve_x, accounts[2]);
+        assert_eq!(e.oracle, accounts[8]);
+    }
+
+    #[test]
+    fn swap_v1_bin_arrays_start_at_15() {
+        let accounts: Vec<_> = (0..17).map(|_| Pubkey::new_unique()).collect();
+        // index 13 is NOT memo → v1 layout
+        let bin0 = accounts[15];
+        let bin1 = accounts[16];
+        let mut e = MeteoraDlmmSwapEvent::default();
+        fill_dlmm_swap_accounts(&mut e, &|i| accounts.get(i).copied().unwrap_or_default());
+        assert_eq!(e.bin_arrays, vec![bin0, bin1]);
+    }
 }

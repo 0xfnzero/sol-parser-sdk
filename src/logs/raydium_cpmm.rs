@@ -124,6 +124,15 @@ pub fn parse_swap_event_from_data(data: &[u8], metadata: EventMetadata) -> Optio
         input_transfer_fee,
         output_transfer_fee,
         base_input,
+        amm_config: Pubkey::default(),
+        input_vault: Pubkey::default(),
+        output_vault: Pubkey::default(),
+        input_token_program: Pubkey::default(),
+        output_token_program: Pubkey::default(),
+        input_token_mint: Pubkey::default(),
+        output_token_mint: Pubkey::default(),
+        observation_state: Pubkey::default(),
+
     }))
 }
 
@@ -159,6 +168,15 @@ pub fn parse_swap_base_in_from_data(data: &[u8], metadata: EventMetadata) -> Opt
         input_transfer_fee: 0,
         output_transfer_fee: 0,
         base_input: is_base_input,
+        amm_config: Pubkey::default(),
+        input_vault: Pubkey::default(),
+        output_vault: Pubkey::default(),
+        input_token_program: Pubkey::default(),
+        output_token_program: Pubkey::default(),
+        input_token_mint: Pubkey::default(),
+        output_token_mint: Pubkey::default(),
+        observation_state: Pubkey::default(),
+
     }))
 }
 
@@ -194,6 +212,7 @@ pub fn parse_swap_base_out_from_data(data: &[u8], metadata: EventMetadata) -> Op
         input_transfer_fee: 0,
         output_transfer_fee: 0,
         base_input: !is_base_output,
+        ..Default::default()
     }))
 }
 
@@ -345,6 +364,7 @@ fn parse_swap_base_in_event(
         // output_vault: Pubkey::default(),
         // input_token_mint: Pubkey::default(),
         // output_token_mint: Pubkey::default(),
+        ..Default::default()
     }))
 }
 
@@ -407,6 +427,7 @@ fn parse_swap_base_out_event(
         // output_vault: Pubkey::default(),
         // input_token_mint: Pubkey::default(),
         // output_token_mint: Pubkey::default(),
+        ..Default::default()
     }))
 }
 
@@ -652,6 +673,7 @@ fn parse_swap_base_in_from_text(
         // output_vault: Pubkey::default(),
         // input_token_mint: Pubkey::default(),
         // output_token_mint: Pubkey::default(),
+        ..Default::default()
     }))
 }
 
@@ -703,6 +725,7 @@ fn parse_swap_base_out_from_text(
         // output_vault: Pubkey::default(),
         // input_token_mint: Pubkey::default(),
         // output_token_mint: Pubkey::default(),
+        ..Default::default()
     }))
 }
 

@@ -127,6 +127,17 @@ pub fn parse_traded_from_data(data: &[u8], metadata: EventMetadata) -> Option<De
         output_transfer_fee,
         lp_fee,
         protocol_fee,
+        token_program_a: Pubkey::default(),
+        token_program_b: Pubkey::default(),
+        token_mint_a: Pubkey::default(),
+        token_mint_b: Pubkey::default(),
+        token_vault_a: Pubkey::default(),
+        token_vault_b: Pubkey::default(),
+        tick_array_0: Pubkey::default(),
+        tick_array_1: Pubkey::default(),
+        tick_array_2: Pubkey::default(),
+        oracle: Pubkey::default(),
+
     }))
 }
 
@@ -320,8 +331,6 @@ fn parse_traded_event(
 
     Some(DexEvent::OrcaWhirlpoolSwap(OrcaWhirlpoolSwapEvent {
         metadata,
-
-        // IDL TradedEvent 事件字段
         whirlpool,
         a_to_b,
         pre_sqrt_price,
@@ -332,22 +341,7 @@ fn parse_traded_event(
         output_transfer_fee,
         lp_fee,
         protocol_fee,
-        // 暂时注释，以后会用，AI禁止改动
-        // 指令参数字段
-        // amount: input_amount,
-        // other_amount_threshold: output_amount,
-        // sqrt_price_limit: pre_sqrt_price,
-        // amount_specified_is_input: true,
-
-        // 指令账户字段
-        // token_authority: solana_sdk::pubkey::Pubkey::default(),
-        // token_owner_account_a: solana_sdk::pubkey::Pubkey::default(),
-        // token_vault_a: solana_sdk::pubkey::Pubkey::default(),
-        // token_owner_account_b: solana_sdk::pubkey::Pubkey::default(),
-        // token_vault_b: solana_sdk::pubkey::Pubkey::default(),
-        // tick_array_0: solana_sdk::pubkey::Pubkey::default(),
-        // tick_array_1: solana_sdk::pubkey::Pubkey::default(),
-        // tick_array_2: solana_sdk::pubkey::Pubkey::default(),
+        ..Default::default()
     }))
 }
 

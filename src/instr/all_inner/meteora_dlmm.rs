@@ -167,6 +167,14 @@ fn parse_swap2(data: &[u8], metadata: EventMetadata) -> Option<DexEvent> {
             protocol_fee,
             fee_bps,
             host_fee,
+        reserve_x: Pubkey::default(),
+        reserve_y: Pubkey::default(),
+        oracle: Pubkey::default(),
+        bitmap_extension: None,
+        token_x_program: Pubkey::default(),
+        token_y_program: Pubkey::default(),
+        bin_arrays: Vec::new(),
+
         }))
     }
 }
@@ -231,6 +239,14 @@ fn parse_swap_zero_copy(data: &[u8], metadata: EventMetadata) -> Option<DexEvent
             protocol_fee,
             fee_bps,
             host_fee,
+        reserve_x: Pubkey::default(),
+        reserve_y: Pubkey::default(),
+        oracle: Pubkey::default(),
+        bitmap_extension: None,
+        token_x_program: Pubkey::default(),
+        token_y_program: Pubkey::default(),
+        bin_arrays: Vec::new(),
+
         }))
     }
 }
