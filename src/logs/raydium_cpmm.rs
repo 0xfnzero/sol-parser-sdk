@@ -113,6 +113,14 @@ pub fn parse_swap_event_from_data(data: &[u8], metadata: EventMetadata) -> Optio
     let output_transfer_fee = read_u64_le(data, offset)?;
     offset += 8;
     let base_input = read_bool(data, offset)?;
+    // Keep the 81-byte legacy prefix. Incomplete modern tails retain old
+    // numerical parsing but are explicitly unsuitable for context binding.
+    let known_layout = (data.len() == 81 || data.len() >= 162) && data[80] <= 1;
+    let log_mints = if data.len() >= 162 {
+        Some(CpmmSwapMints { input: read_pubkey(data, 81)?, output: read_pubkey(data, 113)? })
+    } else {
+        None
+    };
 
     Some(DexEvent::RaydiumCpmmSwap(RaydiumCpmmSwapEvent {
         metadata,
@@ -124,6 +132,13 @@ pub fn parse_swap_event_from_data(data: &[u8], metadata: EventMetadata) -> Optio
         input_transfer_fee,
         output_transfer_fee,
         base_input,
+        log_mints,
+        amounts_source: if known_layout {
+            CpmmSwapAmountsSource::SwapEvent
+        } else {
+            CpmmSwapAmountsSource::Unknown
+        },
+        ..Default::default()
     }))
 }
 
@@ -159,6 +174,8 @@ pub fn parse_swap_base_in_from_data(data: &[u8], metadata: EventMetadata) -> Opt
         input_transfer_fee: 0,
         output_transfer_fee: 0,
         base_input: is_base_input,
+        amounts_source: CpmmSwapAmountsSource::LegacyLog,
+        ..Default::default()
     }))
 }
 
@@ -194,6 +211,8 @@ pub fn parse_swap_base_out_from_data(data: &[u8], metadata: EventMetadata) -> Op
         input_transfer_fee: 0,
         output_transfer_fee: 0,
         base_input: !is_base_output,
+        amounts_source: CpmmSwapAmountsSource::LegacyLog,
+        ..Default::default()
     }))
 }
 
@@ -345,6 +364,8 @@ fn parse_swap_base_in_event(
         // output_vault: Pubkey::default(),
         // input_token_mint: Pubkey::default(),
         // output_token_mint: Pubkey::default(),
+        amounts_source: CpmmSwapAmountsSource::LegacyLog,
+        ..Default::default()
     }))
 }
 
@@ -407,6 +428,8 @@ fn parse_swap_base_out_event(
         // output_vault: Pubkey::default(),
         // input_token_mint: Pubkey::default(),
         // output_token_mint: Pubkey::default(),
+        amounts_source: CpmmSwapAmountsSource::LegacyLog,
+        ..Default::default()
     }))
 }
 
@@ -652,6 +675,8 @@ fn parse_swap_base_in_from_text(
         // output_vault: Pubkey::default(),
         // input_token_mint: Pubkey::default(),
         // output_token_mint: Pubkey::default(),
+        amounts_source: CpmmSwapAmountsSource::LegacyLog,
+        ..Default::default()
     }))
 }
 
@@ -703,6 +728,8 @@ fn parse_swap_base_out_from_text(
         // output_vault: Pubkey::default(),
         // input_token_mint: Pubkey::default(),
         // output_token_mint: Pubkey::default(),
+        amounts_source: CpmmSwapAmountsSource::LegacyLog,
+        ..Default::default()
     }))
 }
 

@@ -98,6 +98,7 @@ fn supports_launchlab_instruction(disc: [u8; 8]) -> bool {
             | raydium_launchlab::discriminators::INITIALIZE
             | raydium_launchlab::discriminators::INITIALIZE_V2
             | raydium_launchlab::discriminators::INITIALIZE_WITH_TOKEN_2022
+            | raydium_launchlab::discriminators::MIGRATE_TO_CPSWAP
     )
 }
 

@@ -110,11 +110,63 @@ pub fn parse_instruction(
             block_time_us,
             (10, 11),
         ),
-        // The LaunchLab IDL does not expose enough fields to synthesize a
-        // migration event with the SDK's migrate layout.
-        discriminators::MIGRATE_TO_AMM | discriminators::MIGRATE_TO_CPSWAP => None,
+        discriminators::MIGRATE_TO_CPSWAP => {
+            parse_migrate_to_cpmm(data, accounts, signature, slot, tx_index, block_time_us)
+        }
+        // A different venue/layout; do not reinterpret as CPMM.
+        discriminators::MIGRATE_TO_AMM => None,
         _ => None,
     }
+}
+
+/// Current IDL only. Unknown/historical layouts are not guessed.
+fn parse_migrate_to_cpmm(
+    data: &[u8],
+    accounts: &[Pubkey],
+    signature: Signature,
+    slot: u64,
+    tx_index: u64,
+    block_time_us: Option<i64>,
+) -> Option<DexEvent> {
+    let a = accounts.get(..28)?;
+    if !data.is_empty()
+        || a.iter().enumerate().any(|(i, key)| i != 25 && *key == Pubkey::default())
+        || !super::raydium_cpmm::supported_token_program(a[22])
+        || a[1] == a[2]
+        || a[5] == a[17]
+        || a[4] != solana_sdk::pubkey!("CPMMoo8L3F4NbTegBCKVNunggL7H1ZpdTHKxQB5qKP1C")
+        || a[13] != solana_sdk::pubkey!("LockrWmn6K5twhz3y9w1dQERbmgSaRkfnTeTKbpofwE")
+        || a[23] != solana_sdk::pubkey!("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA")
+        || a[24] != solana_sdk::pubkey!("ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL")
+        || a[25] != solana_sdk::pubkey!("11111111111111111111111111111111")
+        || a[26] != solana_sdk::pubkey!("SysvarRent111111111111111111111111111111111")
+        || a[27] != solana_sdk::pubkey!("metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s")
+    {
+        return None;
+    }
+    Some(DexEvent::RaydiumLaunchlabMigrateCpmm(RaydiumLaunchlabMigrateCpmmEvent {
+        metadata: create_metadata_simple(signature, slot, tx_index, block_time_us, a[17]),
+        payer: a[0],
+        base_mint: a[1],
+        quote_mint: a[2],
+        platform_config: a[3],
+        cpmm_program: a[4],
+        new_pool: a[5],
+        cpmm_authority: a[6],
+        cpmm_base_vault: a[8],
+        cpmm_quote_vault: a[9],
+        cpmm_config: a[10],
+        cpmm_observation: a[12],
+        old_pool: a[17],
+        global_config: a[18],
+        base_vault: a[19],
+        quote_vault: a[20],
+        base_token_program: a[22],
+        quote_token_program: a[23],
+        instruction_index: None,
+        transaction_success: None,
+        invocation_success: None,
+    }))
 }
 
 /// Parse `create_platform_config` instructions.

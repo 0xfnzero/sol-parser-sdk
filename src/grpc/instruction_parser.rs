@@ -79,6 +79,12 @@ pub fn parse_instructions_enhanced(
     for event in &mut events {
         crate::core::common_filler::fill_token_balances(event, meta, transaction);
     }
+    super::cpmm_context::fill_migration_outcomes(
+        &mut events,
+        transaction,
+        meta,
+        &meta.log_messages,
+    );
     crate::grpc::transaction_meta::fill_recent_blockhash(&mut events, transaction);
     events
 }
@@ -128,7 +134,7 @@ pub(crate) fn parse_instructions_enhanced_with_created_buy(
         }
 
         // 解析主指令（8字节 discriminator）
-        if let Some(event) = parse_outer_instruction(
+        if let Some(mut event) = parse_outer_instruction(
             &ix.data,
             &pid,
             sig,
@@ -141,6 +147,7 @@ pub(crate) fn parse_instructions_enhanced_with_created_buy(
             filter,
             is_created_buy,
         ) {
+            super::cpmm_context::set_instruction_index(&mut event, i, None);
             result.push(IndexedInstructionEvent {
                 outer_idx: i,
                 inner_idx: None,
@@ -189,7 +196,8 @@ pub(crate) fn parse_instructions_enhanced_with_created_buy(
                 )
             });
 
-            if let Some(event) = event {
+            if let Some(mut event) = event {
+                super::cpmm_context::set_instruction_index(&mut event, outer_idx, Some(j));
                 result.push(IndexedInstructionEvent {
                     outer_idx,
                     inner_idx: Some(j),
@@ -208,6 +216,7 @@ pub(crate) fn parse_instructions_enhanced_with_created_buy(
 
     // 步骤 4: 填充账户上下文（invokes 与 fill_data 均使用 Pubkey 键，无堆泄漏）
     for event in &mut final_result {
+        super::cpmm_context::fill_transaction_status(event, meta);
         crate::core::account_dispatcher::fill_accounts_with_invoke_context(
             event,
             meta,

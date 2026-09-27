@@ -225,7 +225,8 @@ fn parse_converted_rpc_transaction(
     let mut active_program_stack: SmallVec<[ActiveProgram<'_>; 8]> = SmallVec::new();
     let mut log_events = Vec::new();
 
-    for log in log_messages {
+    let mut cpmm_indices = None;
+    for (log_index, log) in log_messages.iter().enumerate() {
         if let Some((pid, depth)) = crate::logs::optimized_matcher::parse_invoke_info(log) {
             let pk = crate::grpc::program_ids::known_program_id(pid).unwrap_or_default();
             active_program_stack.truncate(depth - 1);
@@ -260,6 +261,20 @@ fn parse_converted_rpc_transaction(
                 &program_invokes,
             );
 
+            if let DexEvent::RaydiumCpmmSwap(swap) = &mut event {
+                let indices = cpmm_indices.get_or_insert_with(|| {
+                    crate::grpc::cpmm_context::log_instruction_indices(
+                        &grpc_tx_opt,
+                        &grpc_meta,
+                        log_messages,
+                    )
+                });
+                if let Some(index) =
+                    indices.as_ref().and_then(|trace| trace.log_indices.get(&log_index))
+                {
+                    crate::grpc::cpmm_context::bind_log(swap, *index, &grpc_tx_opt, &grpc_meta);
+                }
+            }
             log_events.push(event);
         }
 
@@ -272,6 +287,15 @@ fn parse_converted_rpc_transaction(
     }
 
     let mut events = merge_log_and_instruction_events(log_events, instr_events);
+    for event in &mut events {
+        crate::grpc::cpmm_context::fill_transaction_status(event, &grpc_meta);
+    }
+    crate::grpc::cpmm_context::fill_migration_outcomes(
+        &mut events,
+        &grpc_tx_opt,
+        &grpc_meta,
+        log_messages,
+    );
     fill_rpc_event_metadata(&mut events, rpc_tx, &grpc_meta, &grpc_tx_opt);
     Ok(events)
 }

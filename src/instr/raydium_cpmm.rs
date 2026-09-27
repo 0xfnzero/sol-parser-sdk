@@ -60,6 +60,39 @@ pub fn parse_instruction(
     }
 }
 
+/// Parse only complete supported account context. Do not turn missing/default
+/// accounts or an unknown token program into a usable trading route.
+pub(crate) fn swap_context(accounts: &[Pubkey]) -> Option<RaydiumCpmmSwapContext> {
+    let a = accounts.get(..13)?;
+    if a.iter().any(|key| *key == Pubkey::default())
+        || !supported_token_program(a[8])
+        || !supported_token_program(a[9])
+        || a[10] == a[11]
+        || a[4] == a[5]
+        || a[6] == a[7]
+    {
+        return None;
+    }
+    Some(RaydiumCpmmSwapContext {
+        payer: a[0],
+        authority: a[1],
+        amm_config: a[2],
+        input_token_account: a[4],
+        output_token_account: a[5],
+        input_vault: a[6],
+        output_vault: a[7],
+        input_token_program: a[8],
+        output_token_program: a[9],
+        input_token_mint: a[10],
+        output_token_mint: a[11],
+        observation_state: a[12],
+    })
+}
+
+pub(crate) fn supported_token_program(key: Pubkey) -> bool {
+    key == spl_token::id() || key == spl_token_2022::id()
+}
+
 /// 解析 Base In 交换指令
 fn parse_swap_base_in_instruction(
     data: &[u8],
@@ -107,6 +140,9 @@ fn parse_swap_base_in_instruction(
         // output_vault: Pubkey::default(),
         // input_token_mint: Pubkey::default(),
         // output_token_mint: Pubkey::default(),
+        context: swap_context(accounts),
+        amounts_source: CpmmSwapAmountsSource::InstructionOnly,
+        ..Default::default()
     }))
 }
 
@@ -157,6 +193,9 @@ fn parse_swap_base_out_instruction(
         // output_vault: Pubkey::default(),
         // input_token_mint: Pubkey::default(),
         // output_token_mint: Pubkey::default(),
+        context: swap_context(accounts),
+        amounts_source: CpmmSwapAmountsSource::InstructionOnly,
+        ..Default::default()
     }))
 }
 

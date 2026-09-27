@@ -110,7 +110,10 @@ pub fn try_merge_events(
         (RaydiumClmmCollectFee(b), RaydiumClmmCollectFee(i)) => merge_generic(b, i),
 
         // ========== Raydium CPMM 系列 ==========
-        (RaydiumCpmmSwap(b), RaydiumCpmmSwap(i)) => merge_generic(b, i),
+        (RaydiumCpmmSwap(_), event @ RaydiumCpmmSwap(_)) => {
+            *unmerged = Some(event);
+            return false;
+        }
         (RaydiumCpmmDeposit(b), RaydiumCpmmDeposit(i)) => merge_generic(b, i),
         (RaydiumCpmmWithdraw(b), RaydiumCpmmWithdraw(i)) => merge_generic(b, i),
         (RaydiumCpmmInitialize(b), RaydiumCpmmInitialize(i)) => merge_generic(b, i),

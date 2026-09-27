@@ -273,6 +273,45 @@ pub enum TradeDirection {
     Sell,
 }
 
+/// Observed `migrate_to_cpswap` instruction using the checked-in LaunchLab IDL.
+/// This is linkage evidence, not proof of confirmed graduation or pool readiness.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RaydiumLaunchlabMigrateCpmmEvent {
+    pub metadata: EventMetadata,
+    pub payer: Pubkey,
+    pub base_mint: Pubkey,
+    pub quote_mint: Pubkey,
+    pub platform_config: Pubkey,
+    pub cpmm_program: Pubkey,
+    pub new_pool: Pubkey,
+    pub cpmm_authority: Pubkey,
+    pub cpmm_base_vault: Pubkey,
+    pub cpmm_quote_vault: Pubkey,
+    pub cpmm_config: Pubkey,
+    pub cpmm_observation: Pubkey,
+    pub old_pool: Pubkey,
+    pub global_config: Pubkey,
+    pub base_vault: Pubkey,
+    pub quote_vault: Pubkey,
+    pub base_token_program: Pubkey,
+    pub quote_token_program: Pubkey,
+    #[serde(default)]
+    pub instruction_index: Option<InstructionIndex>,
+    #[serde(default)]
+    pub transaction_success: Option<bool>,
+    /// Complete invocation trace proves this call and its ancestors succeeded.
+    /// A transaction can succeed while a router catches a failed CPI.
+    #[serde(default)]
+    pub invocation_success: Option<bool>,
+}
+
+impl RaydiumLaunchlabMigrateCpmmEvent {
+    /// Platform classification only; consumers must validate successful linkage.
+    pub fn stonkfun_mode(&self) -> Option<StonkFunMode> {
+        stonkfun_mode_from_platform_config(self.platform_config)
+    }
+}
+
 /// RaydiumLaunchlab Migrate AMM Event
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RaydiumLaunchlabMigrateAmmEvent {
@@ -1094,9 +1133,53 @@ pub struct PumpSwapWithdrawEvent {
     pub amount: u64,
 }
 
-/// Raydium CPMM Swap Event (基于IDL SwapEvent + swapBaseInput指令定义)
+/// Position within a transaction, including ordinary aggregator CPI instructions.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub struct InstructionIndex {
+    pub outer: u32,
+    pub inner: Option<u32>,
+}
+
+/// Origin of CPMM numerical fields. None of these proves transaction success or wallet-net fills.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub enum CpmmSwapAmountsSource {
+    #[default]
+    Unknown,
+    /// Instruction arguments are limits, so executed amount fields remain zero.
+    InstructionOnly,
+    /// Checked-in IDL SwapEvent, including its supported stable legacy prefix.
+    SwapEvent,
+    /// Older SDK log decoder. Not certified as the current IDL execution layout.
+    LegacyLog,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub struct CpmmSwapMints {
+    pub input: Pubkey,
+    pub output: Pubkey,
+}
+
+/// Accounts of one CPMM swap instruction (idls/raydium_cpmm.json).
+/// This is generic CPMM context, not StonkFun platform/graduation provenance.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct RaydiumCpmmSwapContext {
+    pub payer: Pubkey,
+    pub authority: Pubkey,
+    pub amm_config: Pubkey,
+    pub input_token_account: Pubkey,
+    pub output_token_account: Pubkey,
+    pub input_vault: Pubkey,
+    pub output_vault: Pubkey,
+    pub input_token_program: Pubkey,
+    pub output_token_program: Pubkey,
+    pub input_token_mint: Pubkey,
+    pub output_token_mint: Pubkey,
+    pub observation_state: Pubkey,
+}
+
+/// Raydium CPMM swap. `base_input` is exact-input mode, NOT buy/sell direction.
 #[cfg_attr(feature = "parse-borsh", derive(BorshDeserialize))]
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct RaydiumCpmmSwapEvent {
     #[cfg_attr(feature = "parse-borsh", borsh(skip))]
     pub metadata: EventMetadata,
@@ -1117,21 +1200,26 @@ pub struct RaydiumCpmmSwapEvent {
     pub output_transfer_fee: u64,
     #[cfg_attr(feature = "parse-borsh", borsh(skip))]
     pub base_input: bool,
-    // === 指令参数字段 (暂时注释，以后可能会用到，AI不要删除) ===
-    // pub amount_in: u64,
-    // pub minimum_amount_out: u64,
-
-    // === 指令账户字段 (暂时注释，以后可能会用到，AI不要删除) ===
-    // pub payer: Pubkey,              // 0: payer
-    // pub authority: Pubkey,          // 1: authority
-    // pub amm_config: Pubkey,         // 2: ammConfig
-    // pub pool_state: Pubkey,         // 3: poolState
-    // pub input_token_account: Pubkey, // 4: inputTokenAccount
-    // pub output_token_account: Pubkey, // 5: outputTokenAccount
-    // pub input_vault: Pubkey,        // 6: inputVault
-    // pub output_vault: Pubkey,       // 7: outputVault
-    // pub input_token_mint: Pubkey,   // 10: inputTokenMint
-    // pub output_token_mint: Pubkey,  // 11: outputTokenMint
+    /// Complete, nondefault instruction accounts, never inferred from the fee payer.
+    #[serde(default)]
+    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
+    pub context: Option<RaydiumCpmmSwapContext>,
+    /// Exact transaction instruction position. Absent for standalone decoders.
+    #[serde(default)]
+    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
+    pub instruction_index: Option<InstructionIndex>,
+    /// Distinguishes actual event amounts from the zero instruction fallback.
+    #[serde(default)]
+    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
+    pub amounts_source: CpmmSwapAmountsSource,
+    /// Transaction metadata status, not commitment. None for standalone decoders.
+    #[serde(default)]
+    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
+    pub transaction_success: Option<bool>,
+    /// Current SwapEvent tail; absent in the supported legacy prefix.
+    #[serde(default)]
+    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
+    pub log_mints: Option<CpmmSwapMints>,
 }
 
 /// Raydium CPMM Deposit Event

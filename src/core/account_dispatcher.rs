@@ -485,18 +485,9 @@ fn fill_accounts_with_lookup<L: InvokeLookup + ?Sized>(
         }
 
         // Raydium CPMM
-        DexEvent::RaydiumCpmmSwap(e) => {
-            fill_event_accounts!(
-                e,
-                meta,
-                transaction,
-                program_invokes,
-                &RAYDIUM_CPMM_PROGRAM,
-                |get: &AccountGetter<'_>| {
-                    account_fillers::raydium::fill_cpmm_swap_accounts(e, get);
-                }
-            );
-        }
+        // CPMM must use exact invocation binding (grpc/cpmm_context.rs), never
+        // the maximum-account-count heuristic, even for a default pool ID.
+        DexEvent::RaydiumCpmmSwap(_) => {}
         DexEvent::RaydiumCpmmDeposit(e) => {
             fill_event_accounts!(
                 e,
