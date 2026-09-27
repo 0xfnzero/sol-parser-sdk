@@ -80,15 +80,8 @@ pub(crate) fn parse_transaction_core(
 
     let mut events =
         crate::grpc::log_instr_dedup::dedupe_log_instruction_events(log_events, instr_events);
-    super::cpmm_context::fill_migration_outcomes(
-        &mut events,
-        &info.transaction,
-        meta,
-        &meta.log_messages,
-    );
     crate::grpc::transaction_meta::fill_recent_blockhash(&mut events, &info.transaction);
     for event in &mut events {
-        super::cpmm_context::fill_transaction_status(event, meta);
         crate::core::common_filler::fill_token_balances(event, meta, &info.transaction);
     }
     if let Some(filter) = filter {
@@ -161,15 +154,8 @@ fn parse_transaction_core_sequential(
 
     let mut events =
         crate::grpc::log_instr_dedup::dedupe_log_instruction_events(log_events, instr_events);
-    super::cpmm_context::fill_migration_outcomes(
-        &mut events,
-        &info.transaction,
-        meta,
-        &meta.log_messages,
-    );
     crate::grpc::transaction_meta::fill_recent_blockhash(&mut events, &info.transaction);
     for event in &mut events {
-        super::cpmm_context::fill_transaction_status(event, meta);
         crate::core::common_filler::fill_token_balances(event, meta, &info.transaction);
     }
     if let Some(filter) = filter {
@@ -198,9 +184,7 @@ fn parse_logs(
     let mut active_program_stack: SmallVec<[ActiveProgram<'_>; 8]> = SmallVec::new();
     let mut result = Vec::with_capacity(4);
 
-    // Lazy: Pump-only parsing never constructs or validates a CPMM trace.
-    let mut cpmm_indices = None;
-    for (log_index, log) in logs.iter().enumerate() {
+    for log in logs {
         if log.as_bytes().starts_with(PROGRAM_DATA_PREFIX) {
             let current_program = active_program_stack.last().map(|active| &active.pubkey);
             if let Some(mut e) = crate::logs::parse_log_with_program_id(
@@ -227,16 +211,6 @@ fn parse_logs(
                     transaction,
                     &invokes,
                 );
-                if let DexEvent::RaydiumCpmmSwap(swap) = &mut e {
-                    let indices = cpmm_indices.get_or_insert_with(|| {
-                        super::cpmm_context::log_instruction_indices(transaction, meta, logs)
-                    });
-                    if let Some(index) =
-                        indices.as_ref().and_then(|trace| trace.log_indices.get(&log_index))
-                    {
-                        super::cpmm_context::bind_log(swap, *index, transaction, meta);
-                    }
-                }
                 result.push(e);
             }
             continue;

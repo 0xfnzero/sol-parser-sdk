@@ -274,7 +274,6 @@ pub enum EventType {
     RaydiumLaunchlabTrade,
     RaydiumLaunchlabPoolCreate,
     RaydiumLaunchlabMigrateAmm,
-    RaydiumLaunchlabMigrateCpmm,
 
     // PumpFun events
     PumpFunTrade,         // All trade events (backward compatible)
@@ -597,7 +596,6 @@ impl EventTypeFilter {
             EventType::RaydiumLaunchlabTrade,
             EventType::RaydiumLaunchlabPoolCreate,
             EventType::RaydiumLaunchlabMigrateAmm,
-            EventType::RaydiumLaunchlabMigrateCpmm,
         ])
     }
 
@@ -782,7 +780,6 @@ pub fn event_type_from_dex_event(event: &crate::core::events::DexEvent) -> Optio
         DexEvent::RaydiumLaunchlabTrade(_) => Some(EventType::RaydiumLaunchlabTrade),
         DexEvent::RaydiumLaunchlabPoolCreate(_) => Some(EventType::RaydiumLaunchlabPoolCreate),
         DexEvent::RaydiumLaunchlabMigrateAmm(_) => Some(EventType::RaydiumLaunchlabMigrateAmm),
-        DexEvent::RaydiumLaunchlabMigrateCpmm(_) => Some(EventType::RaydiumLaunchlabMigrateCpmm),
         DexEvent::RaydiumLaunchlabPlatformConfigAccount(_) => {
             Some(EventType::AccountRaydiumLaunchlabPlatformConfig)
         }
@@ -1001,7 +998,6 @@ mod event_type_filter_tests {
             EventType::RaydiumLaunchlabTrade,
             EventType::RaydiumLaunchlabPoolCreate,
             EventType::RaydiumLaunchlabMigrateAmm,
-            EventType::RaydiumLaunchlabMigrateCpmm,
         ]);
         assert!(!all_launchlab.includes_raydium_launchlab());
 

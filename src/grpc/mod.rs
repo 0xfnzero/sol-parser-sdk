@@ -11,7 +11,6 @@
 pub mod buffers;
 pub mod client;
 pub mod config;
-pub(crate) mod cpmm_context;
 pub mod deduper;
 pub mod event_parser;
 pub mod filter;

@@ -296,6 +296,9 @@ pub fn fill_cpmm_swap_accounts(e: &mut RaydiumCpmmSwapEvent, get: &AccountGetter
     if e.pool_id == Pubkey::default() {
         e.pool_id = get(3);
     }
+    if e.payer == Pubkey::default() {
+        e.payer = get(0);
+    }
     if e.amm_config == Pubkey::default() {
         e.amm_config = get(2);
     }

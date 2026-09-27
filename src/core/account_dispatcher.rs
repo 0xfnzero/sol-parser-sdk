@@ -508,10 +508,9 @@ fn fill_accounts_with_lookup<L: InvokeLookup + ?Sized>(
         }
 
         // Raydium CPMM
-        // Raydium CPMM — poolState is account index 3. `context` comes from exact
-        // invocation binding (grpc/cpmm_context.rs). The flat account fields are
-        // filled only from this event's own pool invocation, never from the
-        // maximum-account-count fallback, and not at all for a default pool ID.
+        // Raydium CPMM — poolState is account index 3. Accounts, including the
+        // swap payer, come only from this event's own pool invocation, never
+        // from the account-count fallback, which could pick a sibling swap.
         DexEvent::RaydiumCpmmSwap(e) => {
             if let Some(invokes) = program_invokes.get_invokes(&RAYDIUM_CPMM_PROGRAM) {
                 let account_keys = transaction

@@ -86,7 +86,7 @@ enum LogInstrDedupKey {
     },
     RaydiumCpmmSwap {
         pool: Pubkey,
-        index: crate::core::events::InstructionIndex,
+        occurrence: u16,
     },
     RaydiumAmmV4Swap {
         base_out: bool,
@@ -124,6 +124,7 @@ enum OccurrenceBase {
     PumpFun { mint: Pubkey, user: Pubkey, is_buy: bool, lane: u8 },
     RaydiumLaunchlab { pool: Pubkey, user: Pubkey, is_buy: bool },
     RaydiumClmm(Pubkey),
+    RaydiumCpmm(Pubkey),
     RaydiumAmmV4 { base_out: bool, amount: u64 },
     OrcaWhirlpool(Pubkey),
     MeteoraDlmm { pool: Pubkey, from: Pubkey, swap_for_y: bool },
@@ -228,6 +229,7 @@ fn occurrence_base(ev: &DexEvent) -> Option<OccurrenceBase> {
             is_buy: t.is_buy,
         }),
         RaydiumClmmSwap(s) => Some(OccurrenceBase::RaydiumClmm(s.pool_state)),
+        RaydiumCpmmSwap(s) => Some(OccurrenceBase::RaydiumCpmm(s.pool_id)),
         RaydiumAmmV4Swap(s) => {
             let base_out = s.max_amount_in != 0;
             let amount = if base_out { s.amount_out } else { s.amount_in };
@@ -259,9 +261,9 @@ fn dedup_key_with_occurrence(ev: &DexEvent, occurrence: u16) -> Option<LogInstrD
         RaydiumClmmSwap(s) => {
             Some(LogInstrDedupKey::RaydiumClmmSwap { pool: s.pool_state, occurrence })
         }
-        RaydiumCpmmSwap(s) => s
-            .instruction_index
-            .map(|index| LogInstrDedupKey::RaydiumCpmmSwap { pool: s.pool_id, index }),
+        RaydiumCpmmSwap(s) => {
+            Some(LogInstrDedupKey::RaydiumCpmmSwap { pool: s.pool_id, occurrence })
+        }
         RaydiumAmmV4Swap(s) => {
             let base_out = s.max_amount_in != 0;
             let amount = if base_out { s.amount_out } else { s.amount_in };
