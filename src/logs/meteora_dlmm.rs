@@ -4,7 +4,7 @@
 
 use super::utils::*;
 use crate::core::events::*;
-use solana_sdk::signature::Signature;
+use solana_sdk::{pubkey::Pubkey, signature::Signature};
 
 /// Meteora DLMM 事件 discriminator 常量
 pub mod discriminators {
@@ -186,6 +186,14 @@ pub fn parse_swap_from_data(data: &[u8], metadata: EventMetadata) -> Option<DexE
         protocol_fee,
         fee_bps,
         host_fee,
+        reserve_x: Pubkey::default(),
+        reserve_y: Pubkey::default(),
+        oracle: Pubkey::default(),
+        bitmap_extension: None,
+        token_x_program: Pubkey::default(),
+        token_y_program: Pubkey::default(),
+        bin_arrays: Vec::new(),
+
     }))
 }
 
@@ -252,6 +260,14 @@ pub fn parse_swap2_from_data(data: &[u8], metadata: EventMetadata) -> Option<Dex
         protocol_fee,
         fee_bps,
         host_fee,
+        reserve_x: Pubkey::default(),
+        reserve_y: Pubkey::default(),
+        oracle: Pubkey::default(),
+        bitmap_extension: None,
+        token_x_program: Pubkey::default(),
+        token_y_program: Pubkey::default(),
+        bin_arrays: Vec::new(),
+
     }))
 }
 
@@ -569,6 +585,14 @@ fn parse_swap_event(
         protocol_fee,
         fee_bps,
         host_fee,
+        reserve_x: Pubkey::default(),
+        reserve_y: Pubkey::default(),
+        oracle: Pubkey::default(),
+        bitmap_extension: None,
+        token_x_program: Pubkey::default(),
+        token_y_program: Pubkey::default(),
+        bin_arrays: Vec::new(),
+
     }))
 }
 
@@ -1008,6 +1032,7 @@ fn parse_swap_from_text(
         protocol_fee: 0,
         fee_bps: 0,
         host_fee: 0,
+        ..Default::default()
     }))
 }
 

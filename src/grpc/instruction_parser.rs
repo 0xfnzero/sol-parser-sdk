@@ -1047,6 +1047,7 @@ mod tests {
             protocol_fee: 0,
             fee_bps: 0,
             host_fee: 0,
+        ..Default::default()
         })
     }
 

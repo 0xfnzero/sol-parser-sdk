@@ -239,6 +239,15 @@ fn parse_swap_event(
         sqrt_price_x64,
         liquidity,
         tick,
+        amm_config: Pubkey::default(),
+        input_vault: Pubkey::default(),
+        output_vault: Pubkey::default(),
+        observation_state: Pubkey::default(),
+        input_mint: Pubkey::default(),
+        output_mint: Pubkey::default(),
+        tick_array_bitmap_extension: None,
+        tick_arrays: Vec::new(),
+
     }))
 }
 
@@ -772,6 +781,7 @@ fn parse_swap_from_text(
         // amount: extract_number_from_text(log, "amount").unwrap_or(1_000_000_000),
         // other_amount_threshold: extract_number_from_text(log, "threshold").unwrap_or(950_000_000),
         // sqrt_price_limit_x64: 0,
+        ..Default::default()
     }))
 }
 
@@ -974,6 +984,15 @@ pub fn parse_swap_from_data(data: &[u8], metadata: EventMetadata) -> Option<DexE
         sqrt_price_x64,
         liquidity,
         tick,
+        amm_config: Pubkey::default(),
+        input_vault: Pubkey::default(),
+        output_vault: Pubkey::default(),
+        observation_state: Pubkey::default(),
+        input_mint: Pubkey::default(),
+        output_mint: Pubkey::default(),
+        tick_array_bitmap_extension: None,
+        tick_arrays: Vec::new(),
+
     }))
 }
 

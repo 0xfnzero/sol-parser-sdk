@@ -134,7 +134,10 @@ fn parse_swap_instruction(
     let sqrt_price_limit_x64 = read_u128_le(data, offset)?;
     offset += 16;
 
-    let is_base_input = data.get(offset)? == &1;
+    // Instruction data bool is `is_base_input` (exact-in vs exact-out), NOT
+    // swap direction. Real `zero_for_one` comes from the SwapEvent log; leave
+    // a placeholder here so log-preferred merge keeps the log value.
+    let _is_base_input = data.get(offset)? == &1;
 
     let pool = get_account(accounts, 2)?;
     let metadata = create_metadata_simple(signature, slot, tx_index, block_time_us, pool);
@@ -149,10 +152,11 @@ fn parse_swap_instruction(
         transfer_fee_0: 0,
         amount_1: 0,
         transfer_fee_1: 0,
-        zero_for_one: is_base_input,
+        zero_for_one: false,
         sqrt_price_x64: sqrt_price_limit_x64,
         liquidity: 0,
         tick: 0,
+        ..Default::default()
     }))
 }
 

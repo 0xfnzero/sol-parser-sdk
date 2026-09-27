@@ -575,3 +575,41 @@ fn migration_unknown_layout_wrong_program_and_default_accounts_fail_closed() {
         .account_keys[0] = cpmm::PROGRAM_ID_PUBKEY.to_bytes().to_vec();
     assert!(parse_subscribe_update_transaction(&tx, 0, None, None).is_empty());
 }
+/// Two-pool route: each swap's flat account fields come from its own pool
+/// invocation, and a swap log whose pool no CPMM invocation touches is never
+/// filled from a sibling swap.
+#[test]
+fn flat_accounts_come_only_from_the_event_pool_invocation() {
+    let (mut tx, a, mut b) = repeated_inner();
+    b[3] = Pubkey::new_unique();
+    let meta = tx.transaction.as_mut().unwrap().meta.as_mut().unwrap();
+    meta.loaded_readonly_addresses = b.iter().map(|p| p.to_bytes().to_vec()).collect();
+    meta.log_messages[5] = swap_log(&b, true, 20, false);
+    for events in [
+        parse_subscribe_update_transaction(&tx, 0, None, None),
+        parse_subscribe_update_transaction_low_latency(&tx, 0, None, None),
+    ] {
+        let events = swaps(events);
+        assert_eq!(events.len(), 2);
+        for (s, a) in events.iter().zip([&a, &b]) {
+            assert_eq!(s.pool_id, a[3]);
+            assert_eq!(s.amm_config, a[2]);
+            assert_eq!((s.input_vault, s.output_vault), (a[6], a[7]));
+            assert_eq!((s.input_token_program, s.output_token_program), (a[8], a[9]));
+            assert_eq!((s.input_token_mint, s.output_token_mint), (a[10], a[11]));
+            assert_eq!(s.observation_state, a[12]);
+        }
+    }
+
+    let (mut tx, _, _) = repeated_inner();
+    let stray = swap_accounts();
+    tx.transaction.as_mut().unwrap().meta.as_mut().unwrap().log_messages[5] =
+        swap_log(&stray, true, 20, false);
+    let events = parse(&tx);
+    let s = events.iter().find(|s| s.pool_id == stray[3]).unwrap();
+    assert!(s.context.is_none());
+    assert_eq!(s.amm_config, Pubkey::default());
+    assert_eq!((s.input_vault, s.output_vault), (Pubkey::default(), Pubkey::default()));
+    assert_eq!(s.input_token_mint, Pubkey::default());
+    assert_eq!(s.observation_state, Pubkey::default());
+}
