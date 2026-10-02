@@ -6,7 +6,9 @@ pub mod common;
 pub mod core;
 pub mod instr; // 指令解析器
 pub mod logs; // 日志解析器
+pub mod stonkfun_registry;
 pub mod transaction_cost;
+pub mod transaction_route;
 pub mod utils;
 pub mod warmup; // 预热模块
 
@@ -52,9 +54,15 @@ pub use rpc_parser::{
     convert_rpc_to_grpc, parse_rpc_transaction, parse_rpc_transaction_cost_with_signature,
     parse_rpc_transaction_with_cost, parse_transaction_from_rpc, ParseError, ParsedRpcTransaction,
 };
+pub use stonkfun_registry::{StonkFunGraduatedPool, StonkFunPoolRegistry};
 pub use transaction_cost::{
     parse_rpc_transaction_cost, parse_shred_transaction_cost, parse_yellowstone_transaction_cost,
     SwqosProvider, SwqosTipAccountGroup, TipPayment, TransactionCost, SWQOS_TIP_ACCOUNT_GROUPS,
+};
+pub use transaction_route::{
+    analyze_rpc_transaction_routes, analyze_yellowstone_transaction_routes, InstructionPosition,
+    NativeTokenAction, RouteNativeTokenAction, RouteSwapLeg, RouteTokenTransfer,
+    RouteUnknownInvocation, SwapProtocol, TransactionRoute,
 };
 
 // 账户 / RPC 工具（非 DEX 业务）

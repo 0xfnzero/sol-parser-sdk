@@ -9,6 +9,10 @@ use solana_sdk::signature::Signature;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[non_exhaustive]
 pub enum DexEvent {
+    RawAccountSnapshot(Box<crate::accounts::liquidity_snapshot::RawAccountSnapshotEvent>),
+    LiquidityAccountSnapshot(
+        Box<crate::accounts::liquidity_snapshot::LiquidityAccountSnapshotEvent>,
+    ),
     // PumpFun 事件
     PumpFunCreate(PumpFunCreateTokenEvent),     // - 已对接
     PumpFunCreateV2(PumpFunCreateV2TokenEvent), // - 已对接 (CreateV2 / Mayhem)
@@ -256,6 +260,8 @@ impl DexEvent {
             DexEvent::OrcaWhirlpoolAccount(e) => &e.metadata,
             DexEvent::OrcaPositionAccount(e) => &e.metadata,
             DexEvent::OrcaTickArrayAccount(e) => &e.metadata,
+            DexEvent::LiquidityAccountSnapshot(e) => &e.metadata,
+            DexEvent::RawAccountSnapshot(e) => &e.metadata,
             DexEvent::OrcaFeeTierAccount(e) => &e.metadata,
             DexEvent::OrcaWhirlpoolsConfigAccount(e) => &e.metadata,
 
@@ -378,6 +384,8 @@ impl DexEvent {
             DexEvent::OrcaWhirlpoolAccount(e) => Some(&mut e.metadata),
             DexEvent::OrcaPositionAccount(e) => Some(&mut e.metadata),
             DexEvent::OrcaTickArrayAccount(e) => Some(&mut e.metadata),
+            DexEvent::LiquidityAccountSnapshot(e) => Some(&mut e.metadata),
+            DexEvent::RawAccountSnapshot(e) => Some(&mut e.metadata),
             DexEvent::OrcaFeeTierAccount(e) => Some(&mut e.metadata),
             DexEvent::OrcaWhirlpoolsConfigAccount(e) => Some(&mut e.metadata),
             DexEvent::MeteoraPoolsSwap(e) => Some(&mut e.metadata),

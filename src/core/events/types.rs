@@ -281,6 +281,24 @@ pub struct RaydiumLaunchlabMigrateAmmEvent {
     pub new_pool: Pubkey,
     pub user: Pubkey,
     pub liquidity_amount: u64,
+    /// Migration instruction does not contain the executed LP amount.
+    #[serde(default)]
+    pub liquidity_amount_known: bool,
+    #[serde(default)]
+    pub base_mint: Pubkey,
+    #[serde(default)]
+    pub quote_mint: Pubkey,
+    /// Present on migrate_to_cpswap; absent on the legacy AMM migration.
+    #[serde(default)]
+    pub platform_config: Pubkey,
+    #[serde(default)]
+    pub destination_program: Pubkey,
+}
+
+impl RaydiumLaunchlabMigrateAmmEvent {
+    pub fn stonkfun_mode(&self) -> Option<StonkFunMode> {
+        stonkfun_mode_from_platform_config(self.platform_config)
+    }
 }
 
 /// PumpFun Trade Event - 基于官方IDL定义

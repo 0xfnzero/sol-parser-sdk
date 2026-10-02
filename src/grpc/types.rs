@@ -381,6 +381,9 @@ pub enum EventType {
     AccountOrcaWhirlpool,
     AccountOrcaPosition,
     AccountOrcaTickArray,
+    AccountLiquiditySnapshot,
+    /// Raw subscription bytes with slot/write_version; explicitly opt in via include_only.
+    AccountRawSnapshot,
     AccountOrcaFeeTier,
     AccountOrcaWhirlpoolsConfig,
 }
@@ -809,6 +812,8 @@ pub fn event_type_from_dex_event(event: &crate::core::events::DexEvent) -> Optio
         DexEvent::OrcaWhirlpoolAccount(_) => Some(EventType::AccountOrcaWhirlpool),
         DexEvent::OrcaPositionAccount(_) => Some(EventType::AccountOrcaPosition),
         DexEvent::OrcaTickArrayAccount(_) => Some(EventType::AccountOrcaTickArray),
+        DexEvent::LiquidityAccountSnapshot(_) => Some(EventType::AccountLiquiditySnapshot),
+        DexEvent::RawAccountSnapshot(_) => Some(EventType::AccountRawSnapshot),
         DexEvent::OrcaFeeTierAccount(_) => Some(EventType::AccountOrcaFeeTier),
         DexEvent::OrcaWhirlpoolsConfigAccount(_) => Some(EventType::AccountOrcaWhirlpoolsConfig),
         DexEvent::MeteoraPoolsSwap(_) => Some(EventType::MeteoraPoolsSwap),

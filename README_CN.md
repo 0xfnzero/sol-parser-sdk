@@ -113,16 +113,22 @@ sol-parser-sdk = { path = "../sol-parser-sdk", default-features = false, feature
 
 ```toml
 # 在 Cargo.toml 中添加
-sol-parser-sdk = "0.7.6"
+sol-parser-sdk = "0.7.7"
 ```
 
 或使用零拷贝解析器（最高性能）：
 
 ```toml
-sol-parser-sdk = { version = "0.7.6", default-features = false, features = ["parse-zero-copy"] }
+sol-parser-sdk = { version = "0.7.7", default-features = false, features = ["parse-zero-copy"] }
 ```
 
 ### 发布说明
+
+#### v0.7.7
+
+- 新增可选的指令级路由分析，保留 CPI 位置、实际转账、SOL/WSOL 生命周期证据和未知程序信息。
+- 跟踪已验证的 StonkFun 内外盘池和迁移线索，避免将普通 CPMM 池误判为 StonkFun。
+- 新增带 slot/write-version 的 gRPC 原始账户快照及缓存采集示例，服务于无 RPC 的交易热路径。
 
 #### v0.7.6
 
@@ -140,6 +146,7 @@ sol-parser-sdk = { version = "0.7.6", default-features = false, features = ["par
 
 - 新增首选订阅名称 `Protocol::StonkFun` 与 `Protocol::LaunchLab`；旧的 `Protocol::RaydiumLaunchlab` 继续兼容。
 - 根据 StonkFun 官方 LaunchLab platform config 识别 standard 与 reward 两种池。
+- 新增可选 RPC/Yellowstone 路由分析，保留 CPI 位置、mint 流向、指令限制、实成交量及未知程序，并补充迁移池来源。详见 [StonkFun 链上抓取审计与接口](docs/STONKFUN_AUDIT.md)。
 - 完整解析当前 LaunchLab trade event，包括储备量、全部手续费、池状态与新增的三个尾部交易账户。
 - 支持当前 18 账户 LaunchLab 交易指令布局，并在日志事件与指令事件合并时保留新增账户。
 - 新增真实主网 StonkFun reward 池交易回归测试，交易签名为 `4Pb4vgRq6rAFi5NmMZMsfBvuwVVsvBqhySfPS3naMksujvEiGtPjxRLape7V82ZVQvxt7P8YKPCL6RSWTreMUFrY`。

@@ -1,3 +1,4 @@
+pub mod liquidity_snapshot;
 pub mod nonce;
 pub mod orca_whirlpool;
 pub mod program_ids;
@@ -50,7 +51,8 @@ pub fn parse_account_unified(
                 use crate::grpc::EventType;
                 matches!(
                     t,
-                    EventType::TokenAccount
+                    EventType::AccountLiquiditySnapshot
+                        | EventType::TokenAccount
                         | EventType::TokenInfo
                         | EventType::NonceAccount
                         | EventType::AccountPumpFunGlobal
@@ -79,6 +81,13 @@ pub fn parse_account_unified(
         }
     }
 
+    if event_type_filter
+        .is_none_or(|f| f.should_include(crate::grpc::EventType::AccountLiquiditySnapshot))
+    {
+        if let Some(event) = liquidity_snapshot::parse_account(account, metadata.clone()) {
+            return Some(event);
+        }
+    }
     if account.owner == PUMPSWAP_PROGRAM_ID {
         let should_parse = event_type_filter.is_none_or(|filter| {
             filter.should_include(crate::grpc::EventType::AccountPumpSwapGlobalConfig)

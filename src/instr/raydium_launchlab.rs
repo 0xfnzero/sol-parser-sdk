@@ -101,9 +101,31 @@ pub fn parse_instruction(
             block_time_us,
             (10, 11),
         ),
-        // The LaunchLab IDL does not expose enough fields to synthesize a
-        // migration event with the SDK's migrate layout.
-        discriminators::MIGRATE_TO_AMM | discriminators::MIGRATE_TO_CPSWAP => None,
+        discriminators::MIGRATE_TO_AMM | discriminators::MIGRATE_TO_CPSWAP => {
+            let cp = discriminator == discriminators::MIGRATE_TO_CPSWAP;
+            if accounts.len() < if cp { 28 } else { 32 } || (!cp && data.len() < 17) {
+                return None;
+            }
+            let old_pool = get_account(accounts, if cp { 17 } else { 23 })?;
+            Some(DexEvent::RaydiumLaunchlabMigrateAmm(RaydiumLaunchlabMigrateAmmEvent {
+                metadata: create_metadata_simple(
+                    signature,
+                    slot,
+                    tx_index,
+                    block_time_us,
+                    old_pool,
+                ),
+                old_pool,
+                new_pool: get_account(accounts, if cp { 5 } else { 13 })?,
+                user: get_account(accounts, 0)?,
+                liquidity_amount: 0,
+                liquidity_amount_known: false,
+                base_mint: get_account(accounts, 1)?,
+                quote_mint: get_account(accounts, 2)?,
+                platform_config: if cp { get_account(accounts, 3)? } else { Pubkey::default() },
+                destination_program: get_account(accounts, if cp { 4 } else { 12 })?,
+            }))
+        }
         _ => None,
     }
 }
