@@ -281,6 +281,56 @@ macro_rules! fill_event_accounts_with_invoke {
 // ============================================================================
 
 /// 从交易 meta 将缺失账户填入事件（`program_invokes`: program id → (outer, inner) 索引列表）
+fn invoke_has_discriminator(
+    meta: &TransactionStatusMeta,
+    transaction: &Option<Transaction>,
+    invoke: &(i32, i32),
+    discriminator: [u8; 8],
+) -> bool {
+    crate::core::common_filler::get_instruction_data(meta, transaction, invoke)
+        .and_then(|data| data.get(..8))
+        .is_some_and(|disc| disc == discriminator)
+}
+
+/// PumpSwap emits the same BuyEvent from `buy`, `buy_exact_quote_in` and the
+/// protocol's `boost_buy_and_burn`; the latter has its own account layout.
+fn fill_pumpswap_buy_accounts<L: InvokeLookup + ?Sized>(
+    e: &mut PumpSwapBuyEvent,
+    meta: &TransactionStatusMeta,
+    transaction: &Option<Transaction>,
+    program_invokes: &L,
+) {
+    use crate::grpc::program_ids::PUMPSWAP_PROGRAM;
+    use crate::instr::pump_amm::discriminators::BOOST_BUY_AND_BURN;
+
+    let Some(invokes) = program_invokes.get_invokes(&PUMPSWAP_PROGRAM) else {
+        return;
+    };
+    let account_keys =
+        transaction.as_ref().and_then(|tx| tx.message.as_ref()).map(|msg| &msg.account_keys);
+    let pool = e.pool;
+    let Some(invoke) =
+        find_instruction_invoke_anchored(invokes, meta, transaction, account_keys, 0, &pool)
+    else {
+        return;
+    };
+    let Some(get_account) = get_instruction_account_getter(
+        meta,
+        transaction,
+        account_keys,
+        &meta.loaded_writable_addresses,
+        &meta.loaded_readonly_addresses,
+        invoke,
+    ) else {
+        return;
+    };
+    if invoke_has_discriminator(meta, transaction, invoke, BOOST_BUY_AND_BURN) {
+        account_fillers::pumpswap::fill_boost_buy_and_burn_accounts(e, &get_account);
+    } else {
+        account_fillers::pumpswap::fill_buy_accounts(e, &get_account);
+    }
+}
+
 fn fill_accounts_with_lookup<L: InvokeLookup + ?Sized>(
     event: &mut DexEvent,
     meta: &TransactionStatusMeta,
@@ -352,18 +402,7 @@ fn fill_accounts_with_lookup<L: InvokeLookup + ?Sized>(
 
         // PumpSwap
         DexEvent::PumpSwapBuy(e) => {
-            let pool = e.pool;
-            fill_event_accounts_anchored!(
-                e,
-                meta,
-                transaction,
-                program_invokes,
-                &PUMPSWAP_PROGRAM,
-                &pool,
-                |get: &AccountGetter<'_>| {
-                    account_fillers::pumpswap::fill_buy_accounts(e, get);
-                }
-            );
+            fill_pumpswap_buy_accounts(e, meta, transaction, program_invokes);
         }
         DexEvent::PumpSwapSell(e) => {
             let pool = e.pool;
@@ -1050,6 +1089,48 @@ mod tests {
         fill_accounts_with_owned_keys(&mut ambiguous, &meta, &transaction, &repeated);
         let DexEvent::MeteoraDammV2Swap(swap) = ambiguous else { unreachable!() };
         assert_eq!(swap.token_a_mint, Pubkey::default());
+    }
+
+    #[test]
+    fn boost_buy_and_burn_backfills_from_its_own_layout() {
+        let keys: Vec<Pubkey> = (0..13).map(|_| Pubkey::new_unique()).collect();
+        let program_index = keys.len() as u8;
+        let account_keys = keys
+            .iter()
+            .chain(std::iter::once(&PUMPSWAP_PROGRAM))
+            .map(|k| k.to_bytes().to_vec())
+            .collect();
+        let mut data = crate::instr::pump_amm::discriminators::BOOST_BUY_AND_BURN.to_vec();
+        data.extend_from_slice(&[0u8; 16]);
+        let transaction = Some(Transaction {
+            signatures: vec![vec![0u8; 64]],
+            message: Some(Message {
+                header: Some(MessageHeader::default()),
+                account_keys,
+                recent_blockhash: vec![0u8; 32],
+                instructions: vec![CompiledInstruction {
+                    program_id_index: program_index as u32,
+                    accounts: (0..13).collect(),
+                    data,
+                }],
+                versioned: false,
+                address_table_lookups: Vec::new(),
+                config: None,
+            }),
+        });
+        let meta = TransactionStatusMeta::default();
+        let invokes = HashMap::from([(PUMPSWAP_PROGRAM, vec![(0i32, -1i32)])]);
+
+        let mut buy =
+            DexEvent::PumpSwapBuy(PumpSwapBuyEvent { pool: keys[0], ..Default::default() });
+        fill_accounts_with_owned_keys(&mut buy, &meta, &transaction, &invokes);
+        let DexEvent::PumpSwapBuy(e) = buy else { unreachable!() };
+        assert_eq!((e.base_mint, e.quote_mint), (keys[3], keys[4]));
+        assert_eq!((e.pool_base_token_account, e.pool_quote_token_account), (keys[5], keys[6]));
+        assert_eq!((e.base_token_program, e.quote_token_program), (keys[9], keys[10]));
+        assert_eq!(e.user_base_token_account, Pubkey::default());
+        assert_eq!(e.protocol_fee_recipient, Pubkey::default());
+        assert_eq!(e.coin_creator_vault_ata, Pubkey::default());
     }
 
     #[test]
