@@ -69,6 +69,7 @@ pub(crate) fn needs_invoke_context(program_id: &Pubkey) -> bool {
             | METEORA_POOLS_PROGRAM
             | METEORA_DAMM_V2_PROGRAM
             | METEORA_DLMM_PROGRAM
+            | METEORA_DBC_PROGRAM
     )
 }
 

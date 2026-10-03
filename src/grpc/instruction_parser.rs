@@ -464,6 +464,13 @@ fn parse_inner_instruction(
             }
         }
         all_inner::meteora_dlmm::parse(&discriminator, inner_data, metadata)
+    } else if *program_id == program_ids::METEORA_DBC_PROGRAM_ID {
+        if let Some(f) = filter {
+            if !f.includes_meteora_dbc() {
+                return None;
+            }
+        }
+        all_inner::meteora_dbc::parse(&discriminator, inner_data, metadata)
     } else if *program_id == program_ids::RAYDIUM_LAUNCHLAB_PROGRAM_ID {
         if let Some(f) = filter {
             if !f.includes_raydium_launchlab() {
@@ -639,6 +646,7 @@ fn should_parse_instructions(filter: Option<&EventTypeFilter>) -> bool {
         || filter.includes_meteora_pools()
         || filter.includes_meteora_damm_v2()
         || filter.includes_meteora_dlmm()
+        || filter.includes_meteora_dbc()
 }
 
 #[cfg(test)]
@@ -861,6 +869,9 @@ mod tests {
             EventType::MeteoraDammV2Swap,
             EventType::MeteoraDammV2InitializePool,
             EventType::MeteoraDlmmSwap,
+            // DBC emits its events as event-CPI inner instructions only.
+            EventType::MeteoraDbcSwap,
+            EventType::MeteoraDbcCurveComplete,
         ] {
             let filter = EventTypeFilter::include_only(vec![event_type]);
             assert!(
@@ -868,12 +879,6 @@ mod tests {
                 "instruction parsing should be enabled for {event_type:?}"
             );
         }
-
-        let filter = EventTypeFilter::include_only(vec![EventType::MeteoraDbcSwap]);
-        assert!(
-            !should_parse_instructions(Some(&filter)),
-            "DBC events are log-only until an instruction parser is implemented"
-        );
 
         let filter = EventTypeFilter::include_only(vec![
             EventType::AccountPumpFunGlobal,

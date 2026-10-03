@@ -2951,23 +2951,118 @@ pub struct MeteoraDammV2CreateDynamicConfigEvent {
 
 // ====================== Meteora DBC Events ======================
 
-/// Meteora DBC Swap Event (IDL `EvtSwap`)
+/// `trade_direction` of a Meteora DBC swap that sells the base token.
+pub const METEORA_DBC_BASE_TO_QUOTE: u8 = 0;
+/// `trade_direction` of a Meteora DBC swap that buys the base token.
+pub const METEORA_DBC_QUOTE_TO_BASE: u8 = 1;
+
+/// A transfer-hook account of a Meteora DBC swap, as its transaction passed it.
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, Default, PartialEq, Eq)]
+pub struct MeteoraDbcHookAccount {
+    pub pubkey: Pubkey,
+    pub is_writable: bool,
+}
+
+/// Meteora DBC Swap Event (IDL `EvtSwap2`, `EvtSwap2WithTransferHook`; the
+/// legacy `EvtSwap` when parsed from a log).
+///
+/// The program emits events as event-CPI inner instructions, so swaps come
+/// from the instruction path. A `swap` or `swap2` emits `EvtSwap` and
+/// `EvtSwap2` for the same trade; only `EvtSwap2` becomes an event.
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct MeteoraDbcSwapEvent {
     pub metadata: EventMetadata,
     pub pool: Pubkey,
     pub config: Pubkey,
+    /// [`METEORA_DBC_BASE_TO_QUOTE`] or [`METEORA_DBC_QUOTE_TO_BASE`].
     pub trade_direction: u8,
     pub has_referral: bool,
+    /// What the payer sent, the fee included (`included_fee_input_amount`).
     pub amount_in: u64,
+    /// The payer's limit: the minimum output, or the exact output of an
+    /// exact-out swap.
     pub minimum_amount_out: u64,
+    /// What reached the curve: `amount_in` less the fee when the fee is taken
+    /// from the input (`excluded_fee_input_amount`).
     pub actual_input_amount: u64,
+    /// What the payer received, after the fee when it is taken from the output.
     pub output_amount: u64,
     pub next_sqrt_price: u128,
     pub trading_fee: u64,
     pub protocol_fee: u64,
     pub referral_fee: u64,
     pub current_timestamp: u64,
+
+    // === `EvtSwap2` fields ===
+    /// 0 exact in, 1 partial fill, 2 exact out.
+    #[serde(default)]
+    pub swap_mode: u8,
+    #[serde(default)]
+    pub amount_0: u64,
+    #[serde(default)]
+    pub amount_1: u64,
+    /// Input a partial fill gave back because the curve completed.
+    #[serde(default)]
+    pub amount_left: u64,
+    /// The pool's quote reserve after the swap.
+    #[serde(default)]
+    pub quote_reserve_amount: u64,
+    /// The quote reserve at which the curve completes.
+    #[serde(default)]
+    pub migration_threshold: u64,
+    /// A transfer-hook pool, traded with `swap2_with_transfer_hook`.
+    #[serde(default)]
+    pub transfer_hook: bool,
+
+    // === Accounts of the swap instruction ===
+    #[serde(default)]
+    pub pool_authority: Pubkey,
+    #[serde(default)]
+    pub input_token_account: Pubkey,
+    #[serde(default)]
+    pub output_token_account: Pubkey,
+    #[serde(default)]
+    pub base_vault: Pubkey,
+    #[serde(default)]
+    pub quote_vault: Pubkey,
+    #[serde(default)]
+    pub base_mint: Pubkey,
+    #[serde(default)]
+    pub quote_mint: Pubkey,
+    #[serde(default)]
+    pub payer: Pubkey,
+    #[serde(default)]
+    pub token_base_program: Pubkey,
+    #[serde(default)]
+    pub token_quote_program: Pubkey,
+    #[serde(default)]
+    pub referral_token_account: Option<Pubkey>,
+    #[serde(default)]
+    pub event_authority: Pubkey,
+    #[serde(default)]
+    pub program: Pubkey,
+    /// The swap passed the instructions sysvar ahead of its hook accounts, as
+    /// a rate-limited buy must.
+    #[serde(default)]
+    pub has_instructions_sysvar: bool,
+    /// The base token's transfer-hook accounts (`TransferHookBase`), in the
+    /// order the swap passed them; empty for a pool without a hook.
+    #[serde(default)]
+    pub transfer_hook_accounts: Vec<MeteoraDbcHookAccount>,
+}
+
+impl MeteoraDbcSwapEvent {
+    /// The swap bought the base token with the quote.
+    #[inline]
+    pub fn is_buy(&self) -> bool {
+        self.trade_direction == METEORA_DBC_QUOTE_TO_BASE
+    }
+
+    /// The swap completed the curve: nothing trades on it afterwards.
+    #[inline]
+    pub fn completed_curve(&self) -> bool {
+        self.migration_threshold != 0 && self.quote_reserve_amount >= self.migration_threshold
+    }
 }
 
 /// Meteora DBC Initialize Pool Event (IDL `EvtInitializePool`)

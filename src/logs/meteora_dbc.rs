@@ -84,6 +84,85 @@ pub fn parse_swap_from_data(data: &[u8], metadata: EventMetadata) -> Option<DexE
         protocol_fee,
         referral_fee,
         current_timestamp,
+        ..Default::default()
+    }))
+}
+
+/// `SwapParameters2::swap_mode` of an exact-out swap, whose `amount_0` is the
+/// output and `amount_1` the most it may pay.
+const SWAP_MODE_EXACT_OUT: u8 = 2;
+
+/// Parses the body of `EvtSwap2`, or of `EvtSwap2WithTransferHook` (same
+/// layout) when `transfer_hook` is set.
+#[inline(always)]
+pub fn parse_swap2_from_data(
+    data: &[u8],
+    metadata: EventMetadata,
+    transfer_hook: bool,
+) -> Option<DexEvent> {
+    let mut offset = 0;
+
+    let pool = read_pubkey(data, offset)?;
+    offset += 32;
+    let config = read_pubkey(data, offset)?;
+    offset += 32;
+    let trade_direction = read_u8(data, offset)?;
+    offset += 1;
+    let has_referral = read_bool(data, offset)?;
+    offset += 1;
+    let amount_0 = read_u64_le(data, offset)?;
+    offset += 8;
+    let amount_1 = read_u64_le(data, offset)?;
+    offset += 8;
+    let swap_mode = read_u8(data, offset)?;
+    offset += 1;
+    let included_fee_input_amount = read_u64_le(data, offset)?;
+    offset += 8;
+    let excluded_fee_input_amount = read_u64_le(data, offset)?;
+    offset += 8;
+    let amount_left = read_u64_le(data, offset)?;
+    offset += 8;
+    let output_amount = read_u64_le(data, offset)?;
+    offset += 8;
+    let next_sqrt_price = read_u128_le(data, offset)?;
+    offset += 16;
+    let trading_fee = read_u64_le(data, offset)?;
+    offset += 8;
+    let protocol_fee = read_u64_le(data, offset)?;
+    offset += 8;
+    let referral_fee = read_u64_le(data, offset)?;
+    offset += 8;
+    let quote_reserve_amount = read_u64_le(data, offset)?;
+    offset += 8;
+    let migration_threshold = read_u64_le(data, offset)?;
+    offset += 8;
+    let current_timestamp = read_u64_le(data, offset)?;
+
+    let minimum_amount_out = if swap_mode == SWAP_MODE_EXACT_OUT { amount_0 } else { amount_1 };
+
+    Some(DexEvent::MeteoraDbcSwap(MeteoraDbcSwapEvent {
+        metadata,
+        pool,
+        config,
+        trade_direction,
+        has_referral,
+        amount_in: included_fee_input_amount,
+        minimum_amount_out,
+        actual_input_amount: excluded_fee_input_amount,
+        output_amount,
+        next_sqrt_price,
+        trading_fee,
+        protocol_fee,
+        referral_fee,
+        current_timestamp,
+        swap_mode,
+        amount_0,
+        amount_1,
+        amount_left,
+        quote_reserve_amount,
+        migration_threshold,
+        transfer_hook,
+        ..Default::default()
     }))
 }
 
