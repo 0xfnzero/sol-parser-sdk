@@ -33,6 +33,14 @@ pub const METEORA_DAMM_V2_PROGRAM: Pubkey = pubkey!("cpamdpZCGKUy5JxQXB4dcpGPiik
 pub const METEORA_DLMM_PROGRAM: Pubkey = pubkey!("LBUZKhRxPF3XUpBCjp4YzTKgLccjZhTSDM9YuVaPwxo");
 pub const METEORA_DBC_PROGRAM: Pubkey = pubkey!("dbcij3LWUppWqq96dh6gJWwBifmcGfLSB5D4DuSMaqN");
 
+/// Precompiles are not invoked through the BPF loader and emit no
+/// `Program … invoke [1]` log line, so log-derived outer indices must skip them.
+pub const LOGLESS_PRECOMPILES: [Pubkey; 3] = [
+    pubkey!("Ed25519SigVerify111111111111111111111111111"),
+    pubkey!("KeccakSecp256k11111111111111111111111111111"),
+    pubkey!("Secp256r1SigVerify1111111111111111111111111"),
+];
+
 /// Avoid base58 decoding for program ids emitted by the DEXes this crate parses.
 #[inline(always)]
 pub(crate) fn known_program_id(program_id: &str) -> Option<Pubkey> {

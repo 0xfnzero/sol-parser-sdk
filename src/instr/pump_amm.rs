@@ -21,6 +21,8 @@ pub mod discriminators {
     pub const DEPOSIT: [u8; 8] = [242, 35, 198, 137, 82, 225, 242, 182];
     /// withdraw: Remove liquidity from pool
     pub const WITHDRAW: [u8; 8] = [183, 18, 70, 156, 148, 109, 161, 34];
+    /// boost_buy_and_burn: Protocol buyback that emits a regular BuyEvent
+    pub const BOOST_BUY_AND_BURN: [u8; 8] = [105, 68, 6, 175, 0, 7, 35, 162];
 }
 
 /// Pump AMM Program ID

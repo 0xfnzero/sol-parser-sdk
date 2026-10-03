@@ -219,7 +219,7 @@ fn parse_logs(
         if let Some((pid, depth)) = crate::logs::optimized_matcher::parse_invoke_info(log) {
             if depth == 1 {
                 inner_idx = -1;
-                outer_idx += 1;
+                outer_idx = next_logged_outer_index(transaction, outer_idx);
             } else {
                 inner_idx += 1;
             }
@@ -240,6 +240,32 @@ fn parse_logs(
         }
     }
     result
+}
+
+/// Next outer instruction index that emits an `invoke [1]` log line.
+#[inline]
+fn next_logged_outer_index(transaction: &Option<Transaction>, current: i32) -> i32 {
+    let mut next = current + 1;
+    while is_logless_outer(transaction, next) {
+        next += 1;
+    }
+    next
+}
+
+#[inline]
+fn is_logless_outer(transaction: &Option<Transaction>, outer_idx: i32) -> bool {
+    let Some(msg) = transaction.as_ref().and_then(|tx| tx.message.as_ref()) else {
+        return false;
+    };
+    usize::try_from(outer_idx)
+        .ok()
+        .and_then(|idx| msg.instructions.get(idx))
+        .and_then(|ix| msg.account_keys.get(ix.program_id_index as usize))
+        .is_some_and(|key| {
+            crate::grpc::program_ids::LOGLESS_PRECOMPILES
+                .iter()
+                .any(|precompile| precompile.as_ref() == key.as_slice())
+        })
 }
 
 #[inline]
@@ -265,4 +291,33 @@ fn parse_instructions(
         filter,
         is_created_buy,
     )
+}
+
+#[cfg(test)]
+mod logless_outer_tests {
+    use super::*;
+    use yellowstone_grpc_proto::prelude::{CompiledInstruction, Message};
+
+    #[test]
+    fn log_outer_index_skips_precompiles() {
+        let program = Pubkey::new_unique();
+        let precompile = crate::grpc::program_ids::LOGLESS_PRECOMPILES[0];
+        let account_keys = [program, precompile].iter().map(|k| k.to_bytes().to_vec()).collect();
+        let ix = |program_id_index: u32| CompiledInstruction {
+            program_id_index,
+            accounts: Vec::new(),
+            data: Vec::new(),
+        };
+        let transaction = Some(Transaction {
+            signatures: vec![vec![0u8; 64]],
+            message: Some(Message {
+                account_keys,
+                instructions: vec![ix(0), ix(1), ix(1), ix(0)],
+                ..Default::default()
+            }),
+        });
+        assert_eq!(next_logged_outer_index(&transaction, -1), 0);
+        assert_eq!(next_logged_outer_index(&transaction, 0), 3);
+        assert_eq!(next_logged_outer_index(&None, 0), 1);
+    }
 }
