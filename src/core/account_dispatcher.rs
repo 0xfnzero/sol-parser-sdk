@@ -292,6 +292,40 @@ fn invoke_has_discriminator(
         .is_some_and(|disc| disc == discriminator)
 }
 
+/// Pool-anchored lookup restricted to the instructions that emit this event.
+/// One transaction can touch the same pool through several pAMM instructions
+/// (a migration runs `create_pool` and `deposit` before the first `buy`), so a
+/// pool match alone may pick an invoke with a different account layout.
+fn find_pumpswap_trade_invoke<'a>(
+    invokes: &'a [(i32, i32)],
+    meta: &TransactionStatusMeta,
+    transaction: &Option<Transaction>,
+    account_keys: Option<&Vec<Vec<u8>>>,
+    pool: &Pubkey,
+    discriminators: &[[u8; 8]],
+) -> Option<&'a (i32, i32)> {
+    let emits_event = |invoke: &(i32, i32)| {
+        discriminators.iter().any(|disc| invoke_has_discriminator(meta, transaction, invoke, *disc))
+    };
+    let on_pool = |invoke: &(i32, i32)| {
+        get_instruction_account_getter(
+            meta,
+            transaction,
+            account_keys,
+            &meta.loaded_writable_addresses,
+            &meta.loaded_readonly_addresses,
+            invoke,
+        )
+        .is_some_and(|get_account| get_account(0) == *pool)
+    };
+    invokes
+        .iter()
+        .find(|invoke| emits_event(invoke) && on_pool(invoke))
+        .or_else(|| {
+            find_instruction_invoke_anchored(invokes, meta, transaction, account_keys, 0, pool)
+        })
+}
+
 /// PumpSwap emits the same BuyEvent from `buy`, `buy_exact_quote_in` and the
 /// protocol's `boost_buy_and_burn`; the latter has its own account layout.
 fn fill_pumpswap_buy_accounts<L: InvokeLookup + ?Sized>(
@@ -301,7 +335,7 @@ fn fill_pumpswap_buy_accounts<L: InvokeLookup + ?Sized>(
     program_invokes: &L,
 ) {
     use crate::grpc::program_ids::PUMPSWAP_PROGRAM;
-    use crate::instr::pump_amm::discriminators::BOOST_BUY_AND_BURN;
+    use crate::instr::pump_amm::discriminators::{BOOST_BUY_AND_BURN, BUY, BUY_EXACT_QUOTE_IN};
 
     let Some(invokes) = program_invokes.get_invokes(&PUMPSWAP_PROGRAM) else {
         return;
@@ -309,9 +343,14 @@ fn fill_pumpswap_buy_accounts<L: InvokeLookup + ?Sized>(
     let account_keys =
         transaction.as_ref().and_then(|tx| tx.message.as_ref()).map(|msg| &msg.account_keys);
     let pool = e.pool;
-    let Some(invoke) =
-        find_instruction_invoke_anchored(invokes, meta, transaction, account_keys, 0, &pool)
-    else {
+    let Some(invoke) = find_pumpswap_trade_invoke(
+        invokes,
+        meta,
+        transaction,
+        account_keys,
+        &pool,
+        &[BUY, BUY_EXACT_QUOTE_IN, BOOST_BUY_AND_BURN],
+    ) else {
         return;
     };
     let Some(get_account) = get_instruction_account_getter(
@@ -329,6 +368,39 @@ fn fill_pumpswap_buy_accounts<L: InvokeLookup + ?Sized>(
     } else {
         account_fillers::pumpswap::fill_buy_accounts(e, &get_account);
     }
+}
+
+fn fill_pumpswap_sell_accounts<L: InvokeLookup + ?Sized>(
+    e: &mut PumpSwapSellEvent,
+    meta: &TransactionStatusMeta,
+    transaction: &Option<Transaction>,
+    program_invokes: &L,
+) {
+    use crate::grpc::program_ids::PUMPSWAP_PROGRAM;
+    use crate::instr::pump_amm::discriminators::SELL;
+
+    let Some(invokes) = program_invokes.get_invokes(&PUMPSWAP_PROGRAM) else {
+        return;
+    };
+    let account_keys =
+        transaction.as_ref().and_then(|tx| tx.message.as_ref()).map(|msg| &msg.account_keys);
+    let pool = e.pool;
+    let Some(invoke) =
+        find_pumpswap_trade_invoke(invokes, meta, transaction, account_keys, &pool, &[SELL])
+    else {
+        return;
+    };
+    let Some(get_account) = get_instruction_account_getter(
+        meta,
+        transaction,
+        account_keys,
+        &meta.loaded_writable_addresses,
+        &meta.loaded_readonly_addresses,
+        invoke,
+    ) else {
+        return;
+    };
+    account_fillers::pumpswap::fill_sell_accounts(e, &get_account);
 }
 
 fn fill_accounts_with_lookup<L: InvokeLookup + ?Sized>(
@@ -405,18 +477,7 @@ fn fill_accounts_with_lookup<L: InvokeLookup + ?Sized>(
             fill_pumpswap_buy_accounts(e, meta, transaction, program_invokes);
         }
         DexEvent::PumpSwapSell(e) => {
-            let pool = e.pool;
-            fill_event_accounts_anchored!(
-                e,
-                meta,
-                transaction,
-                program_invokes,
-                &PUMPSWAP_PROGRAM,
-                &pool,
-                |get: &AccountGetter<'_>| {
-                    account_fillers::pumpswap::fill_sell_accounts(e, get);
-                }
-            );
+            fill_pumpswap_sell_accounts(e, meta, transaction, program_invokes);
         }
         DexEvent::PumpSwapTrade(e) => {
             fill_event_accounts!(
@@ -1131,6 +1192,44 @@ mod tests {
         assert_eq!(e.user_base_token_account, Pubkey::default());
         assert_eq!(e.protocol_fee_recipient, Pubkey::default());
         assert_eq!(e.coin_creator_vault_ata, Pubkey::default());
+    }
+
+    #[test]
+    fn buy_skips_same_pool_create_pool_invoke() {
+        use crate::instr::pump_amm::discriminators::{BUY, CREATE_POOL};
+        let pool = Pubkey::new_unique();
+        let lp_mint = Pubkey::new_unique();
+        let base_mint = Pubkey::new_unique();
+        let padding = Pubkey::new_unique();
+        let account_keys = [pool, lp_mint, base_mint, PUMPSWAP_PROGRAM, padding]
+            .iter()
+            .map(|k| k.to_bytes().to_vec())
+            .collect();
+        let ix = |slot3: u8, disc: [u8; 8], len: usize| {
+            let mut accounts = vec![4u8; len];
+            accounts[0] = 0;
+            accounts[3] = slot3;
+            CompiledInstruction { program_id_index: 3, accounts, data: disc.to_vec() }
+        };
+        let transaction = Some(Transaction {
+            signatures: vec![vec![0u8; 64]],
+            message: Some(Message {
+                header: Some(MessageHeader::default()),
+                account_keys,
+                recent_blockhash: vec![0u8; 32],
+                instructions: vec![ix(1, CREATE_POOL, 18), ix(2, BUY, 23)],
+                versioned: false,
+                address_table_lookups: Vec::new(),
+                config: None,
+            }),
+        });
+        let meta = TransactionStatusMeta::default();
+        let invokes = HashMap::from([(PUMPSWAP_PROGRAM, vec![(0i32, -1i32), (1i32, -1i32)])]);
+
+        let mut buy = DexEvent::PumpSwapBuy(PumpSwapBuyEvent { pool, ..Default::default() });
+        fill_accounts_with_owned_keys(&mut buy, &meta, &transaction, &invokes);
+        let DexEvent::PumpSwapBuy(e) = buy else { unreachable!() };
+        assert_eq!(e.base_mint, base_mint, "buy must not backfill from the create_pool invoke");
     }
 
     #[test]
