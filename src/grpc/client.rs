@@ -589,6 +589,25 @@ impl YellowstoneGrpc {
             grpc_recv_us: grpc_us,
             recent_blockhash: None,
         };
+        // Raw snapshots are explicitly opt-in: avoid copying every account
+        // update for existing users who only request normalized events.
+        if filter.as_ref().is_some_and(|f| {
+            f.include_only
+                .as_ref()
+                .is_some_and(|types| types.contains(&crate::grpc::EventType::AccountRawSnapshot))
+        }) {
+            push_queue(
+                queue,
+                DexEvent::RawAccountSnapshot(Box::new(
+                    crate::accounts::liquidity_snapshot::RawAccountSnapshotEvent {
+                        metadata: meta.clone(),
+                        account: data.clone(),
+                        write_version: info.write_version,
+                        is_startup: acc.is_startup,
+                    },
+                )),
+            );
+        }
         if let Some(e) = crate::accounts::parse_account_unified(&data, meta, filter.as_ref()) {
             push_queue(queue, e);
         }
@@ -658,6 +677,37 @@ fn parse_transaction_to_vec(
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn raw_snapshots_are_opt_in_and_preserve_version_and_closures() {
+        let key = solana_sdk::pubkey::Pubkey::new_unique();
+        let account = SubscribeUpdateAccount {
+            account: Some(SubscribeUpdateAccountInfo {
+                pubkey: key.to_bytes().to_vec(),
+                owner: solana_sdk::pubkey::Pubkey::default().to_bytes().to_vec(),
+                lamports: 0,
+                data: Vec::new(),
+                write_version: 42,
+                ..Default::default()
+            }),
+            slot: 123,
+            is_startup: true,
+        };
+        let queue = Arc::new(ArrayQueue::new(4));
+        YellowstoneGrpc::handle_account(account.clone(), &None, &queue, 1, 2);
+        assert!(queue.pop().is_none());
+        let filter =
+            Some(EventTypeFilter::include_only(vec![crate::grpc::EventType::AccountRawSnapshot]));
+        YellowstoneGrpc::handle_account(account, &filter, &queue, 1, 2);
+        let DexEvent::RawAccountSnapshot(event) = queue.pop().unwrap() else {
+            panic!("raw snapshot")
+        };
+        assert_eq!(event.write_version, 42);
+        assert_eq!(event.metadata.slot, 123);
+        assert_eq!(event.account.pubkey, key);
+        assert_eq!(event.account.lamports, 0);
+        assert!(event.account.data.is_empty() && event.is_startup);
+        assert!(queue.pop().is_none());
+    }
 
     fn test_event(slot: u64) -> DexEvent {
         DexEvent::BlockMeta(crate::core::events::BlockMetaEvent {

@@ -20,7 +20,7 @@ use spl_token_2022::{
     state::{Account as Account2022, Mint as Mint2022},
 };
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct AccountData {
     pub pubkey: Pubkey,
     pub executable: bool,
