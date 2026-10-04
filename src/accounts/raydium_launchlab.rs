@@ -207,4 +207,40 @@ mod tests {
         assert_eq!(&event.platform_config.name[..8], b"ScreenFI");
         assert_eq!(event.platform_config.curve_params.len(), 0);
     }
+
+    /// One account update yields one event, and the liquidity snapshot is
+    /// parsed first: a platform config is decoded only for a filter that asks
+    /// for the decoded event without the snapshots.
+    #[test]
+    fn platform_config_is_decoded_only_without_liquidity_snapshots() {
+        use crate::grpc::{EventType, EventTypeFilter};
+
+        let mut data = vec![160, 78, 128, 0, 248, 83, 230, 160];
+        data.resize(DISCRIMINATOR_LEN + PLATFORM_CONFIG_FIXED_LEN_WITHOUT_DISCRIMINATOR, 0);
+        let account = AccountData {
+            pubkey: Pubkey::new_unique(),
+            owner: crate::instr::program_ids::RAYDIUM_LAUNCHLAB_PROGRAM_ID,
+            data,
+            executable: false,
+            lamports: 1,
+            rent_epoch: 0,
+        };
+        let parse = |filter: Option<&EventTypeFilter>| {
+            crate::accounts::parse_account_unified(&account, EventMetadata::default(), filter)
+        };
+
+        let decoded =
+            EventTypeFilter::include_only(vec![EventType::AccountRaydiumLaunchlabPlatformConfig]);
+        assert!(matches!(
+            parse(Some(&decoded)),
+            Some(DexEvent::RaydiumLaunchlabPlatformConfigAccount(_))
+        ));
+
+        let both = EventTypeFilter::include_only(vec![
+            EventType::AccountLiquiditySnapshot,
+            EventType::AccountRaydiumLaunchlabPlatformConfig,
+        ]);
+        assert!(matches!(parse(Some(&both)), Some(DexEvent::LiquidityAccountSnapshot(_))));
+        assert!(matches!(parse(None), Some(DexEvent::LiquidityAccountSnapshot(_))));
+    }
 }
