@@ -164,6 +164,117 @@ fn find_damm_v2_swap_invoke<'a>(
     matches.next().is_none().then_some(matched)
 }
 
+/// Data and account indexes of the instruction at `invoke`.
+fn invoke_instruction<'a>(
+    meta: &'a TransactionStatusMeta,
+    transaction: &'a Option<Transaction>,
+    invoke: &(i32, i32),
+) -> Option<(&'a [u8], &'a [u8])> {
+    if invoke.1 >= 0 {
+        let ix = meta
+            .inner_instructions
+            .iter()
+            .find(|group| group.index == invoke.0 as u32)?
+            .instructions
+            .get(invoke.1 as usize)?;
+        Some((ix.data.as_slice(), ix.accounts.as_slice()))
+    } else {
+        let ix = transaction.as_ref()?.message.as_ref()?.instructions.get(invoke.0 as usize)?;
+        Some((ix.data.as_slice(), ix.accounts.as_slice()))
+    }
+}
+
+/// A transaction's accounts by their index in its message: the static keys,
+/// then the lookup tables' writable and readonly addresses.
+struct TransactionAccounts<'a> {
+    static_keys: &'a [Vec<u8>],
+    loaded_writable: &'a [Vec<u8>],
+    loaded_readonly: &'a [Vec<u8>],
+    signers: usize,
+    readonly_signers: usize,
+    readonly_non_signers: usize,
+}
+
+impl<'a> TransactionAccounts<'a> {
+    fn new(meta: &'a TransactionStatusMeta, transaction: &'a Option<Transaction>) -> Option<Self> {
+        let message = transaction.as_ref()?.message.as_ref()?;
+        let header = message.header.as_ref()?;
+        Some(Self {
+            static_keys: &message.account_keys,
+            loaded_writable: &meta.loaded_writable_addresses,
+            loaded_readonly: &meta.loaded_readonly_addresses,
+            signers: header.num_required_signatures as usize,
+            readonly_signers: header.num_readonly_signed_accounts as usize,
+            readonly_non_signers: header.num_readonly_unsigned_accounts as usize,
+        })
+    }
+
+    fn key(&self, index: u8) -> Pubkey {
+        let index = index as usize;
+        let key = if let Some(key) = self.static_keys.get(index) {
+            Some(key)
+        } else {
+            let loaded = index - self.static_keys.len();
+            self.loaded_writable.get(loaded).or_else(|| {
+                self.loaded_readonly.get(loaded.wrapping_sub(self.loaded_writable.len()))
+            })
+        };
+        key.map_or(Pubkey::default(), |key| crate::instr::read_pubkey_fast(key))
+    }
+
+    /// Whether the message asks for the account as writable.
+    fn is_writable(&self, index: u8) -> bool {
+        let index = index as usize;
+        let static_len = self.static_keys.len();
+        if index >= static_len {
+            return index - static_len < self.loaded_writable.len();
+        }
+        if index < self.signers {
+            index < self.signers.saturating_sub(self.readonly_signers)
+        } else {
+            index < static_len.saturating_sub(self.readonly_non_signers)
+        }
+    }
+}
+
+/// The swap instruction a Meteora DBC swap event came from: the one trading
+/// the event's pool with the event's own parameters. Two such swaps in one
+/// transaction cannot be told apart, and fill nothing.
+fn find_dbc_swap_invoke<'a>(
+    invokes: &[(i32, i32)],
+    meta: &'a TransactionStatusMeta,
+    transaction: &'a Option<Transaction>,
+    accounts: &TransactionAccounts<'_>,
+    event: &MeteoraDbcSwapEvent,
+) -> Option<(&'a [u8], &'a [u8])> {
+    use crate::instr::all_inner::meteora_dbc::instruction_discriminators::{
+        SWAP, SWAP2, SWAP2_WITH_TRANSFER_HOOK,
+    };
+    if event.pool == Pubkey::default() {
+        return None;
+    }
+    let mut matches = invokes.iter().filter_map(|invoke| {
+        let (data, indexes) = invoke_instruction(meta, transaction, invoke)?;
+        let discriminator = data.get(..8)?;
+        if discriminator != SWAP
+            && discriminator != SWAP2
+            && discriminator != SWAP2_WITH_TRANSFER_HOOK
+        {
+            return None;
+        }
+        if indexes.len() < account_fillers::meteora::DBC_SWAP_ACCOUNTS
+            || accounts.key(indexes[2]) != event.pool
+        {
+            return None;
+        }
+        let amount_0 = u64::from_le_bytes(data.get(8..16)?.try_into().ok()?);
+        let amount_1 = u64::from_le_bytes(data.get(16..24)?.try_into().ok()?);
+        (amount_0 == event.amount_0 && amount_1 == event.amount_1).then_some((data, indexes))
+    });
+    let matched = matches.next()?;
+    matches.next().is_none().then_some(matched)
+}
+
 fn find_pumpfun_create_invoke<'a>(
     invokes: &'a [(i32, i32)],
     transaction: &Option<Transaction>,
@@ -765,6 +876,29 @@ fn fill_accounts_with_lookup<L: InvokeLookup + ?Sized>(
                     account_fillers::meteora::fill_damm_v2_initialize_pool_accounts(e, get);
                 }
             );
+        }
+
+        // Meteora DBC
+        DexEvent::MeteoraDbcSwap(e) => {
+            if let (Some(invokes), Some(accounts)) = (
+                program_invokes.get_invokes(&METEORA_DBC_PROGRAM),
+                TransactionAccounts::new(meta, transaction),
+            ) {
+                if let Some((data, indexes)) =
+                    find_dbc_swap_invoke(invokes, meta, transaction, &accounts, e)
+                {
+                    account_fillers::meteora::fill_dbc_swap_accounts(
+                        e,
+                        data,
+                        indexes.len(),
+                        &|i| {
+                            indexes.get(i).map_or((Pubkey::default(), false), |&index| {
+                                (accounts.key(index), accounts.is_writable(index))
+                            })
+                        },
+                    );
+                }
+            }
         }
 
         // Meteora Pools

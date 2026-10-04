@@ -23,6 +23,7 @@ use solana_sdk::pubkey::Pubkey;
 
 pub mod meteora_amm;
 pub mod meteora_damm;
+pub mod meteora_dbc;
 pub mod meteora_dlmm;
 pub mod orca;
 pub mod pump_fees;

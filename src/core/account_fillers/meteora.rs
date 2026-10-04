@@ -117,6 +117,217 @@ mod damm_swap_tests {
     }
 }
 
+// ============================================================================
+// Meteora DBC
+// ============================================================================
+
+/// Named accounts of a DBC swap instruction; the rest are remaining accounts.
+pub const DBC_SWAP_ACCOUNTS: usize = 15;
+
+/// `AccountsType::TransferHookBase` in `swap2_with_transfer_hook`'s
+/// `TransferHookAccountsInfo` slices.
+const DBC_TRANSFER_HOOK_BASE: u8 = 0;
+
+/// Meteora DBC swap accounts, from `swap`, `swap2` or
+/// `swap2_with_transfer_hook` (IDL order):
+/// 0: pool_authority
+/// 1: config
+/// 2: pool
+/// 3: input_token_account
+/// 4: output_token_account
+/// 5: base_vault
+/// 6: quote_vault
+/// 7: base_mint
+/// 8: quote_mint
+/// 9: payer
+/// 10: token_base_program
+/// 11: token_quote_program
+/// 12: referral_token_account (the program id when there is none)
+/// 13: event_authority
+/// 14: program
+///
+/// Remaining accounts follow: the instructions sysvar when the swap passes
+/// one, then the transfer-hook accounts in the order of the slices in the
+/// instruction data, each slice taking its `length` accounts.
+///
+/// `account` gives the instruction's account at an index with its writable
+/// flag in the transaction.
+pub fn fill_dbc_swap_accounts(
+    e: &mut MeteoraDbcSwapEvent,
+    data: &[u8],
+    account_count: usize,
+    account: &dyn Fn(usize) -> (Pubkey, bool),
+) {
+    use crate::instr::all_inner::meteora_dbc::instruction_discriminators::SWAP2_WITH_TRANSFER_HOOK;
+
+    if account_count < DBC_SWAP_ACCOUNTS {
+        return;
+    }
+    let key = |index: usize| account(index).0;
+    e.pool_authority = key(0);
+    e.input_token_account = key(3);
+    e.output_token_account = key(4);
+    e.base_vault = key(5);
+    e.quote_vault = key(6);
+    e.base_mint = key(7);
+    e.quote_mint = key(8);
+    e.payer = key(9);
+    e.token_base_program = key(10);
+    e.token_quote_program = key(11);
+    e.event_authority = key(13);
+    e.program = key(14);
+    e.referral_token_account = (key(12) != e.program).then(|| key(12));
+
+    // `swap2_with_transfer_hook` data: discriminator, amount_0, amount_1,
+    // swap_mode, then the slices as a borsh vector of (accounts_type, length).
+    let slices = if data.get(..8) == Some(&SWAP2_WITH_TRANSFER_HOOK[..]) {
+        dbc_transfer_hook_slices(data.get(25..).unwrap_or_default())
+    } else {
+        &[]
+    };
+    let remaining = account_count - DBC_SWAP_ACCOUNTS;
+    let hook_accounts: usize = slices.iter().map(|[_, length]| usize::from(*length)).sum();
+    // The program allows one account ahead of the hook accounts.
+    let Some(ahead @ 0..=1) = remaining.checked_sub(hook_accounts) else {
+        return;
+    };
+    e.has_instructions_sysvar = ahead == 1;
+    e.transfer_hook_accounts.clear();
+    let mut next = DBC_SWAP_ACCOUNTS + ahead;
+    for [accounts_type, length] in slices {
+        let length = usize::from(*length);
+        if *accounts_type == DBC_TRANSFER_HOOK_BASE {
+            e.transfer_hook_accounts.extend((next..next + length).map(|index| {
+                let (pubkey, is_writable) = account(index);
+                MeteoraDbcHookAccount { pubkey, is_writable }
+            }));
+        }
+        next += length;
+    }
+}
+
+/// The `[accounts_type, length]` pairs of a borsh `Vec<RemainingAccountsSlice>`;
+/// none when the data is cut short.
+fn dbc_transfer_hook_slices(data: &[u8]) -> &[[u8; 2]] {
+    let Some(count) = data.get(..4).and_then(|bytes| bytes.try_into().ok()).map(u32::from_le_bytes)
+    else {
+        return &[];
+    };
+    (count as usize)
+        .checked_mul(2)
+        .and_then(|len| data.get(4..4usize.checked_add(len)?))
+        .map_or(&[], |pairs| pairs.as_chunks().0)
+}
+
+#[cfg(test)]
+mod dbc_swap_tests {
+    use super::*;
+    use crate::instr::all_inner::meteora_dbc::instruction_discriminators::{
+        SWAP2, SWAP2_WITH_TRANSFER_HOOK,
+    };
+
+    fn swap_data(discriminator: [u8; 8], slices: Option<&[(u8, u8)]>) -> Vec<u8> {
+        let mut data = discriminator.to_vec();
+        data.extend_from_slice(&5_u64.to_le_bytes());
+        data.extend_from_slice(&1_u64.to_le_bytes());
+        data.push(1);
+        if let Some(slices) = slices {
+            data.extend_from_slice(&(slices.len() as u32).to_le_bytes());
+            for (accounts_type, length) in slices {
+                data.extend_from_slice(&[*accounts_type, *length]);
+            }
+        }
+        data
+    }
+
+    fn fill(data: &[u8], accounts: &[Pubkey], writable: &[usize]) -> MeteoraDbcSwapEvent {
+        let mut event = MeteoraDbcSwapEvent::default();
+        fill_dbc_swap_accounts(&mut event, data, accounts.len(), &|index| {
+            (accounts.get(index).copied().unwrap_or_default(), writable.contains(&index))
+        });
+        event
+    }
+
+    fn keys(count: usize) -> Vec<Pubkey> {
+        (0..count).map(|_| Pubkey::new_unique()).collect()
+    }
+
+    #[test]
+    fn plain_swap_fills_named_accounts_and_its_referral() {
+        let accounts = keys(15);
+        let event = fill(&swap_data(SWAP2, None), &accounts, &[]);
+        assert_eq!(event.pool_authority, accounts[0]);
+        assert_eq!(event.base_mint, accounts[7]);
+        assert_eq!(event.quote_mint, accounts[8]);
+        assert_eq!(event.payer, accounts[9]);
+        assert_eq!(event.token_base_program, accounts[10]);
+        assert_eq!(event.referral_token_account, Some(accounts[12]));
+        assert_eq!(event.program, accounts[14]);
+        assert!(!event.has_instructions_sysvar);
+        assert!(event.transfer_hook_accounts.is_empty());
+
+        let mut without_referral = accounts.clone();
+        without_referral[12] = accounts[14];
+        assert_eq!(
+            fill(&swap_data(SWAP2, None), &without_referral, &[]).referral_token_account,
+            None
+        );
+    }
+
+    #[test]
+    fn plain_swap_may_pass_the_instructions_sysvar() {
+        let event = fill(&swap_data(SWAP2, None), &keys(16), &[]);
+        assert!(event.has_instructions_sysvar);
+        assert!(event.transfer_hook_accounts.is_empty());
+    }
+
+    #[test]
+    fn hook_accounts_follow_the_sysvar_in_slice_order() {
+        // sysvar, two referral-hook accounts, then three base-hook accounts.
+        let accounts = keys(21);
+        let data = swap_data(SWAP2_WITH_TRANSFER_HOOK, Some(&[(1, 2), (0, 3)]));
+        let event = fill(&data, &accounts, &[18]);
+        assert!(event.has_instructions_sysvar);
+        assert_eq!(
+            event.transfer_hook_accounts,
+            vec![
+                MeteoraDbcHookAccount { pubkey: accounts[18], is_writable: true },
+                MeteoraDbcHookAccount { pubkey: accounts[19], is_writable: false },
+                MeteoraDbcHookAccount { pubkey: accounts[20], is_writable: false },
+            ]
+        );
+    }
+
+    #[test]
+    fn hook_accounts_without_a_sysvar_start_right_after_the_named_ones() {
+        let accounts = keys(17);
+        let data = swap_data(SWAP2_WITH_TRANSFER_HOOK, Some(&[(0, 2)]));
+        let event = fill(&data, &accounts, &[]);
+        assert!(!event.has_instructions_sysvar);
+        assert_eq!(
+            event.transfer_hook_accounts.iter().map(|account| account.pubkey).collect::<Vec<_>>(),
+            accounts[15..].to_vec()
+        );
+    }
+
+    #[test]
+    fn malformed_remaining_accounts_fill_no_hook_accounts() {
+        // Slices count more accounts than the instruction has.
+        let data = swap_data(SWAP2_WITH_TRANSFER_HOOK, Some(&[(0, 9)]));
+        let event = fill(&data, &keys(17), &[]);
+        assert!(event.transfer_hook_accounts.is_empty());
+        // Two accounts ahead of the hook accounts: the program allows one.
+        let data = swap_data(SWAP2_WITH_TRANSFER_HOOK, Some(&[(0, 1)]));
+        assert!(fill(&data, &keys(18), &[]).transfer_hook_accounts.is_empty());
+        // A slice vector cut short.
+        let mut data = swap_data(SWAP2_WITH_TRANSFER_HOOK, Some(&[(0, 2)]));
+        data.truncate(data.len() - 1);
+        assert!(fill(&data, &keys(15), &[]).transfer_hook_accounts.is_empty());
+        // Too few accounts for a swap at all.
+        assert_eq!(fill(&swap_data(SWAP2, None), &keys(14), &[]).payer, Pubkey::default());
+    }
+}
+
 pub fn fill_damm_v2_create_position_accounts(
     _e: &mut MeteoraDammV2CreatePositionEvent,
     _get: &AccountGetter<'_>,
