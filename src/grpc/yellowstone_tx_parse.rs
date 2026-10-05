@@ -18,7 +18,8 @@ struct ActiveProgram<'a> {
     pubkey: Pubkey,
 }
 
-/// 解析单笔 Yellowstone 交易更新（含 meta）：并行 logs + enhanced instructions，再 log/ix 去重合并。
+/// 解析成功的 Yellowstone 交易更新（含 meta）：并行 logs + enhanced instructions，再 log/ix 去重合并。
+/// 失败交易整体回滚，即使含有 DEX 日志或指令，也返回空事件列表。
 #[inline]
 pub fn parse_subscribe_update_transaction(
     tx: &SubscribeUpdateTransaction,
@@ -38,6 +39,12 @@ pub(crate) fn parse_transaction_core(
 ) -> Vec<DexEvent> {
     let Some(info) = &tx.transaction else { return Vec::new() };
     let Some(meta) = &info.meta else { return Vec::new() };
+
+    // Logs and decoded instructions from a failed transaction describe rolled-back work.
+    // Reject before signature decoding, allocation, or Rayon dispatch.
+    if meta.err.is_some() {
+        return Vec::new();
+    }
 
     let Some(sig) = try_yellowstone_signature(&info.signature) else {
         return Vec::new();
@@ -91,7 +98,7 @@ pub(crate) fn parse_transaction_core(
     }
 }
 
-/// 单笔交易解析：**顺序**执行 logs → instructions 再合并。
+/// 成功交易解析：**顺序**执行 logs → instructions 再合并；失败交易返回空列表。
 ///
 /// 与 [`parse_subscribe_update_transaction`]（内部 `rayon::join` 并行）算法一致，但避免工作窃取与线程池调度，
 /// 在「单笔极低延迟」场景通常更快；适合嵌入 latency-sensitive 的订阅流水线。
@@ -118,6 +125,12 @@ fn parse_transaction_core_sequential(
     let Some(meta) = &info.meta else {
         return Vec::new();
     };
+
+    // Logs and decoded instructions from a failed transaction describe rolled-back work.
+    // Reject before signature decoding, allocation, or Rayon dispatch.
+    if meta.err.is_some() {
+        return Vec::new();
+    }
 
     let Some(sig) = try_yellowstone_signature(&info.signature) else {
         return Vec::new();

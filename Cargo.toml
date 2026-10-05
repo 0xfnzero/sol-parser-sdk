@@ -1,6 +1,6 @@
 [package]
 name = "sol-parser-sdk"
-version = "0.7.7"
+version = "0.7.8"
 edition = "2021"
 rust-version = "1.91"
 authors = ["William <byteblock6@gmail.com>", "sgxiang <sgxiang@gmail.com>", "wei <1415121722@qq.com>"]
@@ -78,6 +78,7 @@ perf-stats = []   # 启用性能统计
 ultra-perf = []   # 极限性能模式（启用所有 unsafe 优化）
 
 [dependencies]
+solana-instruction = "=3.4.1"
 solana-sdk = "=4.0.1"
 solana-client = "=4.2.2"
 solana-transaction-status = { version = "=4.2.2", features = ["agave-unstable-api"] }

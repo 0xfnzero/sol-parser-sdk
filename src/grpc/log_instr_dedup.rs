@@ -86,6 +86,7 @@ enum LogInstrDedupKey {
     },
     RaydiumCpmmSwap {
         pool: Pubkey,
+        base_input: bool,
         occurrence: u16,
     },
     RaydiumAmmV4Swap {
@@ -124,7 +125,7 @@ enum OccurrenceBase {
     PumpFun { mint: Pubkey, user: Pubkey, is_buy: bool, lane: u8 },
     RaydiumLaunchlab { pool: Pubkey, user: Pubkey, is_buy: bool },
     RaydiumClmm(Pubkey),
-    RaydiumCpmm(Pubkey),
+    RaydiumCpmm { pool: Pubkey, base_input: bool },
     RaydiumAmmV4 { base_out: bool, amount: u64 },
     OrcaWhirlpool(Pubkey),
     MeteoraDlmm { pool: Pubkey, from: Pubkey, swap_for_y: bool },
@@ -229,7 +230,9 @@ fn occurrence_base(ev: &DexEvent) -> Option<OccurrenceBase> {
             is_buy: t.is_buy,
         }),
         RaydiumClmmSwap(s) => Some(OccurrenceBase::RaydiumClmm(s.pool_state)),
-        RaydiumCpmmSwap(s) => Some(OccurrenceBase::RaydiumCpmm(s.pool_id)),
+        RaydiumCpmmSwap(s) => {
+            Some(OccurrenceBase::RaydiumCpmm { pool: s.pool_id, base_input: s.base_input })
+        }
         RaydiumAmmV4Swap(s) => {
             let base_out = s.max_amount_in != 0;
             let amount = if base_out { s.amount_out } else { s.amount_in };
@@ -261,9 +264,11 @@ fn dedup_key_with_occurrence(ev: &DexEvent, occurrence: u16) -> Option<LogInstrD
         RaydiumClmmSwap(s) => {
             Some(LogInstrDedupKey::RaydiumClmmSwap { pool: s.pool_state, occurrence })
         }
-        RaydiumCpmmSwap(s) => {
-            Some(LogInstrDedupKey::RaydiumCpmmSwap { pool: s.pool_id, occurrence })
-        }
+        RaydiumCpmmSwap(s) => Some(LogInstrDedupKey::RaydiumCpmmSwap {
+            pool: s.pool_id,
+            base_input: s.base_input,
+            occurrence,
+        }),
         RaydiumAmmV4Swap(s) => {
             let base_out = s.max_amount_in != 0;
             let amount = if base_out { s.amount_out } else { s.amount_in };
@@ -286,7 +291,9 @@ fn dedup_key_with_occurrence(ev: &DexEvent, occurrence: u16) -> Option<LogInstrD
     }
 }
 
-/// 合并 log + instruction 两路解析结果：**同一指纹只保留一条**；log 与 ix 同时存在时 **log 优先、ix 补充**。
+/// 合并 log + instruction 两路解析结果：匹配时 **log 优先、ix 补充**。
+/// CPMM 按 pool、exact-in/out 类型和出现次序配对；同 lane 两路数量不一致时
+/// 保留两路事件，不把无法定位的指令限价/账户写入执行日志。
 pub(crate) fn dedupe_log_instruction_events(
     log_events: Vec<DexEvent>,
     instr_events: Vec<DexEvent>,
@@ -330,6 +337,31 @@ pub(crate) fn dedupe_log_instruction_events(
     }
 
     let mut ix_occurrences: HashMap<OccurrenceBase, u16> = HashMap::new();
+    // When a CPMM lane has missing logs/instructions, ordinal pairing cannot
+    // identify which invocation survived. Preserve both sources rather than
+    // attaching another invocation's limits/accounts to an executed log.
+    // Reuse the occurrence map and its buckets; no extra map is allocated.
+    if log_occurrences.keys().any(|key| matches!(key, OccurrenceBase::RaydiumCpmm { .. })) {
+        for event in &instr_events {
+            if let DexEvent::RaydiumCpmmSwap(swap) = event {
+                next_occurrence(
+                    OccurrenceBase::RaydiumCpmm { pool: swap.pool_id, base_input: swap.base_input },
+                    &mut ix_occurrences,
+                );
+            }
+        }
+        idx_by_key.retain(|key, _| {
+            if let LogInstrDedupKey::RaydiumCpmmSwap { pool, base_input, .. } = key {
+                let lane = OccurrenceBase::RaydiumCpmm { pool: *pool, base_input: *base_input };
+                log_occurrences.get(&lane) == ix_occurrences.get(&lane)
+            } else {
+                true
+            }
+        });
+        for count in ix_occurrences.values_mut() {
+            *count = 0;
+        }
+    }
     for e in instr_events {
         if let Some(k) = next_dedup_key(&e, &mut ix_occurrences) {
             if let Some(&idx) = idx_by_key.get(&k) {
@@ -428,7 +460,7 @@ mod tests {
             sqrt_price_x64: 0,
             liquidity: 0,
             tick: 0,
-        ..Default::default()
+            ..Default::default()
         })
     }
 
@@ -709,5 +741,110 @@ mod tests {
             vec![DexEvent::PumpFunBuy(b)],
         );
         assert_eq!(merged.len(), 2, "不同 user 即使金额相同也不得合并");
+    }
+}
+
+#[cfg(test)]
+mod cpmm_kind_regressions {
+    use super::*;
+    use crate::core::events::RaydiumCpmmSwapEvent;
+
+    fn swap(pool: Pubkey, base_input: bool, instruction: bool, amount: u64) -> DexEvent {
+        DexEvent::RaydiumCpmmSwap(RaydiumCpmmSwapEvent {
+            pool_id: pool,
+            base_input,
+            ix_name: if instruction {
+                if base_input { "swap_base_input" } else { "swap_base_output" }.into()
+            } else {
+                String::new()
+            },
+            amount_in: if instruction && base_input { amount } else { 0 },
+            amount_out: if instruction && !base_input { amount } else { 0 },
+            input_amount: if instruction { 0 } else { amount },
+            ..Default::default()
+        })
+    }
+
+    #[test]
+    fn single_log_never_merges_with_the_other_swap_kind() {
+        let pool = Pubkey::new_unique();
+        for base_input in [false, true] {
+            let result = dedupe_log_instruction_events(
+                vec![swap(pool, base_input, false, 100)],
+                vec![swap(pool, !base_input, true, 200)],
+            );
+            assert_eq!(result.len(), 2);
+            let DexEvent::RaydiumCpmmSwap(log) = &result[0] else { panic!("swap") };
+            assert!(log.ix_name.is_empty());
+            assert_eq!(log.input_amount, 100);
+            assert_eq!((log.amount_in, log.amount_out), (0, 0));
+        }
+    }
+
+    #[test]
+    fn partial_logs_match_occurrences_within_their_own_swap_kind() {
+        let pool = Pubkey::new_unique();
+        let result = dedupe_log_instruction_events(
+            vec![swap(pool, true, false, 100), swap(pool, true, false, 101)],
+            vec![
+                swap(pool, false, true, 999),
+                swap(pool, true, true, 0),
+                swap(pool, true, true, 222),
+            ],
+        );
+        assert_eq!(result.len(), 3);
+        for (index, executed, requested) in [(0, 100, 0), (1, 101, 222)] {
+            let DexEvent::RaydiumCpmmSwap(event) = &result[index] else { panic!("swap") };
+            assert!(event.base_input);
+            assert_eq!(event.ix_name, "swap_base_input");
+            assert_eq!(event.input_amount, executed);
+            assert_eq!((event.amount_in, event.amount_out), (requested, 0));
+        }
+        let DexEvent::RaydiumCpmmSwap(unmatched) = &result[2] else { panic!("swap") };
+        assert!(!unmatched.base_input);
+        assert_eq!(unmatched.amount_out, 999);
+        assert_eq!(unmatched.input_amount, 0);
+    }
+}
+
+#[cfg(test)]
+mod cpmm_incomplete_lane_regressions {
+    use super::*;
+    use crate::core::events::RaydiumCpmmSwapEvent;
+
+    #[test]
+    fn unequal_same_kind_counts_leave_log_limits_unresolved() {
+        let pool = Pubkey::new_unique();
+        for (log_count, ix_count) in [(1, 2), (2, 1)] {
+            let logs = (0..log_count)
+                .map(|index| {
+                    DexEvent::RaydiumCpmmSwap(RaydiumCpmmSwapEvent {
+                        pool_id: pool,
+                        base_input: true,
+                        input_amount: 100 + index,
+                        ..Default::default()
+                    })
+                })
+                .collect();
+            let instructions = (0..ix_count)
+                .map(|index| {
+                    DexEvent::RaydiumCpmmSwap(RaydiumCpmmSwapEvent {
+                        pool_id: pool,
+                        base_input: true,
+                        ix_name: "swap_base_input".into(),
+                        amount_in: 200 + index,
+                        ..Default::default()
+                    })
+                })
+                .collect();
+            let result = dedupe_log_instruction_events(logs, instructions);
+            assert_eq!(result.len() as u64, log_count + ix_count);
+            for event in &result[..log_count as usize] {
+                let DexEvent::RaydiumCpmmSwap(log) = event else { panic!("swap") };
+                assert!(log.ix_name.is_empty());
+                assert_eq!(log.amount_in, 0);
+                assert!(log.input_amount >= 100);
+            }
+        }
     }
 }

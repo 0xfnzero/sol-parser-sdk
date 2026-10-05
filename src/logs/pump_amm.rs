@@ -368,85 +368,17 @@ fn parse_create_pool_event_optimized(
     block_time_us: Option<i64>,
     grpc_recv_us: i64,
 ) -> Option<DexEvent> {
-    // 一次性边界检查 (含 IDL 最后一列 is_mayhem_mode: bool)
-    const CREATE_POOL_EVENT_LEN: usize = 326;
-    const CREATOR_FEE_EVENT_LEN: usize = 335;
-    const REQUIRED_LEN: usize = CREATE_POOL_EVENT_LEN;
-    if data.len() < REQUIRED_LEN
-        || (data.len() != CREATE_POOL_EVENT_LEN && data.len() < CREATOR_FEE_EVENT_LEN)
-    {
-        return None;
-    }
-
-    unsafe {
-        let timestamp = read_i64_unchecked(data, 0);
-        let index = read_u16_unchecked(data, 8);
-
-        let creator = read_pubkey_unchecked(data, 10);
-        let base_mint = read_pubkey_unchecked(data, 42);
-        let quote_mint = read_pubkey_unchecked(data, 74);
-
-        let base_mint_decimals = read_u8_unchecked(data, 106);
-        let quote_mint_decimals = read_u8_unchecked(data, 107);
-
-        let base_amount_in = read_u64_unchecked(data, 108);
-        let quote_amount_in = read_u64_unchecked(data, 116);
-        let pool_base_amount = read_u64_unchecked(data, 124);
-        let pool_quote_amount = read_u64_unchecked(data, 132);
-        let minimum_liquidity = read_u64_unchecked(data, 140);
-        let initial_liquidity = read_u64_unchecked(data, 148);
-        let lp_token_amount_out = read_u64_unchecked(data, 156);
-
-        let pool_bump = read_u8_unchecked(data, 164);
-
-        let pool = read_pubkey_unchecked(data, 165);
-        let lp_mint = read_pubkey_unchecked(data, 197);
-        let user_base_token_account = read_pubkey_unchecked(data, 229);
-        let user_quote_token_account = read_pubkey_unchecked(data, 261);
-        let coin_creator = read_pubkey_unchecked(data, 293);
-        let is_mayhem_mode = read_bool_unchecked(data, 325);
-        let creator_fee_bps = if data.len() >= 334 { read_u64_unchecked(data, 326) } else { 0 };
-        let can_edit_creator_fee = data.len() > 334 && read_bool_unchecked(data, 334);
-        let is_holder_reward = data.len() > 335 && read_bool_unchecked(data, 335);
-
-        let metadata = EventMetadata {
+    parse_create_pool_from_data(
+        data,
+        EventMetadata {
             signature,
             slot,
             tx_index,
             block_time_us: block_time_us.unwrap_or(0),
             grpc_recv_us,
             recent_blockhash: None,
-        };
-
-        Some(DexEvent::PumpSwapCreatePool(PumpSwapCreatePoolEvent {
-            metadata,
-            timestamp,
-            index,
-            creator,
-            base_mint,
-            quote_mint,
-            base_mint_decimals,
-            quote_mint_decimals,
-            base_amount_in,
-            quote_amount_in,
-            pool_base_amount,
-            pool_quote_amount,
-            minimum_liquidity,
-            initial_liquidity,
-            lp_token_amount_out,
-            pool_bump,
-            pool,
-            lp_mint,
-            user_base_token_account,
-            user_quote_token_account,
-            coin_creator,
-            is_mayhem_mode,
-            is_cashback_coin: false,
-            creator_fee_bps,
-            can_edit_creator_fee,
-            is_holder_reward,
-        }))
-    }
+        },
+    )
 }
 
 /// 解析添加流动性事件 (极限优化)
@@ -459,59 +391,17 @@ fn parse_add_liquidity_event_optimized(
     block_time_us: Option<i64>,
     grpc_recv_us: i64,
 ) -> Option<DexEvent> {
-    const REQUIRED_LEN: usize = 10 * 8 + 5 * 32;
-    if data.len() < REQUIRED_LEN {
-        return None;
-    }
-
-    unsafe {
-        let timestamp = read_i64_unchecked(data, 0);
-        let lp_token_amount_out = read_u64_unchecked(data, 8);
-        let max_base_amount_in = read_u64_unchecked(data, 16);
-        let max_quote_amount_in = read_u64_unchecked(data, 24);
-        let user_base_token_reserves = read_u64_unchecked(data, 32);
-        let user_quote_token_reserves = read_u64_unchecked(data, 40);
-        let pool_base_token_reserves = read_u64_unchecked(data, 48);
-        let pool_quote_token_reserves = read_u64_unchecked(data, 56);
-        let base_amount_in = read_u64_unchecked(data, 64);
-        let quote_amount_in = read_u64_unchecked(data, 72);
-        let lp_mint_supply = read_u64_unchecked(data, 80);
-
-        let pool = read_pubkey_unchecked(data, 88);
-        let user = read_pubkey_unchecked(data, 120);
-        let user_base_token_account = read_pubkey_unchecked(data, 152);
-        let user_quote_token_account = read_pubkey_unchecked(data, 184);
-        let user_pool_token_account = read_pubkey_unchecked(data, 216);
-
-        let metadata = EventMetadata {
+    parse_add_liquidity_from_data(
+        data,
+        EventMetadata {
             signature,
             slot,
             tx_index,
             block_time_us: block_time_us.unwrap_or(0),
             grpc_recv_us,
             recent_blockhash: None,
-        };
-
-        Some(DexEvent::PumpSwapLiquidityAdded(PumpSwapLiquidityAdded {
-            metadata,
-            timestamp,
-            lp_token_amount_out,
-            max_base_amount_in,
-            max_quote_amount_in,
-            user_base_token_reserves,
-            user_quote_token_reserves,
-            pool_base_token_reserves,
-            pool_quote_token_reserves,
-            base_amount_in,
-            quote_amount_in,
-            lp_mint_supply,
-            pool,
-            user,
-            user_base_token_account,
-            user_quote_token_account,
-            user_pool_token_account,
-        }))
-    }
+        },
+    )
 }
 
 /// 解析移除流动性事件 (极限优化)
@@ -524,59 +414,17 @@ fn parse_remove_liquidity_event_optimized(
     block_time_us: Option<i64>,
     grpc_recv_us: i64,
 ) -> Option<DexEvent> {
-    const REQUIRED_LEN: usize = 10 * 8 + 5 * 32;
-    if data.len() < REQUIRED_LEN {
-        return None;
-    }
-
-    unsafe {
-        let timestamp = read_i64_unchecked(data, 0);
-        let lp_token_amount_in = read_u64_unchecked(data, 8);
-        let min_base_amount_out = read_u64_unchecked(data, 16);
-        let min_quote_amount_out = read_u64_unchecked(data, 24);
-        let user_base_token_reserves = read_u64_unchecked(data, 32);
-        let user_quote_token_reserves = read_u64_unchecked(data, 40);
-        let pool_base_token_reserves = read_u64_unchecked(data, 48);
-        let pool_quote_token_reserves = read_u64_unchecked(data, 56);
-        let base_amount_out = read_u64_unchecked(data, 64);
-        let quote_amount_out = read_u64_unchecked(data, 72);
-        let lp_mint_supply = read_u64_unchecked(data, 80);
-
-        let pool = read_pubkey_unchecked(data, 88);
-        let user = read_pubkey_unchecked(data, 120);
-        let user_base_token_account = read_pubkey_unchecked(data, 152);
-        let user_quote_token_account = read_pubkey_unchecked(data, 184);
-        let user_pool_token_account = read_pubkey_unchecked(data, 216);
-
-        let metadata = EventMetadata {
+    parse_remove_liquidity_from_data(
+        data,
+        EventMetadata {
             signature,
             slot,
             tx_index,
             block_time_us: block_time_us.unwrap_or(0),
             grpc_recv_us,
             recent_blockhash: None,
-        };
-
-        Some(DexEvent::PumpSwapLiquidityRemoved(PumpSwapLiquidityRemoved {
-            metadata,
-            timestamp,
-            lp_token_amount_in,
-            min_base_amount_out,
-            min_quote_amount_out,
-            user_base_token_reserves,
-            user_quote_token_reserves,
-            pool_base_token_reserves,
-            pool_quote_token_reserves,
-            base_amount_out,
-            quote_amount_out,
-            lp_mint_supply,
-            pool,
-            user,
-            user_base_token_account,
-            user_quote_token_account,
-            user_pool_token_account,
-        }))
-    }
+        },
+    )
 }
 
 // ============================================================================
@@ -783,6 +631,14 @@ pub fn parse_sell_from_data(data: &[u8], metadata: EventMetadata) -> Option<DexE
 
 /// Parse PumpSwap CreatePool event from pre-decoded data
 #[inline(always)]
+fn read_borsh_bool_at(data: &[u8], offset: usize) -> Option<bool> {
+    match *data.get(offset)? {
+        0 => Some(false),
+        1 => Some(true),
+        _ => None,
+    }
+}
+
 pub fn parse_create_pool_from_data(data: &[u8], metadata: EventMetadata) -> Option<DexEvent> {
     const CREATE_POOL_EVENT_LEN: usize = 326;
     const CREATOR_FEE_EVENT_LEN: usize = 335;
@@ -819,10 +675,22 @@ pub fn parse_create_pool_from_data(data: &[u8], metadata: EventMetadata) -> Opti
         let user_base_token_account = read_pubkey_unchecked(data, 229);
         let user_quote_token_account = read_pubkey_unchecked(data, 261);
         let coin_creator = read_pubkey_unchecked(data, 293);
-        let is_mayhem_mode = data.len() > 325 && read_bool_unchecked(data, 325);
-        let creator_fee_bps = if data.len() >= 334 { read_u64_unchecked(data, 326) } else { 0 };
-        let can_edit_creator_fee = data.len() > 334 && read_bool_unchecked(data, 334);
-        let is_holder_reward = data.len() > 335 && read_bool_unchecked(data, 335);
+        let is_mayhem_mode = read_borsh_bool_at(data, 325)?;
+        let creator_fee_bps = if data.len() >= 334 {
+            read_u64_unchecked(data, 326)
+        } else {
+            0
+        };
+        let can_edit_creator_fee = if data.len() > 334 {
+            read_borsh_bool_at(data, 334)?
+        } else {
+            false
+        };
+        let is_holder_reward = if data.len() > 335 {
+            read_borsh_bool_at(data, 335)?
+        } else {
+            false
+        };
 
         Some(DexEvent::PumpSwapCreatePool(PumpSwapCreatePoolEvent {
             metadata,
@@ -858,7 +726,7 @@ pub fn parse_create_pool_from_data(data: &[u8], metadata: EventMetadata) -> Opti
 /// Parse PumpSwap AddLiquidity event from pre-decoded data
 #[inline(always)]
 pub fn parse_add_liquidity_from_data(data: &[u8], metadata: EventMetadata) -> Option<DexEvent> {
-    const REQUIRED_LEN: usize = 10 * 8 + 5 * 32;
+    const REQUIRED_LEN: usize = 11 * 8 + 5 * 32;
     if data.len() < REQUIRED_LEN {
         return None;
     }
@@ -907,7 +775,7 @@ pub fn parse_add_liquidity_from_data(data: &[u8], metadata: EventMetadata) -> Op
 /// Parse PumpSwap RemoveLiquidity event from pre-decoded data
 #[inline(always)]
 pub fn parse_remove_liquidity_from_data(data: &[u8], metadata: EventMetadata) -> Option<DexEvent> {
-    const REQUIRED_LEN: usize = 10 * 8 + 5 * 32;
+    const REQUIRED_LEN: usize = 11 * 8 + 5 * 32;
     if data.len() < REQUIRED_LEN {
         return None;
     }
@@ -931,25 +799,27 @@ pub fn parse_remove_liquidity_from_data(data: &[u8], metadata: EventMetadata) ->
         let user_quote_token_account = read_pubkey_unchecked(data, 184);
         let user_pool_token_account = read_pubkey_unchecked(data, 216);
 
-        Some(DexEvent::PumpSwapLiquidityRemoved(PumpSwapLiquidityRemoved {
-            metadata,
-            timestamp,
-            lp_token_amount_in,
-            min_base_amount_out,
-            min_quote_amount_out,
-            user_base_token_reserves,
-            user_quote_token_reserves,
-            pool_base_token_reserves,
-            pool_quote_token_reserves,
-            base_amount_out,
-            quote_amount_out,
-            lp_mint_supply,
-            pool,
-            user,
-            user_base_token_account,
-            user_quote_token_account,
-            user_pool_token_account,
-        }))
+        Some(DexEvent::PumpSwapLiquidityRemoved(
+            PumpSwapLiquidityRemoved {
+                metadata,
+                timestamp,
+                lp_token_amount_in,
+                min_base_amount_out,
+                min_quote_amount_out,
+                user_base_token_reserves,
+                user_quote_token_reserves,
+                pool_base_token_reserves,
+                pool_quote_token_reserves,
+                base_amount_out,
+                quote_amount_out,
+                lp_mint_supply,
+                pool,
+                user,
+                user_base_token_account,
+                user_quote_token_account,
+                user_pool_token_account,
+            },
+        ))
     }
 }
 

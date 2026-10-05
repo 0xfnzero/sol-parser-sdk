@@ -1161,6 +1161,35 @@ pub struct RaydiumCpmmSwapEvent {
     #[cfg_attr(feature = "parse-borsh", borsh(skip))]
     #[serde(default)]
     pub observation_state: Pubkey,
+
+    // Instruction arguments are separate from executed input_amount/output_amount.
+    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
+    #[serde(default)]
+    pub ix_name: String,
+    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
+    #[serde(default)]
+    pub amount_in: u64,
+    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
+    #[serde(default)]
+    pub minimum_amount_out: u64,
+    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
+    #[serde(default)]
+    pub max_amount_in: u64,
+    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
+    #[serde(default)]
+    pub amount_out: u64,
+    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
+    #[serde(default)]
+    pub payer: Pubkey,
+    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
+    #[serde(default)]
+    pub authority: Pubkey,
+    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
+    #[serde(default)]
+    pub input_token_account: Pubkey,
+    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
+    #[serde(default)]
+    pub output_token_account: Pubkey,
 }
 
 /// Raydium CPMM Deposit Event
@@ -1254,6 +1283,30 @@ pub struct RaydiumClmmSwapEvent {
     #[cfg_attr(feature = "parse-borsh", borsh(skip))]
     #[serde(default)]
     pub tick_arrays: Vec<Pubkey>,
+
+    // Wire limits/mode are distinct from executed amounts and ending price.
+    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
+    #[serde(default)]
+    pub ix_name: String,
+    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
+    #[serde(default)]
+    pub amount: u64,
+    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
+    #[serde(default)]
+    pub other_amount_threshold: u64,
+    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
+    #[serde(default)]
+    pub sqrt_price_limit_x64: u128,
+    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
+    #[serde(default)]
+    pub is_base_input: bool,
+    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
+    #[serde(default)]
+    pub input_token_account: Pubkey,
+
+    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
+    #[serde(default)]
+    pub output_token_account: Pubkey,
 }
 
 /// Raydium CLMM Close Position Event
@@ -1554,7 +1607,7 @@ pub struct RaydiumAmmWithdrawPnlEvent {
 
 /// Raydium AMM V4 Swap Event
 #[cfg_attr(feature = "parse-borsh", derive(BorshDeserialize))]
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct RaydiumAmmV4SwapEvent {
     #[cfg_attr(feature = "parse-borsh", borsh(skip))]
     pub metadata: EventMetadata,
@@ -1603,6 +1656,17 @@ pub struct RaydiumAmmV4SwapEvent {
     pub user_destination_token_account: Pubkey,
     #[cfg_attr(feature = "parse-borsh", borsh(skip))]
     pub user_source_owner: Pubkey,
+    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
+    #[serde(default)]
+    pub ix_name: String,
+
+    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
+    #[serde(default)]
+    pub instruction_amount_in: u64,
+
+    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
+    #[serde(default)]
+    pub instruction_amount_out: u64,
 }
 
 /// Raydium AMM V4 Deposit Event
@@ -1916,6 +1980,20 @@ pub struct PumpSwapGlobalConfig {
     pub reserved_fee_recipient: Pubkey,
     pub mayhem_mode_enabled: bool,
     pub reserved_fee_recipients: [Pubkey; 7],
+    #[serde(default)]
+    pub is_cashback_enabled: bool,
+    #[serde(default)]
+    pub buyback_fee_recipients: [Pubkey; 8],
+    #[serde(default)]
+    pub buyback_basis_points: u64,
+    #[serde(default)]
+    pub boost_authority: Pubkey,
+    #[serde(default)]
+    pub boost_enabled: bool,
+    #[serde(default)]
+    pub creator_fee_configurable: bool,
+    #[serde(default)]
+    pub max_configurable_creator_fee_bps: u64,
 }
 
 /// PumpSwap Pool Account Event
@@ -2273,7 +2351,9 @@ pub struct RaydiumCpmmAmmConfig {
     pub protocol_owner: Pubkey,
     pub fund_owner: Pubkey,
     pub creator_fee_rate: u64,
-    pub padding: [u64; 15],
+    /// Protocol share of accrued creator fees, in millionths; overridden by CreatorFeeShare.
+    pub creator_fee_share_rate: u64,
+    pub padding: [u64; 14],
 }
 
 /// Raydium CPMM Pool State Account Event
@@ -2536,6 +2616,31 @@ pub struct OrcaWhirlpoolSwapEvent {
     #[cfg_attr(feature = "parse-borsh", borsh(skip))]
     #[serde(default)]
     pub oracle: Pubkey,
+    // Wire instruction parameters and user accounts; not execution results.
+    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
+    #[serde(default)]
+    pub ix_name: String,
+    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
+    #[serde(default)]
+    pub amount: u64,
+    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
+    #[serde(default)]
+    pub other_amount_threshold: u64,
+    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
+    #[serde(default)]
+    pub sqrt_price_limit: u128,
+    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
+    #[serde(default)]
+    pub amount_specified_is_input: bool,
+    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
+    #[serde(default)]
+    pub token_authority: Pubkey,
+    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
+    #[serde(default)]
+    pub token_owner_account_a: Pubkey,
+    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
+    #[serde(default)]
+    pub token_owner_account_b: Pubkey,
 }
 
 /// Orca Whirlpool Liquidity Increased Event
@@ -2609,7 +2714,7 @@ pub struct OrcaWhirlpoolPoolInitializedEvent {
 // ====================== Meteora Pools Events ======================
 
 /// Meteora Pools Swap Event
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct MeteoraPoolsSwapEvent {
     pub metadata: EventMetadata,
     pub in_amount: u64,
@@ -2617,38 +2722,229 @@ pub struct MeteoraPoolsSwapEvent {
     pub trade_fee: u64,
     pub admin_fee: u64, // IDL字段名: adminFee
     pub host_fee: u64,
+    // Instruction parameters and accounts; execution values above come from logs.
+    #[serde(default)]
+    pub ix_name: String,
+    #[serde(default)]
+    pub amount_in: u64,
+    #[serde(default)]
+    pub minimum_out_amount: u64,
+    #[serde(default)]
+    pub pool: Pubkey,
+    #[serde(default)]
+    pub user_source_token: Pubkey,
+    #[serde(default)]
+    pub user_destination_token: Pubkey,
+    #[serde(default)]
+    pub a_vault: Pubkey,
+    #[serde(default)]
+    pub b_vault: Pubkey,
+    #[serde(default)]
+    pub a_token_vault: Pubkey,
+    #[serde(default)]
+    pub b_token_vault: Pubkey,
+    #[serde(default)]
+    pub a_vault_lp_mint: Pubkey,
+    #[serde(default)]
+    pub b_vault_lp_mint: Pubkey,
+    #[serde(default)]
+    pub a_vault_lp: Pubkey,
+    #[serde(default)]
+    pub b_vault_lp: Pubkey,
+    #[serde(default)]
+    pub protocol_token_fee: Pubkey,
+    #[serde(default)]
+    pub user: Pubkey,
+    #[serde(default)]
+    pub vault_program: Pubkey,
+    #[serde(default)]
+    pub token_program: Pubkey,
 }
 
 /// Meteora Pools Add Liquidity Event
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct MeteoraPoolsAddLiquidityEvent {
     pub metadata: EventMetadata,
     pub lp_mint_amount: u64,
     pub token_a_amount: u64,
     pub token_b_amount: u64,
+    // Wire parameters and account context; execution quantities above come from logs.
+    #[serde(default)]
+    pub ix_name: String,
+    #[serde(default)]
+    pub pool_token_amount: u64,
+    #[serde(default)]
+    pub maximum_token_a_amount: u64,
+    #[serde(default)]
+    pub maximum_token_b_amount: u64,
+    #[serde(default)]
+    pub minimum_pool_token_amount: u64,
+    #[serde(default)]
+    pub token_a_in_amount: u64,
+    #[serde(default)]
+    pub token_b_in_amount: u64,
+    #[serde(default)]
+    pub pool: Pubkey,
+    #[serde(default)]
+    pub lp_mint: Pubkey,
+    #[serde(default)]
+    pub user_pool_lp: Pubkey,
+    #[serde(default)]
+    pub a_vault_lp: Pubkey,
+    #[serde(default)]
+    pub b_vault_lp: Pubkey,
+    #[serde(default)]
+    pub a_vault: Pubkey,
+    #[serde(default)]
+    pub b_vault: Pubkey,
+    #[serde(default)]
+    pub a_vault_lp_mint: Pubkey,
+    #[serde(default)]
+    pub b_vault_lp_mint: Pubkey,
+    #[serde(default)]
+    pub a_token_vault: Pubkey,
+    #[serde(default)]
+    pub b_token_vault: Pubkey,
+    #[serde(default)]
+    pub user_a_token: Pubkey,
+    #[serde(default)]
+    pub user_b_token: Pubkey,
+    #[serde(default)]
+    pub user: Pubkey,
+    #[serde(default)]
+    pub vault_program: Pubkey,
+    #[serde(default)]
+    pub token_program: Pubkey,
 }
 
 /// Meteora Pools Remove Liquidity Event
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct MeteoraPoolsRemoveLiquidityEvent {
     pub metadata: EventMetadata,
     pub lp_unmint_amount: u64,
     pub token_a_out_amount: u64,
     pub token_b_out_amount: u64,
+    // Wire parameters and account context; execution quantities above come from logs.
+    #[serde(default)]
+    pub ix_name: String,
+    #[serde(default)]
+    pub pool_token_amount: u64,
+    #[serde(default)]
+    pub minimum_a_token_out: u64,
+    #[serde(default)]
+    pub minimum_b_token_out: u64,
+    #[serde(default)]
+    pub pool: Pubkey,
+    #[serde(default)]
+    pub lp_mint: Pubkey,
+    #[serde(default)]
+    pub user_pool_lp: Pubkey,
+    #[serde(default)]
+    pub a_vault_lp: Pubkey,
+    #[serde(default)]
+    pub b_vault_lp: Pubkey,
+    #[serde(default)]
+    pub a_vault: Pubkey,
+    #[serde(default)]
+    pub b_vault: Pubkey,
+    #[serde(default)]
+    pub a_vault_lp_mint: Pubkey,
+    #[serde(default)]
+    pub b_vault_lp_mint: Pubkey,
+    #[serde(default)]
+    pub a_token_vault: Pubkey,
+    #[serde(default)]
+    pub b_token_vault: Pubkey,
+    #[serde(default)]
+    pub user_a_token: Pubkey,
+    #[serde(default)]
+    pub user_b_token: Pubkey,
+    #[serde(default)]
+    pub user: Pubkey,
+    #[serde(default)]
+    pub vault_program: Pubkey,
+    #[serde(default)]
+    pub token_program: Pubkey,
+    #[serde(default)]
+    pub minimum_out_amount: u64,
+    #[serde(default)]
+    pub user_destination_token: Pubkey,
 }
 
 /// Meteora Pools Bootstrap Liquidity Event
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct MeteoraPoolsBootstrapLiquidityEvent {
     pub metadata: EventMetadata,
     pub lp_mint_amount: u64,
     pub token_a_amount: u64,
     pub token_b_amount: u64,
     pub pool: Pubkey,
+    // Instruction inputs and accounts; execution amounts above come from logs.
+    #[serde(default)]
+    pub ix_name: String,
+    #[serde(default)]
+    pub token_a_in_amount: u64,
+    #[serde(default)]
+    pub token_b_in_amount: u64,
+    #[serde(default)]
+    pub lp_mint: Pubkey,
+    #[serde(default)]
+    pub user_pool_lp: Pubkey,
+    #[serde(default)]
+    pub a_vault_lp: Pubkey,
+    #[serde(default)]
+    pub b_vault_lp: Pubkey,
+    #[serde(default)]
+    pub a_vault: Pubkey,
+    #[serde(default)]
+    pub b_vault: Pubkey,
+    #[serde(default)]
+    pub a_vault_lp_mint: Pubkey,
+    #[serde(default)]
+    pub b_vault_lp_mint: Pubkey,
+    #[serde(default)]
+    pub a_token_vault: Pubkey,
+    #[serde(default)]
+    pub b_token_vault: Pubkey,
+    #[serde(default)]
+    pub user_a_token: Pubkey,
+    #[serde(default)]
+    pub user_b_token: Pubkey,
+    #[serde(default)]
+    pub user: Pubkey,
+    #[serde(default)]
+    pub vault_program: Pubkey,
+    #[serde(default)]
+    pub token_program: Pubkey,
+}
+
+/// Stable curve wire parameters from Meteora Pools initialization.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MeteoraPoolsStableCurveParams {
+    pub amp: u64,
+    pub token_a_multiplier: u64,
+    pub token_b_multiplier: u64,
+    pub precision_factor: u8,
+    pub base_virtual_price: u64,
+    pub base_cache_updated: u64,
+    /// IDL DepegType: None=0, Marinade=1, Lido=2, SplStake=3.
+    pub depeg_type: u8,
+    pub last_amp_updated_timestamp: u64,
+}
+
+/// Customizable constant-product initialization wire parameters.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MeteoraPoolsCustomizableParams {
+    pub trade_fee_numerator: u32,
+    pub activation_point: Option<u64>,
+    pub has_alpha_vault: bool,
+    pub activation_type: u8,
+    /// All 90 IDL padding bytes are retained.
+    pub padding: Vec<u8>,
 }
 
 /// Meteora Pools Pool Created Event
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct MeteoraPoolsPoolCreatedEvent {
     pub metadata: EventMetadata,
     pub lp_mint: Pubkey,
@@ -2656,17 +2952,104 @@ pub struct MeteoraPoolsPoolCreatedEvent {
     pub token_b_mint: Pubkey,
     pub pool_type: u8,
     pub pool: Pubkey,
+    // Instruction context; absent from program log data.
+    #[serde(default)]
+    pub ix_name: String,
+    #[serde(default)]
+    pub token_a_in_amount: u64,
+    #[serde(default)]
+    pub token_b_in_amount: u64,
+    #[serde(default)]
+    pub activation_point: Option<u64>,
+    #[serde(default)]
+    pub config: Pubkey,
+    #[serde(default)]
+    pub a_vault: Pubkey,
+    #[serde(default)]
+    pub b_vault: Pubkey,
+    #[serde(default)]
+    pub a_token_vault: Pubkey,
+    #[serde(default)]
+    pub b_token_vault: Pubkey,
+    #[serde(default)]
+    pub a_vault_lp_mint: Pubkey,
+    #[serde(default)]
+    pub b_vault_lp_mint: Pubkey,
+    #[serde(default)]
+    pub a_vault_lp: Pubkey,
+    #[serde(default)]
+    pub b_vault_lp: Pubkey,
+    #[serde(default)]
+    pub payer_token_a: Pubkey,
+    #[serde(default)]
+    pub payer_token_b: Pubkey,
+    #[serde(default)]
+    pub payer_pool_lp: Pubkey,
+    #[serde(default)]
+    pub protocol_token_a_fee: Pubkey,
+    #[serde(default)]
+    pub protocol_token_b_fee: Pubkey,
+    #[serde(default)]
+    pub payer: Pubkey,
+    #[serde(default)]
+    pub rent: Pubkey,
+    #[serde(default)]
+    pub mint_metadata: Pubkey,
+    #[serde(default)]
+    pub metadata_program: Pubkey,
+    #[serde(default)]
+    pub vault_program: Pubkey,
+    #[serde(default)]
+    pub token_program: Pubkey,
+    #[serde(default)]
+    pub associated_token_program: Pubkey,
+    #[serde(default)]
+    pub system_program: Pubkey,
+    #[serde(default)]
+    pub stable_curve: Option<MeteoraPoolsStableCurveParams>,
+
+    #[serde(default)]
+    pub trade_fee_bps: Option<u64>,
+
+    #[serde(default)]
+    pub customizable_params: Option<MeteoraPoolsCustomizableParams>,
+
+    #[serde(default)]
+    pub admin_token_a: Pubkey,
+
+    #[serde(default)]
+    pub admin_token_b: Pubkey,
+
+    #[serde(default)]
+    pub admin_pool_lp: Pubkey,
+
+    #[serde(default)]
+    pub admin: Pubkey,
+
+    #[serde(default)]
+    pub fee_owner: Pubkey,
 }
 
 /// Meteora Pools Set Pool Fees Event
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct MeteoraPoolsSetPoolFeesEvent {
     pub metadata: EventMetadata,
     pub trade_fee_numerator: u64,
     pub trade_fee_denominator: u64,
-    pub owner_trade_fee_numerator: u64, // IDL字段名: ownerTradeFeeNumerator
-    pub owner_trade_fee_denominator: u64, // IDL字段名: ownerTradeFeeDenominator
+    pub owner_trade_fee_numerator: u64, // Historical alias of protocol_trade_fee_numerator.
+    pub owner_trade_fee_denominator: u64, // Historical alias of protocol_trade_fee_denominator.
     pub pool: Pubkey,
+    // IDL protocol fee names plus instruction-only partner/account context.
+    #[serde(default)]
+    pub ix_name: String,
+    #[serde(default)]
+    pub protocol_trade_fee_numerator: u64,
+    #[serde(default)]
+    pub protocol_trade_fee_denominator: u64,
+    #[serde(default)]
+    pub new_partner_fee_numerator: u64,
+    #[serde(default)]
+    pub fee_operator: Pubkey,
 }
 
 // ====================== Meteora DAMM V2 Events ======================
@@ -3284,5 +3667,408 @@ mod serde_compat_tests {
                 serde_json::from_str(&json).expect("deserialize signed reserve");
             assert_eq!(decoded.virtual_quote_reserves, value);
         }
+    }
+}
+
+/// Custom CPMM protocol share for a (creator, amm_config) pair.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RaydiumCpmmCreatorFeeShare {
+    pub bump: u8,
+    pub creator: Pubkey,
+    pub amm_config: Pubkey,
+    pub share_rate: u64,
+    pub padding: [u64; 8],
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RaydiumCpmmCreatorFeeShareAccountEvent {
+    pub metadata: EventMetadata,
+    pub pubkey: Pubkey,
+    pub creator_fee_share: RaydiumCpmmCreatorFeeShare,
+}
+
+/// Creator fee collection instruction. Amounts are settled at collection time.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RaydiumCpmmCollectCreatorFeeEvent {
+    pub metadata: EventMetadata,
+    pub permissionless: bool,
+    pub payer: Pubkey,
+    pub creator: Pubkey,
+    pub authority: Pubkey,
+    pub pool_state: Pubkey,
+    pub amm_config: Pubkey,
+    pub token_0_vault: Pubkey,
+    pub token_1_vault: Pubkey,
+    pub vault_0_mint: Pubkey,
+    pub vault_1_mint: Pubkey,
+    pub creator_token_0: Pubkey,
+    pub creator_token_1: Pubkey,
+    pub token_0_program: Pubkey,
+    pub token_1_program: Pubkey,
+    pub associated_token_program: Pubkey,
+    pub system_program: Pubkey,
+    pub creator_fee_share: Pubkey,
+}
+
+#[cfg(test)]
+mod orca_wire_compat_tests {
+    use super::*;
+
+    #[test]
+    fn full_width_parameters_roundtrip_and_old_json_defaults() {
+        let event = OrcaWhirlpoolSwapEvent {
+            amount: u64::MAX,
+            sqrt_price_limit: u128::MAX,
+            ix_name: "swap_v2".into(),
+            ..Default::default()
+        };
+        let decoded: OrcaWhirlpoolSwapEvent =
+            serde_json::from_str(&serde_json::to_string(&event).unwrap()).unwrap();
+        assert_eq!(decoded.sqrt_price_limit, u128::MAX);
+        assert_eq!(decoded.amount, u64::MAX);
+        let mut old = serde_json::to_value(OrcaWhirlpoolSwapEvent::default()).unwrap();
+        for field in [
+            "ix_name",
+            "amount",
+            "other_amount_threshold",
+            "sqrt_price_limit",
+            "amount_specified_is_input",
+            "token_authority",
+            "token_owner_account_a",
+            "token_owner_account_b",
+        ] {
+            old.as_object_mut().unwrap().remove(field);
+        }
+        let decoded: OrcaWhirlpoolSwapEvent = serde_json::from_value(old).unwrap();
+        assert!(decoded.ix_name.is_empty());
+        assert_eq!(decoded.sqrt_price_limit, 0);
+        assert_eq!(decoded.token_authority, Pubkey::default());
+    }
+
+    #[cfg(feature = "parse-borsh")]
+    #[test]
+    fn added_swap_fields_leave_borsh_wire_unchanged() {
+        let e: OrcaWhirlpoolSwapEvent = borsh::from_slice(&[0; 49]).unwrap();
+        assert!(e.ix_name.is_empty());
+        assert_eq!(e.amount, 0);
+        assert_eq!(e.token_authority, Pubkey::default());
+    }
+}
+
+#[cfg(test)]
+mod pools_swap_json_tests {
+    use super::*;
+
+    #[test]
+    fn old_json_defaults_and_full_width_parameters_roundtrip() {
+        let old = r#"{"metadata":METADATA,"in_amount":123,"out_amount":456,"trade_fee":1,"admin_fee":2,"host_fee":3}"#;
+        let old =
+            old.replace("METADATA", &serde_json::to_string(&EventMetadata::default()).unwrap());
+        let e: MeteoraPoolsSwapEvent = serde_json::from_str(&old).unwrap();
+        assert!(e.ix_name.is_empty());
+        assert_eq!((e.amount_in, e.minimum_out_amount), (0, 0));
+        assert_eq!(e.pool, Pubkey::default());
+        assert_eq!((e.in_amount, e.out_amount), (123, 456));
+        let e = MeteoraPoolsSwapEvent {
+            amount_in: u64::MAX,
+            minimum_out_amount: u64::MAX,
+            ..Default::default()
+        };
+        let roundtrip: MeteoraPoolsSwapEvent =
+            serde_json::from_str(&serde_json::to_string(&e).unwrap()).unwrap();
+        assert_eq!((roundtrip.amount_in, roundtrip.minimum_out_amount), (u64::MAX, u64::MAX));
+    }
+}
+
+#[cfg(test)]
+mod pools_liquidity_json_tests {
+    use super::*;
+    #[test]
+    fn add_old_json_defaults_and_full_width_limits_roundtrip() {
+        let e = MeteoraPoolsAddLiquidityEvent { pool_token_amount: u64::MAX, ..Default::default() };
+        let e: MeteoraPoolsAddLiquidityEvent =
+            serde_json::from_str(&serde_json::to_string(&e).unwrap()).unwrap();
+        assert_eq!(e.pool_token_amount, u64::MAX);
+        let mut old = serde_json::to_value(&e).unwrap();
+        for field in [
+            "ix_name",
+            "pool_token_amount",
+            "maximum_token_a_amount",
+            "maximum_token_b_amount",
+            "minimum_pool_token_amount",
+            "token_a_in_amount",
+            "token_b_in_amount",
+            "pool",
+            "lp_mint",
+            "user_pool_lp",
+            "a_vault_lp",
+            "b_vault_lp",
+            "a_vault",
+            "b_vault",
+            "a_vault_lp_mint",
+            "b_vault_lp_mint",
+            "a_token_vault",
+            "b_token_vault",
+            "user_a_token",
+            "user_b_token",
+            "user",
+            "vault_program",
+            "token_program",
+        ] {
+            old.as_object_mut().unwrap().remove(field);
+        }
+        let old: MeteoraPoolsAddLiquidityEvent = serde_json::from_value(old).unwrap();
+        assert!(old.ix_name.is_empty());
+        assert_eq!(old.pool_token_amount, 0);
+        assert_eq!(old.pool, Pubkey::default());
+    }
+    #[test]
+    fn remove_old_json_defaults_and_full_width_limits_roundtrip() {
+        let e =
+            MeteoraPoolsRemoveLiquidityEvent { pool_token_amount: u64::MAX, ..Default::default() };
+        let e: MeteoraPoolsRemoveLiquidityEvent =
+            serde_json::from_str(&serde_json::to_string(&e).unwrap()).unwrap();
+        assert_eq!(e.pool_token_amount, u64::MAX);
+        let mut old = serde_json::to_value(&e).unwrap();
+        for field in [
+            "ix_name",
+            "pool_token_amount",
+            "minimum_a_token_out",
+            "minimum_b_token_out",
+            "pool",
+            "lp_mint",
+            "user_pool_lp",
+            "a_vault_lp",
+            "b_vault_lp",
+            "a_vault",
+            "b_vault",
+            "a_vault_lp_mint",
+            "b_vault_lp_mint",
+            "a_token_vault",
+            "b_token_vault",
+            "user_a_token",
+            "user_b_token",
+            "user",
+            "vault_program",
+            "token_program",
+        ] {
+            old.as_object_mut().unwrap().remove(field);
+        }
+        let old: MeteoraPoolsRemoveLiquidityEvent = serde_json::from_value(old).unwrap();
+        assert!(old.ix_name.is_empty());
+        assert_eq!(old.pool_token_amount, 0);
+        assert_eq!(old.pool, Pubkey::default());
+    }
+}
+
+#[cfg(test)]
+mod remaining_liquidity_json_tests {
+    use super::*;
+    #[test]
+    fn remove_liquidity_single_side_old_json_defaults_and_full_width_values_roundtrip() {
+        let e = MeteoraPoolsRemoveLiquidityEvent {
+            pool_token_amount: u64::MAX,
+            minimum_out_amount: u64::MAX,
+            ..Default::default()
+        };
+        let e: MeteoraPoolsRemoveLiquidityEvent =
+            serde_json::from_str(&serde_json::to_string(&e).unwrap()).unwrap();
+        assert_eq!((e.pool_token_amount, e.minimum_out_amount), (u64::MAX, u64::MAX));
+        let mut old = serde_json::to_value(e).unwrap();
+        for name in ["ix_name", "pool_token_amount", "minimum_out_amount", "user_destination_token"]
+        {
+            old.as_object_mut().unwrap().remove(name);
+        }
+        let old: MeteoraPoolsRemoveLiquidityEvent = serde_json::from_value(old).unwrap();
+        assert_eq!((old.pool_token_amount, old.minimum_out_amount), (0, 0));
+        assert!(old.ix_name.is_empty());
+    }
+    #[test]
+    fn bootstrap_liquidity_old_json_defaults_and_full_width_values_roundtrip() {
+        let e = MeteoraPoolsBootstrapLiquidityEvent {
+            token_a_in_amount: u64::MAX,
+            token_b_in_amount: u64::MAX,
+            ..Default::default()
+        };
+        let e: MeteoraPoolsBootstrapLiquidityEvent =
+            serde_json::from_str(&serde_json::to_string(&e).unwrap()).unwrap();
+        assert_eq!((e.token_a_in_amount, e.token_b_in_amount), (u64::MAX, u64::MAX));
+        let mut old = serde_json::to_value(e).unwrap();
+        for name in [
+            "ix_name",
+            "token_a_in_amount",
+            "token_b_in_amount",
+            "lp_mint",
+            "user_pool_lp",
+            "a_vault_lp",
+            "b_vault_lp",
+            "a_vault",
+            "b_vault",
+            "a_vault_lp_mint",
+            "b_vault_lp_mint",
+            "a_token_vault",
+            "b_token_vault",
+            "user_a_token",
+            "user_b_token",
+            "user",
+            "vault_program",
+            "token_program",
+        ] {
+            old.as_object_mut().unwrap().remove(name);
+        }
+        let old: MeteoraPoolsBootstrapLiquidityEvent = serde_json::from_value(old).unwrap();
+        assert_eq!((old.token_a_in_amount, old.token_b_in_amount), (0, 0));
+        assert!(old.ix_name.is_empty());
+    }
+}
+
+#[cfg(test)]
+mod pools_management_json_tests {
+    use super::*;
+    #[test]
+    fn poolcreated_old_json_defaults_and_full_width_values_roundtrip() {
+        let e = MeteoraPoolsPoolCreatedEvent { token_a_in_amount: u64::MAX, ..Default::default() };
+        let e: MeteoraPoolsPoolCreatedEvent =
+            serde_json::from_str(&serde_json::to_string(&e).unwrap()).unwrap();
+        assert_eq!(e.token_a_in_amount, u64::MAX);
+        let mut old = serde_json::to_value(e).unwrap();
+        for name in [
+            "ix_name",
+            "token_a_in_amount",
+            "token_b_in_amount",
+            "activation_point",
+            "config",
+            "a_vault",
+            "b_vault",
+            "a_token_vault",
+            "b_token_vault",
+            "a_vault_lp_mint",
+            "b_vault_lp_mint",
+            "a_vault_lp",
+            "b_vault_lp",
+            "payer_token_a",
+            "payer_token_b",
+            "payer_pool_lp",
+            "protocol_token_a_fee",
+            "protocol_token_b_fee",
+            "payer",
+            "rent",
+            "mint_metadata",
+            "metadata_program",
+            "vault_program",
+            "token_program",
+            "associated_token_program",
+            "system_program",
+        ] {
+            old.as_object_mut().unwrap().remove(name);
+        }
+        let e: MeteoraPoolsPoolCreatedEvent = serde_json::from_value(old).unwrap();
+        assert!(e.ix_name.is_empty());
+        assert_eq!(e.token_a_in_amount, 0);
+    }
+    #[test]
+    fn setpoolfees_old_json_defaults_and_full_width_values_roundtrip() {
+        let e = MeteoraPoolsSetPoolFeesEvent {
+            new_partner_fee_numerator: u64::MAX,
+            ..Default::default()
+        };
+        let e: MeteoraPoolsSetPoolFeesEvent =
+            serde_json::from_str(&serde_json::to_string(&e).unwrap()).unwrap();
+        assert_eq!(e.new_partner_fee_numerator, u64::MAX);
+        let mut old = serde_json::to_value(e).unwrap();
+        for name in [
+            "ix_name",
+            "protocol_trade_fee_numerator",
+            "protocol_trade_fee_denominator",
+            "new_partner_fee_numerator",
+            "fee_operator",
+        ] {
+            old.as_object_mut().unwrap().remove(name);
+        }
+        let e: MeteoraPoolsSetPoolFeesEvent = serde_json::from_value(old).unwrap();
+        assert!(e.ix_name.is_empty());
+        assert_eq!(e.new_partner_fee_numerator, 0);
+    }
+}
+
+#[cfg(test)]
+mod remaining_creation_json_tests {
+    use super::*;
+    #[test]
+    fn nested_parameters_roundtrip_and_missing_fields_default() {
+        let e = MeteoraPoolsPoolCreatedEvent {
+            stable_curve: Some(MeteoraPoolsStableCurveParams {
+                amp: u64::MAX,
+                ..Default::default()
+            }),
+            trade_fee_bps: Some(u64::MAX),
+            customizable_params: Some(MeteoraPoolsCustomizableParams {
+                trade_fee_numerator: u32::MAX,
+                activation_point: Some(u64::MAX),
+                padding: vec![255; 90],
+                ..Default::default()
+            }),
+            ..Default::default()
+        };
+        let decoded: MeteoraPoolsPoolCreatedEvent =
+            serde_json::from_str(&serde_json::to_string(&e).unwrap()).unwrap();
+        assert_eq!(decoded.stable_curve, e.stable_curve);
+        assert_eq!(decoded.trade_fee_bps, e.trade_fee_bps);
+        assert_eq!(decoded.customizable_params, e.customizable_params);
+        let mut old = serde_json::to_value(e).unwrap();
+        for name in [
+            "stable_curve",
+            "trade_fee_bps",
+            "customizable_params",
+            "admin_token_a",
+            "admin_token_b",
+            "admin_pool_lp",
+            "admin",
+            "fee_owner",
+        ] {
+            old.as_object_mut().unwrap().remove(name);
+        }
+        let e: MeteoraPoolsPoolCreatedEvent = serde_json::from_value(old).unwrap();
+        assert!(e.stable_curve.is_none());
+        assert!(e.trade_fee_bps.is_none());
+        assert!(e.customizable_params.is_none());
+        assert_eq!(e.admin, Pubkey::default());
+    }
+}
+
+#[cfg(test)]
+mod amm_swap_wire_compat_tests {
+    use super::*;
+    #[test]
+    fn old_json_defaults_new_instruction_fields_and_full_width_roundtrips() {
+        let e = RaydiumAmmV4SwapEvent {
+            instruction_amount_in: u64::MAX,
+            instruction_amount_out: u64::MAX,
+            ..Default::default()
+        };
+        let decoded: RaydiumAmmV4SwapEvent =
+            serde_json::from_str(&serde_json::to_string(&e).unwrap()).unwrap();
+        assert_eq!(
+            (decoded.instruction_amount_in, decoded.instruction_amount_out),
+            (u64::MAX, u64::MAX)
+        );
+        let mut old = serde_json::to_value(e).unwrap();
+        for field in ["ix_name", "instruction_amount_in", "instruction_amount_out"] {
+            old.as_object_mut().unwrap().remove(field);
+        }
+        let e: RaydiumAmmV4SwapEvent = serde_json::from_value(old).unwrap();
+        assert!(e.ix_name.is_empty());
+        assert_eq!((e.instruction_amount_in, e.instruction_amount_out), (0, 0));
+    }
+    #[cfg(feature = "parse-borsh")]
+    #[test]
+    fn new_fields_do_not_change_borsh_event_wire() {
+        let mut data = vec![0; 32];
+        data.extend_from_slice(&123u64.to_le_bytes());
+        data.extend_from_slice(&456u64.to_le_bytes());
+        let e: RaydiumAmmV4SwapEvent = borsh::from_slice(&data).unwrap();
+        assert_eq!((e.amount_in, e.amount_out), (123, 456));
+        assert!(e.ix_name.is_empty());
+        assert_eq!((e.instruction_amount_in, e.instruction_amount_out), (0, 0));
     }
 }

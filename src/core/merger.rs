@@ -87,7 +87,7 @@ pub fn try_merge_events(
         (PumpSwapLiquidityRemoved(b), PumpSwapLiquidityRemoved(i)) => merge_generic(b, i),
 
         // ========== Raydium CLMM 系列 ==========
-        (RaydiumClmmSwap(b), RaydiumClmmSwap(i)) => merge_generic(b, i),
+        (RaydiumClmmSwap(b), RaydiumClmmSwap(i)) => merge_clmm_swap(b, i),
         (RaydiumClmmIncreaseLiquidity(b), RaydiumClmmIncreaseLiquidity(i)) => merge_generic(b, i),
         (RaydiumClmmDecreaseLiquidity(b), RaydiumClmmDecreaseLiquidity(i)) => merge_generic(b, i),
         (RaydiumClmmLiquidityChange(b), RaydiumClmmLiquidityChange(i)) => merge_generic(b, i),
@@ -110,20 +110,26 @@ pub fn try_merge_events(
         (RaydiumClmmCollectFee(b), RaydiumClmmCollectFee(i)) => merge_generic(b, i),
 
         // ========== Raydium CPMM 系列 ==========
-        (RaydiumCpmmSwap(b), RaydiumCpmmSwap(i)) => merge_generic(b, i),
+        (RaydiumCpmmSwap(b), RaydiumCpmmSwap(i)) => merge_cpmm_swap(b, i),
         (RaydiumCpmmDeposit(b), RaydiumCpmmDeposit(i)) => merge_generic(b, i),
         (RaydiumCpmmWithdraw(b), RaydiumCpmmWithdraw(i)) => merge_generic(b, i),
         (RaydiumCpmmInitialize(b), RaydiumCpmmInitialize(i)) => merge_generic(b, i),
 
         // ========== Raydium AMM V4 系列 ==========
-        (RaydiumAmmV4Swap(b), RaydiumAmmV4Swap(i)) => merge_generic(b, i),
+        (RaydiumAmmV4Swap(b), RaydiumAmmV4Swap(i)) => {
+            let instruction = std::mem::replace(b, i);
+            merge_raydium_amm_v4_swap_log_preferred(b, instruction);
+        }
         (RaydiumAmmV4Deposit(b), RaydiumAmmV4Deposit(i)) => merge_generic(b, i),
         (RaydiumAmmV4Withdraw(b), RaydiumAmmV4Withdraw(i)) => merge_generic(b, i),
         (RaydiumAmmV4Initialize2(b), RaydiumAmmV4Initialize2(i)) => merge_generic(b, i),
         (RaydiumAmmV4WithdrawPnl(b), RaydiumAmmV4WithdrawPnl(i)) => merge_generic(b, i),
 
         // ========== Orca Whirlpool 系列 ==========
-        (OrcaWhirlpoolSwap(b), OrcaWhirlpoolSwap(i)) => merge_generic(b, i),
+        (OrcaWhirlpoolSwap(b), OrcaWhirlpoolSwap(i)) => {
+            let instruction = std::mem::replace(b, i);
+            merge_orca_swap_context(b, instruction);
+        }
         (OrcaWhirlpoolLiquidityIncreased(b), OrcaWhirlpoolLiquidityIncreased(i)) => {
             merge_generic(b, i)
         }
@@ -133,14 +139,30 @@ pub fn try_merge_events(
         (OrcaWhirlpoolPoolInitialized(b), OrcaWhirlpoolPoolInitialized(i)) => merge_generic(b, i),
 
         // ========== Meteora Pools (AMM) 系列 ==========
-        (MeteoraPoolsSwap(b), MeteoraPoolsSwap(i)) => merge_generic(b, i),
-        (MeteoraPoolsAddLiquidity(b), MeteoraPoolsAddLiquidity(i)) => merge_generic(b, i),
-        (MeteoraPoolsRemoveLiquidity(b), MeteoraPoolsRemoveLiquidity(i)) => merge_generic(b, i),
-        (MeteoraPoolsBootstrapLiquidity(b), MeteoraPoolsBootstrapLiquidity(i)) => {
-            merge_generic(b, i)
+        (MeteoraPoolsSwap(b), MeteoraPoolsSwap(i)) => {
+            let instruction = std::mem::replace(b, i);
+            merge_meteora_pools_swap_context(b, instruction);
         }
-        (MeteoraPoolsPoolCreated(b), MeteoraPoolsPoolCreated(i)) => merge_generic(b, i),
-        (MeteoraPoolsSetPoolFees(b), MeteoraPoolsSetPoolFees(i)) => merge_generic(b, i),
+        (MeteoraPoolsAddLiquidity(b), MeteoraPoolsAddLiquidity(i)) => {
+            let instruction = std::mem::replace(b, i);
+            merge_meteora_pools_add_context(b, instruction);
+        }
+        (MeteoraPoolsRemoveLiquidity(b), MeteoraPoolsRemoveLiquidity(i)) => {
+            let instruction = std::mem::replace(b, i);
+            merge_meteora_pools_remove_context(b, instruction);
+        }
+        (MeteoraPoolsBootstrapLiquidity(b), MeteoraPoolsBootstrapLiquidity(i)) => {
+            let instruction = std::mem::replace(b, i);
+            merge_meteora_pools_bootstrap_context(b, instruction);
+        }
+        (MeteoraPoolsPoolCreated(b), MeteoraPoolsPoolCreated(i)) => {
+            let instruction = std::mem::replace(b, i);
+            merge_meteora_pools_poolcreated_context(b, instruction);
+        }
+        (MeteoraPoolsSetPoolFees(b), MeteoraPoolsSetPoolFees(i)) => {
+            let instruction = std::mem::replace(b, i);
+            merge_meteora_pools_setpoolfees_context(b, instruction);
+        }
 
         // ========== Meteora DAMM V2 系列 ==========
         (MeteoraDammV2Swap(b), MeteoraDammV2Swap(i)) => merge_generic(b, i),
@@ -198,6 +220,41 @@ pub fn try_merge_events(
 /// - Inner instruction 来自程序日志，包含完整的交易数据
 /// - Instruction 主要提供账户上下文
 /// - 对于大多数协议，inner instruction 的数据已经足够完整
+#[inline(always)]
+fn merge_cpmm_swap(base: &mut RaydiumCpmmSwapEvent, inner: RaydiumCpmmSwapEvent) {
+    let instruction = std::mem::replace(base, inner);
+    merge_raydium_cpmm_swap_log_preferred(base, instruction);
+}
+
+#[inline]
+fn merge_raydium_cpmm_swap_log_preferred(log: &mut RaydiumCpmmSwapEvent, ix: RaydiumCpmmSwapEvent) {
+    if !ix.ix_name.is_empty() {
+        log.ix_name = ix.ix_name;
+        log.amount_in = ix.amount_in;
+        log.minimum_amount_out = ix.minimum_amount_out;
+        log.max_amount_in = ix.max_amount_in;
+        log.amount_out = ix.amount_out;
+    }
+    fill_pk(&mut log.payer, ix.payer);
+    fill_pk(&mut log.authority, ix.authority);
+    fill_pk(&mut log.input_token_account, ix.input_token_account);
+    fill_pk(&mut log.output_token_account, ix.output_token_account);
+    fill_pk(&mut log.amm_config, ix.amm_config);
+    fill_pk(&mut log.input_vault, ix.input_vault);
+    fill_pk(&mut log.output_vault, ix.output_vault);
+    fill_pk(&mut log.input_token_program, ix.input_token_program);
+    fill_pk(&mut log.output_token_program, ix.output_token_program);
+    fill_pk(&mut log.input_token_mint, ix.input_token_mint);
+    fill_pk(&mut log.output_token_mint, ix.output_token_mint);
+    fill_pk(&mut log.observation_state, ix.observation_state);
+}
+
+#[inline(always)]
+fn merge_clmm_swap(base: &mut RaydiumClmmSwapEvent, inner: RaydiumClmmSwapEvent) {
+    let instruction = std::mem::replace(base, inner);
+    merge_raydium_clmm_swap_log_preferred(base, instruction);
+}
+
 #[inline(always)]
 fn merge_generic<T>(base: &mut T, inner: T) {
     *base = inner;
@@ -839,8 +896,17 @@ fn merge_pumpswap_sell_log_preferred(log: &mut PumpSwapSellEvent, ix: PumpSwapSe
 
 #[inline]
 fn merge_raydium_clmm_swap_log_preferred(log: &mut RaydiumClmmSwapEvent, ix: RaydiumClmmSwapEvent) {
+    if !ix.ix_name.is_empty() {
+        log.ix_name = ix.ix_name;
+        log.amount = ix.amount;
+        log.other_amount_threshold = ix.other_amount_threshold;
+        log.sqrt_price_limit_x64 = ix.sqrt_price_limit_x64;
+        log.is_base_input = ix.is_base_input;
+    }
     fill_pk(&mut log.token_account_0, ix.token_account_0);
     fill_pk(&mut log.token_account_1, ix.token_account_1);
+    fill_pk(&mut log.input_token_account, ix.input_token_account);
+    fill_pk(&mut log.output_token_account, ix.output_token_account);
     fill_pk(&mut log.sender, ix.sender);
     fill_pk(&mut log.amm_config, ix.amm_config);
     fill_pk(&mut log.input_vault, ix.input_vault);
@@ -861,6 +927,13 @@ fn merge_raydium_amm_v4_swap_log_preferred(
     log: &mut RaydiumAmmV4SwapEvent,
     ix: RaydiumAmmV4SwapEvent,
 ) {
+    if !ix.ix_name.is_empty() {
+        log.ix_name = ix.ix_name;
+        log.instruction_amount_in = ix.instruction_amount_in;
+        log.instruction_amount_out = ix.instruction_amount_out;
+        log.minimum_amount_out = ix.minimum_amount_out;
+        log.max_amount_in = ix.max_amount_in;
+    }
     fill_pk(&mut log.token_program, ix.token_program);
     fill_pk(&mut log.amm_authority, ix.amm_authority);
     fill_pk(&mut log.amm_open_orders, ix.amm_open_orders);
@@ -990,6 +1063,198 @@ fn merge_meteora_dlmm_swap_log_preferred(log: &mut MeteoraDlmmSwapEvent, ix: Met
 ///
 /// 已覆盖与 [`crate::grpc::log_instr_dedup`] 去重键一致的主要类型：PumpFun 全系、PumpSwap
 ///（Trade/Buy/Sell/CreatePool/加减流动性）、RaydiumLaunchlab（Trade/PoolCreate/Migrate）、Raydium CLMM/AMM V4 Swap、Meteora DLMM Swap。
+fn merge_meteora_pools_add_context(
+    log: &mut MeteoraPoolsAddLiquidityEvent,
+    ix: MeteoraPoolsAddLiquidityEvent,
+) {
+    if !ix.ix_name.is_empty() {
+        log.ix_name = ix.ix_name;
+        log.pool_token_amount = ix.pool_token_amount;
+        log.maximum_token_a_amount = ix.maximum_token_a_amount;
+        log.maximum_token_b_amount = ix.maximum_token_b_amount;
+        log.minimum_pool_token_amount = ix.minimum_pool_token_amount;
+        log.token_a_in_amount = ix.token_a_in_amount;
+        log.token_b_in_amount = ix.token_b_in_amount;
+    }
+    fill_pk(&mut log.pool, ix.pool);
+    fill_pk(&mut log.lp_mint, ix.lp_mint);
+    fill_pk(&mut log.user_pool_lp, ix.user_pool_lp);
+    fill_pk(&mut log.a_vault_lp, ix.a_vault_lp);
+    fill_pk(&mut log.b_vault_lp, ix.b_vault_lp);
+    fill_pk(&mut log.a_vault, ix.a_vault);
+    fill_pk(&mut log.b_vault, ix.b_vault);
+    fill_pk(&mut log.a_vault_lp_mint, ix.a_vault_lp_mint);
+    fill_pk(&mut log.b_vault_lp_mint, ix.b_vault_lp_mint);
+    fill_pk(&mut log.a_token_vault, ix.a_token_vault);
+    fill_pk(&mut log.b_token_vault, ix.b_token_vault);
+    fill_pk(&mut log.user_a_token, ix.user_a_token);
+    fill_pk(&mut log.user_b_token, ix.user_b_token);
+    fill_pk(&mut log.user, ix.user);
+    fill_pk(&mut log.vault_program, ix.vault_program);
+    fill_pk(&mut log.token_program, ix.token_program);
+}
+
+fn merge_meteora_pools_bootstrap_context(
+    log: &mut MeteoraPoolsBootstrapLiquidityEvent,
+    ix: MeteoraPoolsBootstrapLiquidityEvent,
+) {
+    if !ix.ix_name.is_empty() {
+        log.ix_name = ix.ix_name;
+        log.token_a_in_amount = ix.token_a_in_amount;
+        log.token_b_in_amount = ix.token_b_in_amount;
+    }
+    fill_pk(&mut log.pool, ix.pool);
+    fill_pk(&mut log.lp_mint, ix.lp_mint);
+    fill_pk(&mut log.user_pool_lp, ix.user_pool_lp);
+    fill_pk(&mut log.a_vault_lp, ix.a_vault_lp);
+    fill_pk(&mut log.b_vault_lp, ix.b_vault_lp);
+    fill_pk(&mut log.a_vault, ix.a_vault);
+    fill_pk(&mut log.b_vault, ix.b_vault);
+    fill_pk(&mut log.a_vault_lp_mint, ix.a_vault_lp_mint);
+    fill_pk(&mut log.b_vault_lp_mint, ix.b_vault_lp_mint);
+    fill_pk(&mut log.a_token_vault, ix.a_token_vault);
+    fill_pk(&mut log.b_token_vault, ix.b_token_vault);
+    fill_pk(&mut log.user_a_token, ix.user_a_token);
+    fill_pk(&mut log.user_b_token, ix.user_b_token);
+    fill_pk(&mut log.user, ix.user);
+    fill_pk(&mut log.vault_program, ix.vault_program);
+    fill_pk(&mut log.token_program, ix.token_program);
+}
+
+fn merge_meteora_pools_poolcreated_context(
+    log: &mut MeteoraPoolsPoolCreatedEvent,
+    ix: MeteoraPoolsPoolCreatedEvent,
+) {
+    if !ix.ix_name.is_empty() {
+        log.ix_name = ix.ix_name;
+        log.token_a_in_amount = ix.token_a_in_amount;
+        log.token_b_in_amount = ix.token_b_in_amount;
+        log.activation_point = ix.activation_point;
+        log.stable_curve = ix.stable_curve;
+        log.trade_fee_bps = ix.trade_fee_bps;
+        log.customizable_params = ix.customizable_params;
+    }
+    fill_pk(&mut log.pool, ix.pool);
+    fill_pk(&mut log.config, ix.config);
+    fill_pk(&mut log.lp_mint, ix.lp_mint);
+    fill_pk(&mut log.token_a_mint, ix.token_a_mint);
+    fill_pk(&mut log.token_b_mint, ix.token_b_mint);
+    fill_pk(&mut log.a_vault, ix.a_vault);
+    fill_pk(&mut log.b_vault, ix.b_vault);
+    fill_pk(&mut log.a_token_vault, ix.a_token_vault);
+    fill_pk(&mut log.b_token_vault, ix.b_token_vault);
+    fill_pk(&mut log.a_vault_lp_mint, ix.a_vault_lp_mint);
+    fill_pk(&mut log.b_vault_lp_mint, ix.b_vault_lp_mint);
+    fill_pk(&mut log.a_vault_lp, ix.a_vault_lp);
+    fill_pk(&mut log.b_vault_lp, ix.b_vault_lp);
+    fill_pk(&mut log.payer_token_a, ix.payer_token_a);
+    fill_pk(&mut log.payer_token_b, ix.payer_token_b);
+    fill_pk(&mut log.payer_pool_lp, ix.payer_pool_lp);
+    fill_pk(&mut log.protocol_token_a_fee, ix.protocol_token_a_fee);
+    fill_pk(&mut log.protocol_token_b_fee, ix.protocol_token_b_fee);
+    fill_pk(&mut log.payer, ix.payer);
+    fill_pk(&mut log.rent, ix.rent);
+    fill_pk(&mut log.mint_metadata, ix.mint_metadata);
+    fill_pk(&mut log.metadata_program, ix.metadata_program);
+    fill_pk(&mut log.vault_program, ix.vault_program);
+    fill_pk(&mut log.token_program, ix.token_program);
+    fill_pk(&mut log.associated_token_program, ix.associated_token_program);
+    fill_pk(&mut log.system_program, ix.system_program);
+    fill_pk(&mut log.admin_token_a, ix.admin_token_a);
+    fill_pk(&mut log.admin_token_b, ix.admin_token_b);
+    fill_pk(&mut log.admin_pool_lp, ix.admin_pool_lp);
+    fill_pk(&mut log.admin, ix.admin);
+    fill_pk(&mut log.fee_owner, ix.fee_owner);
+}
+
+fn merge_meteora_pools_setpoolfees_context(
+    log: &mut MeteoraPoolsSetPoolFeesEvent,
+    ix: MeteoraPoolsSetPoolFeesEvent,
+) {
+    if !ix.ix_name.is_empty() {
+        log.ix_name = ix.ix_name;
+        log.new_partner_fee_numerator = ix.new_partner_fee_numerator;
+    }
+    fill_pk(&mut log.pool, ix.pool);
+    fill_pk(&mut log.fee_operator, ix.fee_operator);
+}
+
+fn merge_meteora_pools_remove_context(
+    log: &mut MeteoraPoolsRemoveLiquidityEvent,
+    ix: MeteoraPoolsRemoveLiquidityEvent,
+) {
+    if !ix.ix_name.is_empty() {
+        log.ix_name = ix.ix_name;
+        log.pool_token_amount = ix.pool_token_amount;
+        log.minimum_out_amount = ix.minimum_out_amount;
+        log.minimum_a_token_out = ix.minimum_a_token_out;
+        log.minimum_b_token_out = ix.minimum_b_token_out;
+    }
+    fill_pk(&mut log.pool, ix.pool);
+    fill_pk(&mut log.lp_mint, ix.lp_mint);
+    fill_pk(&mut log.user_pool_lp, ix.user_pool_lp);
+    fill_pk(&mut log.a_vault_lp, ix.a_vault_lp);
+    fill_pk(&mut log.b_vault_lp, ix.b_vault_lp);
+    fill_pk(&mut log.a_vault, ix.a_vault);
+    fill_pk(&mut log.b_vault, ix.b_vault);
+    fill_pk(&mut log.a_vault_lp_mint, ix.a_vault_lp_mint);
+    fill_pk(&mut log.b_vault_lp_mint, ix.b_vault_lp_mint);
+    fill_pk(&mut log.a_token_vault, ix.a_token_vault);
+    fill_pk(&mut log.b_token_vault, ix.b_token_vault);
+    fill_pk(&mut log.user_a_token, ix.user_a_token);
+    fill_pk(&mut log.user_b_token, ix.user_b_token);
+    fill_pk(&mut log.user, ix.user);
+    fill_pk(&mut log.vault_program, ix.vault_program);
+    fill_pk(&mut log.token_program, ix.token_program);
+    fill_pk(&mut log.user_destination_token, ix.user_destination_token);
+}
+
+fn merge_meteora_pools_swap_context(log: &mut MeteoraPoolsSwapEvent, ix: MeteoraPoolsSwapEvent) {
+    if !ix.ix_name.is_empty() {
+        log.ix_name = ix.ix_name;
+        log.amount_in = ix.amount_in;
+        log.minimum_out_amount = ix.minimum_out_amount;
+    }
+    fill_pk(&mut log.pool, ix.pool);
+    fill_pk(&mut log.user_source_token, ix.user_source_token);
+    fill_pk(&mut log.user_destination_token, ix.user_destination_token);
+    fill_pk(&mut log.a_vault, ix.a_vault);
+    fill_pk(&mut log.b_vault, ix.b_vault);
+    fill_pk(&mut log.a_token_vault, ix.a_token_vault);
+    fill_pk(&mut log.b_token_vault, ix.b_token_vault);
+    fill_pk(&mut log.a_vault_lp_mint, ix.a_vault_lp_mint);
+    fill_pk(&mut log.b_vault_lp_mint, ix.b_vault_lp_mint);
+    fill_pk(&mut log.a_vault_lp, ix.a_vault_lp);
+    fill_pk(&mut log.b_vault_lp, ix.b_vault_lp);
+    fill_pk(&mut log.protocol_token_fee, ix.protocol_token_fee);
+    fill_pk(&mut log.user, ix.user);
+    fill_pk(&mut log.vault_program, ix.vault_program);
+    fill_pk(&mut log.token_program, ix.token_program);
+}
+
+fn merge_orca_swap_context(log: &mut OrcaWhirlpoolSwapEvent, ix: OrcaWhirlpoolSwapEvent) {
+    if !ix.ix_name.is_empty() {
+        log.ix_name = ix.ix_name;
+        log.amount = ix.amount;
+        log.other_amount_threshold = ix.other_amount_threshold;
+        log.sqrt_price_limit = ix.sqrt_price_limit;
+        log.amount_specified_is_input = ix.amount_specified_is_input;
+    }
+    fill_pk(&mut log.token_authority, ix.token_authority);
+    fill_pk(&mut log.token_owner_account_a, ix.token_owner_account_a);
+    fill_pk(&mut log.token_owner_account_b, ix.token_owner_account_b);
+    fill_pk(&mut log.token_program_a, ix.token_program_a);
+    fill_pk(&mut log.token_program_b, ix.token_program_b);
+    fill_pk(&mut log.token_mint_a, ix.token_mint_a);
+    fill_pk(&mut log.token_mint_b, ix.token_mint_b);
+    fill_pk(&mut log.token_vault_a, ix.token_vault_a);
+    fill_pk(&mut log.token_vault_b, ix.token_vault_b);
+    fill_pk(&mut log.tick_array_0, ix.tick_array_0);
+    fill_pk(&mut log.tick_array_1, ix.tick_array_1);
+    fill_pk(&mut log.tick_array_2, ix.tick_array_2);
+    fill_pk(&mut log.oracle, ix.oracle);
+}
+
 pub fn merge_grpc_instruction_into_log(log: &mut DexEvent, ix: DexEvent) {
     use DexEvent::*;
     match log {
@@ -1041,6 +1306,46 @@ pub fn merge_grpc_instruction_into_log(log: &mut DexEvent, ix: DexEvent) {
         PumpSwapSell(l) => {
             if let PumpSwapSell(i) = ix {
                 merge_pumpswap_sell_log_preferred(l, i);
+            }
+        }
+        RaydiumCpmmSwap(l) => {
+            if let RaydiumCpmmSwap(i) = ix {
+                merge_raydium_cpmm_swap_log_preferred(l, i);
+            }
+        }
+        MeteoraPoolsAddLiquidity(l) => {
+            if let MeteoraPoolsAddLiquidity(i) = ix {
+                merge_meteora_pools_add_context(l, i);
+            }
+        }
+        MeteoraPoolsRemoveLiquidity(l) => {
+            if let MeteoraPoolsRemoveLiquidity(i) = ix {
+                merge_meteora_pools_remove_context(l, i);
+            }
+        }
+        MeteoraPoolsBootstrapLiquidity(l) => {
+            if let MeteoraPoolsBootstrapLiquidity(i) = ix {
+                merge_meteora_pools_bootstrap_context(l, i);
+            }
+        }
+        MeteoraPoolsPoolCreated(l) => {
+            if let MeteoraPoolsPoolCreated(i) = ix {
+                merge_meteora_pools_poolcreated_context(l, i);
+            }
+        }
+        MeteoraPoolsSetPoolFees(l) => {
+            if let MeteoraPoolsSetPoolFees(i) = ix {
+                merge_meteora_pools_setpoolfees_context(l, i);
+            }
+        }
+        MeteoraPoolsSwap(l) => {
+            if let MeteoraPoolsSwap(i) = ix {
+                merge_meteora_pools_swap_context(l, i);
+            }
+        }
+        OrcaWhirlpoolSwap(l) => {
+            if let OrcaWhirlpoolSwap(i) = ix {
+                merge_orca_swap_context(l, i);
             }
         }
         RaydiumClmmSwap(l) => {
@@ -1105,6 +1410,123 @@ fn pumpfun_trade_from_ix_variant(ix: DexEvent) -> Option<PumpFunTradeEvent> {
 
 #[cfg(test)]
 mod tests {
+
+    #[test]
+    fn clmm_merge_retains_limits_and_mode_without_overwriting_executed_price_or_direction() {
+        use crate::core::events::{DexEvent, RaydiumClmmSwapEvent};
+        for input_mode in [false, true] {
+            let instruction = RaydiumClmmSwapEvent {
+                ix_name: "swap_v2".to_string(),
+                amount: 0,
+                other_amount_threshold: u64::MAX,
+                sqrt_price_limit_x64: 0,
+                is_base_input: input_mode,
+                input_mint: solana_sdk::pubkey::Pubkey::new_unique(),
+                tick_arrays: vec![solana_sdk::pubkey::Pubkey::new_unique()],
+                ..Default::default()
+            };
+            let log = RaydiumClmmSwapEvent {
+                amount_0: 456,
+                amount_1: 123,
+                sqrt_price_x64: 789,
+                zero_for_one: !input_mode,
+                tick: -7,
+                liquidity: 1011,
+                amount: 99,
+                sqrt_price_limit_x64: 99,
+                ..Default::default()
+            };
+            for log_first in [false, true] {
+                let mut merged = DexEvent::RaydiumClmmSwap(if log_first {
+                    log.clone()
+                } else {
+                    instruction.clone()
+                });
+                if log_first {
+                    super::merge_grpc_instruction_into_log(
+                        &mut merged,
+                        DexEvent::RaydiumClmmSwap(instruction.clone()),
+                    );
+                } else {
+                    super::merge_events(&mut merged, DexEvent::RaydiumClmmSwap(log.clone()));
+                }
+                let DexEvent::RaydiumClmmSwap(e) = merged else { panic!("swap") };
+                assert_eq!(
+                    (e.amount_0, e.amount_1, e.sqrt_price_x64, e.tick, e.liquidity),
+                    (456, 123, 789, -7, 1011)
+                );
+                assert_eq!(e.zero_for_one, !input_mode);
+                assert_eq!(
+                    (e.amount, e.other_amount_threshold, e.sqrt_price_limit_x64),
+                    (0, u64::MAX, 0)
+                );
+                assert_eq!(e.is_base_input, input_mode);
+                assert_eq!(e.ix_name, "swap_v2");
+                assert_eq!(e.input_mint, instruction.input_mint);
+                assert_eq!(e.tick_arrays, instruction.tick_arrays);
+            }
+        }
+    }
+
+    #[test]
+    fn cpmm_merge_preserves_zero_limits_and_execution_values_in_both_paths() {
+        use crate::core::events::{DexEvent, RaydiumCpmmSwapEvent};
+        for exact_input in [false, true] {
+            let payer = solana_sdk::pubkey::Pubkey::new_unique();
+            let input_account = solana_sdk::pubkey::Pubkey::new_unique();
+            let instruction = RaydiumCpmmSwapEvent {
+                ix_name: if exact_input { "swap_base_input" } else { "swap_base_output" }
+                    .to_string(),
+                base_input: exact_input,
+                amount_in: 0,
+                minimum_amount_out: if exact_input { u64::MAX } else { 0 },
+                max_amount_in: if exact_input { 0 } else { u64::MAX },
+                amount_out: 0,
+                payer,
+                input_token_account: input_account,
+                ..Default::default()
+            };
+            let log = RaydiumCpmmSwapEvent {
+                base_input: exact_input,
+                input_amount: 456,
+                output_amount: 123,
+                input_transfer_fee: 7,
+                amount_in: 99,
+                amount_out: 99,
+                ..Default::default()
+            };
+            for log_first in [false, true] {
+                let mut merged = if log_first {
+                    DexEvent::RaydiumCpmmSwap(log.clone())
+                } else {
+                    DexEvent::RaydiumCpmmSwap(instruction.clone())
+                };
+                if log_first {
+                    super::merge_grpc_instruction_into_log(
+                        &mut merged,
+                        DexEvent::RaydiumCpmmSwap(instruction.clone()),
+                    );
+                } else {
+                    super::merge_events(&mut merged, DexEvent::RaydiumCpmmSwap(log.clone()));
+                }
+                let DexEvent::RaydiumCpmmSwap(e) = merged else { panic!("swap") };
+                assert_eq!((e.input_amount, e.output_amount, e.input_transfer_fee), (456, 123, 7));
+                assert_eq!(e.ix_name, instruction.ix_name);
+                assert_eq!(
+                    (e.amount_in, e.minimum_amount_out, e.max_amount_in, e.amount_out),
+                    (
+                        instruction.amount_in,
+                        instruction.minimum_amount_out,
+                        instruction.max_amount_in,
+                        0
+                    )
+                );
+                assert_eq!(e.payer, payer);
+                assert_eq!(e.input_token_account, input_account);
+                assert_eq!(e.base_input, exact_input);
+            }
+        }
+    }
     use super::*;
 
     #[test]
@@ -1138,7 +1560,7 @@ mod tests {
             protocol_fee: 0,
             fee_bps: 25,
             host_fee: 0,
-        ..Default::default()
+            ..Default::default()
         }
     }
 
@@ -1489,5 +1911,794 @@ mod tests {
         let DexEvent::PumpFunCreate(event) = log else { panic!("create") };
         assert_eq!(event.creator_fee_bps, 300);
         assert!(event.is_holder_reward);
+    }
+}
+
+#[cfg(test)]
+mod orca_swap_context_tests {
+    use super::*;
+
+    #[test]
+    fn both_merge_paths_preserve_zero_wire_values_and_authoritative_execution() {
+        for input_mode in [false, true] {
+            let ix = OrcaWhirlpoolSwapEvent {
+                ix_name: "swap_v2".into(),
+                amount: 0,
+                other_amount_threshold: u64::MAX,
+                sqrt_price_limit: 0,
+                amount_specified_is_input: input_mode,
+                token_authority: Pubkey::new_unique(),
+                token_owner_account_a: Pubkey::new_unique(),
+                token_owner_account_b: Pubkey::new_unique(),
+                ..Default::default()
+            };
+            let log = OrcaWhirlpoolSwapEvent {
+                amount: 99,
+                sqrt_price_limit: 99,
+                input_amount: 123,
+                output_amount: 456,
+                pre_sqrt_price: 789,
+                post_sqrt_price: 987,
+                input_transfer_fee: 1,
+                output_transfer_fee: 2,
+                lp_fee: 3,
+                protocol_fee: 4,
+                a_to_b: true,
+                ..Default::default()
+            };
+            for log_first in [false, true] {
+                let mut result = if log_first {
+                    DexEvent::OrcaWhirlpoolSwap(log.clone())
+                } else {
+                    DexEvent::OrcaWhirlpoolSwap(ix.clone())
+                };
+                if log_first {
+                    merge_grpc_instruction_into_log(
+                        &mut result,
+                        DexEvent::OrcaWhirlpoolSwap(ix.clone()),
+                    );
+                } else {
+                    merge_events(&mut result, DexEvent::OrcaWhirlpoolSwap(log.clone()));
+                }
+                let DexEvent::OrcaWhirlpoolSwap(e) = result else { panic!("swap") };
+                assert_eq!(
+                    (e.amount, e.other_amount_threshold, e.sqrt_price_limit),
+                    (0, u64::MAX, 0)
+                );
+                assert_eq!(e.amount_specified_is_input, input_mode);
+                assert_eq!(e.ix_name, "swap_v2");
+                assert_eq!(
+                    (e.input_amount, e.output_amount, e.pre_sqrt_price, e.post_sqrt_price),
+                    (123, 456, 789, 987)
+                );
+                assert_eq!(
+                    (e.input_transfer_fee, e.output_transfer_fee, e.lp_fee, e.protocol_fee),
+                    (1, 2, 3, 4)
+                );
+                assert!(e.a_to_b);
+                assert_eq!(
+                    (e.token_authority, e.token_owner_account_a, e.token_owner_account_b),
+                    (ix.token_authority, ix.token_owner_account_a, ix.token_owner_account_b)
+                );
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+mod pools_swap_merge_tests {
+    use super::*;
+
+    #[test]
+    fn both_paths_keep_instruction_zero_values_and_log_execution_values() {
+        let ix = MeteoraPoolsSwapEvent {
+            ix_name: "swap".into(),
+            amount_in: 0,
+            minimum_out_amount: u64::MAX,
+            pool: Pubkey::new_unique(),
+            user_source_token: Pubkey::new_unique(),
+            user_destination_token: Pubkey::new_unique(),
+            a_vault: Pubkey::new_unique(),
+            b_vault: Pubkey::new_unique(),
+            a_token_vault: Pubkey::new_unique(),
+            b_token_vault: Pubkey::new_unique(),
+            a_vault_lp_mint: Pubkey::new_unique(),
+            b_vault_lp_mint: Pubkey::new_unique(),
+            a_vault_lp: Pubkey::new_unique(),
+            b_vault_lp: Pubkey::new_unique(),
+            protocol_token_fee: Pubkey::new_unique(),
+            user: Pubkey::new_unique(),
+            vault_program: Pubkey::new_unique(),
+            token_program: Pubkey::new_unique(),
+            ..Default::default()
+        };
+        let log = MeteoraPoolsSwapEvent {
+            amount_in: 99,
+            minimum_out_amount: 99,
+            in_amount: 123,
+            out_amount: 456,
+            trade_fee: 1,
+            admin_fee: 2,
+            host_fee: 3,
+            token_program: Pubkey::new_unique(),
+            ..Default::default()
+        };
+        for log_first in [false, true] {
+            let mut result =
+                DexEvent::MeteoraPoolsSwap(if log_first { log.clone() } else { ix.clone() });
+            if log_first {
+                merge_grpc_instruction_into_log(
+                    &mut result,
+                    DexEvent::MeteoraPoolsSwap(ix.clone()),
+                );
+            } else {
+                merge_events(&mut result, DexEvent::MeteoraPoolsSwap(log.clone()));
+            }
+            let DexEvent::MeteoraPoolsSwap(e) = result else { panic!("swap") };
+            assert_eq!(e.ix_name, "swap");
+            assert_eq!((e.amount_in, e.minimum_out_amount), (0, u64::MAX));
+            assert_eq!(
+                (e.in_amount, e.out_amount, e.trade_fee, e.admin_fee, e.host_fee),
+                (123, 456, 1, 2, 3)
+            );
+            assert_eq!(e.pool, ix.pool);
+            assert_eq!(e.user_source_token, ix.user_source_token);
+            assert_eq!(e.user_destination_token, ix.user_destination_token);
+            assert_eq!(e.a_vault, ix.a_vault);
+            assert_eq!(e.b_vault, ix.b_vault);
+            assert_eq!(e.a_token_vault, ix.a_token_vault);
+            assert_eq!(e.b_token_vault, ix.b_token_vault);
+            assert_eq!(e.a_vault_lp_mint, ix.a_vault_lp_mint);
+            assert_eq!(e.b_vault_lp_mint, ix.b_vault_lp_mint);
+            assert_eq!(e.a_vault_lp, ix.a_vault_lp);
+            assert_eq!(e.b_vault_lp, ix.b_vault_lp);
+            assert_eq!(e.protocol_token_fee, ix.protocol_token_fee);
+            assert_eq!(e.user, ix.user);
+            assert_eq!(e.vault_program, ix.vault_program);
+            assert_eq!(e.token_program, log.token_program);
+        }
+    }
+}
+
+#[cfg(test)]
+mod pools_liquidity_merge_tests {
+    use super::*;
+    #[test]
+    fn add_balance_liquidity_both_merge_paths_preserve_limits_and_execution() {
+        let ix = MeteoraPoolsAddLiquidityEvent {
+            ix_name: "add_balance_liquidity".into(),
+            pool_token_amount: 0,
+            maximum_token_a_amount: u64::MAX,
+            maximum_token_b_amount: 0,
+            pool: Pubkey::new_unique(),
+            lp_mint: Pubkey::new_unique(),
+            user_pool_lp: Pubkey::new_unique(),
+            a_vault_lp: Pubkey::new_unique(),
+            b_vault_lp: Pubkey::new_unique(),
+            a_vault: Pubkey::new_unique(),
+            b_vault: Pubkey::new_unique(),
+            a_vault_lp_mint: Pubkey::new_unique(),
+            b_vault_lp_mint: Pubkey::new_unique(),
+            a_token_vault: Pubkey::new_unique(),
+            b_token_vault: Pubkey::new_unique(),
+            user_a_token: Pubkey::new_unique(),
+            user_b_token: Pubkey::new_unique(),
+            user: Pubkey::new_unique(),
+            vault_program: Pubkey::new_unique(),
+            token_program: Pubkey::new_unique(),
+            ..Default::default()
+        };
+        let log = MeteoraPoolsAddLiquidityEvent {
+            pool_token_amount: 99,
+            maximum_token_a_amount: 99,
+            maximum_token_b_amount: 99,
+            lp_mint_amount: 123,
+            token_a_amount: 124,
+            token_b_amount: 125,
+            token_program: Pubkey::new_unique(),
+            ..Default::default()
+        };
+        for log_first in [false, true] {
+            let mut result = DexEvent::MeteoraPoolsAddLiquidity(if log_first {
+                log.clone()
+            } else {
+                ix.clone()
+            });
+            if log_first {
+                merge_grpc_instruction_into_log(
+                    &mut result,
+                    DexEvent::MeteoraPoolsAddLiquidity(ix.clone()),
+                );
+            } else {
+                merge_events(&mut result, DexEvent::MeteoraPoolsAddLiquidity(log.clone()));
+            }
+            let DexEvent::MeteoraPoolsAddLiquidity(e) = result else { panic!("liquidity") };
+            assert_eq!(e.ix_name, "add_balance_liquidity");
+            assert_eq!(e.pool_token_amount, ix.pool_token_amount);
+            assert_eq!(e.maximum_token_a_amount, ix.maximum_token_a_amount);
+            assert_eq!(e.maximum_token_b_amount, ix.maximum_token_b_amount);
+            assert_eq!(e.pool, ix.pool);
+            assert_eq!(e.lp_mint, ix.lp_mint);
+            assert_eq!(e.user_pool_lp, ix.user_pool_lp);
+            assert_eq!(e.a_vault_lp, ix.a_vault_lp);
+            assert_eq!(e.b_vault_lp, ix.b_vault_lp);
+            assert_eq!(e.a_vault, ix.a_vault);
+            assert_eq!(e.b_vault, ix.b_vault);
+            assert_eq!(e.a_vault_lp_mint, ix.a_vault_lp_mint);
+            assert_eq!(e.b_vault_lp_mint, ix.b_vault_lp_mint);
+            assert_eq!(e.a_token_vault, ix.a_token_vault);
+            assert_eq!(e.b_token_vault, ix.b_token_vault);
+            assert_eq!(e.user_a_token, ix.user_a_token);
+            assert_eq!(e.user_b_token, ix.user_b_token);
+            assert_eq!(e.user, ix.user);
+            assert_eq!(e.vault_program, ix.vault_program);
+            assert_eq!(e.lp_mint_amount, log.lp_mint_amount);
+            assert_eq!(e.token_a_amount, log.token_a_amount);
+            assert_eq!(e.token_b_amount, log.token_b_amount);
+            assert_eq!(e.token_program, log.token_program);
+        }
+    }
+    #[test]
+    fn add_imbalance_liquidity_both_merge_paths_preserve_limits_and_execution() {
+        let ix = MeteoraPoolsAddLiquidityEvent {
+            ix_name: "add_imbalance_liquidity".into(),
+            minimum_pool_token_amount: 0,
+            token_a_in_amount: u64::MAX,
+            token_b_in_amount: 0,
+            pool: Pubkey::new_unique(),
+            lp_mint: Pubkey::new_unique(),
+            user_pool_lp: Pubkey::new_unique(),
+            a_vault_lp: Pubkey::new_unique(),
+            b_vault_lp: Pubkey::new_unique(),
+            a_vault: Pubkey::new_unique(),
+            b_vault: Pubkey::new_unique(),
+            a_vault_lp_mint: Pubkey::new_unique(),
+            b_vault_lp_mint: Pubkey::new_unique(),
+            a_token_vault: Pubkey::new_unique(),
+            b_token_vault: Pubkey::new_unique(),
+            user_a_token: Pubkey::new_unique(),
+            user_b_token: Pubkey::new_unique(),
+            user: Pubkey::new_unique(),
+            vault_program: Pubkey::new_unique(),
+            token_program: Pubkey::new_unique(),
+            ..Default::default()
+        };
+        let log = MeteoraPoolsAddLiquidityEvent {
+            minimum_pool_token_amount: 99,
+            token_a_in_amount: 99,
+            token_b_in_amount: 99,
+            lp_mint_amount: 123,
+            token_a_amount: 124,
+            token_b_amount: 125,
+            token_program: Pubkey::new_unique(),
+            ..Default::default()
+        };
+        for log_first in [false, true] {
+            let mut result = DexEvent::MeteoraPoolsAddLiquidity(if log_first {
+                log.clone()
+            } else {
+                ix.clone()
+            });
+            if log_first {
+                merge_grpc_instruction_into_log(
+                    &mut result,
+                    DexEvent::MeteoraPoolsAddLiquidity(ix.clone()),
+                );
+            } else {
+                merge_events(&mut result, DexEvent::MeteoraPoolsAddLiquidity(log.clone()));
+            }
+            let DexEvent::MeteoraPoolsAddLiquidity(e) = result else { panic!("liquidity") };
+            assert_eq!(e.ix_name, "add_imbalance_liquidity");
+            assert_eq!(e.minimum_pool_token_amount, ix.minimum_pool_token_amount);
+            assert_eq!(e.token_a_in_amount, ix.token_a_in_amount);
+            assert_eq!(e.token_b_in_amount, ix.token_b_in_amount);
+            assert_eq!(e.pool, ix.pool);
+            assert_eq!(e.lp_mint, ix.lp_mint);
+            assert_eq!(e.user_pool_lp, ix.user_pool_lp);
+            assert_eq!(e.a_vault_lp, ix.a_vault_lp);
+            assert_eq!(e.b_vault_lp, ix.b_vault_lp);
+            assert_eq!(e.a_vault, ix.a_vault);
+            assert_eq!(e.b_vault, ix.b_vault);
+            assert_eq!(e.a_vault_lp_mint, ix.a_vault_lp_mint);
+            assert_eq!(e.b_vault_lp_mint, ix.b_vault_lp_mint);
+            assert_eq!(e.a_token_vault, ix.a_token_vault);
+            assert_eq!(e.b_token_vault, ix.b_token_vault);
+            assert_eq!(e.user_a_token, ix.user_a_token);
+            assert_eq!(e.user_b_token, ix.user_b_token);
+            assert_eq!(e.user, ix.user);
+            assert_eq!(e.vault_program, ix.vault_program);
+            assert_eq!(e.lp_mint_amount, log.lp_mint_amount);
+            assert_eq!(e.token_a_amount, log.token_a_amount);
+            assert_eq!(e.token_b_amount, log.token_b_amount);
+            assert_eq!(e.token_program, log.token_program);
+        }
+    }
+    #[test]
+    fn remove_balance_liquidity_both_merge_paths_preserve_limits_and_execution() {
+        let ix = MeteoraPoolsRemoveLiquidityEvent {
+            ix_name: "remove_balance_liquidity".into(),
+            pool_token_amount: 0,
+            minimum_a_token_out: u64::MAX,
+            minimum_b_token_out: 0,
+            pool: Pubkey::new_unique(),
+            lp_mint: Pubkey::new_unique(),
+            user_pool_lp: Pubkey::new_unique(),
+            a_vault_lp: Pubkey::new_unique(),
+            b_vault_lp: Pubkey::new_unique(),
+            a_vault: Pubkey::new_unique(),
+            b_vault: Pubkey::new_unique(),
+            a_vault_lp_mint: Pubkey::new_unique(),
+            b_vault_lp_mint: Pubkey::new_unique(),
+            a_token_vault: Pubkey::new_unique(),
+            b_token_vault: Pubkey::new_unique(),
+            user_a_token: Pubkey::new_unique(),
+            user_b_token: Pubkey::new_unique(),
+            user: Pubkey::new_unique(),
+            vault_program: Pubkey::new_unique(),
+            token_program: Pubkey::new_unique(),
+            ..Default::default()
+        };
+        let log = MeteoraPoolsRemoveLiquidityEvent {
+            pool_token_amount: 99,
+            minimum_a_token_out: 99,
+            minimum_b_token_out: 99,
+            lp_unmint_amount: 123,
+            token_a_out_amount: 124,
+            token_b_out_amount: 125,
+            token_program: Pubkey::new_unique(),
+            ..Default::default()
+        };
+        for log_first in [false, true] {
+            let mut result = DexEvent::MeteoraPoolsRemoveLiquidity(if log_first {
+                log.clone()
+            } else {
+                ix.clone()
+            });
+            if log_first {
+                merge_grpc_instruction_into_log(
+                    &mut result,
+                    DexEvent::MeteoraPoolsRemoveLiquidity(ix.clone()),
+                );
+            } else {
+                merge_events(&mut result, DexEvent::MeteoraPoolsRemoveLiquidity(log.clone()));
+            }
+            let DexEvent::MeteoraPoolsRemoveLiquidity(e) = result else { panic!("liquidity") };
+            assert_eq!(e.ix_name, "remove_balance_liquidity");
+            assert_eq!(e.pool_token_amount, ix.pool_token_amount);
+            assert_eq!(e.minimum_a_token_out, ix.minimum_a_token_out);
+            assert_eq!(e.minimum_b_token_out, ix.minimum_b_token_out);
+            assert_eq!(e.pool, ix.pool);
+            assert_eq!(e.lp_mint, ix.lp_mint);
+            assert_eq!(e.user_pool_lp, ix.user_pool_lp);
+            assert_eq!(e.a_vault_lp, ix.a_vault_lp);
+            assert_eq!(e.b_vault_lp, ix.b_vault_lp);
+            assert_eq!(e.a_vault, ix.a_vault);
+            assert_eq!(e.b_vault, ix.b_vault);
+            assert_eq!(e.a_vault_lp_mint, ix.a_vault_lp_mint);
+            assert_eq!(e.b_vault_lp_mint, ix.b_vault_lp_mint);
+            assert_eq!(e.a_token_vault, ix.a_token_vault);
+            assert_eq!(e.b_token_vault, ix.b_token_vault);
+            assert_eq!(e.user_a_token, ix.user_a_token);
+            assert_eq!(e.user_b_token, ix.user_b_token);
+            assert_eq!(e.user, ix.user);
+            assert_eq!(e.vault_program, ix.vault_program);
+            assert_eq!(e.lp_unmint_amount, log.lp_unmint_amount);
+            assert_eq!(e.token_a_out_amount, log.token_a_out_amount);
+            assert_eq!(e.token_b_out_amount, log.token_b_out_amount);
+            assert_eq!(e.token_program, log.token_program);
+        }
+    }
+}
+
+#[cfg(test)]
+mod remaining_liquidity_merge_tests {
+    use super::*;
+    #[test]
+    fn remove_liquidity_single_side_both_mergers_keep_zero_inputs_and_log_execution() {
+        let ix = MeteoraPoolsRemoveLiquidityEvent {
+            ix_name: "remove_liquidity_single_side".into(),
+            pool_token_amount: 0,
+            minimum_out_amount: u64::MAX,
+            pool: Pubkey::new_unique(),
+            lp_mint: Pubkey::new_unique(),
+            user_pool_lp: Pubkey::new_unique(),
+            a_vault_lp: Pubkey::new_unique(),
+            b_vault_lp: Pubkey::new_unique(),
+            a_vault: Pubkey::new_unique(),
+            b_vault: Pubkey::new_unique(),
+            a_vault_lp_mint: Pubkey::new_unique(),
+            b_vault_lp_mint: Pubkey::new_unique(),
+            a_token_vault: Pubkey::new_unique(),
+            b_token_vault: Pubkey::new_unique(),
+            user_destination_token: Pubkey::new_unique(),
+            user: Pubkey::new_unique(),
+            vault_program: Pubkey::new_unique(),
+            token_program: Pubkey::new_unique(),
+            ..Default::default()
+        };
+        let log = MeteoraPoolsRemoveLiquidityEvent {
+            pool_token_amount: 99,
+            minimum_out_amount: 99,
+            lp_unmint_amount: 123,
+            token_a_out_amount: 124,
+            token_b_out_amount: 125,
+            token_program: Pubkey::new_unique(),
+            ..Default::default()
+        };
+        for log_first in [false, true] {
+            let mut result = DexEvent::MeteoraPoolsRemoveLiquidity(if log_first {
+                log.clone()
+            } else {
+                ix.clone()
+            });
+            if log_first {
+                merge_grpc_instruction_into_log(
+                    &mut result,
+                    DexEvent::MeteoraPoolsRemoveLiquidity(ix.clone()),
+                );
+            } else {
+                merge_events(&mut result, DexEvent::MeteoraPoolsRemoveLiquidity(log.clone()));
+            }
+            let DexEvent::MeteoraPoolsRemoveLiquidity(e) = result else { panic!("liquidity") };
+            assert_eq!(e.ix_name, "remove_liquidity_single_side");
+            assert_eq!(e.pool_token_amount, ix.pool_token_amount);
+            assert_eq!(e.minimum_out_amount, ix.minimum_out_amount);
+            assert_eq!(e.pool, ix.pool);
+            assert_eq!(e.lp_mint, ix.lp_mint);
+            assert_eq!(e.user_pool_lp, ix.user_pool_lp);
+            assert_eq!(e.a_vault_lp, ix.a_vault_lp);
+            assert_eq!(e.b_vault_lp, ix.b_vault_lp);
+            assert_eq!(e.a_vault, ix.a_vault);
+            assert_eq!(e.b_vault, ix.b_vault);
+            assert_eq!(e.a_vault_lp_mint, ix.a_vault_lp_mint);
+            assert_eq!(e.b_vault_lp_mint, ix.b_vault_lp_mint);
+            assert_eq!(e.a_token_vault, ix.a_token_vault);
+            assert_eq!(e.b_token_vault, ix.b_token_vault);
+            assert_eq!(e.user_destination_token, ix.user_destination_token);
+            assert_eq!(e.user, ix.user);
+            assert_eq!(e.vault_program, ix.vault_program);
+            assert_eq!(e.lp_unmint_amount, log.lp_unmint_amount);
+            assert_eq!(e.token_a_out_amount, log.token_a_out_amount);
+            assert_eq!(e.token_b_out_amount, log.token_b_out_amount);
+            assert_eq!(e.token_program, log.token_program);
+        }
+    }
+    #[test]
+    fn bootstrap_liquidity_both_mergers_keep_zero_inputs_and_log_execution() {
+        let ix = MeteoraPoolsBootstrapLiquidityEvent {
+            ix_name: "bootstrap_liquidity".into(),
+            token_a_in_amount: 0,
+            token_b_in_amount: u64::MAX,
+            pool: Pubkey::new_unique(),
+            lp_mint: Pubkey::new_unique(),
+            user_pool_lp: Pubkey::new_unique(),
+            a_vault_lp: Pubkey::new_unique(),
+            b_vault_lp: Pubkey::new_unique(),
+            a_vault: Pubkey::new_unique(),
+            b_vault: Pubkey::new_unique(),
+            a_vault_lp_mint: Pubkey::new_unique(),
+            b_vault_lp_mint: Pubkey::new_unique(),
+            a_token_vault: Pubkey::new_unique(),
+            b_token_vault: Pubkey::new_unique(),
+            user_a_token: Pubkey::new_unique(),
+            user_b_token: Pubkey::new_unique(),
+            user: Pubkey::new_unique(),
+            vault_program: Pubkey::new_unique(),
+            token_program: Pubkey::new_unique(),
+            ..Default::default()
+        };
+        let log = MeteoraPoolsBootstrapLiquidityEvent {
+            token_a_in_amount: 99,
+            token_b_in_amount: 99,
+            lp_mint_amount: 123,
+            token_a_amount: 124,
+            token_b_amount: 125,
+            token_program: Pubkey::new_unique(),
+            ..Default::default()
+        };
+        for log_first in [false, true] {
+            let mut result = DexEvent::MeteoraPoolsBootstrapLiquidity(if log_first {
+                log.clone()
+            } else {
+                ix.clone()
+            });
+            if log_first {
+                merge_grpc_instruction_into_log(
+                    &mut result,
+                    DexEvent::MeteoraPoolsBootstrapLiquidity(ix.clone()),
+                );
+            } else {
+                merge_events(&mut result, DexEvent::MeteoraPoolsBootstrapLiquidity(log.clone()));
+            }
+            let DexEvent::MeteoraPoolsBootstrapLiquidity(e) = result else { panic!("liquidity") };
+            assert_eq!(e.ix_name, "bootstrap_liquidity");
+            assert_eq!(e.token_a_in_amount, ix.token_a_in_amount);
+            assert_eq!(e.token_b_in_amount, ix.token_b_in_amount);
+            assert_eq!(e.pool, ix.pool);
+            assert_eq!(e.lp_mint, ix.lp_mint);
+            assert_eq!(e.user_pool_lp, ix.user_pool_lp);
+            assert_eq!(e.a_vault_lp, ix.a_vault_lp);
+            assert_eq!(e.b_vault_lp, ix.b_vault_lp);
+            assert_eq!(e.a_vault, ix.a_vault);
+            assert_eq!(e.b_vault, ix.b_vault);
+            assert_eq!(e.a_vault_lp_mint, ix.a_vault_lp_mint);
+            assert_eq!(e.b_vault_lp_mint, ix.b_vault_lp_mint);
+            assert_eq!(e.a_token_vault, ix.a_token_vault);
+            assert_eq!(e.b_token_vault, ix.b_token_vault);
+            assert_eq!(e.user_a_token, ix.user_a_token);
+            assert_eq!(e.user_b_token, ix.user_b_token);
+            assert_eq!(e.user, ix.user);
+            assert_eq!(e.vault_program, ix.vault_program);
+            assert_eq!(e.lp_mint_amount, log.lp_mint_amount);
+            assert_eq!(e.token_a_amount, log.token_a_amount);
+            assert_eq!(e.token_b_amount, log.token_b_amount);
+            assert_eq!(e.token_program, log.token_program);
+        }
+    }
+}
+
+#[cfg(test)]
+mod pools_management_merge_tests {
+    use super::*;
+    #[test]
+    fn creation_both_paths_keep_zero_inputs_optional_activation_and_accounts() {
+        for activation_point in [None, Some(0), Some(u64::MAX)] {
+            let ix = MeteoraPoolsPoolCreatedEvent {
+                ix_name: "initialize_permissionless_constant_product_pool_with_config2".into(),
+                token_a_in_amount: 0,
+                token_b_in_amount: u64::MAX,
+                activation_point,
+                pool: Pubkey::new_unique(),
+                config: Pubkey::new_unique(),
+                lp_mint: Pubkey::new_unique(),
+                token_a_mint: Pubkey::new_unique(),
+                token_b_mint: Pubkey::new_unique(),
+                a_vault: Pubkey::new_unique(),
+                b_vault: Pubkey::new_unique(),
+                a_token_vault: Pubkey::new_unique(),
+                b_token_vault: Pubkey::new_unique(),
+                a_vault_lp_mint: Pubkey::new_unique(),
+                b_vault_lp_mint: Pubkey::new_unique(),
+                a_vault_lp: Pubkey::new_unique(),
+                b_vault_lp: Pubkey::new_unique(),
+                payer_token_a: Pubkey::new_unique(),
+                payer_token_b: Pubkey::new_unique(),
+                payer_pool_lp: Pubkey::new_unique(),
+                protocol_token_a_fee: Pubkey::new_unique(),
+                protocol_token_b_fee: Pubkey::new_unique(),
+                payer: Pubkey::new_unique(),
+                rent: Pubkey::new_unique(),
+                mint_metadata: Pubkey::new_unique(),
+                metadata_program: Pubkey::new_unique(),
+                vault_program: Pubkey::new_unique(),
+                token_program: Pubkey::new_unique(),
+                associated_token_program: Pubkey::new_unique(),
+                system_program: Pubkey::new_unique(),
+                ..Default::default()
+            };
+            let log = MeteoraPoolsPoolCreatedEvent {
+                token_a_in_amount: 99,
+                activation_point: Some(99),
+                pool_type: 1,
+                token_program: Pubkey::new_unique(),
+                ..Default::default()
+            };
+            for log_first in [false, true] {
+                let mut result = DexEvent::MeteoraPoolsPoolCreated(if log_first {
+                    log.clone()
+                } else {
+                    ix.clone()
+                });
+                if log_first {
+                    merge_grpc_instruction_into_log(
+                        &mut result,
+                        DexEvent::MeteoraPoolsPoolCreated(ix.clone()),
+                    );
+                } else {
+                    merge_events(&mut result, DexEvent::MeteoraPoolsPoolCreated(log.clone()));
+                }
+                let DexEvent::MeteoraPoolsPoolCreated(e) = result else { panic!("create") };
+                assert_eq!(
+                    (e.token_a_in_amount, e.token_b_in_amount, e.activation_point),
+                    (0, u64::MAX, activation_point)
+                );
+                assert_eq!(e.pool_type, 1);
+                assert_eq!(e.pool, ix.pool);
+                assert_eq!(e.config, ix.config);
+                assert_eq!(e.lp_mint, ix.lp_mint);
+                assert_eq!(e.token_a_mint, ix.token_a_mint);
+                assert_eq!(e.token_b_mint, ix.token_b_mint);
+                assert_eq!(e.a_vault, ix.a_vault);
+                assert_eq!(e.b_vault, ix.b_vault);
+                assert_eq!(e.a_token_vault, ix.a_token_vault);
+                assert_eq!(e.b_token_vault, ix.b_token_vault);
+                assert_eq!(e.a_vault_lp_mint, ix.a_vault_lp_mint);
+                assert_eq!(e.b_vault_lp_mint, ix.b_vault_lp_mint);
+                assert_eq!(e.a_vault_lp, ix.a_vault_lp);
+                assert_eq!(e.b_vault_lp, ix.b_vault_lp);
+                assert_eq!(e.payer_token_a, ix.payer_token_a);
+                assert_eq!(e.payer_token_b, ix.payer_token_b);
+                assert_eq!(e.payer_pool_lp, ix.payer_pool_lp);
+                assert_eq!(e.protocol_token_a_fee, ix.protocol_token_a_fee);
+                assert_eq!(e.protocol_token_b_fee, ix.protocol_token_b_fee);
+                assert_eq!(e.payer, ix.payer);
+                assert_eq!(e.rent, ix.rent);
+                assert_eq!(e.mint_metadata, ix.mint_metadata);
+                assert_eq!(e.metadata_program, ix.metadata_program);
+                assert_eq!(e.vault_program, ix.vault_program);
+                assert_eq!(e.associated_token_program, ix.associated_token_program);
+                assert_eq!(e.system_program, ix.system_program);
+                assert_eq!(e.token_program, log.token_program);
+            }
+        }
+    }
+    #[test]
+    fn fees_both_paths_keep_partner_parameter_and_log_fee_values() {
+        let ix = MeteoraPoolsSetPoolFeesEvent {
+            ix_name: "set_pool_fees".into(),
+            new_partner_fee_numerator: 0,
+            fee_operator: Pubkey::new_unique(),
+            pool: Pubkey::new_unique(),
+            ..Default::default()
+        };
+        let log = MeteoraPoolsSetPoolFeesEvent {
+            new_partner_fee_numerator: 99,
+            trade_fee_numerator: 1,
+            trade_fee_denominator: 2,
+            protocol_trade_fee_numerator: 3,
+            protocol_trade_fee_denominator: 4,
+            owner_trade_fee_numerator: 3,
+            owner_trade_fee_denominator: 4,
+            ..Default::default()
+        };
+        for log_first in [false, true] {
+            let mut result =
+                DexEvent::MeteoraPoolsSetPoolFees(if log_first { log.clone() } else { ix.clone() });
+            if log_first {
+                merge_grpc_instruction_into_log(
+                    &mut result,
+                    DexEvent::MeteoraPoolsSetPoolFees(ix.clone()),
+                );
+            } else {
+                merge_events(&mut result, DexEvent::MeteoraPoolsSetPoolFees(log.clone()));
+            }
+            let DexEvent::MeteoraPoolsSetPoolFees(e) = result else { panic!("fees") };
+            assert_eq!(e.new_partner_fee_numerator, 0);
+            assert_eq!((e.pool, e.fee_operator), (ix.pool, ix.fee_operator));
+            assert_eq!(
+                (
+                    e.trade_fee_numerator,
+                    e.trade_fee_denominator,
+                    e.protocol_trade_fee_numerator,
+                    e.protocol_trade_fee_denominator
+                ),
+                (1, 2, 3, 4)
+            );
+        }
+    }
+}
+
+#[cfg(test)]
+mod remaining_creation_merge_tests {
+    use super::*;
+    #[test]
+    fn both_paths_preserve_curve_custom_parameters_and_clear_absent_options() {
+        for populated in [false, true] {
+            let ix = MeteoraPoolsPoolCreatedEvent {
+                ix_name: "initialize_customizable_permissionless_constant_product_pool".into(),
+                stable_curve: populated
+                    .then(|| MeteoraPoolsStableCurveParams { amp: u64::MAX, ..Default::default() }),
+                trade_fee_bps: populated.then_some(0),
+                customizable_params: populated.then(|| MeteoraPoolsCustomizableParams {
+                    trade_fee_numerator: u32::MAX,
+                    padding: vec![255; 90],
+                    ..Default::default()
+                }),
+                admin: Pubkey::new_unique(),
+                admin_token_a: Pubkey::new_unique(),
+                admin_token_b: Pubkey::new_unique(),
+                admin_pool_lp: Pubkey::new_unique(),
+                fee_owner: Pubkey::new_unique(),
+                ..Default::default()
+            };
+            let log = MeteoraPoolsPoolCreatedEvent {
+                pool_type: 1,
+                stable_curve: Some(MeteoraPoolsStableCurveParams::default()),
+                trade_fee_bps: Some(99),
+                customizable_params: Some(MeteoraPoolsCustomizableParams::default()),
+                ..Default::default()
+            };
+            for log_first in [false, true] {
+                let mut merged = DexEvent::MeteoraPoolsPoolCreated(if log_first {
+                    log.clone()
+                } else {
+                    ix.clone()
+                });
+                if log_first {
+                    merge_grpc_instruction_into_log(
+                        &mut merged,
+                        DexEvent::MeteoraPoolsPoolCreated(ix.clone()),
+                    );
+                } else {
+                    merge_events(&mut merged, DexEvent::MeteoraPoolsPoolCreated(log.clone()));
+                }
+                let DexEvent::MeteoraPoolsPoolCreated(e) = merged else { panic!("create") };
+                assert_eq!(e.stable_curve, ix.stable_curve);
+                assert_eq!(e.trade_fee_bps, ix.trade_fee_bps);
+                assert_eq!(e.customizable_params, ix.customizable_params);
+                assert_eq!(
+                    (e.admin, e.admin_token_a, e.admin_token_b, e.admin_pool_lp, e.fee_owner),
+                    (ix.admin, ix.admin_token_a, ix.admin_token_b, ix.admin_pool_lp, ix.fee_owner)
+                );
+                assert_eq!(e.pool_type, 1);
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+mod amm_swap_parameter_merge_tests {
+    use super::*;
+    #[test]
+    fn both_paths_preserve_zero_parameters_execution_and_account_context() {
+        for name in ["swap_base_in", "swap_base_out", "swap_base_in_v2", "swap_base_out_v2"] {
+            let input = name.starts_with("swap_base_in");
+            let ix = RaydiumAmmV4SwapEvent {
+                ix_name: name.into(),
+                instruction_amount_in: 0,
+                instruction_amount_out: 0,
+                minimum_amount_out: if input { u64::MAX } else { 0 },
+                max_amount_in: if input { 0 } else { u64::MAX },
+                user_source_owner: Pubkey::new_unique(),
+                user_source_token_account: Pubkey::new_unique(),
+                user_destination_token_account: Pubkey::new_unique(),
+                amm_target_orders: Some(Pubkey::new_unique()),
+                ..Default::default()
+            };
+            let log = RaydiumAmmV4SwapEvent {
+                amount_in: 123,
+                amount_out: 456,
+                instruction_amount_in: 99,
+                instruction_amount_out: 99,
+                minimum_amount_out: 99,
+                max_amount_in: 99,
+                token_program: Pubkey::new_unique(),
+                ..Default::default()
+            };
+            for log_first in [false, true] {
+                let mut merged =
+                    DexEvent::RaydiumAmmV4Swap(if log_first { log.clone() } else { ix.clone() });
+                if log_first {
+                    merge_grpc_instruction_into_log(
+                        &mut merged,
+                        DexEvent::RaydiumAmmV4Swap(ix.clone()),
+                    );
+                } else {
+                    merge_events(&mut merged, DexEvent::RaydiumAmmV4Swap(log.clone()));
+                }
+                let DexEvent::RaydiumAmmV4Swap(e) = merged else { panic!("swap") };
+                assert_eq!(e.ix_name, name);
+                assert_eq!((e.amount_in, e.amount_out), (123, 456));
+                assert_eq!((e.instruction_amount_in, e.instruction_amount_out), (0, 0));
+                assert_eq!(
+                    (e.minimum_amount_out, e.max_amount_in),
+                    (ix.minimum_amount_out, ix.max_amount_in)
+                );
+                assert_eq!(
+                    (
+                        e.user_source_owner,
+                        e.user_source_token_account,
+                        e.user_destination_token_account
+                    ),
+                    (
+                        ix.user_source_owner,
+                        ix.user_source_token_account,
+                        ix.user_destination_token_account
+                    )
+                );
+                assert_eq!(e.amm_target_orders, ix.amm_target_orders);
+                assert_eq!(e.token_program, log.token_program);
+            }
+        }
     }
 }

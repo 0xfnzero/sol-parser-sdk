@@ -113,16 +113,23 @@ sol-parser-sdk = { path = "../sol-parser-sdk", default-features = false, feature
 
 ```toml
 # 在 Cargo.toml 中添加
-sol-parser-sdk = "0.7.7"
+sol-parser-sdk = "0.7.8"
 ```
 
 或使用零拷贝解析器（最高性能）：
 
 ```toml
-sol-parser-sdk = { version = "0.7.7", default-features = false, features = ["parse-zero-copy"] }
+sol-parser-sdk = { version = "0.7.8", default-features = false, features = ["parse-zero-copy"] }
 ```
 
 ### 发布说明
+
+#### v0.7.8
+
+- Updates CPMM creator-fee collection accounts, share PDA and AmmConfig share-rate decoding.
+- Fixes failed-transaction event suppression and instruction/account preservation.
+- Adds RPC capture/replay examples and 13 mainnet transactions with 17 independently checked operations.
+- Run `cargo run --example rpc_corpus_validate -- --list` to view real signatures; run without arguments for offline validation.
 
 #### v0.7.7
 

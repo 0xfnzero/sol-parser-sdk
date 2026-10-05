@@ -36,6 +36,8 @@ pub struct ClientConfig {
     /// 是否启用TLS
     pub enable_tls: bool,
     pub max_retries: u32,
+    /// Automatic reconnect base delay; exponential backoff caps at 60s and resets
+    /// after an established stream. Zero is clamped to 1ms to avoid a busy loop.
     pub retry_delay_ms: u64,
     pub max_concurrent_streams: u32,
     pub keep_alive_interval_ms: u64,
@@ -378,6 +380,8 @@ pub enum EventType {
     AccountRaydiumClmmTickArrayState,
     AccountRaydiumCpmmAmmConfig,
     AccountRaydiumCpmmPoolState,
+    RaydiumCpmmCollectCreatorFee,
+    AccountRaydiumCpmmCreatorFeeShare,
     AccountOrcaWhirlpool,
     AccountOrcaPosition,
     AccountOrcaTickArray,
@@ -584,6 +588,7 @@ impl EventTypeFilter {
             EventType::RaydiumCpmmDeposit,
             EventType::RaydiumCpmmWithdraw,
             EventType::RaydiumCpmmInitialize,
+            EventType::RaydiumCpmmCollectCreatorFee,
         ])
     }
 
@@ -796,6 +801,10 @@ pub fn event_type_from_dex_event(event: &crate::core::events::DexEvent) -> Optio
         DexEvent::RaydiumCpmmInitialize(_) => Some(EventType::RaydiumCpmmInitialize),
         DexEvent::RaydiumCpmmAmmConfigAccount(_) => Some(EventType::AccountRaydiumCpmmAmmConfig),
         DexEvent::RaydiumCpmmPoolStateAccount(_) => Some(EventType::AccountRaydiumCpmmPoolState),
+        DexEvent::RaydiumCpmmCollectCreatorFee(_) => Some(EventType::RaydiumCpmmCollectCreatorFee),
+        DexEvent::RaydiumCpmmCreatorFeeShareAccount(_) => {
+            Some(EventType::AccountRaydiumCpmmCreatorFeeShare)
+        }
         DexEvent::RaydiumAmmV4Swap(_) => Some(EventType::RaydiumAmmV4Swap),
         DexEvent::RaydiumAmmV4Deposit(_) => Some(EventType::RaydiumAmmV4Deposit),
         DexEvent::RaydiumAmmV4Initialize2(_) => Some(EventType::RaydiumAmmV4Initialize2),
@@ -968,6 +977,7 @@ mod event_type_filter_tests {
             EventType::RaydiumCpmmDeposit,
             EventType::RaydiumCpmmWithdraw,
             EventType::RaydiumCpmmInitialize,
+            EventType::RaydiumCpmmCollectCreatorFee,
         ]);
         assert!(!all_cpmm.includes_raydium_cpmm());
 

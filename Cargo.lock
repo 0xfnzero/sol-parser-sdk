@@ -3724,7 +3724,7 @@ dependencies = [
 
 [[package]]
 name = "sol-parser-sdk"
-version = "0.7.7"
+version = "0.7.8"
 dependencies = [
  "anyhow",
  "base58-turbo",
@@ -3749,6 +3749,7 @@ dependencies = [
  "smallvec",
  "solana-client",
  "solana-entry",
+ "solana-instruction",
  "solana-sdk",
  "solana-transaction-error",
  "solana-transaction-status",

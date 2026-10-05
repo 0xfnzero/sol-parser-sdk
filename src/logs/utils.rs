@@ -21,65 +21,46 @@ pub fn extract_program_data(log: &str) -> Option<Vec<u8>> {
     general_purpose::STANDARD.decode(data_part.trim()).ok()
 }
 
-/// 快速提取 discriminator（只解码前16字节，避免完整解码）
+/// Decode only the first 12 Base64 bytes needed for an 8-byte discriminator.
 #[inline]
 pub fn extract_discriminator_fast(log: &str) -> Option<[u8; 8]> {
-    use memchr::memmem;
-
-    let log_bytes = log.as_bytes();
-    let pos = memmem::find(log_bytes, b"Program data: ")?;
-
-    let data_part = log[pos + 14..].trim();
-
-    // Base64 编码：每4个字符解码为3个字节
-    // 要获取8字节，需要至少 ceil(8/3)*4 = 12 个 base64 字符
-    if data_part.len() < 12 {
-        return None;
-    }
-
-    // 取前16个字符（解码为12字节，包含8字节 discriminator）
-    let prefix = &data_part[..16];
-
-    let mut buf = [0u8; 12];
-    let decoded_len = general_purpose::STANDARD.decode_slice(prefix.as_bytes(), &mut buf).ok()?;
-
-    if decoded_len >= 8 {
-        Some(buf[0..8].try_into().unwrap())
-    } else {
-        None
-    }
+    let pos = memchr::memmem::find(log.as_bytes(), b"Program data: ")?;
+    let prefix = log.get(pos + 14..)?.trim().as_bytes().get(..12)?;
+    let mut bytes = [0u8; 9];
+    let len = general_purpose::STANDARD.decode_slice(prefix, &mut bytes).ok()?;
+    (len >= 8).then(|| bytes[..8].try_into().unwrap())
 }
 
 /// 从字节数组中读取 u64（小端序）- SIMD 优化
 #[inline]
 pub fn read_u64_le(data: &[u8], offset: usize) -> Option<u64> {
-    data.get(offset..offset + 8).map(|slice| u64::from_le_bytes(slice.try_into().unwrap()))
+    data.get(offset..offset.checked_add(8)?).map(|slice| u64::from_le_bytes(slice.try_into().unwrap()))
 }
 
 /// 从字节数组中读取 u32（小端序）- SIMD 优化
 #[inline]
 pub fn read_u32_le(data: &[u8], offset: usize) -> Option<u32> {
-    data.get(offset..offset + 4).map(|slice| u32::from_le_bytes(slice.try_into().unwrap()))
+    data.get(offset..offset.checked_add(4)?).map(|slice| u32::from_le_bytes(slice.try_into().unwrap()))
 }
 
 /// 从字节数组中读取 i64（小端序）- SIMD 优化
 pub fn read_i64_le(data: &[u8], offset: usize) -> Option<i64> {
-    data.get(offset..offset + 8).map(|slice| i64::from_le_bytes(slice.try_into().unwrap()))
+    data.get(offset..offset.checked_add(8)?).map(|slice| i64::from_le_bytes(slice.try_into().unwrap()))
 }
 
 /// 从字节数组中读取 i32（小端序）- SIMD 优化
 pub fn read_i32_le(data: &[u8], offset: usize) -> Option<i32> {
-    data.get(offset..offset + 4).map(|slice| i32::from_le_bytes(slice.try_into().unwrap()))
+    data.get(offset..offset.checked_add(4)?).map(|slice| i32::from_le_bytes(slice.try_into().unwrap()))
 }
 
 /// 从字节数组中读取 u128（小端序）- SIMD 优化
 pub fn read_u128_le(data: &[u8], offset: usize) -> Option<u128> {
-    data.get(offset..offset + 16).map(|slice| u128::from_le_bytes(slice.try_into().unwrap()))
+    data.get(offset..offset.checked_add(16)?).map(|slice| u128::from_le_bytes(slice.try_into().unwrap()))
 }
 
 /// 从字节数组中读取 u16（小端序）- SIMD 优化
 pub fn read_u16_le(data: &[u8], offset: usize) -> Option<u16> {
-    data.get(offset..offset + 2).map(|slice| u16::from_le_bytes(slice.try_into().unwrap()))
+    data.get(offset..offset.checked_add(2)?).map(|slice| u16::from_le_bytes(slice.try_into().unwrap()))
 }
 
 /// 从字节数组中读取 u8
@@ -90,7 +71,7 @@ pub fn read_u8(data: &[u8], offset: usize) -> Option<u8> {
 /// 从字节数组中读取 Pubkey（32字节）- SIMD 优化
 #[inline]
 pub fn read_pubkey(data: &[u8], offset: usize) -> Option<Pubkey> {
-    data.get(offset..offset + 32).and_then(|slice| {
+    data.get(offset..offset.checked_add(32)?).and_then(|slice| {
         let key_bytes: [u8; 32] = slice.try_into().ok()?;
         Some(Pubkey::new_from_array(key_bytes))
     })
@@ -115,18 +96,10 @@ pub fn read_string(data: &[u8], offset: usize) -> Option<(String, usize)> {
 /// ```
 #[inline(always)] // 零延迟优化：内联热路径
 pub fn read_string_ref(data: &[u8], offset: usize) -> Option<(&str, usize)> {
-    if data.len() < offset + 4 {
-        return None;
-    }
-
-    let len = read_u32_le(data, offset)? as usize;
-    if data.len() < offset + 4 + len {
-        return None;
-    }
-
-    let string_bytes = &data[offset + 4..offset + 4 + len];
-    let string_ref = std::str::from_utf8(string_bytes).ok()?; // 零拷贝
-    Some((string_ref, 4 + len))
+    let tail = data.get(offset..)?;
+    let len = read_u32_le(tail, 0)? as usize;
+    let bytes = tail.get(4..)?.get(..len)?;
+    Some((std::str::from_utf8(bytes).ok()?, len.checked_add(4)?))
 }
 
 /// 读取布尔值
@@ -232,5 +205,45 @@ pub mod text_parser {
         } else {
             None
         }
+    }
+}
+
+#[cfg(test)]
+mod review_log_bounds_tests {
+    use super::*;
+
+    #[test]
+    fn discriminator_prefix_handles_short_and_non_ascii_logs_without_panicking() {
+        let discriminator = [1u8, 2, 3, 4, 5, 6, 7, 8];
+        let encoded = general_purpose::STANDARD.encode(discriminator);
+        assert_eq!(encoded.len(), 12);
+        assert_eq!(extract_discriminator_fast(&format!("Program data: {encoded}")), Some(discriminator));
+        for length in 0..encoded.len() {
+            assert_eq!(extract_discriminator_fast(&format!("Program data: {}", &encoded[..length])), None);
+        }
+        for prefix in ["AAAAAAAAAAAA", "AAAAAAAAAAAAA", "AAAAAAAAAAAAAA", "AAAAAAAAAAAAAAA", "AAAAAAAAAAAAAAAé", "éééééééé"] {
+            let log = format!("Program data: {prefix}");
+            let _ = extract_discriminator_fast(&log);
+        }
+        let mut payload = discriminator.to_vec();
+        payload.extend_from_slice(&[9; 128]);
+        assert_eq!(extract_discriminator_fast(&format!("Program data: {}", general_purpose::STANDARD.encode(payload))), Some(discriminator));
+    }
+
+    #[test]
+    fn log_readers_reject_overflowing_offsets_and_invalid_strings() {
+        let data = [0u8; 64];
+        for offset in [65, usize::MAX - 32, usize::MAX - 1, usize::MAX] {
+            assert_eq!(read_u16_le(&data, offset), None);
+            assert_eq!(read_u32_le(&data, offset), None);
+            assert_eq!(read_i32_le(&data, offset), None);
+            assert_eq!(read_u64_le(&data, offset), None);
+            assert_eq!(read_i64_le(&data, offset), None);
+            assert_eq!(read_u128_le(&data, offset), None);
+            assert_eq!(read_pubkey(&data, offset), None);
+            assert_eq!(read_string_ref(&data, offset), None);
+        }
+        assert_eq!(read_string_ref(&u32::MAX.to_le_bytes(), 0), None);
+        assert_eq!(read_string_ref(&[1, 0, 0, 0, 255], 0), None);
     }
 }

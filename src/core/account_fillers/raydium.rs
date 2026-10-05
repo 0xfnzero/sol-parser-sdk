@@ -61,7 +61,27 @@ pub fn split_clmm_remaining_accounts(
 /// 5: inputVault, 6: outputVault, 7: observationState,
 /// 8: tokenProgram, 9: tokenProgram2022, 10: memoProgram, 11: inputMint, 12: outputMint
 /// Remaining: optional tickArrayBitmapExtension (any position), then tick arrays.
+/// Getter-only compatibility entry. An absent/default key terminates the tail.
+/// Use the counted entry when instruction account length is available.
 pub fn fill_clmm_swap_accounts(e: &mut RaydiumClmmSwapEvent, get: &AccountGetter<'_>) {
+    fill_clmm_swap_accounts_impl(e, get, None);
+}
+
+/// Fill the complete instruction tail, including keys after a default address.
+/// `account_count` is the number of accounts in the matched compiled instruction.
+pub fn fill_clmm_swap_accounts_with_count(
+    e: &mut RaydiumClmmSwapEvent,
+    get: &AccountGetter<'_>,
+    account_count: usize,
+) {
+    fill_clmm_swap_accounts_impl(e, get, Some(account_count));
+}
+
+fn fill_clmm_swap_accounts_impl(
+    e: &mut RaydiumClmmSwapEvent,
+    get: &AccountGetter<'_>,
+    account_count: Option<usize>,
+) {
     if e.pool_state == Pubkey::default() {
         e.pool_state = get(2);
     }
@@ -73,6 +93,12 @@ pub fn fill_clmm_swap_accounts(e: &mut RaydiumClmmSwapEvent, get: &AccountGetter
     }
     if e.token_account_1 == Pubkey::default() {
         e.token_account_1 = get(4);
+    }
+    if e.input_token_account == Pubkey::default() {
+        e.input_token_account = get(3);
+    }
+    if e.output_token_account == Pubkey::default() {
+        e.output_token_account = get(4);
     }
     if e.amm_config == Pubkey::default() {
         e.amm_config = get(1);
@@ -87,7 +113,11 @@ pub fn fill_clmm_swap_accounts(e: &mut RaydiumClmmSwapEvent, get: &AccountGetter
         e.observation_state = get(7);
     }
 
-    let is_swap_v2 = get(10) == CLMM_MEMO_PROGRAM;
+    let is_swap_v2 = match e.ix_name.as_str() {
+        "swap" => false,
+        "swap_v2" => true,
+        _ => get(10) == CLMM_MEMO_PROGRAM,
+    };
     let remaining_start = if is_swap_v2 {
         if e.input_mint == Pubkey::default() {
             e.input_mint = get(11);
@@ -101,24 +131,34 @@ pub fn fill_clmm_swap_accounts(e: &mut RaydiumClmmSwapEvent, get: &AccountGetter
         9usize
     };
 
-    if e.tick_arrays.is_empty() && e.tick_array_bitmap_extension.is_none() {
+    if e.tick_arrays.is_empty() {
         let mut remaining = Vec::new();
-        let mut idx = remaining_start;
-        while idx < remaining_start + 16 {
+        // Unknown-length getters use the u8 account-key space as a finite bound.
+        // Built-in parsers supply the actual instruction account count.
+        for idx in remaining_start..account_count.unwrap_or(256) {
             let key = get(idx);
-            if key == Pubkey::default() {
+            if account_count.is_none() && key == Pubkey::default() {
                 break;
             }
             remaining.push(key);
-            idx += 1;
         }
-        if e.pool_state != Pubkey::default() {
-            let (bitmap, ticks) = split_clmm_remaining_accounts(&e.pool_state, &remaining);
-            e.tick_array_bitmap_extension = bitmap;
-            e.tick_arrays = ticks;
-        } else {
-            e.tick_arrays = remaining;
+        if e.pool_state != Pubkey::default() && !remaining.is_empty() {
+            let bitmap_pda = tick_array_bitmap_extension_pda(&e.pool_state);
+            let mut bitmap = None;
+            // Remove bitmap keys in place, preserving tick order without a second Vec.
+            remaining.retain(|key| {
+                if *key == bitmap_pda {
+                    bitmap = Some(*key);
+                    false
+                } else {
+                    true
+                }
+            });
+            if e.tick_array_bitmap_extension.is_none() {
+                e.tick_array_bitmap_extension = bitmap;
+            }
         }
+        e.tick_arrays = remaining;
     }
 }
 
@@ -293,6 +333,18 @@ pub fn fill_clmm_decrease_liquidity_accounts(
 /// 11: outputTokenMint
 /// 12: observationState
 pub fn fill_cpmm_swap_accounts(e: &mut RaydiumCpmmSwapEvent, get: &AccountGetter<'_>) {
+    if e.payer == Pubkey::default() {
+        e.payer = get(0);
+    }
+    if e.authority == Pubkey::default() {
+        e.authority = get(1);
+    }
+    if e.input_token_account == Pubkey::default() {
+        e.input_token_account = get(4);
+    }
+    if e.output_token_account == Pubkey::default() {
+        e.output_token_account = get(5);
+    }
     if e.pool_id == Pubkey::default() {
         e.pool_id = get(3);
     }
@@ -472,6 +524,41 @@ pub fn fill_amm_v4_withdraw_accounts(e: &mut RaydiumAmmV4WithdrawEvent, get: &Ac
 #[cfg(test)]
 mod clmm_remaining_tests {
     use super::*;
+    #[test]
+    fn counted_clmm_tail_keeps_long_lists_default_keys_and_existing_bitmap() {
+        for v2 in [false, true] {
+            let start = if v2 { 13 } else { 9 };
+            let mut accounts: Vec<_> = (0..start + 70).map(|_| Pubkey::new_unique()).collect();
+            let bitmap = tick_array_bitmap_extension_pda(&accounts[2]);
+            accounts[start + 65] = bitmap;
+            accounts[start + 25] = Pubkey::default();
+            let expected =
+                accounts[start..].iter().copied().filter(|key| *key != bitmap).collect::<Vec<_>>();
+            for bitmap_known in [false, true] {
+                let mut event = RaydiumClmmSwapEvent {
+                    ix_name: if v2 { "swap_v2" } else { "swap" }.to_string(),
+                    tick_array_bitmap_extension: bitmap_known.then_some(bitmap),
+                    ..Default::default()
+                };
+                fill_clmm_swap_accounts_with_count(
+                    &mut event,
+                    &|i| accounts.get(i).copied().unwrap_or_default(),
+                    accounts.len(),
+                );
+                assert_eq!(event.tick_array_bitmap_extension, Some(bitmap));
+                assert_eq!(event.tick_arrays, expected);
+                assert_eq!(event.tick_arrays.len(), 69);
+            }
+            // Getter-only callers also retain non-default tails longer than 16.
+            accounts[start + 25] = Pubkey::new_unique();
+            let mut event = RaydiumClmmSwapEvent {
+                ix_name: if v2 { "swap_v2" } else { "swap" }.to_string(),
+                ..Default::default()
+            };
+            fill_clmm_swap_accounts(&mut event, &|i| accounts.get(i).copied().unwrap_or_default());
+            assert_eq!(event.tick_arrays.len(), 69);
+        }
+    }
 
     #[test]
     fn bitmap_pda_matches_idl_seeds() {

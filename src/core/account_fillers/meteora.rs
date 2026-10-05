@@ -191,12 +191,56 @@ pub fn fill_damm_v2_initialize_pool_accounts(
 /// 8: bVaultLpMint
 /// 9: aVaultLp
 /// 10: bVaultLp
-/// 11: adminTokenFee
+/// 11: protocolTokenFee
 /// 12: user
 /// 13: vaultProgram
 /// 14: tokenProgram
-pub fn fill_pools_swap_accounts(_e: &mut MeteoraPoolsSwapEvent, _get: &AccountGetter<'_>) {
-    // 事件数据已包含主要信息
+pub fn fill_pools_swap_accounts(e: &mut MeteoraPoolsSwapEvent, get: &AccountGetter<'_>) {
+    if e.pool == Pubkey::default() {
+        e.pool = get(0);
+    }
+    if e.user_source_token == Pubkey::default() {
+        e.user_source_token = get(1);
+    }
+    if e.user_destination_token == Pubkey::default() {
+        e.user_destination_token = get(2);
+    }
+    if e.a_vault == Pubkey::default() {
+        e.a_vault = get(3);
+    }
+    if e.b_vault == Pubkey::default() {
+        e.b_vault = get(4);
+    }
+    if e.a_token_vault == Pubkey::default() {
+        e.a_token_vault = get(5);
+    }
+    if e.b_token_vault == Pubkey::default() {
+        e.b_token_vault = get(6);
+    }
+    if e.a_vault_lp_mint == Pubkey::default() {
+        e.a_vault_lp_mint = get(7);
+    }
+    if e.b_vault_lp_mint == Pubkey::default() {
+        e.b_vault_lp_mint = get(8);
+    }
+    if e.a_vault_lp == Pubkey::default() {
+        e.a_vault_lp = get(9);
+    }
+    if e.b_vault_lp == Pubkey::default() {
+        e.b_vault_lp = get(10);
+    }
+    if e.protocol_token_fee == Pubkey::default() {
+        e.protocol_token_fee = get(11);
+    }
+    if e.user == Pubkey::default() {
+        e.user = get(12);
+    }
+    if e.vault_program == Pubkey::default() {
+        e.vault_program = get(13);
+    }
+    if e.token_program == Pubkey::default() {
+        e.token_program = get(14);
+    }
 }
 
 /// Meteora Pools Add Liquidity 账户填充
@@ -216,17 +260,68 @@ pub fn fill_pools_swap_accounts(_e: &mut MeteoraPoolsSwapEvent, _get: &AccountGe
 /// 11: userAToken
 /// 12: userBToken
 /// 13: user
-/// ...
+/// 14: vaultProgram
+/// 15: tokenProgram
 pub fn fill_pools_add_liquidity_accounts(
-    _e: &mut MeteoraPoolsAddLiquidityEvent,
-    _get: &AccountGetter<'_>,
+    e: &mut MeteoraPoolsAddLiquidityEvent,
+    get: &AccountGetter<'_>,
 ) {
-    // 事件数据已包含主要信息
+    if e.pool == Pubkey::default() {
+        e.pool = get(0);
+    }
+    if e.lp_mint == Pubkey::default() {
+        e.lp_mint = get(1);
+    }
+    if e.user_pool_lp == Pubkey::default() {
+        e.user_pool_lp = get(2);
+    }
+    if e.a_vault_lp == Pubkey::default() {
+        e.a_vault_lp = get(3);
+    }
+    if e.b_vault_lp == Pubkey::default() {
+        e.b_vault_lp = get(4);
+    }
+    if e.a_vault == Pubkey::default() {
+        e.a_vault = get(5);
+    }
+    if e.b_vault == Pubkey::default() {
+        e.b_vault = get(6);
+    }
+    if e.a_vault_lp_mint == Pubkey::default() {
+        e.a_vault_lp_mint = get(7);
+    }
+    if e.b_vault_lp_mint == Pubkey::default() {
+        e.b_vault_lp_mint = get(8);
+    }
+    if e.a_token_vault == Pubkey::default() {
+        e.a_token_vault = get(9);
+    }
+    if e.b_token_vault == Pubkey::default() {
+        e.b_token_vault = get(10);
+    }
+    if e.user_a_token == Pubkey::default() {
+        e.user_a_token = get(11);
+    }
+    if e.user_b_token == Pubkey::default() {
+        e.user_b_token = get(12);
+    }
+    if e.user == Pubkey::default() {
+        e.user = get(13);
+    }
+    if e.vault_program == Pubkey::default() {
+        e.vault_program = get(14);
+    }
+    if e.token_program == Pubkey::default() {
+        e.token_program = get(15);
+    }
 }
 
 /// Meteora Pools Remove Liquidity 账户填充
 ///
-/// removeBalanceLiquidity/removeLiquiditySingleSide instruction account mapping:
+/// Balance removal uses 16 accounts. Single-side removal shares indices 0..10,
+/// then destination token 11, user 12, vault program 13, token program 14.
+/// `ix_name` selects the layout; the dispatcher derives it from the discriminator.
+/// removeBalanceLiquidity instruction account mapping:
 /// 0: pool
 /// 1: lpMint
 /// 2: userPoolLp
@@ -236,10 +331,118 @@ pub fn fill_pools_add_liquidity_accounts(
 /// 6: bVault
 /// ...
 pub fn fill_pools_remove_liquidity_accounts(
-    _e: &mut MeteoraPoolsRemoveLiquidityEvent,
-    _get: &AccountGetter<'_>,
+    e: &mut MeteoraPoolsRemoveLiquidityEvent,
+    get: &AccountGetter<'_>,
 ) {
-    // 事件数据已包含主要信息
+    if e.pool == Pubkey::default() {
+        e.pool = get(0);
+    }
+    if e.lp_mint == Pubkey::default() {
+        e.lp_mint = get(1);
+    }
+    if e.user_pool_lp == Pubkey::default() {
+        e.user_pool_lp = get(2);
+    }
+    if e.a_vault_lp == Pubkey::default() {
+        e.a_vault_lp = get(3);
+    }
+    if e.b_vault_lp == Pubkey::default() {
+        e.b_vault_lp = get(4);
+    }
+    if e.a_vault == Pubkey::default() {
+        e.a_vault = get(5);
+    }
+    if e.b_vault == Pubkey::default() {
+        e.b_vault = get(6);
+    }
+    if e.a_vault_lp_mint == Pubkey::default() {
+        e.a_vault_lp_mint = get(7);
+    }
+    if e.b_vault_lp_mint == Pubkey::default() {
+        e.b_vault_lp_mint = get(8);
+    }
+    if e.a_token_vault == Pubkey::default() {
+        e.a_token_vault = get(9);
+    }
+    if e.b_token_vault == Pubkey::default() {
+        e.b_token_vault = get(10);
+    }
+    let single_side = e.ix_name == "remove_liquidity_single_side";
+    if single_side {
+        if e.user_destination_token == Pubkey::default() {
+            e.user_destination_token = get(11);
+        }
+    } else {
+        if e.user_a_token == Pubkey::default() {
+            e.user_a_token = get(11);
+        }
+        if e.user_b_token == Pubkey::default() {
+            e.user_b_token = get(12);
+        }
+    }
+    if e.user == Pubkey::default() {
+        e.user = get(if single_side { 12 } else { 13 });
+    }
+    if e.vault_program == Pubkey::default() {
+        e.vault_program = get(if single_side { 13 } else { 14 });
+    }
+    if e.token_program == Pubkey::default() {
+        e.token_program = get(if single_side { 14 } else { 15 });
+    }
+}
+
+pub fn fill_pools_bootstrap_liquidity_accounts(
+    e: &mut MeteoraPoolsBootstrapLiquidityEvent,
+    get: &AccountGetter<'_>,
+) {
+    if e.pool == Pubkey::default() {
+        e.pool = get(0);
+    }
+    if e.lp_mint == Pubkey::default() {
+        e.lp_mint = get(1);
+    }
+    if e.user_pool_lp == Pubkey::default() {
+        e.user_pool_lp = get(2);
+    }
+    if e.a_vault_lp == Pubkey::default() {
+        e.a_vault_lp = get(3);
+    }
+    if e.b_vault_lp == Pubkey::default() {
+        e.b_vault_lp = get(4);
+    }
+    if e.a_vault == Pubkey::default() {
+        e.a_vault = get(5);
+    }
+    if e.b_vault == Pubkey::default() {
+        e.b_vault = get(6);
+    }
+    if e.a_vault_lp_mint == Pubkey::default() {
+        e.a_vault_lp_mint = get(7);
+    }
+    if e.b_vault_lp_mint == Pubkey::default() {
+        e.b_vault_lp_mint = get(8);
+    }
+    if e.a_token_vault == Pubkey::default() {
+        e.a_token_vault = get(9);
+    }
+    if e.b_token_vault == Pubkey::default() {
+        e.b_token_vault = get(10);
+    }
+    if e.user_a_token == Pubkey::default() {
+        e.user_a_token = get(11);
+    }
+    if e.user_b_token == Pubkey::default() {
+        e.user_b_token = get(12);
+    }
+    if e.user == Pubkey::default() {
+        e.user = get(13);
+    }
+    if e.vault_program == Pubkey::default() {
+        e.vault_program = get(14);
+    }
+    if e.token_program == Pubkey::default() {
+        e.token_program = get(15);
+    }
 }
 
 // ============================================================================
@@ -256,9 +459,17 @@ pub fn fill_pools_remove_liquidity_accounts(
 /// 4: userTokenIn, 5: userTokenOut, 6: tokenXMint, 7: tokenYMint,
 /// 8: oracle, 9: hostFeeIn (optional), 10: user, 11: tokenXProgram, 12: tokenYProgram,
 /// 13: memoProgram, 14: eventAuthority, 15: program, remaining: bin arrays
+/// Without instruction data, v2 hook boundaries are unknown; leave bin arrays unset.
 pub fn fill_dlmm_swap_accounts(e: &mut MeteoraDlmmSwapEvent, get: &AccountGetter<'_>) {
-    /// Official Memo program id used by Meteora `swap2` / `swap_*2`.
     const MEMO_PROGRAM: Pubkey = solana_sdk::pubkey!("MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr");
+    let v2 = get(13) == MEMO_PROGRAM;
+    let start = if v2 { 16 } else { 15 };
+    fill_dlmm_swap_accounts_with_layout(e, get, start, if v2 { start } else { start + 16 }, v2);
+}
+
+pub(crate) fn fill_dlmm_swap_accounts_with_layout(
+    e: &mut MeteoraDlmmSwapEvent, get: &AccountGetter<'_>, bins_start: usize, bins_end: usize, is_swap2: bool,
+) {
 
     if e.pool == Pubkey::default() {
         e.pool = get(0);
@@ -292,9 +503,7 @@ pub fn fill_dlmm_swap_accounts(e: &mut MeteoraDlmmSwapEvent, get: &AccountGetter
     }
 
     // swap2 inserts memo_program at index 13; swap (v1) has event_authority there.
-    let is_swap2 = get(13) == MEMO_PROGRAM;
     let program_idx = if is_swap2 { 15 } else { 14 };
-    let bins_start = if is_swap2 { 16 } else { 15 };
 
     if e.bitmap_extension.is_none() {
         let ext = get(1);
@@ -305,9 +514,10 @@ pub fn fill_dlmm_swap_accounts(e: &mut MeteoraDlmmSwapEvent, get: &AccountGetter
         }
     }
     if e.bin_arrays.is_empty() {
-        let mut bins = Vec::new();
+        if bins_start >= bins_end || get(bins_start) == Pubkey::default() { return; }
+        let mut bins = Vec::with_capacity(bins_end.saturating_sub(bins_start));
         let mut idx = bins_start;
-        while idx < bins_start + 16 {
+        while idx < bins_end {
             let key = get(idx);
             if key == Pubkey::default() {
                 break;
@@ -377,7 +587,7 @@ mod dlmm_swap_tests {
         let bin0 = accounts[16];
         let bin1 = accounts[17];
         let mut e = MeteoraDlmmSwapEvent::default();
-        fill_dlmm_swap_accounts(&mut e, &|i| accounts.get(i).copied().unwrap_or_default());
+        fill_dlmm_swap_accounts_with_layout(&mut e, &|i| accounts.get(i).copied().unwrap_or_default(), 16, accounts.len(), true);
         assert_eq!(e.bin_arrays, vec![bin0, bin1]);
         assert_eq!(e.reserve_x, accounts[2]);
         assert_eq!(e.oracle, accounts[8]);
@@ -392,5 +602,149 @@ mod dlmm_swap_tests {
         let mut e = MeteoraDlmmSwapEvent::default();
         fill_dlmm_swap_accounts(&mut e, &|i| accounts.get(i).copied().unwrap_or_default());
         assert_eq!(e.bin_arrays, vec![bin0, bin1]);
+    }
+}
+
+/// IDL initialization layouts selected by the instruction name.
+/// The dispatcher supplies this name from the matched discriminator.
+pub fn fill_pools_pool_created_accounts(
+    e: &mut MeteoraPoolsPoolCreatedEvent,
+    get: &AccountGetter<'_>,
+) {
+    macro_rules! fill {
+        ($($field:ident = $index:expr),* $(,)?) => {
+            $(if e.$field == Pubkey::default() { e.$field = get($index); })*
+        };
+    }
+    match e.ix_name.as_str() {
+        "initialize_permissioned_pool" => {
+            fill!(
+                pool = 0,
+                lp_mint = 1,
+                token_a_mint = 2,
+                token_b_mint = 3,
+                a_vault = 4,
+                b_vault = 5,
+                a_vault_lp_mint = 6,
+                b_vault_lp_mint = 7,
+                a_vault_lp = 8,
+                b_vault_lp = 9,
+                admin_token_a = 10,
+                admin_token_b = 11,
+                admin_pool_lp = 12,
+                protocol_token_a_fee = 13,
+                protocol_token_b_fee = 14,
+                admin = 15,
+                fee_owner = 16,
+                rent = 17,
+                mint_metadata = 18,
+                metadata_program = 19,
+                vault_program = 20,
+                token_program = 21,
+                associated_token_program = 22,
+                system_program = 23
+            );
+        }
+        "initialize_permissionless_pool" | "initialize_permissionless_pool_with_fee_tier" => {
+            fill!(
+                pool = 0,
+                lp_mint = 1,
+                token_a_mint = 2,
+                token_b_mint = 3,
+                a_vault = 4,
+                b_vault = 5,
+                a_token_vault = 6,
+                b_token_vault = 7,
+                a_vault_lp_mint = 8,
+                b_vault_lp_mint = 9,
+                a_vault_lp = 10,
+                b_vault_lp = 11,
+                payer_token_a = 12,
+                payer_token_b = 13,
+                payer_pool_lp = 14,
+                protocol_token_a_fee = 15,
+                protocol_token_b_fee = 16,
+                payer = 17,
+                fee_owner = 18,
+                rent = 19,
+                mint_metadata = 20,
+                metadata_program = 21,
+                vault_program = 22,
+                token_program = 23,
+                associated_token_program = 24,
+                system_program = 25
+            );
+        }
+        "initialize_customizable_permissionless_constant_product_pool" => {
+            fill!(
+                pool = 0,
+                lp_mint = 1,
+                token_a_mint = 2,
+                token_b_mint = 3,
+                a_vault = 4,
+                b_vault = 5,
+                a_token_vault = 6,
+                b_token_vault = 7,
+                a_vault_lp_mint = 8,
+                b_vault_lp_mint = 9,
+                a_vault_lp = 10,
+                b_vault_lp = 11,
+                payer_token_a = 12,
+                payer_token_b = 13,
+                payer_pool_lp = 14,
+                protocol_token_a_fee = 15,
+                protocol_token_b_fee = 16,
+                payer = 17,
+                rent = 18,
+                mint_metadata = 19,
+                metadata_program = 20,
+                vault_program = 21,
+                token_program = 22,
+                associated_token_program = 23,
+                system_program = 24
+            );
+        }
+        _ => {
+            fill!(
+                pool = 0,
+                config = 1,
+                lp_mint = 2,
+                token_a_mint = 3,
+                token_b_mint = 4,
+                a_vault = 5,
+                b_vault = 6,
+                a_token_vault = 7,
+                b_token_vault = 8,
+                a_vault_lp_mint = 9,
+                b_vault_lp_mint = 10,
+                a_vault_lp = 11,
+                b_vault_lp = 12,
+                payer_token_a = 13,
+                payer_token_b = 14,
+                payer_pool_lp = 15,
+                protocol_token_a_fee = 16,
+                protocol_token_b_fee = 17,
+                payer = 18,
+                rent = 19,
+                mint_metadata = 20,
+                metadata_program = 21,
+                vault_program = 22,
+                token_program = 23,
+                associated_token_program = 24,
+                system_program = 25
+            );
+        }
+    }
+}
+
+pub fn fill_pools_set_pool_fees_accounts(
+    e: &mut MeteoraPoolsSetPoolFeesEvent,
+    get: &AccountGetter<'_>,
+) {
+    if e.pool == Pubkey::default() {
+        e.pool = get(0);
+    }
+    if e.fee_operator == Pubkey::default() {
+        e.fee_operator = get(1);
     }
 }

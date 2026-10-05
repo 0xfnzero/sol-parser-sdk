@@ -133,6 +133,7 @@ pub fn parse_swap_event_from_data(data: &[u8], metadata: EventMetadata) -> Optio
         output_token_mint: Pubkey::default(),
         observation_state: Pubkey::default(),
 
+        ..Default::default()
     }))
 }
 
@@ -177,6 +178,7 @@ pub fn parse_swap_base_in_from_data(data: &[u8], metadata: EventMetadata) -> Opt
         output_token_mint: Pubkey::default(),
         observation_state: Pubkey::default(),
 
+        ..Default::default()
     }))
 }
 

@@ -248,6 +248,7 @@ fn parse_swap_event(
         tick_array_bitmap_extension: None,
         tick_arrays: Vec::new(),
 
+        ..Default::default()
     }))
 }
 
@@ -993,6 +994,7 @@ pub fn parse_swap_from_data(data: &[u8], metadata: EventMetadata) -> Option<DexE
         tick_array_bitmap_extension: None,
         tick_arrays: Vec::new(),
 
+        ..Default::default()
     }))
 }
 

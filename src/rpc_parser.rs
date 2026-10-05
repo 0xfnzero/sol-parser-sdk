@@ -93,6 +93,11 @@ pub fn parse_rpc_transaction(
     rpc_tx: &EncodedConfirmedTransactionWithStatusMeta,
     filter: Option<&EventTypeFilter>,
 ) -> Result<Vec<DexEvent>, ParseError> {
+    // RPC logs from failed transactions describe rolled-back work. Match the
+    // Yellowstone event API and reject before decoding/account allocation.
+    if rpc_tx.transaction.meta.as_ref().is_some_and(|meta| meta.err.is_some()) {
+        return Ok(Vec::new());
+    }
     let (grpc_meta, grpc_tx) = convert_rpc_to_grpc_for_parsing(rpc_tx)?;
     let signature = extract_grpc_signature(&grpc_tx)?;
     parse_converted_rpc_transaction(rpc_tx, grpc_meta, grpc_tx, signature, filter)
@@ -149,6 +154,11 @@ fn parse_converted_rpc_transaction(
     signature: Signature,
     filter: Option<&EventTypeFilter>,
 ) -> Result<Vec<DexEvent>, ParseError> {
+    // The combined API still decodes costs/signature for failed transactions,
+    // but must not interpret their logs as successful DEX activity.
+    if grpc_meta.err.is_some() {
+        return Ok(Vec::new());
+    }
     // Extract metadata
     let slot = rpc_tx.slot;
     let block_time_us = rpc_tx.block_time.map(|t| t * 1_000_000);

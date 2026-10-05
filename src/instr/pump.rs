@@ -172,6 +172,30 @@ pub fn parse_instruction(
         );
     }
 
+    if outer_disc == discriminators::MIGRATE_BONDING_CURVE_CREATOR {
+        if accounts.len() < 5 {
+            return None;
+        }
+        return Some(DexEvent::PumpFunMigrateBondingCurveCreator(
+            PumpFunMigrateBondingCurveCreatorEvent {
+                metadata: create_metadata(
+                    signature,
+                    slot,
+                    tx_index,
+                    block_time_us.unwrap_or_default(),
+                    grpc_recv_us,
+                ),
+                timestamp: 0,
+                mint: accounts[0],
+                bonding_curve: accounts[1],
+                sharing_config: accounts[2],
+                // Creator values require execution/account state; the config address is not a creator.
+                old_creator: Pubkey::default(),
+                new_creator: Pubkey::default(),
+            },
+        ));
+    }
+
     // Inner CPI：仅 MIGRATE 在此解析
     if instruction_data.len() >= 16 {
         let cpi_disc: [u8; 8] = instruction_data[8..16].try_into().ok()?;
@@ -577,7 +601,7 @@ fn parse_create_instruction(
     block_time_us: Option<i64>,
     grpc_recv_us: i64,
 ) -> Option<DexEvent> {
-    if accounts.len() < 8 {
+    if accounts.len() < 10 {
         return None;
     }
 
@@ -585,47 +609,28 @@ fn parse_create_instruction(
 
     // Parse args: name (string), symbol (string), uri (string), creator (pubkey)
     // String format: 4-byte length prefix + content
-    let name = if let Some((s, len)) = read_str_unchecked(data, offset) {
-        offset += len;
-        s.to_string()
-    } else {
-        String::new()
-    };
+    let (name, len) = read_str_unchecked(data, offset)?;
+    offset += len;
+    let name = name.to_string();
 
-    let symbol = if let Some((s, len)) = read_str_unchecked(data, offset) {
-        offset += len;
-        s.to_string()
-    } else {
-        String::new()
-    };
+    let (symbol, len) = read_str_unchecked(data, offset)?;
+    offset += len;
+    let symbol = symbol.to_string();
 
-    let uri = if let Some((s, len)) = read_str_unchecked(data, offset) {
-        offset += len;
-        s.to_string()
-    } else {
-        String::new()
-    };
+    let (uri, len) = read_str_unchecked(data, offset)?;
+    offset += len;
+    let uri = uri.to_string();
 
-    // 读取 mint, bonding_curve, user, creator (在 name, symbol, uri 之后)
-    if data.len() < offset + 32 + 32 + 32 + 32 {
-        return None;
-    }
-
-    let mint = read_pubkey(data, offset).unwrap_or_default();
-    offset += 32;
-
-    let bonding_curve = read_pubkey(data, offset).unwrap_or_default();
-    offset += 32;
-
-    let user = read_pubkey(data, offset).unwrap_or_default();
-    offset += 32;
-
-    let creator = read_pubkey(data, offset).unwrap_or_default();
+    // IDL args contain only creator after the strings; mint/curve/user are accounts.
+    let creator = read_pubkey(data, offset)?;
+    let mint = accounts[0];
+    let bonding_curve = accounts[2];
+    let user = accounts[7];
 
     let metadata =
         create_metadata(signature, slot, tx_index, block_time_us.unwrap_or_default(), grpc_recv_us);
 
-    Some(DexEvent::PumpFunCreate(PumpFunCreateTokenEvent {
+    let mut event = PumpFunCreateTokenEvent {
         metadata,
         name,
         symbol,
@@ -637,7 +642,10 @@ fn parse_create_instruction(
         quote_mint: PUMPFUN_SOLSCAN_SOL_QUOTE_MINT,
         ix_name: "create".to_string(),
         ..Default::default()
-    }))
+    };
+    let get = |i| accounts.get(i).copied().unwrap_or_default();
+    crate::core::account_fillers::pumpfun::fill_create_accounts(&mut event, &get);
+    Some(DexEvent::PumpFunCreate(event))
 }
 
 /// Parse create_v2 instruction (SPL-22；Mayhem 由 **data** 中 `is_mayhem_mode` 决定，不要用 mayhem 程序账户是否非空推断)
@@ -666,40 +674,21 @@ fn parse_create_v2_instruction(
 
     // IDL args: name, symbol, uri, creator, is_mayhem_mode, is_cashback_enabled — mint/bc/user 仅在 accounts
     let mut offset = 0usize;
-    let name = if let Some((s, len)) = read_str_unchecked(data, offset) {
-        offset += len;
-        s.to_string()
-    } else {
-        String::new()
-    };
-    let symbol = if let Some((s, len)) = read_str_unchecked(data, offset) {
-        offset += len;
-        s.to_string()
-    } else {
-        String::new()
-    };
-    let uri = if let Some((s, len)) = read_str_unchecked(data, offset) {
-        offset += len;
-        s.to_string()
-    } else {
-        String::new()
-    };
+    let (name, len) = read_str_unchecked(data, offset)?;
+    offset += len;
+    let (symbol, len) = read_str_unchecked(data, offset)?;
+    offset += len;
+    let (uri, len) = read_str_unchecked(data, offset)?;
+    offset += len;
     if data.len() < offset + 32 + 1 {
         return None;
     }
     let creator = read_pubkey(data, offset)?;
     offset += 32;
-    let is_mayhem_mode = read_bool(data, offset)?;
+    let is_mayhem_mode = read_option_bool_idl(data, offset)?;
     offset += 1;
-    let is_cashback_enabled = read_option_bool_idl(data, offset).unwrap_or(false);
-    if offset < data.len() {
-        offset += 1;
-    }
-    let creator_fee_bps = read_option_u64_idl(data, offset).unwrap_or_default();
-    if offset + 8 <= data.len() {
-        offset += 8;
-    }
-    let is_holder_reward = read_option_bool_idl(data, offset).unwrap_or_default();
+    let (is_cashback_enabled, creator_fee_bps, is_holder_reward) =
+        crate::instr::utils::parse_create_v2_optional_tail(&data[offset..])?;
 
     let mint = acc[0];
     let bonding_curve = acc[2];
@@ -712,9 +701,9 @@ fn parse_create_v2_instruction(
 
     Some(DexEvent::PumpFunCreate(PumpFunCreateTokenEvent {
         metadata,
-        name,
-        symbol,
-        uri,
+        name: name.to_string(),
+        symbol: symbol.to_string(),
+        uri: uri.to_string(),
         mint,
         bonding_curve,
         user,
@@ -835,6 +824,38 @@ mod tests {
         data.push(1);
         data.push(1);
         data
+    }
+
+    #[test]
+    fn pumpfun_legacy_create_uses_idl_args_and_own_accounts() {
+        let mut data = discriminators::CREATE.to_vec();
+        str_arg("Token", &mut data);
+        str_arg("TOK", &mut data);
+        str_arg("uri", &mut data);
+        let creator = Pubkey::new_unique();
+        data.extend_from_slice(creator.as_ref());
+        for _ in 0..2 {
+            let acc = accounts(14);
+            let DexEvent::PumpFunCreate(event) =
+                parse_instruction(&data, &acc, Signature::default(), 1, 0, None, 99).unwrap()
+            else {
+                panic!("expected create")
+            };
+            assert_eq!(event.creator, creator);
+            assert_eq!(event.mint, acc[0]);
+            assert_eq!(event.mint_authority, acc[1]);
+            assert_eq!(event.bonding_curve, acc[2]);
+            assert_eq!(event.associated_bonding_curve, acc[3]);
+            assert_eq!(event.global, acc[4]);
+            assert_eq!(event.user, acc[7]);
+            assert_eq!(event.token_program, acc[9]);
+            assert_eq!(event.event_authority, acc[12]);
+            assert_eq!(event.program, acc[13]);
+        }
+        data.truncate(data.len() - 1);
+        assert!(
+            parse_instruction(&data, &accounts(14), Signature::default(), 1, 0, None, 0).is_none()
+        );
     }
 
     #[test]

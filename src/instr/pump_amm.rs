@@ -26,32 +26,74 @@ pub mod discriminators {
 /// Pump AMM Program ID
 pub const PROGRAM_ID_PUBKEY: Pubkey = program_ids::PUMPSWAP_PROGRAM_ID;
 
-fn fill_buy_upgrade_accounts(ev: &mut PumpSwapBuyEvent, accounts: &[Pubkey]) {
-    if accounts.len() >= 27 {
-        ev.pool_v2 = get_account(accounts, 24).unwrap_or_default();
-        ev.fee_recipient = get_account(accounts, 25).unwrap_or_default();
-        ev.fee_recipient_quote_token_account = get_account(accounts, 26).unwrap_or_default();
-    } else if accounts.len() >= 26 {
-        ev.pool_v2 = get_account(accounts, 23).unwrap_or_default();
-        ev.fee_recipient = get_account(accounts, 24).unwrap_or_default();
-        ev.fee_recipient_quote_token_account = get_account(accounts, 25).unwrap_or_default();
-    } else if accounts.len() >= 24 {
-        ev.pool_v2 = get_account(accounts, 23).unwrap_or_default();
+fn upgrade_tail(accounts: &[Pubkey], fixed: usize, base_mint: Pubkey) -> (Pubkey, Pubkey, Pubkey) {
+    let extra = accounts.len().saturating_sub(fixed);
+    if extra == 0 {
+        return Default::default();
+    }
+    let mut pool_v2 = Pubkey::default();
+    let mut pool_index = None;
+    if base_mint != Pubkey::default() {
+        let expected =
+            Pubkey::find_program_address(&[b"pool-v2", base_mint.as_ref()], &PROGRAM_ID_PUBKEY).0;
+        pool_index = accounts.get(fixed..).and_then(|tail| {
+            tail.iter().take(3).position(|key| *key == expected).map(|index| index + fixed)
+        });
+        if pool_index.is_some() {
+            pool_v2 = expected;
+        }
+    }
+    // A legacy tail ending in pool-v2 has no fee pair. Unknown extra
+    // extensions must not make the final two accounts look like fee recipients.
+    let max_extra = if fixed == 21 { 5 } else { 4 };
+    if extra >= 2 && extra <= max_extra && pool_index.is_none_or(|index| index < accounts.len() - 2)
+    {
+        (pool_v2, accounts[accounts.len() - 2], accounts[accounts.len() - 1])
+    } else {
+        (pool_v2, Pubkey::default(), Pubkey::default())
     }
 }
 
-fn fill_sell_upgrade_accounts(ev: &mut PumpSwapSellEvent, accounts: &[Pubkey]) {
-    if accounts.len() >= 26 {
-        ev.pool_v2 = get_account(accounts, 23).unwrap_or_default();
-        ev.fee_recipient = get_account(accounts, 24).unwrap_or_default();
-        ev.fee_recipient_quote_token_account = get_account(accounts, 25).unwrap_or_default();
-    } else if accounts.len() >= 24 {
-        ev.pool_v2 = get_account(accounts, 21).unwrap_or_default();
-        ev.fee_recipient = get_account(accounts, 22).unwrap_or_default();
-        ev.fee_recipient_quote_token_account = get_account(accounts, 23).unwrap_or_default();
-    } else if accounts.len() >= 22 {
-        ev.pool_v2 = get_account(accounts, 21).unwrap_or_default();
+pub(crate) fn buy_upgrade_tail(accounts: &[Pubkey], base_mint: Pubkey) -> (Pubkey, Pubkey, Pubkey) {
+    upgrade_tail(accounts, 23, base_mint)
+}
+
+pub(crate) fn sell_upgrade_tail(
+    accounts: &[Pubkey],
+    base_mint: Pubkey,
+) -> (Pubkey, Pubkey, Pubkey) {
+    let mut fixed = 21;
+    if (22..=24).contains(&accounts.len()) && accounts.get(21) == Some(&Pubkey::default()) {
+        // The first optional ALT key is unknown: it may be a legacy cashback
+        // accumulator rather than a current fee recipient. Do not guess.
+        return Default::default();
     }
+    if accounts.len() > fixed {
+        if let Some(user) = accounts.get(1).filter(|key| **key != Pubkey::default()) {
+            let user_volume = Pubkey::find_program_address(
+                &[b"user_volume_accumulator", user.as_ref()],
+                &PROGRAM_ID_PUBKEY,
+            )
+            .0;
+            if accounts.get(21) == Some(&user_volume) {
+                fixed += 2;
+            }
+        } else if accounts.len() <= 24 {
+            // Without the user, a legacy cashback tail cannot be distinguished.
+            return Default::default();
+        }
+    }
+    upgrade_tail(accounts, fixed, base_mint)
+}
+
+fn fill_buy_upgrade_accounts(ev: &mut PumpSwapBuyEvent, accounts: &[Pubkey]) {
+    (ev.pool_v2, ev.fee_recipient, ev.fee_recipient_quote_token_account) =
+        buy_upgrade_tail(accounts, ev.base_mint);
+}
+
+fn fill_sell_upgrade_accounts(ev: &mut PumpSwapSellEvent, accounts: &[Pubkey]) {
+    (ev.pool_v2, ev.fee_recipient, ev.fee_recipient_quote_token_account) =
+        sell_upgrade_tail(accounts, ev.base_mint);
 }
 
 /// Main PumpSwap instruction parser
@@ -117,6 +159,7 @@ pub fn parse_instruction(
 /// 19 global_volume_accumulator, 20 user_volume_accumulator, 21 fee_config, 22 fee_program.
 /// Post-upgrade non-cashback: 23 pool_v2, 24 fee_recipient, 25 fee_recipient_quote_token_account.
 /// Post-upgrade cashback: 24 pool_v2, 25 fee_recipient, 26 fee_recipient_quote_token_account.
+/// A zero coin creator omits pool_v2; the fee pair remains the final two accounts.
 #[allow(dead_code)]
 fn parse_buy_instruction(
     data: &[u8],
@@ -132,11 +175,8 @@ fn parse_buy_instruction(
 
     // Parse args: base_amount_out (u64), max_quote_amount_in (u64)
     // NOTE: buy instruction has TOKEN first, SOL second
-    let (base_amount, quote_amount) = if data.len() >= 16 {
-        (read_u64_le(data, 0).unwrap_or(0), read_u64_le(data, 8).unwrap_or(0))
-    } else {
-        (0, 0)
-    };
+    let (base_amount, quote_amount) = (read_u64_le(data, 0)?, read_u64_le(data, 8)?);
+    let track_volume = if data.len() > 16 { read_option_bool_idl(data, 16)? } else { false };
 
     let metadata = create_metadata(signature, slot, tx_index, block_time_us.unwrap_or_default(), 0);
 
@@ -156,12 +196,12 @@ fn parse_buy_instruction(
         quote_token_program: get_account(accounts, 12).unwrap_or_default(),
         base_amount_out: base_amount,
         max_quote_amount_in: quote_amount,
+        track_volume,
+        ix_name: "buy".to_string(),
         ..Default::default()
     };
-    if accounts.len() >= 19 {
-        ev.coin_creator_vault_ata = get_account(accounts, 17).unwrap_or_default();
-        ev.coin_creator_vault_authority = get_account(accounts, 18).unwrap_or_default();
-    }
+    ev.coin_creator_vault_ata = get_account(accounts, 17).unwrap_or_default();
+    ev.coin_creator_vault_authority = get_account(accounts, 18).unwrap_or_default();
     fill_buy_upgrade_accounts(&mut ev, accounts);
     Some(DexEvent::PumpSwapBuy(ev))
 }
@@ -188,11 +228,8 @@ fn parse_buy_exact_quote_in_instruction(
 
     // Parse args: spendable_quote_in (u64), min_base_amount_out (u64)
     // NOTE: buy_exact_quote_in has SOL first, TOKEN second (reversed from buy!)
-    let (quote_amount, base_amount) = if data.len() >= 16 {
-        (read_u64_le(data, 0).unwrap_or(0), read_u64_le(data, 8).unwrap_or(0))
-    } else {
-        (0, 0)
-    };
+    let (quote_amount, base_amount) = (read_u64_le(data, 0)?, read_u64_le(data, 8)?);
+    let track_volume = if data.len() > 16 { read_option_bool_idl(data, 16)? } else { false };
 
     let metadata = create_metadata(signature, slot, tx_index, block_time_us.unwrap_or_default(), 0);
 
@@ -212,12 +249,13 @@ fn parse_buy_exact_quote_in_instruction(
         quote_token_program: get_account(accounts, 12).unwrap_or_default(),
         base_amount_out: base_amount,
         max_quote_amount_in: quote_amount,
+        track_volume,
+        ix_name: "buy_exact_quote_in".to_string(),
+        min_base_amount_out: base_amount,
         ..Default::default()
     };
-    if accounts.len() >= 19 {
-        ev.coin_creator_vault_ata = get_account(accounts, 17).unwrap_or_default();
-        ev.coin_creator_vault_authority = get_account(accounts, 18).unwrap_or_default();
-    }
+    ev.coin_creator_vault_ata = get_account(accounts, 17).unwrap_or_default();
+    ev.coin_creator_vault_authority = get_account(accounts, 18).unwrap_or_default();
     fill_buy_upgrade_accounts(&mut ev, accounts);
     Some(DexEvent::PumpSwapBuy(ev))
 }
@@ -235,6 +273,7 @@ fn parse_buy_exact_quote_in_instruction(
 /// 19 fee_config, 20 fee_program.
 /// Post-upgrade non-cashback: 21 pool_v2, 22 fee_recipient, 23 fee_recipient_quote_token_account.
 /// Post-upgrade cashback: 23 pool_v2, 24 fee_recipient, 25 fee_recipient_quote_token_account.
+/// A zero coin creator omits pool_v2; legacy cashback-only tails contain no fee pair.
 #[allow(dead_code)]
 fn parse_sell_instruction(
     data: &[u8],
@@ -249,11 +288,7 @@ fn parse_sell_instruction(
     }
 
     // Parse args: base_amount_in (u64), min_quote_amount_out (u64)
-    let (base_amount, quote_amount) = if data.len() >= 16 {
-        (read_u64_le(data, 0).unwrap_or(0), read_u64_le(data, 8).unwrap_or(0))
-    } else {
-        (0, 0)
-    };
+    let (base_amount, quote_amount) = (read_u64_le(data, 0)?, read_u64_le(data, 8)?);
 
     let metadata = create_metadata(signature, slot, tx_index, block_time_us.unwrap_or_default(), 0);
 
@@ -275,10 +310,8 @@ fn parse_sell_instruction(
         min_quote_amount_out: quote_amount,
         ..Default::default()
     };
-    if accounts.len() >= 19 {
-        ev.coin_creator_vault_ata = get_account(accounts, 17).unwrap_or_default();
-        ev.coin_creator_vault_authority = get_account(accounts, 18).unwrap_or_default();
-    }
+    ev.coin_creator_vault_ata = get_account(accounts, 17).unwrap_or_default();
+    ev.coin_creator_vault_authority = get_account(accounts, 18).unwrap_or_default();
     fill_sell_upgrade_accounts(&mut ev, accounts);
     Some(DexEvent::PumpSwapSell(ev))
 }
@@ -293,11 +326,40 @@ fn parse_create_pool_instruction(
     tx_index: u64,
     block_time_us: Option<i64>,
 ) -> Option<DexEvent> {
-    if accounts.len() < 5 {
+    if accounts.len() < 18 {
         return None;
     }
 
-    let metadata = create_metadata(signature, slot, tx_index, block_time_us.unwrap_or_default(), 0);
+    let index = read_u16_le(data, 0)?;
+    let base_amount_in = read_u64_le(data, 2)?;
+    let quote_amount_in = read_u64_le(data, 10)?;
+    let coin_creator = read_pubkey(data, 18)?;
+    // Preserve older layouts ending between appended fields, but reject
+    // partially present fields and non-Borsh bool values.
+    let optional_bool = |offset| {
+        if data.len() > offset {
+            read_option_bool_idl(data, offset)
+        } else {
+            Some(false)
+        }
+    };
+    let is_mayhem_mode = optional_bool(50)?;
+    let is_cashback_coin = optional_bool(51)?;
+    let creator_fee_bps = if data.len() > 52 {
+        read_option_u64_idl(data, 52)?
+    } else {
+        0
+    };
+    let can_edit_creator_fee = optional_bool(60)?;
+    let is_holder_reward = optional_bool(61)?;
+
+    let metadata = create_metadata(
+        signature,
+        slot,
+        tx_index,
+        block_time_us.unwrap_or_default(),
+        0,
+    );
 
     Some(DexEvent::PumpSwapCreatePool(PumpSwapCreatePoolEvent {
         metadata,
@@ -308,15 +370,15 @@ fn parse_create_pool_instruction(
         lp_mint: get_account(accounts, 5).unwrap_or_default(),
         user_base_token_account: get_account(accounts, 6).unwrap_or_default(),
         user_quote_token_account: get_account(accounts, 7).unwrap_or_default(),
-        index: read_u16_le(data, 0).unwrap_or_default(),
-        base_amount_in: read_u64_le(data, 2).unwrap_or_default(),
-        quote_amount_in: read_u64_le(data, 10).unwrap_or_default(),
-        coin_creator: read_pubkey(data, 18).unwrap_or_default(),
-        is_mayhem_mode: read_bool(data, 50).unwrap_or_default(),
-        is_cashback_coin: read_option_bool_idl(data, 51).unwrap_or_default(),
-        creator_fee_bps: read_option_u64_idl(data, 52).unwrap_or_default(),
-        can_edit_creator_fee: read_option_bool_idl(data, 60).unwrap_or_default(),
-        is_holder_reward: read_option_bool_idl(data, 61).unwrap_or_default(),
+        index,
+        base_amount_in,
+        quote_amount_in,
+        coin_creator,
+        is_mayhem_mode,
+        is_cashback_coin,
+        creator_fee_bps,
+        can_edit_creator_fee,
+        is_holder_reward,
         ..Default::default()
     }))
 }
@@ -324,26 +386,38 @@ fn parse_create_pool_instruction(
 /// Parse deposit (add liquidity) instruction
 #[allow(dead_code)]
 fn parse_deposit_instruction(
-    _data: &[u8],
+    data: &[u8],
     accounts: &[Pubkey],
     signature: Signature,
     slot: u64,
     tx_index: u64,
     block_time_us: Option<i64>,
 ) -> Option<DexEvent> {
-    if accounts.len() < 8 {
+    if accounts.len() < 9 {
         return None;
     }
+    let lp_token_amount_out = read_u64_le(data, 0)?;
+    let max_base_amount_in = read_u64_le(data, 8)?;
+    let max_quote_amount_in = read_u64_le(data, 16)?;
 
-    let metadata = create_metadata(signature, slot, tx_index, block_time_us.unwrap_or_default(), 0);
+    let metadata = create_metadata(
+        signature,
+        slot,
+        tx_index,
+        block_time_us.unwrap_or_default(),
+        0,
+    );
 
     Some(DexEvent::PumpSwapLiquidityAdded(PumpSwapLiquidityAdded {
         metadata,
+        lp_token_amount_out,
+        max_base_amount_in,
+        max_quote_amount_in,
         pool: get_account(accounts, 0).unwrap_or_default(),
-        user: get_account(accounts, 1).unwrap_or_default(),
-        user_base_token_account: get_account(accounts, 4).unwrap_or_default(),
-        user_quote_token_account: get_account(accounts, 5).unwrap_or_default(),
-        user_pool_token_account: get_account(accounts, 6).unwrap_or_default(),
+        user: get_account(accounts, 2).unwrap_or_default(),
+        user_base_token_account: get_account(accounts, 6).unwrap_or_default(),
+        user_quote_token_account: get_account(accounts, 7).unwrap_or_default(),
+        user_pool_token_account: get_account(accounts, 8).unwrap_or_default(),
         ..Default::default()
     }))
 }
@@ -351,28 +425,42 @@ fn parse_deposit_instruction(
 /// Parse withdraw (remove liquidity) instruction
 #[allow(dead_code)]
 fn parse_withdraw_instruction(
-    _data: &[u8],
+    data: &[u8],
     accounts: &[Pubkey],
     signature: Signature,
     slot: u64,
     tx_index: u64,
     block_time_us: Option<i64>,
 ) -> Option<DexEvent> {
-    if accounts.len() < 8 {
+    if accounts.len() < 9 {
         return None;
     }
+    let lp_token_amount_in = read_u64_le(data, 0)?;
+    let min_base_amount_out = read_u64_le(data, 8)?;
+    let min_quote_amount_out = read_u64_le(data, 16)?;
 
-    let metadata = create_metadata(signature, slot, tx_index, block_time_us.unwrap_or_default(), 0);
+    let metadata = create_metadata(
+        signature,
+        slot,
+        tx_index,
+        block_time_us.unwrap_or_default(),
+        0,
+    );
 
-    Some(DexEvent::PumpSwapLiquidityRemoved(PumpSwapLiquidityRemoved {
-        metadata,
-        pool: get_account(accounts, 0).unwrap_or_default(),
-        user: get_account(accounts, 1).unwrap_or_default(),
-        user_base_token_account: get_account(accounts, 4).unwrap_or_default(),
-        user_quote_token_account: get_account(accounts, 5).unwrap_or_default(),
-        user_pool_token_account: get_account(accounts, 6).unwrap_or_default(),
-        ..Default::default()
-    }))
+    Some(DexEvent::PumpSwapLiquidityRemoved(
+        PumpSwapLiquidityRemoved {
+            metadata,
+            lp_token_amount_in,
+            min_base_amount_out,
+            min_quote_amount_out,
+            pool: get_account(accounts, 0).unwrap_or_default(),
+            user: get_account(accounts, 2).unwrap_or_default(),
+            user_base_token_account: get_account(accounts, 6).unwrap_or_default(),
+            user_quote_token_account: get_account(accounts, 7).unwrap_or_default(),
+            user_pool_token_account: get_account(accounts, 8).unwrap_or_default(),
+            ..Default::default()
+        },
+    ))
 }
 
 #[cfg(test)]
@@ -404,7 +492,9 @@ mod tests {
 
     #[test]
     fn pumpswap_buy_maps_non_cashback_upgrade_tail() {
-        let acc = accounts(26);
+        let mut acc = accounts(26);
+        acc[23] =
+            Pubkey::find_program_address(&[b"pool-v2", acc[3].as_ref()], &PROGRAM_ID_PUBKEY).0;
         let ev = parse_buy_instruction(&data(100, 200), &acc, Signature::default(), 1, 0, None)
             .expect("buy");
 
@@ -420,7 +510,9 @@ mod tests {
 
     #[test]
     fn pumpswap_buy_maps_cashback_upgrade_tail() {
-        let acc = accounts(27);
+        let mut acc = accounts(27);
+        acc[24] =
+            Pubkey::find_program_address(&[b"pool-v2", acc[3].as_ref()], &PROGRAM_ID_PUBKEY).0;
         let ev = parse_buy_instruction(&data(100, 200), &acc, Signature::default(), 1, 0, None)
             .expect("buy");
 
@@ -436,7 +528,9 @@ mod tests {
 
     #[test]
     fn pumpswap_sell_maps_non_cashback_upgrade_tail() {
-        let acc = accounts(24);
+        let mut acc = accounts(24);
+        acc[21] =
+            Pubkey::find_program_address(&[b"pool-v2", acc[3].as_ref()], &PROGRAM_ID_PUBKEY).0;
         let ev = parse_sell_instruction(&data(100, 200), &acc, Signature::default(), 1, 0, None)
             .expect("sell");
 
@@ -452,7 +546,9 @@ mod tests {
 
     #[test]
     fn pumpswap_sell_maps_cashback_upgrade_tail() {
-        let acc = accounts(26);
+        let mut acc = accounts(26);
+        acc[23] =
+            Pubkey::find_program_address(&[b"pool-v2", acc[3].as_ref()], &PROGRAM_ID_PUBKEY).0;
         let ev = parse_sell_instruction(&data(100, 200), &acc, Signature::default(), 1, 0, None)
             .expect("sell");
 
@@ -463,6 +559,38 @@ mod tests {
                 assert_eq!(t.fee_recipient_quote_token_account, acc[25]);
             }
             other => panic!("expected PumpSwapSell, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn pumpswap_legacy_cashback_sell_does_not_invent_buyback_recipients() {
+        for count in [23, 24] {
+            let mut acc = accounts(count);
+            acc[21] = Pubkey::find_program_address(
+                &[b"user_volume_accumulator", acc[1].as_ref()],
+                &PROGRAM_ID_PUBKEY,
+            )
+            .0;
+            let expected_pool = if count == 24 {
+                let pda = Pubkey::find_program_address(
+                    &[b"pool-v2", acc[3].as_ref()],
+                    &PROGRAM_ID_PUBKEY,
+                )
+                .0;
+                acc[23] = pda;
+                pda
+            } else {
+                Pubkey::default()
+            };
+            let DexEvent::PumpSwapSell(event) =
+                parse_sell_instruction(&data(100, 200), &acc, Signature::default(), 1, 0, None)
+                    .unwrap()
+            else {
+                panic!("expected sell")
+            };
+            assert_eq!(event.pool_v2, expected_pool);
+            assert_eq!(event.fee_recipient, Pubkey::default());
+            assert_eq!(event.fee_recipient_quote_token_account, Pubkey::default());
         }
     }
 
@@ -496,6 +624,35 @@ mod tests {
                 assert!(t.is_cashback_coin);
             }
             other => panic!("expected PumpSwapCreatePool, got {other:?}"),
+        }
+    }
+}
+
+#[cfg(test)]
+mod review_swap_argument_regressions {
+    use super::*;
+
+    #[test]
+    fn truncated_swap_arguments_are_not_fabricated_as_zero() {
+        let accounts: Vec<_> = (0..23).map(|_| Pubkey::new_unique()).collect();
+        for disc in [discriminators::BUY, discriminators::BUY_EXACT_QUOTE_IN, discriminators::SELL] {
+            let mut data = disc.to_vec();
+            data.extend_from_slice(&123u64.to_le_bytes());
+            data.extend_from_slice(&456u64.to_le_bytes());
+            let parse = |data: &[u8]| parse_instruction(data, &accounts, Signature::default(), 1, 0, None);
+            for length in 0..data.len() { assert!(parse(&data[..length]).is_none(), "length={length}"); }
+            assert!(parse(&data).is_some(), "legacy absence of trailing flag is supported");
+            if disc != discriminators::SELL {
+                for flag in [2, 127, 255] {
+                    let mut invalid = data.clone(); invalid.push(flag);
+                    assert!(parse(&invalid).is_none(), "flag={flag}");
+                }
+                for flag in [0, 1] {
+                    let mut valid = data.clone(); valid.push(flag);
+                    let Some(DexEvent::PumpSwapBuy(event)) = parse(&valid) else { panic!("buy") };
+                    assert_eq!(event.track_volume, flag == 1);
+                }
+            }
         }
     }
 }

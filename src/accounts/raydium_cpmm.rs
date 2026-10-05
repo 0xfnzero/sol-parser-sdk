@@ -11,6 +11,7 @@ use super::utils::*;
 
 pub mod discriminators {
     pub const AMM_CONFIG: &[u8] = &[218, 244, 33, 104, 203, 203, 43, 111];
+    pub const CREATOR_FEE_SHARE: &[u8] = &[30, 235, 98, 252, 26, 197, 66, 86];
     pub const POOL_STATE: &[u8] = &[247, 237, 227, 245, 215, 195, 222, 70];
 }
 
@@ -23,6 +24,9 @@ pub fn parse_account(account: &AccountData, metadata: EventMetadata) -> Option<D
     }
     if is_pool_state_account(&account.data) {
         return parse_pool_state(account, metadata);
+    }
+    if has_discriminator(&account.data, discriminators::CREATOR_FEE_SHARE) {
+        return parse_creator_fee_share(account, metadata);
     }
     None
 }
@@ -47,6 +51,7 @@ pub fn parse_amm_config(account: &AccountData, metadata: EventMetadata) -> Optio
         protocol_owner: read_pubkey_at(data, &mut offset)?,
         fund_owner: read_pubkey_at(data, &mut offset)?,
         creator_fee_rate: read_u64_at(data, &mut offset)?,
+        creator_fee_share_rate: read_u64_at(data, &mut offset)?,
         padding: read_u64_array(data, &mut offset)?,
     };
 
@@ -121,7 +126,11 @@ fn read_pubkey_at(data: &[u8], offset: &mut usize) -> Option<solana_sdk::pubkey:
 
 #[inline]
 fn read_bool_at(data: &[u8], offset: &mut usize) -> Option<bool> {
-    Some(read_u8_at(data, offset)? != 0)
+    match read_u8_at(data, offset)? {
+        0 => Some(false),
+        1 => Some(true),
+        _ => None,
+    }
 }
 
 #[inline]
@@ -196,7 +205,8 @@ mod tests {
         let protocol_owner = push_pubkey(&mut data, 1);
         let fund_owner = push_pubkey(&mut data, 2);
         data.extend_from_slice(&50u64.to_le_bytes());
-        for value in 0u64..15 {
+        data.extend_from_slice(&200_000u64.to_le_bytes());
+        for value in 0u64..14 {
             data.extend_from_slice(&value.to_le_bytes());
         }
 
@@ -211,6 +221,8 @@ mod tests {
         assert_eq!(event.amm_config.protocol_owner, protocol_owner);
         assert_eq!(event.amm_config.fund_owner, fund_owner);
         assert_eq!(event.amm_config.creator_fee_rate, 50);
+        assert_eq!(event.amm_config.creator_fee_share_rate, 200_000);
+        assert_eq!(event.amm_config.padding[13], 13);
     }
 
     #[test]
@@ -248,4 +260,30 @@ mod tests {
         assert!(event.pool_state.enable_creator_fee);
         assert_eq!(event.pool_state.creator_fees_token_1, 6);
     }
+}
+
+/// CreatorFeeShare is 145 bytes including its Anchor discriminator.
+pub fn parse_creator_fee_share(account: &AccountData, metadata: EventMetadata) -> Option<DexEvent> {
+    use crate::core::events::{RaydiumCpmmCreatorFeeShare, RaydiumCpmmCreatorFeeShareAccountEvent};
+    if account.data.len() < 145
+        || !has_discriminator(&account.data, discriminators::CREATOR_FEE_SHARE)
+    {
+        return None;
+    }
+    let data = &account.data[8..];
+    let mut offset = 0;
+    let creator_fee_share = RaydiumCpmmCreatorFeeShare {
+        bump: read_u8_at(data, &mut offset)?,
+        creator: read_pubkey_at(data, &mut offset)?,
+        amm_config: read_pubkey_at(data, &mut offset)?,
+        share_rate: read_u64_at(data, &mut offset)?,
+        padding: read_u64_array(data, &mut offset)?,
+    };
+    Some(DexEvent::RaydiumCpmmCreatorFeeShareAccount(Box::new(
+        RaydiumCpmmCreatorFeeShareAccountEvent {
+            metadata,
+            pubkey: account.pubkey,
+            creator_fee_share,
+        },
+    )))
 }

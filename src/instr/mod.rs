@@ -53,6 +53,7 @@ fn supports_pumpfun_instruction(disc: [u8; 8]) -> bool {
             | pump::discriminators::BUY_V2
             | pump::discriminators::BUY_EXACT_QUOTE_IN_V2
             | pump::discriminators::SELL_V2
+            | pump::discriminators::MIGRATE_BONDING_CURVE_CREATOR
     )
 }
 
@@ -112,6 +113,8 @@ fn supports_cpmm_instruction(disc: [u8; 8]) -> bool {
             | raydium_cpmm::discriminators::INITIALIZE
             | raydium_cpmm::discriminators::DEPOSIT
             | raydium_cpmm::discriminators::WITHDRAW
+            | raydium_cpmm::discriminators::COLLECT_CREATOR_FEE
+            | raydium_cpmm::discriminators::COLLECT_CREATOR_FEE_PERMISSIONLESS
     )
 }
 
@@ -142,6 +145,8 @@ fn supports_raydium_amm_v4_instruction(instruction_data: &[u8]) -> bool {
             | Some(raydium_amm::discriminators::WITHDRAW)
             | Some(raydium_amm::discriminators::INITIALIZE2)
             | Some(raydium_amm::discriminators::WITHDRAW_PNL)
+            | Some(raydium_amm::discriminators::SWAP_BASE_IN_V2)
+            | Some(raydium_amm::discriminators::SWAP_BASE_OUT_V2)
     )
 }
 
@@ -154,6 +159,9 @@ fn supports_orca_instruction(disc: [u8; 8]) -> bool {
             | orca_whirlpool::discriminators::INCREASE_LIQUIDITY
             | orca_whirlpool::discriminators::DECREASE_LIQUIDITY
             | orca_whirlpool::discriminators::INITIALIZE_POOL
+            | orca_whirlpool::discriminators::INITIALIZE_POOL_V2
+            | orca_whirlpool::discriminators::INCREASE_LIQUIDITY_V2
+            | orca_whirlpool::discriminators::DECREASE_LIQUIDITY_V2
     )
 }
 
@@ -163,8 +171,17 @@ fn supports_meteora_pools_instruction(disc: [u8; 8]) -> bool {
         disc,
         meteora_amm::discriminators::SWAP
             | meteora_amm::discriminators::ADD_LIQUIDITY
+            | meteora_amm::discriminators::ADD_IMBALANCE_LIQUIDITY
             | meteora_amm::discriminators::REMOVE_LIQUIDITY
+            | meteora_amm::discriminators::REMOVE_LIQUIDITY_SINGLE_SIDE
+            | meteora_amm::discriminators::BOOTSTRAP_LIQUIDITY
+            | meteora_amm::discriminators::INITIALIZE_PERMISSIONED_POOL
+            | meteora_amm::discriminators::INITIALIZE_PERMISSIONLESS_POOL
+            | meteora_amm::discriminators::INITIALIZE_PERMISSIONLESS_POOL_WITH_FEE_TIER
+            | meteora_amm::discriminators::INITIALIZE_CUSTOMIZABLE_POOL
             | meteora_amm::discriminators::CREATE_POOL
+            | meteora_amm::discriminators::CREATE_POOL_WITH_CONFIG2
+            | meteora_amm::discriminators::SET_POOL_FEES
     )
 }
 
@@ -558,7 +575,7 @@ mod tests {
     fn instruction_data_gate_rejects_unknown_program_and_event_cpi_layouts() {
         assert!(!instruction_data_may_parse(&Pubkey::new_unique(), &data8([1; 8])));
         assert!(!instruction_data_may_parse(&PUMPSWAP_PROGRAM_ID, &data8([0xff; 8])));
-        assert!(!instruction_data_may_parse(
+        assert!(instruction_data_may_parse(
             &PUMPFUN_PROGRAM_ID,
             &data8(pump::discriminators::MIGRATE_BONDING_CURVE_CREATOR)
         ));

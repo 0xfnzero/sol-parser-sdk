@@ -97,6 +97,8 @@ pub enum DexEvent {
     RaydiumCpmmInitialize(RaydiumCpmmInitializeEvent),
     RaydiumCpmmAmmConfigAccount(Box<RaydiumCpmmAmmConfigAccountEvent>),
     RaydiumCpmmPoolStateAccount(Box<RaydiumCpmmPoolStateAccountEvent>),
+    RaydiumCpmmCollectCreatorFee(RaydiumCpmmCollectCreatorFeeEvent),
+    RaydiumCpmmCreatorFeeShareAccount(Box<RaydiumCpmmCreatorFeeShareAccountEvent>),
 
     // Raydium AMM V4 事件
     RaydiumAmmV4Swap(RaydiumAmmV4SwapEvent),
@@ -244,6 +246,8 @@ impl DexEvent {
             DexEvent::RaydiumCpmmInitialize(e) => &e.metadata,
             DexEvent::RaydiumCpmmAmmConfigAccount(e) => &e.metadata,
             DexEvent::RaydiumCpmmPoolStateAccount(e) => &e.metadata,
+            DexEvent::RaydiumCpmmCollectCreatorFee(e) => &e.metadata,
+            DexEvent::RaydiumCpmmCreatorFeeShareAccount(e) => &e.metadata,
 
             // Raydium AMM V4 事件
             DexEvent::RaydiumAmmV4Swap(e) => &e.metadata,
@@ -372,6 +376,8 @@ impl DexEvent {
             DexEvent::RaydiumCpmmInitialize(e) => Some(&mut e.metadata),
             DexEvent::RaydiumCpmmAmmConfigAccount(e) => Some(&mut e.metadata),
             DexEvent::RaydiumCpmmPoolStateAccount(e) => Some(&mut e.metadata),
+            DexEvent::RaydiumCpmmCollectCreatorFee(e) => Some(&mut e.metadata),
+            DexEvent::RaydiumCpmmCreatorFeeShareAccount(e) => Some(&mut e.metadata),
             DexEvent::RaydiumAmmV4Swap(e) => Some(&mut e.metadata),
             DexEvent::RaydiumAmmV4Deposit(e) => Some(&mut e.metadata),
             DexEvent::RaydiumAmmV4Initialize2(e) => Some(&mut e.metadata),
