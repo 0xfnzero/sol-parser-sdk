@@ -504,14 +504,27 @@ pub(crate) fn find_pumpswap_trade_invoke<'a>(
                 .and_then(|msg| msg.instructions.get(invoke.0 as usize))
                 .map(|ix| ix.data.as_slice())
         };
-        use crate::instr::pump_amm::discriminators::{BUY, BUY_EXACT_QUOTE_IN, SELL};
+        use crate::instr::pump_amm::discriminators::{
+            BOOST_BUY_AND_BURN, BUY, BUY_EXACT_QUOTE_IN, SELL,
+        };
         let direction_matches = match data.and_then(|data| data.get(..8)) {
-            Some(disc) if buy => disc == BUY || disc == BUY_EXACT_QUOTE_IN,
+            Some(disc) if buy => {
+                disc == BUY || disc == BUY_EXACT_QUOTE_IN || disc == BOOST_BUY_AND_BURN
+            }
             Some(disc) => disc == SELL,
             None => false,
         };
+        let boost =
+            buy && data.and_then(|data| data.get(..8)) == Some(BOOST_BUY_AND_BURN.as_slice());
+        let minimum_count = if boost {
+            13
+        } else if buy {
+            23
+        } else {
+            21
+        };
         if !direction_matches
-            || instruction_account_count(meta, transaction, invoke) < if buy { 23 } else { 21 }
+            || instruction_account_count(meta, transaction, invoke) < minimum_count
         {
             return false;
         }
@@ -523,7 +536,11 @@ pub(crate) fn find_pumpswap_trade_invoke<'a>(
             &meta.loaded_readonly_addresses,
             invoke,
         )
-        .is_some_and(|get| get(0) == pool && (user == Pubkey::default() || get(1) == user))
+        .is_some_and(|get| {
+            // The boost BuyEvent user is its boost_vault_authority, not its signer.
+            let user_index = if boost { 7 } else { 1 };
+            get(0) == pool && (user == Pubkey::default() || get(user_index) == user)
+        })
     });
     let matched = matches.next()?;
     matches.next().is_none().then_some(matched)
@@ -600,7 +617,14 @@ macro_rules! fill_pumpswap_accounts_anchored {
                     &$meta.loaded_readonly_addresses,
                     invoke,
                 ) {
-                    $filler(&get_account, instruction_account_count($meta, $tx, invoke));
+                    let boost =
+                        crate::core::common_filler::get_instruction_data($meta, $tx, invoke)
+                            .and_then(|data| data.get(..8))
+                            == Some(
+                                crate::instr::pump_amm::discriminators::BOOST_BUY_AND_BURN
+                                    .as_slice(),
+                            );
+                    $filler(&get_account, instruction_account_count($meta, $tx, invoke), boost);
                 }
             }
         }
@@ -744,8 +768,12 @@ fn fill_accounts_with_lookup<L: InvokeLookup + ?Sized>(
                 &pool,
                 e.user,
                 true,
-                |get: &AccountGetter<'_>, count: usize| {
-                    account_fillers::pumpswap::fill_buy_accounts_with_count(e, get, count);
+                |get: &AccountGetter<'_>, count: usize, boost: bool| {
+                    if boost {
+                        account_fillers::pumpswap::fill_boost_buy_and_burn_accounts(e, get);
+                    } else {
+                        account_fillers::pumpswap::fill_buy_accounts_with_count(e, get, count);
+                    }
                 }
             );
         }
@@ -760,7 +788,7 @@ fn fill_accounts_with_lookup<L: InvokeLookup + ?Sized>(
                 &pool,
                 e.user,
                 false,
-                |get: &AccountGetter<'_>, count: usize| {
+                |get: &AccountGetter<'_>, count: usize, _boost: bool| {
                     account_fillers::pumpswap::fill_sell_accounts_with_count(e, get, count);
                 }
             );
