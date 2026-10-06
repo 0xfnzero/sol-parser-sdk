@@ -155,6 +155,49 @@ pub fn fill_sell_accounts(e: &mut PumpSwapSellEvent, get: &AccountGetter<'_>) {
     fill_sell_accounts_with_count(e, get, count);
 }
 
+/// 填充由 `boost_buy_and_burn` 发出的 PumpSwap BuyEvent 账户
+///
+/// boost_buy_and_burn instruction account mapping (based on IDL):
+/// 0: pool
+/// 1: authority
+/// 2: globalConfig
+/// 3: baseMint
+/// 4: quoteMint
+/// 5: poolBaseTokenAccount
+/// 6: poolQuoteTokenAccount
+/// 7: boostVaultAuthority
+/// 8: boostVault
+/// 9: baseTokenProgram
+/// 10: quoteTokenProgram
+///
+/// The buy layout must not be applied here: its slots 7/8 would read the boost
+/// vault as pool vaults and 11/12 would read event_authority/program as token
+/// programs. Missing user token and fee accounts have no counterpart and stay
+/// unresolved; values already decoded from the event are preserved.
+pub fn fill_boost_buy_and_burn_accounts(e: &mut PumpSwapBuyEvent, get: &AccountGetter<'_>) {
+    if e.pool == Pubkey::default() {
+        e.pool = get(0);
+    }
+    if e.base_mint == Pubkey::default() {
+        e.base_mint = get(3);
+    }
+    if e.quote_mint == Pubkey::default() {
+        e.quote_mint = get(4);
+    }
+    if e.pool_base_token_account == Pubkey::default() {
+        e.pool_base_token_account = get(5);
+    }
+    if e.pool_quote_token_account == Pubkey::default() {
+        e.pool_quote_token_account = get(6);
+    }
+    if e.base_token_program == Pubkey::default() {
+        e.base_token_program = get(9);
+    }
+    if e.quote_token_program == Pubkey::default() {
+        e.quote_token_program = get(10);
+    }
+}
+
 pub fn fill_trade_accounts(_e: &mut PumpSwapTradeEvent, _get: &AccountGetter<'_>) {
     // PumpSwapTradeEvent is a different event structure (from IDL TradeEvent)
     // It doesn't have the same account fields as Buy/Sell events
