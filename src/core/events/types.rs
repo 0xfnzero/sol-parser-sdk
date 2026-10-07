@@ -649,10 +649,10 @@ pub struct PumpFunCreateTokenEvent {
     pub is_cashback_enabled: bool,
     /// Quote mint for v2 quote pools (for example USDC).
     pub quote_mint: Pubkey,
-    /// Quote-side vault account appended by PumpFun `create_v2` quote pools.
+    /// Quote-side vault, when available from an authoritative decoded source.
     #[borsh(skip)]
     pub quote_vault: Pubkey,
-    /// Quote-side token program appended by PumpFun `create_v2` quote pools.
+    /// Quote-side token program, when available from an authoritative decoded source.
     #[borsh(skip)]
     pub quote_token_program: Pubkey,
     /// Initial virtual quote reserves. For SOL pools this is the SOL-side reserve;

@@ -129,23 +129,11 @@ fn quote_mint_from_shred_v2_account(quote_mint: Option<Pubkey>) -> Pubkey {
 
 #[inline(always)]
 fn create_v2_quote_accounts_from_shred_accounts(
-    accounts_len: usize,
-    get_account: impl Fn(usize) -> Option<Pubkey>,
+    _account_len: usize,
+    _get_account: impl Fn(usize) -> Option<Pubkey>,
 ) -> (Pubkey, Pubkey, Pubkey) {
-    if accounts_len < 19 {
-        return (PUMPFUN_SOLSCAN_SOL_QUOTE_MINT, Pubkey::default(), Pubkey::default());
-    }
-    let quote_mint = get_account(16).unwrap_or_default();
-    let quote_vault = get_account(17).unwrap_or_default();
-    let quote_token_program = get_account(18).unwrap_or_default();
-    if quote_mint == Pubkey::default()
-        || quote_mint == PROGRAM_ID_PUBKEY
-        || quote_vault == Pubkey::default()
-        || quote_token_program == Pubkey::default()
-    {
-        return (Pubkey::default(), Pubkey::default(), Pubkey::default());
-    }
-    (quote_mint_from_shred_v2_account(Some(quote_mint)), quote_vault, quote_token_program)
+    // create_v2 has 16 fixed IDL accounts and no quote account mapping.
+    (PUMPFUN_SOLSCAN_SOL_QUOTE_MINT, Pubkey::default(), Pubkey::default())
 }
 
 #[inline]
@@ -1793,7 +1781,7 @@ mod tests {
     }
 
     #[test]
-    fn shred_pumpfun_create_v2_uses_appended_quote_mint_only_for_19_accounts() {
+    fn shred_pumpfun_create_v2_ignores_unknown_remaining_accounts() {
         let mut static_keys = vec![Pubkey::new_unique(); 20];
         static_keys[19] = PROGRAM_ID_PUBKEY;
         static_keys[16] = PUMPFUN_WSOL_QUOTE_MINT;
@@ -1814,7 +1802,7 @@ mod tests {
         match &events[0] {
             DexEvent::PumpFunCreate(event) => {
                 assert_eq!(event.ix_name, "create_v2");
-                assert_eq!(event.quote_mint, PUMPFUN_WSOL_QUOTE_MINT);
+                assert_eq!(event.quote_mint, PUMPFUN_SOLSCAN_SOL_QUOTE_MINT);
             }
             other => panic!("expected PumpFunCreate, got {other:?}"),
         }
@@ -1840,7 +1828,7 @@ mod tests {
         match &events[0] {
             DexEvent::PumpFunCreate(event) => {
                 assert_eq!(event.ix_name, "create_v2");
-                assert_eq!(event.quote_mint, Pubkey::default());
+                assert_eq!(event.quote_mint, PUMPFUN_SOLSCAN_SOL_QUOTE_MINT);
             }
             other => panic!("expected PumpFunCreate, got {other:?}"),
         }
@@ -1889,7 +1877,7 @@ mod tests {
         match &events[0] {
             DexEvent::PumpFunCreate(event) => {
                 assert_eq!(event.ix_name, "create_v2");
-                assert_eq!(event.quote_mint, Pubkey::default());
+                assert_eq!(event.quote_mint, PUMPFUN_SOLSCAN_SOL_QUOTE_MINT);
                 assert_eq!(event.quote_vault, Pubkey::default());
                 assert_eq!(event.quote_token_program, Pubkey::default());
             }
@@ -2011,19 +1999,19 @@ mod tests {
                         case.name, case.signature
                     );
                     assert_eq!(
-                        event.quote_mint, case.quote_mint,
+                        event.quote_mint, PUMPFUN_SOLSCAN_SOL_QUOTE_MINT,
                         "{}: {}",
                         case.name, case.signature
                     );
                     assert_eq!(
                         event.quote_vault,
-                        pk(case.quote_vault),
+                        Pubkey::default(),
                         "{}: {}",
                         case.name,
                         case.signature
                     );
                     assert_eq!(
-                        event.quote_token_program, spl_token_program,
+                        event.quote_token_program, Pubkey::default(),
                         "{}: {}",
                         case.name, case.signature
                     );
@@ -2122,7 +2110,7 @@ mod tests {
             match &events[0] {
                 DexEvent::PumpFunCreate(event) => {
                     assert_eq!(event.ix_name, "create_v2", "{name}: {signature}");
-                    assert_eq!(event.quote_mint, Pubkey::default(), "{name}: {signature}");
+                    assert_eq!(event.quote_mint, PUMPFUN_SOLSCAN_SOL_QUOTE_MINT, "{name}: {signature}");
                     assert_eq!(event.quote_vault, Pubkey::default(), "{name}: {signature}");
                     assert_eq!(
                         event.quote_token_program,
@@ -2210,7 +2198,7 @@ mod tests {
                 _ => None,
             })
             .expect("create event");
-        assert_eq!(create.quote_mint, Pubkey::default());
+        assert_eq!(create.quote_mint, PUMPFUN_SOLSCAN_SOL_QUOTE_MINT);
     }
 
     #[test]

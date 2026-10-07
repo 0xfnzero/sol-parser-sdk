@@ -433,6 +433,23 @@ fn parse_create_event_fields(data: &[u8], metadata: EventMetadata) -> Option<Dex
     let name = read_string(data, &mut offset)?;
     let symbol = read_string(data, &mut offset)?;
     let uri = read_string(data, &mut offset)?;
+    if data.len() - offset == 96 {
+        return Some(DexEvent::PumpFunCreate(PumpFunCreateTokenEvent {
+            metadata,
+            name,
+            symbol,
+            uri,
+            mint: read_pubkey(data, offset)?,
+            bonding_curve: read_pubkey(data, offset + 32)?,
+            user: read_pubkey(data, offset + 64)?,
+            ix_name: "create".into(),
+            quote_mint: PUMPFUN_SOLSCAN_SOL_QUOTE_MINT,
+            ..Default::default()
+        }));
+    }
+    if data.len() - offset < 201 {
+        return None;
+    }
 
     let mint = read_pubkey(data, offset)?;
     offset += 32;
@@ -511,6 +528,20 @@ fn parse_create_event_inner_zero_copy(data: &[u8], metadata: EventMetadata) -> O
         let (uri, uri_len) = read_str_unchecked(data, offset)?;
         offset += uri_len;
 
+        if data.len() - offset == 96 {
+            return Some(DexEvent::PumpFunCreate(PumpFunCreateTokenEvent {
+                metadata: metadata,
+                name: name.to_string(),
+                symbol: symbol.to_string(),
+                uri: uri.to_string(),
+                mint: read_pubkey_unchecked(data, offset),
+                bonding_curve: read_pubkey_unchecked(data, offset + 32),
+                user: read_pubkey_unchecked(data, offset + 64),
+                ix_name: "create".into(),
+                quote_mint: PUMPFUN_SOLSCAN_SOL_QUOTE_MINT,
+                ..Default::default()
+            }));
+        }
         if data.len() < offset + 32 + 32 + 32 + 32 + 8 + 8 + 8 + 8 + 8 + 32 + 1 {
             return None;
         }

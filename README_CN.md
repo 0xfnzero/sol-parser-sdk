@@ -113,16 +113,22 @@ sol-parser-sdk = { path = "../sol-parser-sdk", default-features = false, feature
 
 ```toml
 # 在 Cargo.toml 中添加
-sol-parser-sdk = "0.7.9"
+sol-parser-sdk = "0.7.10"
 ```
 
 或使用零拷贝解析器（最高性能）：
 
 ```toml
-sol-parser-sdk = { version = "0.7.9", default-features = false, features = ["parse-zero-copy"] }
+sol-parser-sdk = { version = "0.7.10", default-features = false, features = ["parse-zero-copy"] }
 ```
 
 ### 发布说明
+
+#### v0.7.10
+
+- 按实际指令 discriminator 和事件 mint 匹配 PumpFun create/create_v2 账户，支持 CPI，并拒绝猜测有歧义的匹配。
+- 停止从 create_v2 的任意尾部账户推断 quote mint、vault、token program，保留权威解码字段。
+- 恢复历史 CreateEvent 布局，并通过保存的真实主网成功、失败交易验证。
 
 #### v0.7.9
 

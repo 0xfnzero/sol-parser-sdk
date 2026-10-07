@@ -17,35 +17,6 @@ fn pump_trade_uses_v2_layout(e: &PumpFunTradeEvent, get: &AccountGetter<'_>) -> 
         || account_at_matches_mint(e, get, 1)
 }
 
-#[inline(always)]
-fn fill_create_v2_quote_accounts_if_appended(
-    quote_mint_to: &mut Pubkey,
-    quote_vault_to: &mut Pubkey,
-    quote_token_program_to: &mut Pubkey,
-    get: &AccountGetter<'_>,
-) {
-    let quote_mint = get(16);
-    let quote_vault = get(17);
-    let quote_token_program = get(18);
-    if quote_mint == Pubkey::default()
-        || quote_mint == crate::instr::program_ids::PUMPFUN_PROGRAM_ID
-        || quote_vault == Pubkey::default()
-        || quote_token_program == Pubkey::default()
-    {
-        return;
-    }
-
-    if *quote_mint_to == Pubkey::default() || is_pumpfun_solscan_sol_quote_mint(*quote_mint_to) {
-        *quote_mint_to = normalize_pumpfun_quote_mint(quote_mint);
-    }
-    if *quote_vault_to == Pubkey::default() {
-        *quote_vault_to = quote_vault;
-    }
-    if *quote_token_program_to == Pubkey::default() {
-        *quote_token_program_to = quote_token_program;
-    }
-}
-
 /// 填充 PumpFun Trade 事件账户
 ///
 /// PumpFun Buy/Sell instruction account mapping (from pumpfun.json IDL):
@@ -237,7 +208,7 @@ pub fn fill_create_accounts(e: &mut PumpFunCreateTokenEvent, get: &AccountGetter
 /// 3 associated_bonding_curve, 4 global, 5 user, 6 system_program, 7 token_program,
 /// 8 associated_token_program, 9 mayhem_program_id, 10 global_params, 11 sol_vault,
 /// 12 mayhem_state, 13 mayhem_token_vault, 14 event_authority, 15 program.
-/// Quote-pool variant appends: 16 quote_mint, 17 quote_vault, 18 quote_token_program.
+/// The public IDL has no quote accounts in create_v2; do not infer remaining accounts.
 pub fn fill_create_accounts_from_v2(e: &mut PumpFunCreateTokenEvent, get: &AccountGetter<'_>) {
     if e.mint == Pubkey::default() {
         e.mint = get(0);
@@ -287,12 +258,6 @@ pub fn fill_create_accounts_from_v2(e: &mut PumpFunCreateTokenEvent, get: &Accou
     if e.program == Pubkey::default() {
         e.program = get(15);
     }
-    fill_create_v2_quote_accounts_if_appended(
-        &mut e.quote_mint,
-        &mut e.quote_vault,
-        &mut e.quote_token_program,
-        get,
-    );
 }
 
 /// 填充 PumpFun CreateV2 事件账户
@@ -301,7 +266,7 @@ pub fn fill_create_accounts_from_v2(e: &mut PumpFunCreateTokenEvent, get: &Accou
 /// 3 associated_bonding_curve, 4 global, 5 user, 6 system_program, 7 token_program,
 /// 8 associated_token_program, 9 mayhem_program_id, 10 global_params, 11 sol_vault,
 /// 12 mayhem_state, 13 mayhem_token_vault, 14 event_authority, 15 program.
-/// Quote-pool variant appends: 16 quote_mint, 17 quote_vault, 18 quote_token_program.
+/// The public IDL has no quote accounts in create_v2; do not infer remaining accounts.
 pub fn fill_create_v2_accounts(e: &mut PumpFunCreateV2TokenEvent, get: &AccountGetter<'_>) {
     if e.mint == Pubkey::default() {
         e.mint = get(0);
@@ -351,12 +316,6 @@ pub fn fill_create_v2_accounts(e: &mut PumpFunCreateV2TokenEvent, get: &AccountG
     if e.program == Pubkey::default() {
         e.program = get(15);
     }
-    fill_create_v2_quote_accounts_if_appended(
-        &mut e.quote_mint,
-        &mut e.quote_vault,
-        &mut e.quote_token_program,
-        get,
-    );
 }
 
 /// 填充 PumpFun Migrate 事件账户
@@ -366,6 +325,21 @@ pub fn fill_migrate_accounts(_e: &mut PumpFunMigrateEvent, _get: &AccountGetter<
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn create_v2_filler_preserves_authoritative_quote_fields() {
+        let quote = Pubkey::new_unique();
+        let vault = Pubkey::new_unique();
+        let token = Pubkey::new_unique();
+        let mut e = PumpFunCreateTokenEvent {
+            quote_mint: quote,
+            quote_vault: vault,
+            quote_token_program: token,
+            ..Default::default()
+        };
+        fill_create_accounts_from_v2(&mut e, &|_| Pubkey::new_unique());
+        assert_eq!((e.quote_mint, e.quote_vault, e.quote_token_program), (quote, vault, token));
+    }
+
     use super::*;
 
     #[test]
@@ -427,7 +401,7 @@ mod tests {
     }
 
     #[test]
-    fn fill_create_accounts_from_v2_sets_appended_quote_accounts_only_when_tail_exists() {
+    fn fill_create_accounts_from_v2_ignores_unknown_remaining_accounts() {
         let quote_mint = PUMPFUN_WSOL_QUOTE_MINT;
         let quote_vault = Pubkey::new_from_array([17u8; 32]);
         let quote_token_program = Pubkey::new_from_array([18u8; 32]);
@@ -445,9 +419,9 @@ mod tests {
         };
 
         fill_create_accounts_from_v2(&mut with_tail, &get_with_tail);
-        assert_eq!(with_tail.quote_mint, quote_mint);
-        assert_eq!(with_tail.quote_vault, quote_vault);
-        assert_eq!(with_tail.quote_token_program, quote_token_program);
+        assert_eq!(with_tail.quote_mint, PUMPFUN_SOLSCAN_SOL_QUOTE_MINT);
+        assert_eq!(with_tail.quote_vault, Pubkey::default());
+        assert_eq!(with_tail.quote_token_program, Pubkey::default());
 
         let get_without_tail = |i: usize| -> Pubkey {
             match i {

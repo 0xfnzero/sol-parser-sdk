@@ -1532,16 +1532,16 @@ mod tests {
                 "{}: {}",
                 case.name, case.signature
             );
-            assert_eq!(create.quote_mint, case.quote_mint, "{}: {}", case.name, case.signature);
+            assert_eq!(create.quote_mint, PUMPFUN_SOLSCAN_SOL_QUOTE_MINT, "{}: {}", case.name, case.signature);
             assert_eq!(
                 create.quote_vault,
-                pk(case.quote_vault),
+                Pubkey::default(),
                 "{}: {}",
                 case.name,
                 case.signature
             );
             assert_eq!(
-                create.quote_token_program, spl_token_program,
+                create.quote_token_program, Pubkey::default(),
                 "{}: {}",
                 case.name, case.signature
             );
@@ -1591,7 +1591,7 @@ mod tests {
 
         let create = parse_create_v2_from_grpc(&meta, &tx);
 
-        assert_eq!(create.quote_mint, Pubkey::default());
+        assert_eq!(create.quote_mint, PUMPFUN_SOLSCAN_SOL_QUOTE_MINT);
         assert_eq!(create.quote_vault, Pubkey::default());
         assert_eq!(create.quote_token_program, Pubkey::default());
     }

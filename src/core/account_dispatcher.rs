@@ -155,22 +155,6 @@ fn only_match<T>(mut matches: impl Iterator<Item = T>) -> Option<T> {
     matches.next().is_none().then_some(first)
 }
 
-fn instruction_has_discriminator(
-    transaction: &Option<Transaction>,
-    outer_idx: i32,
-    discriminator: [u8; 8],
-) -> bool {
-    if outer_idx < 0 {
-        return false;
-    }
-    transaction
-        .as_ref()
-        .and_then(|tx| tx.message.as_ref())
-        .and_then(|msg| msg.instructions.get(outer_idx as usize))
-        .and_then(|ix| ix.data.get(..8))
-        .is_some_and(|disc| disc == discriminator)
-}
-
 fn find_damm_v2_swap_invoke<'a>(
     invokes: &'a [(i32, i32)],
     meta: &TransactionStatusMeta,
@@ -316,29 +300,41 @@ fn find_pumpfun_trade_invoke<'a>(
 fn find_pumpfun_create_invoke<'a>(
     invokes: &'a [(i32, i32)],
     transaction: &Option<Transaction>,
-    ix_name: &str,
+    v2_only: bool,
     meta: &TransactionStatusMeta,
     mint: Pubkey,
-) -> Option<&'a (i32, i32)> {
-    let discriminator = if ix_name == "create_v2" {
-        crate::instr::pump::discriminators::CREATE_V2
-    } else {
-        crate::instr::pump::discriminators::CREATE
-    };
-    let account_keys = transaction.as_ref()?.message.as_ref().map(|msg| &msg.account_keys);
-    only_match(invokes.iter().filter(|(outer_idx, inner_idx)| {
-        *inner_idx < 0
-            && instruction_has_discriminator(transaction, *outer_idx, discriminator)
-            && (mint == Pubkey::default()
-                || get_instruction_account_getter(
-                    meta,
-                    transaction,
-                    account_keys,
-                    &meta.loaded_writable_addresses,
-                    &meta.loaded_readonly_addresses,
-                    &(*outer_idx, *inner_idx),
-                )
-                .is_some_and(|get| get(0) == mint))
+) -> Option<(&'a (i32, i32), bool)> {
+    let keys = transaction.as_ref()?.message.as_ref().map(|msg| &msg.account_keys);
+    only_match(invokes.iter().filter_map(|invoke| {
+        let (data, count) = if invoke.1 >= 0 {
+            let ix = meta
+                .inner_instructions
+                .iter()
+                .find(|g| g.index == invoke.0 as u32)?
+                .instructions
+                .get(invoke.1 as usize)?;
+            (ix.data.as_slice(), ix.accounts.len())
+        } else {
+            let ix = transaction.as_ref()?.message.as_ref()?.instructions.get(invoke.0 as usize)?;
+            (ix.data.as_slice(), ix.accounts.len())
+        };
+        use crate::instr::pump::discriminators::{CREATE, CREATE_V2};
+        let v2 = data.get(..8)? == CREATE_V2;
+        if (!v2 && (v2_only || data.get(..8)? != CREATE)) || count < if v2 { 16 } else { 14 } {
+            return None;
+        }
+        let get = get_instruction_account_getter(
+            meta,
+            transaction,
+            keys,
+            &meta.loaded_writable_addresses,
+            &meta.loaded_readonly_addresses,
+            invoke,
+        )?;
+        if mint != Pubkey::default() && get(0) != mint {
+            return None;
+        }
+        Some((invoke, v2))
     }))
 }
 
@@ -712,8 +708,8 @@ fn fill_accounts_with_lookup<L: InvokeLookup + ?Sized>(
         }
         DexEvent::PumpFunCreate(e) => {
             if let Some(invokes) = program_invokes.get_invokes(&PUMPFUN_PROGRAM) {
-                if let Some(invoke) =
-                    find_pumpfun_create_invoke(invokes, transaction, &e.ix_name, meta, e.mint)
+                if let Some((invoke, v2)) =
+                    find_pumpfun_create_invoke(invokes, transaction, false, meta, e.mint)
                 {
                     fill_event_accounts_with_invoke!(
                         e,
@@ -721,7 +717,7 @@ fn fill_accounts_with_lookup<L: InvokeLookup + ?Sized>(
                         transaction,
                         invoke,
                         |get: &AccountGetter<'_>| {
-                            if e.ix_name == "create_v2" {
+                            if v2 {
                                 account_fillers::pumpfun::fill_create_accounts_from_v2(e, get);
                             } else {
                                 account_fillers::pumpfun::fill_create_accounts(e, get);
@@ -732,16 +728,13 @@ fn fill_accounts_with_lookup<L: InvokeLookup + ?Sized>(
             }
         }
         DexEvent::PumpFunCreateV2(e) => {
-            fill_event_accounts!(
-                e,
-                meta,
-                transaction,
-                program_invokes,
-                &PUMPFUN_PROGRAM,
-                |get: &AccountGetter<'_>| {
-                    account_fillers::pumpfun::fill_create_v2_accounts(e, get);
+            if let Some(invokes) = program_invokes.get_invokes(&PUMPFUN_PROGRAM) {
+                if let Some((invoke, _)) = find_pumpfun_create_invoke(invokes, transaction, true, meta, e.mint) {
+                    fill_event_accounts_with_invoke!(e, meta, transaction, invoke, |get: &AccountGetter<'_>| {
+                        account_fillers::pumpfun::fill_create_v2_accounts(e, get);
+                    });
                 }
-            );
+            }
         }
         DexEvent::PumpFunMigrate(e) => {
             fill_event_accounts!(
@@ -1431,6 +1424,64 @@ pub(crate) fn fill_accounts_with_invoke_context(
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn create_selector_matches_actual_layout_mint_and_cpi_without_guessing() {
+        use yellowstone_grpc_proto::prelude::{InnerInstruction, InnerInstructions};
+        for inner in [false, true] {
+            for ambiguous in [false, true] {
+                let keys: Vec<Pubkey> = (0..40).map(|_| Pubkey::new_unique()).collect();
+                let create = CompiledInstruction {
+                    accounts: (0..19).collect(),
+                    data: crate::instr::pump::discriminators::CREATE_V2.to_vec(),
+                    ..Default::default()
+                };
+                let mut other = create.clone();
+                other.accounts[0] = 20;
+                let buy = CompiledInstruction {
+                    accounts: (0..30).collect(),
+                    data: crate::instr::pump::discriminators::BUY.to_vec(),
+                    ..Default::default()
+                };
+                let mut instructions = vec![create.clone(), other, buy];
+                if ambiguous {
+                    instructions.push(create);
+                }
+                let invokes: Vec<_> = (0..instructions.len())
+                    .map(|i| if inner { (0, i as i32) } else { (i as i32, -1) })
+                    .collect();
+                let mut meta = TransactionStatusMeta::default();
+                if inner {
+                    meta.inner_instructions.push(InnerInstructions {
+                        index: 0,
+                        instructions: instructions
+                            .iter()
+                            .map(|ix| InnerInstruction {
+                                accounts: ix.accounts.clone(),
+                                data: ix.data.clone(),
+                                ..Default::default()
+                            })
+                            .collect(),
+                    });
+                }
+                let tx = Some(Transaction {
+                    message: Some(Message {
+                        account_keys: keys.iter().map(|k| k.to_bytes().to_vec()).collect(),
+                        instructions: if inner { vec![] } else { instructions },
+                        ..Default::default()
+                    }),
+                    ..Default::default()
+                });
+                let selected = find_pumpfun_create_invoke(&invokes, &tx, false, &meta, keys[0]);
+                if ambiguous {
+                    assert!(selected.is_none());
+                } else {
+                    assert_eq!(selected, Some((&invokes[0], true)));
+                }
+                assert!(find_pumpfun_create_invoke(&invokes, &tx, false, &meta, keys[39]).is_none());
+            }
+        }
+    }
+
     use super::*;
     use crate::core::events::{
         MeteoraDlmmSwapEvent, OrcaWhirlpoolSwapEvent, PumpSwapBuyEvent, PumpSwapSellEvent,
