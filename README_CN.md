@@ -858,3 +858,5 @@ cargo build --release
 # 生成文档
 cargo doc --open
 ```
+
+PumpFun create/create_v2 的共享主网样本、重放方法和验证边界见 [验证说明](https://github.com/0xfnzero/sol-parser-sdk-golang/tree/main/validation/pumpfun_create_20261007)。

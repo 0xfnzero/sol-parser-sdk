@@ -876,3 +876,5 @@ cargo build --release
 # Generate docs
 cargo doc --open
 ```
+
+Shared PumpFun create/create_v2 mainnet fixtures, replay instructions and verification limits are documented in the [validation guide](https://github.com/0xfnzero/sol-parser-sdk-golang/tree/main/validation/pumpfun_create_20261007).
