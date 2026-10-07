@@ -1,4 +1,4 @@
-//! Pump Fees（`pfeeUx...`）外层指令：`idls/pump_fees.json`。Shred/gRPC 共用账户索引语义。
+//! Pump Fees（`pfeeUx...`）外层指令：`idl/pump_fees.json`。Shred/gRPC 共用账户索引语义。
 
 use solana_sdk::pubkey::Pubkey;
 use solana_sdk::signature::Signature;

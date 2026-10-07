@@ -12,14 +12,14 @@ pub const PUMPFUN_PROGRAM_ID: Pubkey = pubkey!("6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ
 
 /// LaunchLab program ID as Pubkey constant.
 ///
-/// Parser routes the LaunchLab IDL (`idls/raydium_launchpad.json`).
+/// Parser routes the LaunchLab IDL (`idl/raydium_launchpad.json`).
 pub const RAYDIUM_LAUNCHLAB_PROGRAM_ID: Pubkey =
     pubkey!("LanMV9sAd7wArD4vJFi2qDdfnVhFxYSUg6eADduJ3uj");
 
 /// PumpSwap program ID as Pubkey constant
 pub const PUMPSWAP_PROGRAM_ID: Pubkey = pubkey!("pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA");
 
-/// Pump Fees (`pump_fees`) program — 见 `idls/pump_fees.json`
+/// Pump Fees (`pump_fees`) program — 见 `idl/pump_fees.json`
 pub const PUMP_FEES_PROGRAM_ID: Pubkey = pubkey!("pfeeUxB6jkeY1Hxd7CsFCAjcbHA9rWtchMGdZ6VojVZ");
 
 /// Raydium CLMM program ID as Pubkey constant

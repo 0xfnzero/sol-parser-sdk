@@ -1,6 +1,6 @@
 //! LaunchLab 指令解析器
 //!
-//! 底层按 `idls/raydium_launchpad.json` 的真实 instruction discriminator
+//! 底层按 `idl/raydium_launchpad.json` 的真实 instruction discriminator
 //! 和账户布局解析，对外事件名统一为 `RaydiumLaunchlab*`。
 
 use super::program_ids;
@@ -8,7 +8,7 @@ use super::utils::*;
 use crate::core::events::*;
 use solana_sdk::{pubkey::Pubkey, signature::Signature};
 
-/// LaunchLab instruction discriminators from `idls/raydium_launchpad.json`.
+/// LaunchLab instruction discriminators from `idl/raydium_launchpad.json`.
 pub mod discriminators {
     pub const CREATE_PLATFORM_CONFIG: [u8; 8] = [176, 90, 196, 175, 253, 113, 220, 20];
     pub const BUY_EXACT_IN: [u8; 8] = [250, 234, 13, 123, 213, 156, 19, 236];

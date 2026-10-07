@@ -24,7 +24,7 @@ pub mod types;
 pub mod yellowstone_tx_parse;
 
 // 重新导出主要API
-pub use client::YellowstoneGrpc;
+pub use client::{GrpcSubscriptionStatus, YellowstoneGrpc};
 pub type YellowstoneGrpcClient = YellowstoneGrpc;
 pub use deduper::TxDeduper;
 pub use geyser_connect::{connect_yellowstone_geyser, GeyserConnectConfig};

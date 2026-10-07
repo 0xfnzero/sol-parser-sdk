@@ -107,14 +107,42 @@ pub(crate) fn parse_instructions_enhanced_with_created_buy(
     let keys_len = msg.account_keys.len();
     let writable_len = meta.loaded_writable_addresses.len();
     let get_key = |i: usize| -> Option<&Vec<u8>> {
-        if i < keys_len {
+        let bytes = if i < keys_len {
             msg.account_keys.get(i)
         } else if i < keys_len + writable_len {
             meta.loaded_writable_addresses.get(i - keys_len)
         } else {
             meta.loaded_readonly_addresses.get(i - keys_len - writable_len)
-        }
+        }?;
+        // Yellowstone carries complete account addresses. Invalid lengths are
+        // malformed input, not unresolved shred ALT entries or the System program.
+        (bytes.len() == 32).then_some(bytes)
     };
+
+    // Creation context is available in the message even when logs are absent or
+    // create events are filtered out. Associate it by mint, not transaction-wide.
+    let mut created_mints = Vec::new();
+    if filter.is_none_or(EventTypeFilter::includes_pumpfun) {
+        for ix in &msg.instructions {
+            if get_key(ix.program_id_index as usize).map(|k| read_pubkey_fast(k))
+                != Some(crate::instr::program_ids::PUMPFUN_PROGRAM_ID)
+            {
+                continue;
+            }
+            use crate::instr::pump::discriminators::{CREATE, CREATE_V2};
+            let Some(disc) = ix.data.get(..8) else { continue };
+            if disc != CREATE && disc != CREATE_V2 {
+                continue;
+            }
+            let Some(mint) = ix.accounts.first().and_then(|i| get_key(*i as usize)) else {
+                continue;
+            };
+            let mayhem = disc == CREATE_V2
+                && crate::instr::utils::parse_create_v2_tail_fields(&ix.data[8..])
+                    .is_some_and(|(_, mayhem, _, _, _)| mayhem);
+            created_mints.push((read_pubkey_fast(mint), mayhem));
+        }
+    }
 
     let mut result = Vec::with_capacity(8);
     let mut invokes = crate::core::invoke_context::InvokeContext::default();
@@ -128,7 +156,7 @@ pub(crate) fn parse_instructions_enhanced_with_created_buy(
         }
 
         // 解析主指令（8字节 discriminator）
-        if let Some(event) = parse_outer_instruction(
+        if let Some(mut event) = parse_outer_instruction(
             &ix.data,
             &pid,
             sig,
@@ -141,6 +169,19 @@ pub(crate) fn parse_instructions_enhanced_with_created_buy(
             filter,
             is_created_buy,
         ) {
+            match &mut event {
+                DexEvent::PumpFunBuy(trade)
+                | DexEvent::PumpFunBuyExactSolIn(trade)
+                | DexEvent::PumpFunTrade(trade)
+                    if trade.is_buy =>
+                {
+                    trade.is_created_buy |=
+                        created_mints.iter().any(|(mint, _)| *mint == trade.mint);
+                    trade.mayhem_mode |=
+                        created_mints.iter().any(|(mint, mayhem)| *mint == trade.mint && *mayhem);
+                }
+                _ => {}
+            }
             result.push(IndexedInstructionEvent {
                 outer_idx: i,
                 inner_idx: None,
@@ -208,6 +249,11 @@ pub(crate) fn parse_instructions_enhanced_with_created_buy(
 
     // 步骤 4: 填充账户上下文（invokes 与 fill_data 均使用 Pubkey 键，无堆泄漏）
     for event in &mut final_result {
+        // Every instruction in the transaction shares the caller's receive
+        // timestamp. Parsers using create_metadata_simple sample their own clock.
+        if let Some(metadata) = event.metadata_mut() {
+            metadata.grpc_recv_us = grpc_us;
+        }
         crate::core::account_dispatcher::fill_accounts_with_invoke_context(
             event,
             meta,
@@ -242,8 +288,18 @@ fn parse_compiled_instruction<'a>(
     get_key: &dyn Fn(usize) -> Option<&'a Vec<u8>>,
     filter: Option<&EventTypeFilter>,
 ) -> Option<DexEvent> {
-    // 检查指令数据长度（至少8字节 discriminator）
-    if data.len() < 8 {
+    // Anchor programs use an 8-byte discriminator; AMM V4 uses a one-byte tag.
+    if data.is_empty()
+        || (*program_id != crate::instr::program_ids::RAYDIUM_AMM_V4_PROGRAM_ID && data.len() < 8)
+    {
+        return None;
+    }
+
+    // Reject filtered, unknown or truncated CPMM instructions before decoding
+    // account arrays (including the heap fallback for large remaining accounts).
+    if *program_id == crate::instr::program_ids::RAYDIUM_CPMM_PROGRAM_ID
+        && !crate::instr::raydium_cpmm::instruction_may_parse(data, account_indices.len(), filter)
+    {
         return None;
     }
 
@@ -254,7 +310,7 @@ fn parse_compiled_instruction<'a>(
         let mut n = 0usize;
         for &idx in account_indices {
             let k = get_key(idx as usize)?;
-            stack[n] = read_pubkey_fast(k);
+            stack[n] = Pubkey::try_from(k.as_slice()).ok()?;
             n += 1;
         }
         crate::instr::parse_instruction_unified(
@@ -271,7 +327,7 @@ fn parse_compiled_instruction<'a>(
     } else {
         let accounts: Vec<Pubkey> = account_indices
             .iter()
-            .map(|&idx| get_key(idx as usize).map(|k| read_pubkey_fast(k)))
+            .map(|&idx| get_key(idx as usize).and_then(|key| Pubkey::try_from(key.as_slice()).ok()))
             .collect::<Option<_>>()?;
         crate::instr::parse_instruction_unified(
             data, &accounts, sig, slot, tx_idx, block_us, grpc_us, filter, program_id,
@@ -1043,7 +1099,7 @@ mod tests {
             protocol_fee: 0,
             fee_bps: 0,
             host_fee: 0,
-        ..Default::default()
+            ..Default::default()
         })
     }
 
@@ -1481,16 +1537,16 @@ mod tests {
                 "{}: {}",
                 case.name, case.signature
             );
-            assert_eq!(create.quote_mint, case.quote_mint, "{}: {}", case.name, case.signature);
+            assert_eq!(create.quote_mint, PUMPFUN_SOLSCAN_SOL_QUOTE_MINT, "{}: {}", case.name, case.signature);
             assert_eq!(
                 create.quote_vault,
-                pk(case.quote_vault),
+                Pubkey::default(),
                 "{}: {}",
                 case.name,
                 case.signature
             );
             assert_eq!(
-                create.quote_token_program, spl_token_program,
+                create.quote_token_program, Pubkey::default(),
                 "{}: {}",
                 case.name, case.signature
             );
@@ -1540,8 +1596,127 @@ mod tests {
 
         let create = parse_create_v2_from_grpc(&meta, &tx);
 
-        assert_eq!(create.quote_mint, Pubkey::default());
+        assert_eq!(create.quote_mint, PUMPFUN_SOLSCAN_SOL_QUOTE_MINT);
         assert_eq!(create.quote_vault, Pubkey::default());
         assert_eq!(create.quote_token_program, Pubkey::default());
+    }
+    #[test]
+    fn grpc_amm_v4_accepts_one_byte_withdraw_pnl_instruction() {
+        let mut keys: Vec<_> = (0..14).map(|_| Pubkey::new_unique()).collect();
+        keys.push(crate::instr::program_ids::RAYDIUM_AMM_V4_PROGRAM_ID);
+        let tx = Some(Transaction {
+            message: Some(Message {
+                account_keys: keys.iter().map(|key| key.to_bytes().to_vec()).collect(),
+                instructions: vec![CompiledInstruction {
+                    program_id_index: 14,
+                    accounts: (0..14).collect(),
+                    data: vec![crate::instr::raydium_amm::discriminators::WITHDRAW_PNL],
+                }],
+                ..Default::default()
+            }),
+            ..Default::default()
+        });
+        let events = parse_instructions_enhanced(
+            &TransactionStatusMeta::default(),
+            &tx,
+            Signature::default(),
+            42,
+            0,
+            None,
+            0,
+            None,
+        );
+        assert_eq!(events.len(), 1);
+        let DexEvent::RaydiumAmmV4WithdrawPnl(e) = &events[0] else { panic!("withdraw pnl") };
+        assert_eq!(e.amm, keys[1]);
+    }
+}
+
+#[cfg(test)]
+mod cpmm_account_decode_boundaries {
+    use super::*;
+
+    #[test]
+    fn invalid_or_same_family_filtered_cpmm_does_not_resolve_accounts() {
+        use crate::instr::raydium_cpmm::discriminators::*;
+        let swaps_only = EventTypeFilter::include_only(vec![crate::grpc::EventType::RaydiumCpmmSwap]);
+        let get_key = |_index: usize| -> Option<&Vec<u8>> { panic!("rejected account resolved") };
+        for (data, count, filter) in [
+            (COLLECT_CREATOR_FEE.to_vec(), 15, Some(&swaps_only)),
+            (COLLECT_CREATOR_FEE_PERMISSIONLESS.to_vec(), 65, Some(&swaps_only)),
+            (SWAP_BASE_IN.to_vec(), 13, None),
+            (SWAP_BASE_OUT.to_vec(), 65, None),
+            (DEPOSIT.to_vec(), 13, None),
+            (COLLECT_CREATOR_FEE.to_vec(), 14, None),
+            (COLLECT_CREATOR_FEE_PERMISSIONLESS.to_vec(), 15, None),
+            (vec![255; 8], 65, None),
+        ] {
+            assert!(parse_compiled_instruction(
+                &data,
+                &crate::instr::program_ids::RAYDIUM_CPMM_PROGRAM_ID,
+                Signature::default(), 1, 0, None, 0,
+                &vec![0; count], &get_key, filter,
+            ).is_none());
+        }
+    }
+
+    #[test]
+    fn excluded_cpmm_never_decodes_the_instruction_account_array() {
+        let filter = EventTypeFilter::include_only(vec![crate::grpc::EventType::RaydiumClmmSwap]);
+        let key = vec![1; 32];
+        let get_key = |_index: usize| -> Option<&Vec<u8>> { panic!("excluded account decoded") };
+        for count in [15, 65] {
+            assert!(parse_compiled_instruction(
+                &crate::instr::raydium_cpmm::discriminators::COLLECT_CREATOR_FEE,
+                &crate::instr::program_ids::RAYDIUM_CPMM_PROGRAM_ID,
+                Signature::default(),
+                1,
+                0,
+                None,
+                0,
+                &vec![0; count],
+                &get_key,
+                Some(&filter),
+            )
+            .is_none());
+            // No filter still decodes the complete account array and parses it.
+            let valid = |_index: usize| Some(&key);
+            assert!(parse_compiled_instruction(
+                &crate::instr::raydium_cpmm::discriminators::COLLECT_CREATOR_FEE,
+                &crate::instr::program_ids::RAYDIUM_CPMM_PROGRAM_ID,
+                Signature::default(),
+                1,
+                0,
+                None,
+                0,
+                &vec![0; count],
+                &valid,
+                None,
+            )
+            .is_some());
+        }
+    }
+
+    #[test]
+    fn stack_and_heap_account_decoders_reject_noncanonical_pubkey_lengths() {
+        for count in [15, 65] {
+            for length in [0, 31, 33, 64] {
+                let key = vec![1; length];
+                let get_key = |_index: usize| Some(&key);
+                assert!(parse_compiled_instruction(
+                    &crate::instr::raydium_cpmm::discriminators::COLLECT_CREATOR_FEE,
+                    &crate::instr::program_ids::RAYDIUM_CPMM_PROGRAM_ID,
+                    Signature::default(),
+                    1,
+                    0,
+                    None,
+                    0,
+                    &vec![0; count],
+                    &get_key,
+                    None,
+                )
+                .is_none());
+            }
+        }
     }
 }

@@ -18,7 +18,8 @@ struct ActiveProgram<'a> {
     pubkey: Pubkey,
 }
 
-/// 解析单笔 Yellowstone 交易更新（含 meta）：并行 logs + enhanced instructions，再 log/ix 去重合并。
+/// 解析成功的 Yellowstone 交易更新（含 meta）：并行 logs + enhanced instructions，再 log/ix 去重合并。
+/// 失败交易整体回滚，即使含有 DEX 日志或指令，也返回空事件列表。
 #[inline]
 pub fn parse_subscribe_update_transaction(
     tx: &SubscribeUpdateTransaction,
@@ -38,6 +39,12 @@ pub(crate) fn parse_transaction_core(
 ) -> Vec<DexEvent> {
     let Some(info) = &tx.transaction else { return Vec::new() };
     let Some(meta) = &info.meta else { return Vec::new() };
+
+    // Logs and decoded instructions from a failed transaction describe rolled-back work.
+    // Reject before signature decoding, allocation, or Rayon dispatch.
+    if meta.err.is_some() {
+        return Vec::new();
+    }
 
     let Some(sig) = try_yellowstone_signature(&info.signature) else {
         return Vec::new();
@@ -91,7 +98,7 @@ pub(crate) fn parse_transaction_core(
     }
 }
 
-/// 单笔交易解析：**顺序**执行 logs → instructions 再合并。
+/// 成功交易解析：**顺序**执行 logs → instructions 再合并；失败交易返回空列表。
 ///
 /// 与 [`parse_subscribe_update_transaction`]（内部 `rayon::join` 并行）算法一致，但避免工作窃取与线程池调度，
 /// 在「单笔极低延迟」场景通常更快；适合嵌入 latency-sensitive 的订阅流水线。
@@ -118,6 +125,12 @@ fn parse_transaction_core_sequential(
     let Some(meta) = &info.meta else {
         return Vec::new();
     };
+
+    // Logs and decoded instructions from a failed transaction describe rolled-back work.
+    // Reject before signature decoding, allocation, or Rayon dispatch.
+    if meta.err.is_some() {
+        return Vec::new();
+    }
 
     let Some(sig) = try_yellowstone_signature(&info.signature) else {
         return Vec::new();
@@ -219,7 +232,7 @@ fn parse_logs(
         if let Some((pid, depth)) = crate::logs::optimized_matcher::parse_invoke_info(log) {
             if depth == 1 {
                 inner_idx = -1;
-                outer_idx += 1;
+                outer_idx = next_logged_outer_index(transaction, outer_idx);
             } else {
                 inner_idx += 1;
             }
@@ -240,6 +253,32 @@ fn parse_logs(
         }
     }
     result
+}
+
+/// Next outer instruction index that emits an `invoke [1]` log line.
+#[inline]
+fn next_logged_outer_index(transaction: &Option<Transaction>, current: i32) -> i32 {
+    let mut next = current + 1;
+    while is_logless_outer(transaction, next) {
+        next += 1;
+    }
+    next
+}
+
+#[inline]
+fn is_logless_outer(transaction: &Option<Transaction>, outer_idx: i32) -> bool {
+    let Some(msg) = transaction.as_ref().and_then(|tx| tx.message.as_ref()) else {
+        return false;
+    };
+    usize::try_from(outer_idx)
+        .ok()
+        .and_then(|idx| msg.instructions.get(idx))
+        .and_then(|ix| msg.account_keys.get(ix.program_id_index as usize))
+        .is_some_and(|key| {
+            crate::grpc::program_ids::LOGLESS_PRECOMPILES
+                .iter()
+                .any(|precompile| precompile.as_ref() == key.as_slice())
+        })
 }
 
 #[inline]
@@ -265,4 +304,39 @@ fn parse_instructions(
         filter,
         is_created_buy,
     )
+}
+
+#[cfg(test)]
+mod logless_outer_tests {
+    use super::*;
+    use yellowstone_grpc_proto::prelude::{CompiledInstruction, Message};
+
+    #[test]
+    fn log_outer_index_skips_precompiles() {
+        let program = Pubkey::new_unique();
+        for precompile in crate::grpc::program_ids::LOGLESS_PRECOMPILES {
+            let account_keys =
+                [program, precompile].iter().map(|k| k.to_bytes().to_vec()).collect();
+            let ix = |program_id_index: u32| CompiledInstruction {
+                program_id_index,
+                accounts: Vec::new(),
+                data: Vec::new(),
+            };
+            let transaction = Some(Transaction {
+                signatures: vec![vec![0u8; 64]],
+                message: Some(Message {
+                    account_keys,
+                    instructions: vec![ix(0), ix(1), ix(1), ix(0)],
+                    ..Default::default()
+                }),
+            });
+            assert_eq!(next_logged_outer_index(&transaction, -1), 0);
+            assert_eq!(next_logged_outer_index(&transaction, 0), 3);
+            assert_eq!(next_logged_outer_index(&None, 0), 1);
+            let mut leading = transaction.clone();
+            leading.as_mut().unwrap().message.as_mut().unwrap().instructions =
+                vec![ix(1), ix(1), ix(0)];
+            assert_eq!(next_logged_outer_index(&leading, -1), 2);
+        }
+    }
 }

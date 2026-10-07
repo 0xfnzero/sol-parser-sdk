@@ -39,25 +39,29 @@ pub fn create_metadata_simple(
 /// 从指令数据中读取 u64（小端序）- SIMD 优化
 #[inline(always)]
 pub fn read_u64_le(data: &[u8], offset: usize) -> Option<u64> {
-    data.get(offset..offset + 8).map(|slice| u64::from_le_bytes(slice.try_into().unwrap()))
+    data.get(offset..offset.checked_add(8)?)
+        .map(|slice| u64::from_le_bytes(slice.try_into().unwrap()))
 }
 
 /// 从指令数据中读取 u32（小端序）- SIMD 优化
 #[inline(always)]
 pub fn read_u32_le(data: &[u8], offset: usize) -> Option<u32> {
-    data.get(offset..offset + 4).map(|slice| u32::from_le_bytes(slice.try_into().unwrap()))
+    data.get(offset..offset.checked_add(4)?)
+        .map(|slice| u32::from_le_bytes(slice.try_into().unwrap()))
 }
 
 /// Read a little-endian `i64` from instruction data.
 #[inline(always)]
 pub fn read_i64_le(data: &[u8], offset: usize) -> Option<i64> {
-    data.get(offset..offset + 8).map(|slice| i64::from_le_bytes(slice.try_into().unwrap()))
+    data.get(offset..offset.checked_add(8)?)
+        .map(|slice| i64::from_le_bytes(slice.try_into().unwrap()))
 }
 
 /// 从指令数据中读取 u16（小端序）- SIMD 优化
 #[inline(always)]
 pub fn read_u16_le(data: &[u8], offset: usize) -> Option<u16> {
-    data.get(offset..offset + 2).map(|slice| u16::from_le_bytes(slice.try_into().unwrap()))
+    data.get(offset..offset.checked_add(2)?)
+        .map(|slice| u16::from_le_bytes(slice.try_into().unwrap()))
 }
 
 /// 从指令数据中读取 u8
@@ -69,19 +73,21 @@ pub fn read_u8(data: &[u8], offset: usize) -> Option<u8> {
 /// 从指令数据中读取 i32（小端序）- SIMD 优化
 #[inline(always)]
 pub fn read_i32_le(data: &[u8], offset: usize) -> Option<i32> {
-    data.get(offset..offset + 4).map(|slice| i32::from_le_bytes(slice.try_into().unwrap()))
+    data.get(offset..offset.checked_add(4)?)
+        .map(|slice| i32::from_le_bytes(slice.try_into().unwrap()))
 }
 
 /// 从指令数据中读取 u128（小端序）- SIMD 优化
 #[inline(always)]
 pub fn read_u128_le(data: &[u8], offset: usize) -> Option<u128> {
-    data.get(offset..offset + 16).map(|slice| u128::from_le_bytes(slice.try_into().unwrap()))
+    data.get(offset..offset.checked_add(16)?)
+        .map(|slice| u128::from_le_bytes(slice.try_into().unwrap()))
 }
 
 /// 从指令数据中读取布尔值
 #[inline(always)]
 pub fn read_bool(data: &[u8], offset: usize) -> Option<bool> {
-    data.get(offset).map(|&b| b != 0)
+    read_option_bool_idl(data, offset)
 }
 
 /// IDL 自定义类型 `OptionBool`（Anchor：`struct { bool }`）在 **指令参数** 中与 `bool` 相同，Borsh 仅占 **1 字节**。
@@ -105,7 +111,7 @@ pub fn read_option_u64_idl(data: &[u8], offset: usize) -> Option<u64> {
 /// 从指令数据中读取公钥 - SIMD 优化
 #[inline(always)]
 pub fn read_pubkey(data: &[u8], offset: usize) -> Option<Pubkey> {
-    data.get(offset..offset + 32).and_then(|slice| Pubkey::try_from(slice).ok())
+    data.get(offset..offset.checked_add(32)?).and_then(|slice| Pubkey::try_from(slice).ok())
 }
 
 /// 从账户列表中获取账户
@@ -114,14 +120,16 @@ pub fn get_account(accounts: &[Pubkey], index: usize) -> Option<Pubkey> {
     accounts.get(index).copied()
 }
 
-/// 计算滑点基点
+/// Legacy amount-ratio helper in basis points. Both amounts must share units;
+/// this does not estimate swap slippage between different token mints.
 pub fn calculate_slippage_bps(amount_in: u64, amount_out_min: u64) -> u16 {
     if amount_in == 0 {
         return 0;
     }
 
     // 简化的滑点计算
-    let slippage = ((amount_in.saturating_sub(amount_out_min)) * 10000) / amount_in;
+    let slippage =
+        (u128::from(amount_in.saturating_sub(amount_out_min)) * 10000) / u128::from(amount_in);
     slippage.min(10000) as u16
 }
 
@@ -131,16 +139,14 @@ pub fn calculate_price_impact_bps(_amount_in: u64, amount_out: u64, expected_out
         return 0;
     }
 
-    let impact = ((expected_out.saturating_sub(amount_out)) * 10000) / expected_out;
+    let impact =
+        (u128::from(expected_out.saturating_sub(amount_out)) * 10000) / u128::from(expected_out);
     impact.min(10000) as u16
 }
 
 /// Read bytes from instruction data
 pub fn read_bytes(data: &[u8], offset: usize, length: usize) -> Option<&[u8]> {
-    if data.len() < offset + length {
-        return None;
-    }
-    Some(&data[offset..offset + length])
+    data.get(offset..offset.checked_add(length)?)
 }
 
 /// `create_v2` instruction payload without the discriminator. All fields after
@@ -162,46 +168,46 @@ pub fn parse_create_v2_tail_fields(
     }
     let creator = read_pubkey(data_after_discriminator, offset)?;
     offset += 32;
-    let is_mayhem_mode = read_bool(data_after_discriminator, offset)?;
+    let is_mayhem_mode = read_option_bool_idl(data_after_discriminator, offset)?;
     offset += 1;
-    let is_cashback_enabled = if offset < data_after_discriminator.len() {
-        read_option_bool_idl(data_after_discriminator, offset).unwrap_or(false)
-    } else {
-        false
-    };
-    if offset < data_after_discriminator.len() {
-        offset += 1;
-    }
-    let creator_fee_bps = read_option_u64_idl(data_after_discriminator, offset).unwrap_or_default();
-    if offset + 8 <= data_after_discriminator.len() {
-        offset += 8;
-    }
-    let is_holder_reward =
-        read_option_bool_idl(data_after_discriminator, offset).unwrap_or_default();
+    let (is_cashback_enabled, creator_fee_bps, is_holder_reward) =
+        parse_create_v2_optional_tail(&data_after_discriminator[offset..])?;
     Some((creator, is_mayhem_mode, is_cashback_enabled, creator_fee_bps, is_holder_reward))
+}
+
+/// Legacy tails may end between fields, but never within a field.
+/// Reject incomplete fee bytes instead of interpreting their first byte as a flag.
+#[inline]
+pub(crate) fn parse_create_v2_optional_tail(tail: &[u8]) -> Option<(bool, u64, bool)> {
+    if tail.is_empty() {
+        return Some((false, 0, false));
+    }
+    let cashback = read_option_bool_idl(tail, 0)?;
+    if tail.len() == 1 {
+        return Some((cashback, 0, false));
+    }
+    let fee = read_u64_le(tail, 1)?;
+    let holder_reward = if tail.len() == 9 { false } else { read_option_bool_idl(tail, 9)? };
+    Some((cashback, fee, holder_reward))
 }
 
 /// Read string with 4-byte length prefix (Borsh format)
 /// Returns (string slice, total bytes consumed including length prefix)
 #[inline]
 pub fn read_str_unchecked(data: &[u8], offset: usize) -> Option<(&str, usize)> {
-    if data.len() < offset + 4 {
-        return None;
-    }
-    let len = u32::from_le_bytes(data[offset..offset + 4].try_into().ok()?) as usize;
-    if data.len() < offset + 4 + len {
-        return None;
-    }
-    let string_bytes = &data[offset + 4..offset + 4 + len];
-    let s = std::str::from_utf8(string_bytes).ok()?;
-    Some((s, 4 + len))
+    let tail = data.get(offset..)?;
+    let len = read_u32_le(tail, 0)? as usize;
+    let bytes = tail.get(4..)?.get(..len)?;
+    Some((std::str::from_utf8(bytes).ok()?, len.checked_add(4)?))
 }
 
-/// 从指令数据中读取u64向量（简化版本）
-pub fn read_vec_u64(_data: &[u8], _offset: usize) -> Option<Vec<u64>> {
-    // 简化版本：返回默认的两个元素向量
-    // 实际实现需要根据具体的数据格式来解析
-    Some(vec![0, 0])
+/// Read a Borsh Vec<u64>: u32 element count followed by little-endian values.
+/// Validate the complete byte range before allocating, including untrusted counts.
+pub fn read_vec_u64(data: &[u8], offset: usize) -> Option<Vec<u64>> {
+    let tail = data.get(offset..)?;
+    let count = read_u32_le(tail, 0)? as usize;
+    let bytes = tail.get(4..)?.get(..count.checked_mul(8)?)?;
+    Some(bytes.chunks_exact(8).map(|value| u64::from_le_bytes(value.try_into().unwrap())).collect())
 }
 
 /// 快速读取 Pubkey（从字节数组）
@@ -262,17 +268,17 @@ pub fn get_instruction_account_getter<'a>(
         };
         // 主账户列表
         if let Some(key_bytes) = keys.get(account_index) {
-            return read_pubkey_fast(key_bytes);
+            return Pubkey::try_from(key_bytes.as_slice()).unwrap_or_default();
         }
         // 可写地址
         let writable_offset = account_index.saturating_sub(keys.len());
         if let Some(key_bytes) = loaded_writable_addresses.get(writable_offset) {
-            return read_pubkey_fast(key_bytes);
+            return Pubkey::try_from(key_bytes.as_slice()).unwrap_or_default();
         }
         // 只读地址
         let readonly_offset = writable_offset.saturating_sub(loaded_writable_addresses.len());
         if let Some(key_bytes) = loaded_readonly_addresses.get(readonly_offset) {
-            return read_pubkey_fast(key_bytes);
+            return Pubkey::try_from(key_bytes.as_slice()).unwrap_or_default();
         }
         Pubkey::default()
     })
@@ -341,15 +347,15 @@ pub fn get_instruction_account_getter_indexed<'a>(
             return Pubkey::default();
         };
         if let Some(key_bytes) = keys.get(account_index) {
-            return read_pubkey_fast(key_bytes);
+            return Pubkey::try_from(key_bytes.as_slice()).unwrap_or_default();
         }
         let writable_offset = account_index.saturating_sub(keys.len());
         if let Some(key_bytes) = loaded_writable_addresses.get(writable_offset) {
-            return read_pubkey_fast(key_bytes);
+            return Pubkey::try_from(key_bytes.as_slice()).unwrap_or_default();
         }
         let readonly_offset = writable_offset.saturating_sub(loaded_writable_addresses.len());
         if let Some(key_bytes) = loaded_readonly_addresses.get(readonly_offset) {
-            return read_pubkey_fast(key_bytes);
+            return Pubkey::try_from(key_bytes.as_slice()).unwrap_or_default();
         }
         Pubkey::default()
     })
@@ -408,5 +414,160 @@ mod option_bool_tests {
         assert!(!cashback);
         assert_eq!(creator_fee_bps, 250);
         assert!(holder_reward);
+    }
+}
+
+#[cfg(test)]
+mod review_tail_regressions {
+    use super::*;
+    #[test]
+    fn optional_create_tail_rejects_partial_fee_and_invalid_boolean() {
+        for n in 1..8 {
+            let mut tail = vec![0];
+            tail.extend(std::iter::repeat_n(1, n));
+            assert!(parse_create_v2_optional_tail(&tail).is_none());
+        }
+        assert_eq!(parse_create_v2_optional_tail(&[]), Some((false, 0, false)));
+        assert_eq!(parse_create_v2_optional_tail(&[1]), Some((true, 0, false)));
+        let mut tail = vec![0];
+        tail.extend_from_slice(&1u64.to_le_bytes());
+        assert_eq!(parse_create_v2_optional_tail(&tail), Some((false, 1, false)));
+        tail.push(2);
+        assert!(parse_create_v2_optional_tail(&tail).is_none());
+        tail[9] = 1;
+        assert_eq!(parse_create_v2_optional_tail(&tail), Some((false, 1, true)));
+        tail[0] = 2;
+        assert!(parse_create_v2_optional_tail(&tail).is_none());
+    }
+}
+
+#[cfg(test)]
+mod review_numeric_bounds_tests {
+    use super::*;
+
+    #[test]
+    fn oversized_offsets_and_lengths_return_none_without_panicking() {
+        let data = [0u8; 64];
+        for offset in [65, usize::MAX - 32, usize::MAX - 1, usize::MAX] {
+            assert_eq!(read_u16_le(&data, offset), None);
+            assert_eq!(read_u32_le(&data, offset), None);
+            assert_eq!(read_i32_le(&data, offset), None);
+            assert_eq!(read_u64_le(&data, offset), None);
+            assert_eq!(read_i64_le(&data, offset), None);
+            assert_eq!(read_u128_le(&data, offset), None);
+            assert_eq!(read_pubkey(&data, offset), None);
+            assert_eq!(read_str_unchecked(&data, offset), None);
+            assert_eq!(read_bytes(&data, offset, 8), None);
+            assert_eq!(read_vec_u64(&data, offset), None);
+        }
+        assert_eq!(read_bytes(&data, 1, usize::MAX), None);
+        assert_eq!(read_str_unchecked(&u32::MAX.to_le_bytes(), 0), None);
+        assert_eq!(read_str_unchecked(&[1, 0, 0, 0, 255], 0), None);
+        assert_eq!(read_str_unchecked(&[1, 0, 0, 0, b'x'], 0), Some(("x", 5)));
+    }
+
+    #[test]
+    fn borsh_vector_reads_values_and_rejects_truncation_before_allocation() {
+        let values = [0u64, 7, u64::MAX];
+        let mut data = vec![99, 99];
+        data.extend_from_slice(&3u32.to_le_bytes());
+        for value in values {
+            data.extend_from_slice(&value.to_le_bytes());
+        }
+        assert_eq!(read_vec_u64(&data, 2), Some(values.to_vec()));
+        for end in 0..data.len() {
+            assert_eq!(read_vec_u64(&data[..end], 2), None);
+        }
+        assert_eq!(read_vec_u64(&0u32.to_le_bytes(), 0), Some(Vec::new()));
+        assert_eq!(read_vec_u64(&u32::MAX.to_le_bytes(), 0), None);
+    }
+
+    #[test]
+    fn bps_ratio_is_bounded_and_correct_for_full_u64_range() {
+        for denominator in [0, 1, 10_000, u64::MAX / 2, u64::MAX] {
+            for amount in [0, 1, 10_000, u64::MAX / 2, u64::MAX] {
+                let expected = if denominator == 0 {
+                    0
+                } else {
+                    (u128::from(denominator.saturating_sub(amount)) * 10_000
+                        / u128::from(denominator)) as u16
+                };
+                assert_eq!(calculate_slippage_bps(denominator, amount), expected);
+                assert_eq!(calculate_price_impact_bps(0, amount, denominator), expected);
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+mod transaction_account_key_length_regressions {
+    use super::*;
+    use yellowstone_grpc_proto::prelude::{CompiledInstruction, Message};
+
+    #[test]
+    fn both_getters_keep_malformed_static_and_alt_keys_unresolved() {
+        let expected = Pubkey::new_unique();
+        for source in 0..3 {
+            for length in [0, 31, 32, 33, 64] {
+                let mut bytes = expected.to_bytes().to_vec();
+                bytes.resize(length, 0);
+                let keys =
+                    vec![if source == 0 { bytes.clone() } else { expected.to_bytes().to_vec() }];
+                let writable =
+                    vec![if source == 1 { bytes.clone() } else { expected.to_bytes().to_vec() }];
+                let readonly = vec![if source == 2 { bytes } else { expected.to_bytes().to_vec() }];
+                let tx = Some(Transaction {
+                    message: Some(Message {
+                        account_keys: keys.clone(),
+                        instructions: vec![CompiledInstruction {
+                            accounts: vec![0, 1, 2],
+                            ..Default::default()
+                        }],
+                        ..Default::default()
+                    }),
+                    ..Default::default()
+                });
+                let meta = TransactionStatusMeta::default();
+                let index = InnerInstructionsIndex::new(&meta);
+                let position = (0, -1);
+                let get = get_instruction_account_getter(
+                    &meta,
+                    &tx,
+                    Some(&keys),
+                    &writable,
+                    &readonly,
+                    &position,
+                )
+                .unwrap();
+                let indexed = get_instruction_account_getter_indexed(
+                    &index,
+                    &tx,
+                    Some(&keys),
+                    &writable,
+                    &readonly,
+                    &position,
+                )
+                .unwrap();
+                let actual = if length == 32 { expected } else { Pubkey::default() };
+                assert_eq!(get(source), actual);
+                assert_eq!(indexed(source), actual);
+                assert_eq!(get(3), Pubkey::default());
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+mod review_canonical_bool_regressions {
+    use super::*;
+    #[test]
+    fn bool_readers_accept_only_borsh_zero_and_one() {
+        for byte in 0..=u8::MAX {
+            let expected = match byte { 0 => Some(false), 1 => Some(true), _ => None };
+            assert_eq!(read_bool(&[byte],0),expected);
+            assert_eq!(read_option_bool_idl(&[byte],0),expected);
+        }
+        assert_eq!(read_bool(&[],0),None);
+        assert_eq!(read_bool(&[0],usize::MAX),None);
     }
 }

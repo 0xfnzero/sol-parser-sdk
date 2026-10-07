@@ -26,17 +26,22 @@ fn fill_if_default(to: &mut Pubkey, from: Pubkey) {
 /// 14: oracle
 pub fn fill_whirlpool_swap_accounts(e: &mut OrcaWhirlpoolSwapEvent, get: &AccountGetter<'_>) {
     /// Official Memo program — present at index 2 on `swap_v2`.
-    const MEMO_PROGRAM: Pubkey =
-        solana_sdk::pubkey!("MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr");
+    const MEMO_PROGRAM: Pubkey = solana_sdk::pubkey!("MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr");
 
-    let is_v2 = get(2) == MEMO_PROGRAM
-        || (e.whirlpool != Pubkey::default() && get(4) == e.whirlpool);
+    let is_v2 = match e.ix_name.as_str() {
+        "swap" => false,
+        "swap_v2" => true,
+        _ => get(2) == MEMO_PROGRAM || (e.whirlpool != Pubkey::default() && get(4) == e.whirlpool),
+    };
     if is_v2 {
         if e.whirlpool == Pubkey::default() {
             e.whirlpool = get(4);
         }
         fill_if_default(&mut e.token_program_a, get(0));
         fill_if_default(&mut e.token_program_b, get(1));
+        fill_if_default(&mut e.token_authority, get(3));
+        fill_if_default(&mut e.token_owner_account_a, get(7));
+        fill_if_default(&mut e.token_owner_account_b, get(9));
         fill_if_default(&mut e.token_mint_a, get(5));
         fill_if_default(&mut e.token_mint_b, get(6));
         fill_if_default(&mut e.token_vault_a, get(8));
@@ -50,6 +55,9 @@ pub fn fill_whirlpool_swap_accounts(e: &mut OrcaWhirlpoolSwapEvent, get: &Accoun
             e.whirlpool = get(2);
         }
         // v1: single token program for both sides; mints are not in the account list.
+        fill_if_default(&mut e.token_authority, get(1));
+        fill_if_default(&mut e.token_owner_account_a, get(3));
+        fill_if_default(&mut e.token_owner_account_b, get(5));
         let tp = get(0);
         fill_if_default(&mut e.token_program_a, tp);
         fill_if_default(&mut e.token_program_b, tp);
@@ -81,7 +89,8 @@ pub fn fill_whirlpool_liquidity_increased_accounts(
     get: &AccountGetter<'_>,
 ) {
     if e.position == Pubkey::default() {
-        e.position = get(3);
+        let is_v2 = get(3) == solana_sdk::pubkey!("MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr");
+        e.position = get(if is_v2 { 5 } else { 3 });
     }
 }
 
@@ -104,7 +113,8 @@ pub fn fill_whirlpool_liquidity_decreased_accounts(
     get: &AccountGetter<'_>,
 ) {
     if e.position == Pubkey::default() {
-        e.position = get(3);
+        let is_v2 = get(3) == solana_sdk::pubkey!("MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr");
+        e.position = get(if is_v2 { 5 } else { 3 });
     }
 }
 
@@ -131,10 +141,7 @@ mod tests {
     #[test]
     fn fill_swap_v1_tick_arrays() {
         let accounts: Vec<_> = (0..11).map(|_| Pubkey::new_unique()).collect();
-        let mut e = OrcaWhirlpoolSwapEvent {
-            whirlpool: accounts[2],
-            ..Default::default()
-        };
+        let mut e = OrcaWhirlpoolSwapEvent { whirlpool: accounts[2], ..Default::default() };
         fill_whirlpool_swap_accounts(&mut e, &|i| accounts.get(i).copied().unwrap_or_default());
         assert_eq!(e.token_vault_a, accounts[4]);
         assert_eq!(e.tick_array_0, accounts[7]);

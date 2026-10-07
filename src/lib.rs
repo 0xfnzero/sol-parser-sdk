@@ -4,6 +4,7 @@
 pub mod accounts; // 账户解析器
 pub mod common;
 pub mod core;
+pub mod cpmm_creator_fee;
 pub mod instr; // 指令解析器
 pub mod logs; // 日志解析器
 pub mod stonkfun_registry;

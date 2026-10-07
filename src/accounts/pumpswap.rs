@@ -103,6 +103,23 @@ pub fn parse_global_config(account: &AccountData, metadata: EventMetadata) -> Op
         offset += 32;
     }
 
+    let is_cashback_enabled = read_u8(data, offset).unwrap_or_default() != 0;
+    offset += 1;
+    let mut buyback_fee_recipients = [solana_sdk::pubkey::Pubkey::default(); 8];
+    for (index, recipient) in buyback_fee_recipients.iter_mut().enumerate() {
+        *recipient = read_pubkey(data, offset + index * 32).unwrap_or_default();
+    }
+    offset += 32 * 8;
+    let buyback_basis_points = read_u64_le(data, offset).unwrap_or_default();
+    offset += 8;
+    let boost_authority = read_pubkey(data, offset).unwrap_or_default();
+    offset += 32;
+    let boost_enabled = read_u8(data, offset).unwrap_or_default() != 0;
+    offset += 1;
+    let creator_fee_configurable = read_u8(data, offset).unwrap_or_default() != 0;
+    offset += 1;
+    let max_configurable_creator_fee_bps = read_u64_le(data, offset).unwrap_or_default();
+
     let global_config = PumpSwapGlobalConfig {
         admin,
         lp_fee_basis_points,
@@ -115,6 +132,13 @@ pub fn parse_global_config(account: &AccountData, metadata: EventMetadata) -> Op
         reserved_fee_recipient,
         mayhem_mode_enabled,
         reserved_fee_recipients,
+        is_cashback_enabled,
+        buyback_fee_recipients,
+        buyback_basis_points,
+        boost_authority,
+        boost_enabled,
+        creator_fee_configurable,
+        max_configurable_creator_fee_bps,
     };
 
     Some(DexEvent::PumpSwapGlobalConfigAccount(PumpSwapGlobalConfigAccountEvent {

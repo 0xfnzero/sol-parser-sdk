@@ -129,23 +129,11 @@ fn quote_mint_from_shred_v2_account(quote_mint: Option<Pubkey>) -> Pubkey {
 
 #[inline(always)]
 fn create_v2_quote_accounts_from_shred_accounts(
-    accounts_len: usize,
-    get_account: impl Fn(usize) -> Option<Pubkey>,
+    _account_len: usize,
+    _get_account: impl Fn(usize) -> Option<Pubkey>,
 ) -> (Pubkey, Pubkey, Pubkey) {
-    if accounts_len < 19 {
-        return (PUMPFUN_SOLSCAN_SOL_QUOTE_MINT, Pubkey::default(), Pubkey::default());
-    }
-    let quote_mint = get_account(16).unwrap_or_default();
-    let quote_vault = get_account(17).unwrap_or_default();
-    let quote_token_program = get_account(18).unwrap_or_default();
-    if quote_mint == Pubkey::default()
-        || quote_mint == PROGRAM_ID_PUBKEY
-        || quote_vault == Pubkey::default()
-        || quote_token_program == Pubkey::default()
-    {
-        return (Pubkey::default(), Pubkey::default(), Pubkey::default());
-    }
-    (quote_mint_from_shred_v2_account(Some(quote_mint)), quote_vault, quote_token_program)
+    // create_v2 has 16 fixed IDL accounts and no quote account mapping.
+    (PUMPFUN_SOLSCAN_SOL_QUOTE_MINT, Pubkey::default(), Pubkey::default())
 }
 
 #[inline]
@@ -315,6 +303,11 @@ fn dispatch_shred_outer(
         return;
     }
     if !unified_outer_data_may_parse(*program_id, data) {
+        return;
+    }
+    if *program_id == RAYDIUM_CPMM_PROGRAM_ID
+        && !crate::instr::raydium_cpmm::instruction_may_parse(data, ix_accounts.len(), filter)
+    {
         return;
     }
     let accounts = build_shred_ix_accounts(static_keys, ix_accounts);
@@ -619,8 +612,8 @@ fn parse_pumpfun_instruction(
     }
 }
 
-/// `migrate_bonding_curve_creator` 外层 ix（`idls/pumpfun.json`）；无链上事件体时 `timestamp=0`，
-/// `old_creator` 未知则填默认，`new_creator` 取 `sharing_config` 账户（与常见费分成迁移一致）。
+/// `migrate_bonding_curve_creator` 外层 ix（`idl/pumpfun.json`）；无链上事件体时 `timestamp=0`，
+/// `old_creator` 未知则填默认，`new_creator` 依赖执行或账户状态，不能用 `sharing_config` 地址代替。
 #[inline]
 fn parse_migrate_bonding_curve_creator_shred(
     accounts: &[Pubkey],
@@ -652,7 +645,7 @@ fn parse_migrate_bonding_curve_creator_shred(
         bonding_curve,
         sharing_config,
         old_creator: Pubkey::default(),
-        new_creator: sharing_config,
+        new_creator: Pubkey::default(),
     }))
 }
 
@@ -1545,6 +1538,119 @@ mod tests {
     }
 
     #[test]
+    fn shred_pumpswap_upgrade_accounts_and_filters_match_all_trade_modes() {
+        use crate::grpc::types::EventType;
+        use crate::instr::pump_amm::discriminators as amm;
+        for (disc, count, pool_v2_index, kind) in [
+            (amm::BUY, 25, None, EventType::PumpSwapBuy),
+            (amm::BUY, 26, None, EventType::PumpSwapBuy),
+            (amm::BUY, 26, Some(23), EventType::PumpSwapBuy),
+            (amm::BUY, 27, Some(24), EventType::PumpSwapBuy),
+            (amm::BUY_EXACT_QUOTE_IN, 25, None, EventType::PumpSwapBuy),
+            (amm::BUY_EXACT_QUOTE_IN, 26, None, EventType::PumpSwapBuy),
+            (amm::BUY_EXACT_QUOTE_IN, 26, Some(23), EventType::PumpSwapBuy),
+            (amm::BUY_EXACT_QUOTE_IN, 27, Some(24), EventType::PumpSwapBuy),
+            (amm::SELL, 23, None, EventType::PumpSwapSell),
+            (amm::SELL, 25, None, EventType::PumpSwapSell),
+            (amm::SELL, 24, Some(21), EventType::PumpSwapSell),
+            (amm::SELL, 26, Some(23), EventType::PumpSwapSell),
+        ] {
+            let mut keys = unique_accounts(count + 1);
+            keys[count] = PUMPSWAP_PROGRAM_ID;
+            let expected_pool = keys[0];
+            let expected_pool_v2 = pool_v2_index.map(|index| {
+                let pda = Pubkey::find_program_address(&[b"pool-v2", keys[3].as_ref()], &PUMPSWAP_PROGRAM_ID).0;
+                keys[index] = pda;
+                pda
+            }).unwrap_or_default();
+            let expected_recipient = keys[count - 2];
+            let expected_recipient_ata = keys[count - 1];
+            let mut data = instruction_data(disc, 123, 456);
+            if disc != amm::SELL {
+                data.push(1);
+            }
+            let tx = v0_tx(count as u8, keys, ix_accounts(count), data);
+            let filter = EventTypeFilter::include_only(vec![kind]);
+            let mut events = Vec::new();
+            parse_transaction_dex_events_with_filter(
+                &tx,
+                Signature::default(),
+                42,
+                3,
+                1234,
+                Some(&filter),
+                &mut events,
+            );
+            assert_eq!(events.len(), 1);
+            let (
+                pool,
+                pool_v2,
+                recipient,
+                recipient_ata,
+                base_reserve,
+                quote_reserve,
+                virtual_reserve,
+            ) = match &events[0] {
+                DexEvent::PumpSwapBuy(e) => {
+                    assert!(e.track_volume);
+                    assert_eq!(
+                        e.ix_name,
+                        if disc == amm::BUY { "buy" } else { "buy_exact_quote_in" }
+                    );
+                    if disc == amm::BUY {
+                        assert_eq!(e.base_amount_out, 123);
+                        assert_eq!(e.max_quote_amount_in, 456);
+                    } else {
+                        assert_eq!(e.min_base_amount_out, 456);
+                        assert_eq!(e.max_quote_amount_in, 123);
+                    }
+                    (
+                        e.pool,
+                        e.pool_v2,
+                        e.fee_recipient,
+                        e.fee_recipient_quote_token_account,
+                        e.pool_base_token_reserves,
+                        e.pool_quote_token_reserves,
+                        e.virtual_quote_reserves,
+                    )
+                }
+                DexEvent::PumpSwapSell(e) => {
+                    assert_eq!(e.base_amount_in, 123);
+                    assert_eq!(e.min_quote_amount_out, 456);
+                    (
+                        e.pool,
+                        e.pool_v2,
+                        e.fee_recipient,
+                        e.fee_recipient_quote_token_account,
+                        e.pool_base_token_reserves,
+                        e.pool_quote_token_reserves,
+                        e.virtual_quote_reserves,
+                    )
+                }
+                _ => panic!("expected PumpSwap trade"),
+            };
+            assert_eq!(
+                (pool, pool_v2, recipient, recipient_ata),
+                (expected_pool, expected_pool_v2, expected_recipient, expected_recipient_ata)
+            );
+            // Raw shreds have no execution state: these defaults must not seed a price cache.
+            assert_eq!((base_reserve, quote_reserve, virtual_reserve), (0, 0, 0));
+            let excluded = EventTypeFilter::include_only(vec![EventType::RaydiumCpmmSwap]);
+            events.clear();
+            parse_transaction_dex_events_with_filter(
+                &tx,
+                Signature::default(),
+                42,
+                3,
+                1234,
+                Some(&excluded),
+                &mut events,
+            );
+            assert!(events.is_empty());
+        }
+    }
+
+    #[test]
     fn unified_shred_outer_programs_cover_supported_protocols() {
         for program_id in [
             PUMPSWAP_PROGRAM_ID,
@@ -1675,7 +1781,7 @@ mod tests {
     }
 
     #[test]
-    fn shred_pumpfun_create_v2_uses_appended_quote_mint_only_for_19_accounts() {
+    fn shred_pumpfun_create_v2_ignores_unknown_remaining_accounts() {
         let mut static_keys = vec![Pubkey::new_unique(); 20];
         static_keys[19] = PROGRAM_ID_PUBKEY;
         static_keys[16] = PUMPFUN_WSOL_QUOTE_MINT;
@@ -1696,7 +1802,7 @@ mod tests {
         match &events[0] {
             DexEvent::PumpFunCreate(event) => {
                 assert_eq!(event.ix_name, "create_v2");
-                assert_eq!(event.quote_mint, PUMPFUN_WSOL_QUOTE_MINT);
+                assert_eq!(event.quote_mint, PUMPFUN_SOLSCAN_SOL_QUOTE_MINT);
             }
             other => panic!("expected PumpFunCreate, got {other:?}"),
         }
@@ -1722,7 +1828,7 @@ mod tests {
         match &events[0] {
             DexEvent::PumpFunCreate(event) => {
                 assert_eq!(event.ix_name, "create_v2");
-                assert_eq!(event.quote_mint, Pubkey::default());
+                assert_eq!(event.quote_mint, PUMPFUN_SOLSCAN_SOL_QUOTE_MINT);
             }
             other => panic!("expected PumpFunCreate, got {other:?}"),
         }
@@ -1771,7 +1877,7 @@ mod tests {
         match &events[0] {
             DexEvent::PumpFunCreate(event) => {
                 assert_eq!(event.ix_name, "create_v2");
-                assert_eq!(event.quote_mint, Pubkey::default());
+                assert_eq!(event.quote_mint, PUMPFUN_SOLSCAN_SOL_QUOTE_MINT);
                 assert_eq!(event.quote_vault, Pubkey::default());
                 assert_eq!(event.quote_token_program, Pubkey::default());
             }
@@ -1893,19 +1999,19 @@ mod tests {
                         case.name, case.signature
                     );
                     assert_eq!(
-                        event.quote_mint, case.quote_mint,
+                        event.quote_mint, PUMPFUN_SOLSCAN_SOL_QUOTE_MINT,
                         "{}: {}",
                         case.name, case.signature
                     );
                     assert_eq!(
                         event.quote_vault,
-                        pk(case.quote_vault),
+                        Pubkey::default(),
                         "{}: {}",
                         case.name,
                         case.signature
                     );
                     assert_eq!(
-                        event.quote_token_program, spl_token_program,
+                        event.quote_token_program, Pubkey::default(),
                         "{}: {}",
                         case.name, case.signature
                     );
@@ -2004,7 +2110,7 @@ mod tests {
             match &events[0] {
                 DexEvent::PumpFunCreate(event) => {
                     assert_eq!(event.ix_name, "create_v2", "{name}: {signature}");
-                    assert_eq!(event.quote_mint, Pubkey::default(), "{name}: {signature}");
+                    assert_eq!(event.quote_mint, PUMPFUN_SOLSCAN_SOL_QUOTE_MINT, "{name}: {signature}");
                     assert_eq!(event.quote_vault, Pubkey::default(), "{name}: {signature}");
                     assert_eq!(
                         event.quote_token_program,
@@ -2092,7 +2198,7 @@ mod tests {
                 _ => None,
             })
             .expect("create event");
-        assert_eq!(create.quote_mint, Pubkey::default());
+        assert_eq!(create.quote_mint, PUMPFUN_SOLSCAN_SOL_QUOTE_MINT);
     }
 
     #[test]
@@ -2178,7 +2284,7 @@ mod tests {
     #[test]
     fn unknown_program_outer_uses_filter_to_parse_matching_protocol() {
         let static_keys = vec![RAYDIUM_CPMM_PROGRAM_ID, Pubkey::new_unique()];
-        let ix_accounts = vec![1, 42, 43, 44];
+        let ix_accounts = vec![1, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53];
         let mut data = Vec::new();
         data.extend_from_slice(&crate::instr::raydium_cpmm::discriminators::SWAP_BASE_IN);
         data.extend_from_slice(&100_u64.to_le_bytes());
@@ -2313,7 +2419,7 @@ mod tests {
     #[test]
     fn non_pump_outer_accounts_keep_instruction_length_with_alt_defaults() {
         let static_keys = vec![RAYDIUM_CPMM_PROGRAM_ID, Pubkey::new_unique()];
-        let ix_accounts = vec![1, 42, 43, 44];
+        let ix_accounts = vec![1, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53];
         let mut data = Vec::new();
         data.extend_from_slice(&crate::instr::raydium_cpmm::discriminators::SWAP_BASE_IN);
         data.extend_from_slice(&100_u64.to_le_bytes());

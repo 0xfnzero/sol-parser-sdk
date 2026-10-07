@@ -1,13 +1,13 @@
 //! LaunchLab 日志解析器
 //!
-//! 底层按 `idls/raydium_launchpad.json` 的真实 event discriminator 和 Borsh
+//! 底层按 `idl/raydium_launchpad.json` 的真实 event discriminator 和 Borsh
 //! 布局解析，对外事件名统一为 `RaydiumLaunchlab*`。
 
 use super::utils::*;
 use crate::core::events::*;
 use solana_sdk::{pubkey::Pubkey, signature::Signature};
 
-/// LaunchLab event discriminators from `idls/raydium_launchpad.json`.
+/// LaunchLab event discriminators from `idl/raydium_launchpad.json`.
 pub mod discriminators {
     pub const CLAIM_VESTED: [u8; 8] = [21, 194, 114, 87, 120, 211, 226, 32];
     pub const CREATE_VESTING: [u8; 8] = [150, 152, 11, 179, 52, 210, 191, 125];

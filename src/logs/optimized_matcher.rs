@@ -186,7 +186,7 @@ mod discriminators {
         u64::from_le_bytes([151, 215, 226, 9, 118, 161, 115, 174]);
     pub const RAYDIUM_LAUNCHLAB_TRADE: u64 =
         u64::from_le_bytes([189, 219, 127, 211, 78, 230, 97, 238]);
-    // Pump fees (`idls/pump_fees.json` event discriminators)
+    // Pump fees (`idl/pump_fees.json` event discriminators)
     pub const PUMP_FEES_CREATE_FEE_SHARING_CONFIG: u64 =
         u64::from_le_bytes([133, 105, 170, 200, 184, 116, 251, 88]);
     pub const PUMP_FEES_INITIALIZE_FEE_CONFIG: u64 =

@@ -137,7 +137,7 @@ pub fn parse_traded_from_data(data: &[u8], metadata: EventMetadata) -> Option<De
         tick_array_1: Pubkey::default(),
         tick_array_2: Pubkey::default(),
         oracle: Pubkey::default(),
-
+        ..Default::default()
     }))
 }
 

@@ -43,7 +43,7 @@ pub fn parse_instruction(
 
     match discriminator {
         discriminators::SWAP => {
-            parse_swap_instruction(data, accounts, signature, slot, tx_index, block_time_us)
+            parse_swap_instruction(data, accounts, signature, slot, tx_index, block_time_us, "swap")
         }
         discriminators::SWAP_V2 => {
             parse_swap_v2_instruction(data, accounts, signature, slot, tx_index, block_time_us)
@@ -122,13 +122,14 @@ fn parse_swap_instruction(
     slot: u64,
     tx_index: u64,
     block_time_us: Option<i64>,
+    ix_name: &str,
 ) -> Option<DexEvent> {
     let mut offset = 0;
 
-    let _amount = read_u64_le(data, offset)?;
+    let amount = read_u64_le(data, offset)?;
     offset += 8;
 
-    let _other_amount_threshold = read_u64_le(data, offset)?;
+    let other_amount_threshold = read_u64_le(data, offset)?;
     offset += 8;
 
     let sqrt_price_limit_x64 = read_u128_le(data, offset)?;
@@ -137,12 +138,12 @@ fn parse_swap_instruction(
     // Instruction data bool is `is_base_input` (exact-in vs exact-out), NOT
     // swap direction. Real `zero_for_one` comes from the SwapEvent log; leave
     // a placeholder here so log-preferred merge keeps the log value.
-    let _is_base_input = data.get(offset)? == &1;
+    let is_base_input = data.get(offset)? == &1;
 
     let pool = get_account(accounts, 2)?;
     let metadata = create_metadata_simple(signature, slot, tx_index, block_time_us, pool);
 
-    Some(DexEvent::RaydiumClmmSwap(RaydiumClmmSwapEvent {
+    let mut event = RaydiumClmmSwapEvent {
         metadata,
         pool_state: pool,
         sender: get_account(accounts, 0).unwrap_or_default(),
@@ -153,11 +154,22 @@ fn parse_swap_instruction(
         amount_1: 0,
         transfer_fee_1: 0,
         zero_for_one: false,
-        sqrt_price_x64: sqrt_price_limit_x64,
+        sqrt_price_x64: 0,
+        ix_name: ix_name.to_string(),
+        amount,
+        other_amount_threshold,
+        sqrt_price_limit_x64,
+        is_base_input,
         liquidity: 0,
         tick: 0,
         ..Default::default()
-    }))
+    };
+    crate::core::account_fillers::raydium::fill_clmm_swap_accounts_with_count(
+        &mut event,
+        &|i| accounts.get(i).copied().unwrap_or_default(),
+        accounts.len(),
+    );
+    Some(DexEvent::RaydiumClmmSwap(event))
 }
 
 /// 解析 Swap V2 指令（支持 Token2022）
@@ -170,7 +182,7 @@ fn parse_swap_v2_instruction(
     block_time_us: Option<i64>,
 ) -> Option<DexEvent> {
     // SwapV2 与 Swap 参数相同，只是支持 Token2022
-    parse_swap_instruction(data, accounts, signature, slot, tx_index, block_time_us)
+    parse_swap_instruction(data, accounts, signature, slot, tx_index, block_time_us, "swap_v2")
 }
 
 /// 解析增加流动性 V2 指令
@@ -401,4 +413,63 @@ fn parse_open_position_with_token_22_nft_instruction(
     block_time_us: Option<i64>,
 ) -> Option<DexEvent> {
     parse_open_position_instruction(data, accounts, signature, slot, tx_index, block_time_us, 4)
+}
+
+#[cfg(test)]
+mod swap_wire_tests {
+    use super::*;
+
+    #[test]
+    fn swap_limits_and_mode_are_separate_from_execution_and_layout_uses_discriminator() {
+        for v2 in [false, true] {
+            for input_mode in [false, true] {
+                let mut accounts: Vec<_> = (0..17).map(|_| Pubkey::new_unique()).collect();
+                // Deliberately invert the memo heuristic: layout follows discriminator.
+                if !v2 {
+                    accounts[10] = "MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr".parse().unwrap();
+                }
+                let mut data =
+                    Vec::from(if v2 { discriminators::SWAP_V2 } else { discriminators::SWAP });
+                data.extend_from_slice(&0u64.to_le_bytes());
+                data.extend_from_slice(&u64::MAX.to_le_bytes());
+                data.extend_from_slice(&u128::MAX.to_le_bytes());
+                data.push(u8::from(input_mode));
+                let DexEvent::RaydiumClmmSwap(e) =
+                    parse_instruction(&data, &accounts, Signature::default(), 1, 0, None).unwrap()
+                else {
+                    panic!("swap")
+                };
+                assert_eq!(e.ix_name, if v2 { "swap_v2" } else { "swap" });
+                assert_eq!(e.amount, 0);
+                assert_eq!(e.other_amount_threshold, u64::MAX);
+                assert_eq!(e.sqrt_price_limit_x64, u128::MAX);
+                assert_eq!(e.is_base_input, input_mode);
+                assert_eq!((e.amount_0, e.amount_1, e.sqrt_price_x64), (0, 0, 0));
+                assert!(!e.zero_for_one);
+                assert_eq!(e.tick_arrays, accounts[if v2 { 13 } else { 9 }..].to_vec());
+                assert_eq!(e.input_mint, if v2 { accounts[11] } else { Pubkey::default() });
+                assert_eq!(e.output_mint, if v2 { accounts[12] } else { Pubkey::default() });
+                let serialized = serde_json::to_string(&e).unwrap();
+                let roundtrip: RaydiumClmmSwapEvent = serde_json::from_str(&serialized).unwrap();
+                assert_eq!(roundtrip.sqrt_price_limit_x64, u128::MAX);
+                // Value's default numeric representation is limited to u64;
+                // legacy JSON omits the new limit field entirely.
+                let mut legacy_event = e.clone();
+                legacy_event.sqrt_price_limit_x64 = 0;
+                let mut old_json = serde_json::to_value(&legacy_event).unwrap();
+                for name in [
+                    "ix_name",
+                    "amount",
+                    "other_amount_threshold",
+                    "sqrt_price_limit_x64",
+                    "is_base_input",
+                ] {
+                    old_json.as_object_mut().unwrap().remove(name);
+                }
+                let old: RaydiumClmmSwapEvent = serde_json::from_value(old_json).unwrap();
+                assert!(old.ix_name.is_empty());
+                assert_eq!(old.sqrt_price_limit_x64, 0);
+            }
+        }
+    }
 }

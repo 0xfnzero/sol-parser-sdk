@@ -59,6 +59,8 @@ pub fn parse_ray_log_swap(log: &str, metadata: EventMetadata) -> Option<DexEvent
         user_source_token_account: Pubkey::default(),
         user_destination_token_account: Pubkey::default(),
         user_source_owner: Pubkey::default(),
+
+        ..Default::default()
     }))
 }
 
@@ -159,6 +161,8 @@ pub fn parse_swap_base_in_from_data(data: &[u8], metadata: EventMetadata) -> Opt
         user_source_token_account: Pubkey::default(),
         user_destination_token_account: Pubkey::default(),
         user_source_owner: user,
+
+        ..Default::default()
     }))
 }
 
@@ -202,6 +206,8 @@ pub fn parse_swap_base_out_from_data(data: &[u8], metadata: EventMetadata) -> Op
         user_source_token_account: Pubkey::default(),
         user_destination_token_account: Pubkey::default(),
         user_source_owner: user,
+
+        ..Default::default()
     }))
 }
 
@@ -420,6 +426,8 @@ fn parse_swap_base_in_event(
         user_source_token_account: Pubkey::default(),
         user_destination_token_account: Pubkey::default(),
         user_source_owner: user,
+
+        ..Default::default()
     }))
 }
 
@@ -472,6 +480,8 @@ fn parse_swap_base_out_event(
         user_source_token_account: Pubkey::default(),
         user_destination_token_account: Pubkey::default(),
         user_source_owner: user,
+
+        ..Default::default()
     }))
 }
 
@@ -788,6 +798,8 @@ fn parse_swap_log_fallback(
         user_source_token_account: default_pubkey,
         user_destination_token_account: default_pubkey,
         user_source_owner: default_pubkey,
+
+        ..Default::default()
     }))
 }
 

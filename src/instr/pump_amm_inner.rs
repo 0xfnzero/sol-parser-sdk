@@ -7,7 +7,6 @@
 //! identical while retaining unchecked fixed-field reads after one bounds check.
 
 use crate::core::events::*;
-use crate::instr::inner_common::*;
 
 /// PumpSwap inner instruction discriminators (16 bytes)
 /// Format: [event_magic (8 bytes) | event_discriminator (8 bytes)]
@@ -98,93 +97,19 @@ fn parse_sell_inner(data: &[u8], metadata: EventMetadata) -> Option<DexEvent> {
 /// 解析 CreatePool 事件
 #[inline(always)]
 fn parse_create_pool_inner(data: &[u8], metadata: EventMetadata) -> Option<DexEvent> {
-    unsafe {
-        if !check_length(data, 32 + 32 + 32 + 32 + 8 + 8) {
-            return None;
-        }
-
-        let mut offset = 0;
-        let pool = read_pubkey_unchecked(data, offset);
-        offset += 32;
-        let creator = read_pubkey_unchecked(data, offset);
-        offset += 32;
-        let base_mint = read_pubkey_unchecked(data, offset);
-        offset += 32;
-        let quote_mint = read_pubkey_unchecked(data, offset);
-        offset += 32;
-        let base_amount = read_u64_unchecked(data, offset);
-        offset += 8;
-        let quote_amount = read_u64_unchecked(data, offset);
-
-        Some(DexEvent::PumpSwapCreatePool(PumpSwapCreatePoolEvent {
-            metadata,
-            pool,
-            creator,
-            base_mint,
-            quote_mint,
-            base_amount_in: base_amount,
-            quote_amount_in: quote_amount,
-            ..Default::default()
-        }))
-    }
+    crate::logs::pump_amm::parse_create_pool_from_data(data, metadata)
 }
 
 /// 解析 AddLiquidity 事件
 #[inline(always)]
 fn parse_add_liquidity_inner(data: &[u8], metadata: EventMetadata) -> Option<DexEvent> {
-    unsafe {
-        if !check_length(data, 32 + 32 + 8 + 8 + 8) {
-            return None;
-        }
-
-        let mut offset = 0;
-        let _pool = read_pubkey_unchecked(data, offset);
-        offset += 32;
-        let _user = read_pubkey_unchecked(data, offset);
-        offset += 32;
-        let base_amount = read_u64_unchecked(data, offset);
-        offset += 8;
-        let quote_amount = read_u64_unchecked(data, offset);
-        offset += 8;
-        let lp_amount = read_u64_unchecked(data, offset);
-
-        Some(DexEvent::PumpSwapLiquidityAdded(PumpSwapLiquidityAdded {
-            metadata,
-            base_amount_in: base_amount,
-            quote_amount_in: quote_amount,
-            lp_token_amount_out: lp_amount,
-            ..Default::default()
-        }))
-    }
+    crate::logs::pump_amm::parse_add_liquidity_from_data(data, metadata)
 }
 
 /// 解析 RemoveLiquidity 事件
 #[inline(always)]
 fn parse_remove_liquidity_inner(data: &[u8], metadata: EventMetadata) -> Option<DexEvent> {
-    unsafe {
-        if !check_length(data, 32 + 32 + 8 + 8 + 8) {
-            return None;
-        }
-
-        let mut offset = 0;
-        let _pool = read_pubkey_unchecked(data, offset);
-        offset += 32;
-        let _user = read_pubkey_unchecked(data, offset);
-        offset += 32;
-        let lp_amount = read_u64_unchecked(data, offset);
-        offset += 8;
-        let base_amount_out = read_u64_unchecked(data, offset);
-        offset += 8;
-        let quote_amount_out = read_u64_unchecked(data, offset);
-
-        Some(DexEvent::PumpSwapLiquidityRemoved(PumpSwapLiquidityRemoved {
-            metadata,
-            lp_token_amount_in: lp_amount,
-            base_amount_out,
-            quote_amount_out,
-            ..Default::default()
-        }))
-    }
+    crate::logs::pump_amm::parse_remove_liquidity_from_data(data, metadata)
 }
 
 #[cfg(test)]

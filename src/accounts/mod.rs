@@ -69,6 +69,7 @@ pub fn parse_account_unified(
                         | EventType::AccountRaydiumClmmTickArrayState
                         | EventType::AccountRaydiumCpmmAmmConfig
                         | EventType::AccountRaydiumCpmmPoolState
+                        | EventType::AccountRaydiumCpmmCreatorFeeShare
                         | EventType::AccountRaydiumLaunchlabPlatformConfig
                         | EventType::AccountOrcaWhirlpool
                         | EventType::AccountOrcaPosition
@@ -127,6 +128,7 @@ pub fn parse_account_unified(
         let should_parse = event_type_filter.is_none_or(|filter| {
             filter.should_include(crate::grpc::EventType::AccountRaydiumCpmmAmmConfig)
                 || filter.should_include(crate::grpc::EventType::AccountRaydiumCpmmPoolState)
+                || filter.should_include(crate::grpc::EventType::AccountRaydiumCpmmCreatorFeeShare)
         });
         if should_parse {
             let event = filter_parsed_event(

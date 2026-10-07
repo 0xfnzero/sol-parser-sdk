@@ -36,9 +36,9 @@
 
 ---
 
-## 📦 SDK Versions
+## 📦 SDK Versions and Related SDKs
 
-This SDK is available in multiple languages:
+Parser SDK language versions and related Rust SDKs:
 
 | Language | Repository | Description |
 |----------|------------|-------------|
@@ -46,6 +46,8 @@ This SDK is available in multiple languages:
 | **Node.js** | [sol-parser-sdk-nodejs](https://github.com/0xfnzero/sol-parser-sdk-nodejs) | TypeScript/JavaScript for Node.js |
 | **Python** | [sol-parser-sdk-python](https://github.com/0xfnzero/sol-parser-sdk-python) | Async/await native support |
 | **Go** | [sol-parser-sdk-golang](https://github.com/0xfnzero/sol-parser-sdk-golang) | Concurrent-safe with goroutine support |
+| **Rust** | [sol-shred-sdk](https://github.com/0xfnzero/sol-shred-sdk) | Raw Solana shred decoding and ShredStream DEX event parsing |
+| **Rust** | [sol-trade-sdk](https://github.com/0xfnzero/sol-trade-sdk) | Solana DEX trade construction and transaction execution |
 
 ## What This SDK Is For
 
@@ -113,16 +115,36 @@ sol-parser-sdk = { path = "../sol-parser-sdk", default-features = false, feature
 
 ```toml
 # Add to your Cargo.toml
-sol-parser-sdk = "0.7.7"
+sol-parser-sdk = "0.7.10"
 ```
 
 Or with the zero-copy parser (maximum performance):
 
 ```toml
-sol-parser-sdk = { version = "0.7.7", default-features = false, features = ["parse-zero-copy"] }
+sol-parser-sdk = { version = "0.7.10", default-features = false, features = ["parse-zero-copy"] }
 ```
 
 ### Release Notes
+
+#### v0.7.10
+
+- Matches PumpFun create/create_v2 accounts by the actual instruction discriminator and event mint, including CPI calls; ambiguous matches are left unspecified.
+- Stops inferring quote mint/vault/token-program fields from arbitrary remaining create_v2 accounts and preserves authoritative decoded fields.
+- Restores historical CreateEvent decoding and verifies successful and failed transactions using saved mainnet fixtures.
+
+#### v0.7.9
+
+- Fixes PumpSwap `boost_buy_and_burn` vault and token-program backfills using its own account layout and boost vault authority.
+- Preserves strict pool, direction, user and uniqueness matching, plus count-aware ALT enrichment for regular trades.
+- Aligns log-derived instruction positions past Ed25519, secp256k1 and secp256r1 precompiles.
+- Adds offline mainnet replay fixtures for boost buys and precompile-containing sells across RPC and both Yellowstone parsing paths.
+
+#### v0.7.8
+
+- Updates CPMM creator-fee collection accounts, share PDA and AmmConfig share-rate decoding.
+- Fixes failed-transaction event suppression and instruction/account preservation.
+- Adds RPC capture/replay examples and 13 mainnet transactions with 17 independently checked operations.
+- Run `cargo run --example rpc_corpus_validate -- --list` to view real signatures; run without arguments for offline validation.
 
 #### v0.7.7
 
@@ -146,7 +168,7 @@ sol-parser-sdk = { version = "0.7.7", default-features = false, features = ["par
 
 - Adds `Protocol::StonkFun` and `Protocol::LaunchLab` as the preferred subscription names; the old `Protocol::RaydiumLaunchlab` remains compatible.
 - Identifies StonkFun standard and reward pools from their official LaunchLab platform configuration accounts.
-- Opt-in RPC/Yellowstone route inspection preserves CPI positions, mint flows, limits, observed amounts and opaque programs; migration events expose pool provenance. See the [StonkFun capture audit and route API](docs/STONKFUN_AUDIT.md).
+- Opt-in RPC/Yellowstone route inspection preserves CPI positions, mint flows, limits, observed amounts and opaque programs; migration events expose pool provenance. See the [StonkFun route analysis and account subscriptions](docs/ROUTE_ANALYSIS.md).
 - Parses the complete current LaunchLab trade event, including reserves, all fee legs, pool status, and the three appended trade accounts.
 - Supports the current 18-account LaunchLab trade instruction layout and preserves the appended accounts when merging log and instruction events.
 - Adds a real mainnet StonkFun reward-pool transaction regression using signature `4Pb4vgRq6rAFi5NmMZMsfBvuwVVsvBqhySfPS3naMksujvEiGtPjxRLape7V82ZVQvxt7P8YKPCL6RSWTreMUFrY`.
@@ -531,20 +553,18 @@ Each protocol supports:
 
 | Protocol | Events | Accounts | Examples | Language constants |
 |----------|--------|----------|----------|--------------------|
-| LaunchLab | Trade, pool create, migrate | Pending | Migration, buy/sell oracle planned | Rust, Node, Python, Go |
+| LaunchLab | Trade, pool create, migrate | Pool/config snapshots | Migration, buy/sell oracle planned | Rust, Node, Python, Go |
 | Raydium CPMM | Swap, deposit, withdraw, initialize | AmmConfig, PoolState | New pool, token price | Rust, Node, Python, Go |
 | Raydium CLMM | Swap, pool, position, liquidity | AmmConfig, PoolState, TickArray | Token price | Rust, Node, Python, Go |
 | Raydium AMM V4 | Swap, deposit, withdraw, initialize2 | Pending | Token price oracle planned | Rust, Node, Python, Go |
 | Orca Whirlpool | Swap, liquidity, pool init | Whirlpool, Position, TickArray, FeeTier, Config | Token price | Rust, Node, Python, Go |
 | Meteora Pools | Swap, liquidity, pool create, fees | Pending | Token price oracle planned | Rust, Node, Python, Go |
 | Meteora DAMM V2 | Swap, liquidity, position | Pending | New pool, token price oracle planned | Rust, Node, Python, Go |
-| Meteora DLMM | Swap, liquidity, bin/position | Pending | Token price oracle planned | Rust, Node, Python, Go |
+| Meteora DLMM | Swap, liquidity, bin/position | Pool/bin array/bitmap snapshots | Token price oracle planned | Rust, Node, Python, Go |
 | Meteora DBC | Swap, initialize pool, curve complete (Rust log parser) | Pending | Token price, migration oracle planned | Rust, Node, Python, Go |
 
 The canonical cross-language baseline is tracked in
-[`protocols/canonical.json`](protocols/canonical.json). The current audit and
-remaining parser work are documented in
-[`docs/non-pump-dex-gap-analysis.md`](docs/non-pump-dex-gap-analysis.md).
+[`protocols/canonical.json`](protocols/canonical.json). Raw account updates are opt-in via `AccountRawSnapshot`; specialized snapshots cover LaunchLab pools/configs, DLMM pools/bin arrays/bitmap extensions, Whirlpool dynamic arrays/adaptive Oracles and CLMM bitmap extensions.
 
 ---
 
@@ -856,3 +876,14 @@ cargo build --release
 # Generate docs
 cargo doc --open
 ```
+
+Shared PumpFun create/create_v2 mainnet fixtures, replay instructions and verification limits are documented in the [validation guide](https://github.com/0xfnzero/sol-parser-sdk-golang/tree/main/validation/pumpfun_create_20261007).
+
+## Usage documentation
+
+- [Account subscriptions](docs/ACCOUNT_SUBSCRIPTIONS.md)
+- [Route analysis](docs/ROUTE_ANALYSIS.md)
+- [CPMM creator-fee](docs/cpmm-creator-fee-share.md)
+- [Pump/PumpSwap account layouts](docs/PUMP_PUMP_AMM_PARSER_ACCOUNTS.md)
+- [gRPC versus RPC](docs/grpc-vs-rpc.md)
+- [Latency troubleshooting](docs/troubleshooting-latency.md)
