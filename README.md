@@ -113,16 +113,23 @@ sol-parser-sdk = { path = "../sol-parser-sdk", default-features = false, feature
 
 ```toml
 # Add to your Cargo.toml
-sol-parser-sdk = "0.7.8"
+sol-parser-sdk = "0.7.9"
 ```
 
 Or with the zero-copy parser (maximum performance):
 
 ```toml
-sol-parser-sdk = { version = "0.7.8", default-features = false, features = ["parse-zero-copy"] }
+sol-parser-sdk = { version = "0.7.9", default-features = false, features = ["parse-zero-copy"] }
 ```
 
 ### Release Notes
+
+#### v0.7.9
+
+- Fixes PumpSwap `boost_buy_and_burn` vault and token-program backfills using its own account layout and boost vault authority.
+- Preserves strict pool, direction, user and uniqueness matching, plus count-aware ALT enrichment for regular trades.
+- Aligns log-derived instruction positions past Ed25519, secp256k1 and secp256r1 precompiles.
+- Adds offline mainnet replay fixtures for boost buys and precompile-containing sells across RPC and both Yellowstone parsing paths.
 
 #### v0.7.8
 
