@@ -21,7 +21,7 @@ pub enum DexEvent {
     PumpFunSell(PumpFunTradeEvent),             // - 已对接 (仅卖出事件，用于过滤)
     PumpFunBuyExactSolIn(PumpFunTradeEvent),    // - 已对接 (精确SOL买入事件，用于过滤)
     PumpFunMigrate(PumpFunMigrateEvent),        // - 已对接
-    /// Pump fees：`CreateFeeSharingConfigEvent`（`pfeeUx...`，见 `idls/pump_fees.json`）
+    /// Pump fees：`CreateFeeSharingConfigEvent`（`pfeeUx...`，见 `idl/pump_fees.json`）
     PumpFeesCreateFeeSharingConfig(PumpFeesCreateFeeSharingConfigEvent),
     PumpFeesInitializeFeeConfig(PumpFeesInitializeFeeConfigEvent),
     PumpFeesResetFeeSharingConfig(PumpFeesResetFeeSharingConfigEvent),

@@ -262,7 +262,7 @@ pub enum EventType {
     PumpFunCreateV2, // SPL-22 / Mayhem create
     PumpFunComplete,
     PumpFunMigrate,
-    /// Pump fees（`pfeeUx...`，`idls/pump_fees.json` Program data events）
+    /// Pump fees（`pfeeUx...`，`idl/pump_fees.json` Program data events）
     PumpFeesCreateFeeSharingConfig,
     PumpFeesInitializeFeeConfig,
     PumpFeesResetFeeSharingConfig,

@@ -168,7 +168,7 @@ sol-parser-sdk = { version = "0.7.10", default-features = false, features = ["pa
 
 - 新增首选订阅名称 `Protocol::StonkFun` 与 `Protocol::LaunchLab`；旧的 `Protocol::RaydiumLaunchlab` 继续兼容。
 - 根据 StonkFun 官方 LaunchLab platform config 识别 standard 与 reward 两种池。
-- 新增可选 RPC/Yellowstone 路由分析，保留 CPI 位置、mint 流向、指令限制、实成交量及未知程序，并补充迁移池来源。详见 [StonkFun 链上抓取审计与接口](docs/STONKFUN_AUDIT.md)。
+- 新增可选 RPC/Yellowstone 路由分析，保留 CPI 位置、mint 流向、指令限制、实成交量及未知程序，并补充迁移池来源。详见 [StonkFun 路由分析与账户订阅](docs/ROUTE_ANALYSIS.md)。
 - 完整解析当前 LaunchLab trade event，包括储备量、全部手续费、池状态与新增的三个尾部交易账户。
 - 支持当前 18 账户 LaunchLab 交易指令布局，并在日志事件与指令事件合并时保留新增账户。
 - 新增真实主网 StonkFun reward 池交易回归测试，交易签名为 `4Pb4vgRq6rAFi5NmMZMsfBvuwVVsvBqhySfPS3naMksujvEiGtPjxRLape7V82ZVQvxt7P8YKPCL6RSWTreMUFrY`。
@@ -538,18 +538,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 | 协议 | 事件 | 账户 | 示例 | 语言常量 |
 |------|------|------|------|----------|
-| LaunchLab | Trade、PoolCreate、Migrate | 待补 | Migration、buy/sell oracle 规划中 | Rust、Node、Python、Go |
+| LaunchLab | Trade、PoolCreate、Migrate | 池/配置快照 | Migration、buy/sell oracle 规划中 | Rust、Node、Python、Go |
 | Raydium CPMM | Swap、Deposit、Withdraw、Initialize | AmmConfig、PoolState | New pool、token price | Rust、Node、Python、Go |
 | Raydium CLMM | Swap、Pool、Position、Liquidity | AmmConfig、PoolState、TickArray | Token price | Rust、Node、Python、Go |
 | Raydium AMM V4 | Swap、Deposit、Withdraw、Initialize2 | 待补 | Token price oracle 规划中 | Rust、Node、Python、Go |
 | Orca Whirlpool | Swap、Liquidity、Pool init | Whirlpool、Position、TickArray、FeeTier、Config | Token price | Rust、Node、Python、Go |
 | Meteora Pools | Swap、Liquidity、Pool create、Fees | 待补 | Token price oracle 规划中 | Rust、Node、Python、Go |
 | Meteora DAMM V2 | Swap、Liquidity、Position | 待补 | New pool、token price oracle 规划中 | Rust、Node、Python、Go |
-| Meteora DLMM | Swap、Liquidity、Bin/Position | 待补 | Token price oracle 规划中 | Rust、Node、Python、Go |
+| Meteora DLMM | Swap、Liquidity、Bin/Position | 池/bin array/bitmap 快照 | Token price oracle 规划中 | Rust、Node、Python、Go |
 | Meteora DBC | Swap、InitializePool、CurveComplete（Rust log parser） | 待补 | Token price、migration oracle 规划中 | Rust、Node、Python、Go |
 
-跨语言基线见 [`protocols/canonical.json`](protocols/canonical.json)，当前审计和剩余 parser 工作见
-[`docs/non-pump-dex-gap-analysis.md`](docs/non-pump-dex-gap-analysis.md)。
+跨语言基线见 [`protocols/canonical.json`](protocols/canonical.json)。通过 `AccountRawSnapshot` 显式订阅原始账户；专用快照覆盖 LaunchLab 池/配置、DLMM 池/bin array/bitmap、Whirlpool 动态数组/adaptive Oracle 和 CLMM bitmap extension。
 
 ---
 
@@ -862,3 +861,12 @@ cargo doc --open
 ```
 
 PumpFun create/create_v2 的共享主网样本、重放方法和验证边界见 [验证说明](https://github.com/0xfnzero/sol-parser-sdk-golang/tree/main/validation/pumpfun_create_20261007)。
+
+## 使用文档
+
+- [账户订阅](docs/ACCOUNT_SUBSCRIPTIONS.md)
+- [路由分析](docs/ROUTE_ANALYSIS.md)
+- [CPMM creator-fee](docs/cpmm-creator-fee-share.md)
+- [Pump/PumpSwap 账户布局](docs/PUMP_PUMP_AMM_PARSER_ACCOUNTS.md)
+- [gRPC 与 RPC](docs/grpc-vs-rpc.md)
+- [延迟测量排错](docs/troubleshooting-latency.md)

@@ -5,11 +5,11 @@
 ## IDL 同步
 
 - **来源**: sol-trade-sdk `idl/`
-- **目标**: sol-parser-sdk `idls/`
+- **目标**: sol-parser-sdk `idl/`
 - **已同步文件**:
-  - `idl/pump.json` → `idls/pumpfun.json`（Pump 程序，同 program id）
-  - `idl/pump_amm.json` → `idls/pump_amm.json`
-  - `idl/pump_fees.json` → `idls/pump_fees.json`（可选，供后续 fee sharing 等解析使用）
+  - `idl/pump.json` → `idl/pumpfun.json`（Pump 程序，同 program id）
+  - `idl/pump_amm.json` → `idl/pump_amm.json`
+  - `idl/pump_fees.json` → `idl/pump_fees.json`（可选，供后续 fee sharing 等解析使用）
 
 ## Pump（Bonding Curve）Buy / Sell
 
@@ -175,4 +175,4 @@
 
 1. 使用 Pump 事件构建卖出参数时，务必在合并/下发前调用 **fill_trade_accounts**，以便 `creator_vault` 来自当前指令账户，避免 2006 seeds 错误。
 2. 不要只依赖 IDL 固定账户数判断升级后交易是否完整；Pump/PumpSwap 的新增账户都在 remaining accounts。
-3. 保持 IDL 与 sol-trade-sdk 定期同步（复制 `idl/*.json` → `idls/`），以便新指令或新账户加入时解析与注释仍正确。
+3. 保持 IDL 与 sol-trade-sdk 定期同步（复制 `idl/*.json` → `idl/`），以便新指令或新账户加入时解析与注释仍正确。

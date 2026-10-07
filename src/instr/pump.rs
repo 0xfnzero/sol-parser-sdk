@@ -21,7 +21,7 @@ pub mod discriminators {
     pub const BUY_EXACT_SOL_IN: [u8; 8] = [56, 252, 116, 8, 158, 223, 205, 95];
     /// Migrate event log discriminator (CPI)
     pub const MIGRATE_EVENT_LOG: [u8; 8] = [189, 233, 93, 185, 92, 148, 234, 148];
-    /// `migrate_bonding_curve_creator` 外层 ix（`idls/pumpfun.json`）
+    /// `migrate_bonding_curve_creator` 外层 ix（`idl/pumpfun.json`）
     pub const MIGRATE_BONDING_CURVE_CREATOR: [u8; 8] = [87, 124, 52, 191, 52, 38, 214, 232];
     /// buy_v2: unified buy with quote_mint support (SOL + USDC)
     pub const BUY_V2: [u8; 8] = [184, 23, 238, 97, 103, 197, 211, 61];

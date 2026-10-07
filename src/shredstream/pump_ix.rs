@@ -612,7 +612,7 @@ fn parse_pumpfun_instruction(
     }
 }
 
-/// `migrate_bonding_curve_creator` 外层 ix（`idls/pumpfun.json`）；无链上事件体时 `timestamp=0`，
+/// `migrate_bonding_curve_creator` 外层 ix（`idl/pumpfun.json`）；无链上事件体时 `timestamp=0`，
 /// `old_creator` 未知则填默认，`new_creator` 依赖执行或账户状态，不能用 `sharing_config` 地址代替。
 #[inline]
 fn parse_migrate_bonding_curve_creator_shred(

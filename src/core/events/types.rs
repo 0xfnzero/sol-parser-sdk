@@ -471,7 +471,7 @@ pub struct PumpFunMigrateEvent {
     // pub pool_quote_token_account: Pubkey,
 }
 
-// ---------- pump-fees IDL：`idls/pump_fees.json`（Program `pfeeUx...`）----------
+// ---------- pump-fees IDL：`idl/pump_fees.json`（Program `pfeeUx...`）----------
 
 /// IDL `Shareholder`
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default, BorshDeserialize)]

@@ -3,7 +3,7 @@ use crate::core::events::{DexEvent, EventMetadata};
 // LaunchLab CPI event parser.
 //
 // CPI event data uses a 16-byte prefix: 8-byte event discriminator from
-// `idls/raydium_launchpad.json` plus Anchor's event CPI marker.
+// `idl/raydium_launchpad.json` plus Anchor's event CPI marker.
 pub mod discriminators {
     pub const POOL_CREATE: [u8; 16] =
         [151, 215, 226, 9, 118, 161, 115, 174, 155, 167, 108, 32, 122, 76, 173, 64];

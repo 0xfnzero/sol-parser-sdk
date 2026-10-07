@@ -1,5 +1,5 @@
 //! `pfeeUx...`（pump-fees）Program log `Program data` → [`DexEvent`](crate::core::events::DexEvent)。
-//! 判别子与字段布局对齐 `idls/pump_fees.json` Anchor events / types。
+//! 判别子与字段布局对齐 `idl/pump_fees.json` Anchor events / types。
 
 use crate::core::events::*;
 use solana_sdk::pubkey::Pubkey;

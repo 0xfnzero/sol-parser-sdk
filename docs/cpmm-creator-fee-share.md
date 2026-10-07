@@ -10,7 +10,7 @@ Source: [Raydium changelog](https://docs.raydium.io/reference/changelog/2026-09-
 
 Resolve the protocol share from the PDA `[b"creator_fee_share", creator, amm_config]` under the CPMM program when it exists; otherwise use AmmConfig. Rates are read at collection time. Protocol share is `floor(gross_creator_fee * rate / 1_000_000)`; creator receives the remainder, before token transfer fees. Protocol-fee counters now grow on collection as well as swaps; gross creator-fee counters are not net payout estimates.
 
-Both `idl/raydium_cpmm.json` and `idls/raydium_cpmm.json` contain the updated collection account lists, PDA seeds and account layouts. Swap, quote and LP behavior is unchanged.
+`idl/raydium_cpmm.json` contains the updated collection account lists, PDA seeds and account layouts. Swap, quote and LP behavior is unchanged.
 
 ## Replay example using actual simulation accounts
 
