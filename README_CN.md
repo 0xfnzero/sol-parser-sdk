@@ -36,9 +36,9 @@
 
 ---
 
-## 📦 SDK 版本
+## 📦 SDK 版本与相关项目
 
-本 SDK 提供多种语言版本：
+解析 SDK 的各语言版本及相关 Rust SDK：
 
 | 语言 | 仓库 | 描述 |
 |------|------|------|
@@ -46,6 +46,8 @@
 | **Node.js** | [sol-parser-sdk-nodejs](https://github.com/0xfnzero/sol-parser-sdk-nodejs) | TypeScript/JavaScript，Node.js 支持 |
 | **Python** | [sol-parser-sdk-python](https://github.com/0xfnzero/sol-parser-sdk-python) | 原生 async/await 支持 |
 | **Go** | [sol-parser-sdk-golang](https://github.com/0xfnzero/sol-parser-sdk-golang) | 并发安全，goroutine 支持 |
+| **Rust** | [sol-shred-sdk](https://github.com/0xfnzero/sol-shred-sdk) | Solana 原始 shred 解码与 ShredStream DEX 事件解析 |
+| **Rust** | [sol-trade-sdk](https://github.com/0xfnzero/sol-trade-sdk) | Solana DEX 交易构建与交易执行 |
 
 ## 这个 SDK 适合什么场景
 

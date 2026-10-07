@@ -36,9 +36,9 @@
 
 ---
 
-## 📦 SDK Versions
+## 📦 SDK Versions and Related SDKs
 
-This SDK is available in multiple languages:
+Parser SDK language versions and related Rust SDKs:
 
 | Language | Repository | Description |
 |----------|------------|-------------|
@@ -46,6 +46,8 @@ This SDK is available in multiple languages:
 | **Node.js** | [sol-parser-sdk-nodejs](https://github.com/0xfnzero/sol-parser-sdk-nodejs) | TypeScript/JavaScript for Node.js |
 | **Python** | [sol-parser-sdk-python](https://github.com/0xfnzero/sol-parser-sdk-python) | Async/await native support |
 | **Go** | [sol-parser-sdk-golang](https://github.com/0xfnzero/sol-parser-sdk-golang) | Concurrent-safe with goroutine support |
+| **Rust** | [sol-shred-sdk](https://github.com/0xfnzero/sol-shred-sdk) | Raw Solana shred decoding and ShredStream DEX event parsing |
+| **Rust** | [sol-trade-sdk](https://github.com/0xfnzero/sol-trade-sdk) | Solana DEX trade construction and transaction execution |
 
 ## What This SDK Is For
 
