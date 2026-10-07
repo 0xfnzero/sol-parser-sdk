@@ -9,6 +9,10 @@ use solana_sdk::{pubkey::Pubkey, signature::Signature};
 
 /// PumpFun discriminator constants
 pub mod discriminators {
+    pub const BUY_V3: [u8; 8] = [7, 5, 29, 196, 245, 23, 101, 80];
+    pub const BUY_EXACT_QUOTE_IN_V3: [u8; 8] = [225, 247, 80, 30, 213, 179, 132, 136];
+    pub const SELL_V3: [u8; 8] = [28, 146, 222, 119, 38, 196, 105, 213];
+
     /// Buy instruction: buy tokens with SOL (legacy)
     pub const BUY: [u8; 8] = [102, 6, 61, 18, 1, 218, 235, 234];
     /// Sell instruction: sell tokens for SOL (legacy)
@@ -113,6 +117,115 @@ pub fn parse_instruction(
             grpc_recv_us,
             "sell",
             false,
+        );
+    }
+    if outer_disc == [7, 5, 29, 196, 245, 23, 101, 80] {
+        if accounts.len() != 17
+            || data.len() < 16
+            || data.len() > 17
+            || (data.len() == 17 && data[16] > 1)
+        {
+            return None;
+        }
+        let mut mapped = [Pubkey::default(); 27];
+        mapped[0] = accounts[0];
+        mapped[1] = accounts[1];
+        mapped[2] = accounts[2];
+        mapped[3] = accounts[3];
+        mapped[4] = accounts[4];
+        mapped[8] = accounts[13];
+        mapped[10] = accounts[5];
+        mapped[11] = accounts[6];
+        mapped[12] = accounts[7];
+        mapped[13] = accounts[8];
+        mapped[14] = accounts[9];
+        mapped[15] = accounts[10];
+        mapped[20] = accounts[11];
+        mapped[22] = accounts[12];
+        mapped[24] = accounts[14];
+        mapped[25] = accounts[15];
+        mapped[26] = accounts[16];
+        return parse_buy_v2_instruction(
+            data,
+            &mapped,
+            signature,
+            slot,
+            tx_index,
+            block_time_us,
+            grpc_recv_us,
+            "buy_v3",
+            false,
+        );
+    }
+    if outer_disc == [225, 247, 80, 30, 213, 179, 132, 136] {
+        if accounts.len() != 17
+            || data.len() < 16
+            || data.len() > 17
+            || (data.len() == 17 && data[16] > 1)
+        {
+            return None;
+        }
+        let mut mapped = [Pubkey::default(); 27];
+        mapped[0] = accounts[0];
+        mapped[1] = accounts[1];
+        mapped[2] = accounts[2];
+        mapped[3] = accounts[3];
+        mapped[4] = accounts[4];
+        mapped[8] = accounts[13];
+        mapped[10] = accounts[5];
+        mapped[11] = accounts[6];
+        mapped[12] = accounts[7];
+        mapped[13] = accounts[8];
+        mapped[14] = accounts[9];
+        mapped[15] = accounts[10];
+        mapped[20] = accounts[11];
+        mapped[22] = accounts[12];
+        mapped[24] = accounts[14];
+        mapped[25] = accounts[15];
+        mapped[26] = accounts[16];
+        return parse_buy_v2_instruction(
+            data,
+            &mapped,
+            signature,
+            slot,
+            tx_index,
+            block_time_us,
+            grpc_recv_us,
+            "buy_exact_quote_in_v3",
+            true,
+        );
+    }
+    if outer_disc == [28, 146, 222, 119, 38, 196, 105, 213] {
+        if accounts.len() != 17 || data.len() < 16 || data.len() > 17 || data.len() != 16 {
+            return None;
+        }
+        let mut mapped = [Pubkey::default(); 27];
+        mapped[0] = accounts[0];
+        mapped[1] = accounts[1];
+        mapped[2] = accounts[2];
+        mapped[3] = accounts[3];
+        mapped[4] = accounts[4];
+        mapped[8] = accounts[13];
+        mapped[10] = accounts[5];
+        mapped[11] = accounts[6];
+        mapped[12] = accounts[7];
+        mapped[13] = accounts[8];
+        mapped[14] = accounts[9];
+        mapped[15] = accounts[10];
+        mapped[19] = accounts[11];
+        mapped[21] = accounts[12];
+        mapped[23] = accounts[14];
+        mapped[24] = accounts[15];
+        mapped[25] = accounts[16];
+        return parse_sell_v2_instruction(
+            data,
+            &mapped,
+            signature,
+            slot,
+            tx_index,
+            block_time_us,
+            grpc_recv_us,
+            "sell_v3",
         );
     }
     if outer_disc == discriminators::BUY_V2 {

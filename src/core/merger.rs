@@ -39,6 +39,20 @@ pub fn try_merge_events(
     inner: DexEvent,
     unmerged: &mut Option<DexEvent>,
 ) -> bool {
+    // Different Pump venues under one outer multi-hop instruction are separate fills.
+    if let (Some((kind, a, scoped)), Some((other, b, other_scoped))) =
+        (pump_venue_identity(base), pump_venue_identity(&inner))
+    {
+        if kind == other
+            && (scoped || other_scoped)
+            && a != Pubkey::default()
+            && b != Pubkey::default()
+            && a != b
+        {
+            *unmerged = Some(inner);
+            return false;
+        }
+    }
     use DexEvent::*;
 
     match (base, inner) {
@@ -405,6 +419,7 @@ fn merge_pumpfun_trade(base: &mut PumpFunTradeEvent, inner: PumpFunTradeEvent) {
         base.is_cashback_coin |= inner.is_cashback_coin;
         base.holder_rewards_bps = inner.holder_rewards_bps;
         base.holder_rewards = inner.holder_rewards;
+        base.creator_fee_unclaimed = inner.creator_fee_unclaimed;
     } else {
         put_u64_if_nonzero(&mut base.fee, inner.fee);
         put_u64_if_nonzero(&mut base.creator_fee, inner.creator_fee);
@@ -2700,5 +2715,17 @@ mod amm_swap_parameter_merge_tests {
                 assert_eq!(e.token_program, log.token_program);
             }
         }
+    }
+}
+
+fn pump_venue_identity(event: &DexEvent) -> Option<(u8, Pubkey, bool)> {
+    use DexEvent::*;
+    match event {
+        PumpFunTrade(e) | PumpFunBuy(e) | PumpFunSell(e) | PumpFunBuyExactSolIn(e) => {
+            Some((0, e.mint, e.ix_name == "multi_hop_swap"))
+        }
+        PumpSwapBuy(e) => Some((1, e.pool, true)),
+        PumpSwapSell(e) => Some((1, e.pool, true)),
+        _ => None,
     }
 }

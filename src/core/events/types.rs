@@ -309,6 +309,9 @@ impl RaydiumLaunchlabMigrateAmmEvent {
 #[derive(Debug, Clone, Serialize, Deserialize, Default, BorshDeserialize)]
 pub struct PumpFunTradeEvent {
     #[borsh(skip)]
+    #[serde(default)]
+    pub creator_fee_unclaimed: u64,
+    #[borsh(skip)]
     pub metadata: EventMetadata,
 
     // === IDL TradeEvent 事件字段（Borsh 序列化字段，按顺序）===
@@ -488,7 +491,7 @@ pub enum PumpFeesConfigStatus {
 }
 
 /// IDL `Fees`
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
 pub struct PumpFeesFees {
     pub lp_fee_bps: u64,
     pub protocol_fee_bps: u64,
@@ -627,6 +630,9 @@ pub struct PumpFunMigrateBondingCurveCreatorEvent {
 /// PumpFun Create Token Event - Based on IDL CreateEvent definition
 #[derive(Debug, Clone, Serialize, Deserialize, Default, BorshDeserialize)]
 pub struct PumpFunCreateTokenEvent {
+    #[borsh(skip)]
+    #[serde(default)]
+    pub depth: u8,
     #[borsh(skip)]
     pub metadata: EventMetadata,
     // IDL CreateEvent 字段（Borsh 序列化字段，按顺序）
@@ -795,6 +801,9 @@ pub struct PumpSwapTradeEvent {
 #[derive(Debug, Clone, Serialize, Deserialize, Default, BorshDeserialize)]
 pub struct PumpSwapBuyEvent {
     #[borsh(skip)]
+    #[serde(default)]
+    pub creator_fee_unclaimed: u64,
+    #[borsh(skip)]
     pub metadata: EventMetadata,
     pub timestamp: i64,
     pub base_amount_out: u64,
@@ -880,6 +889,9 @@ pub struct PumpSwapBuyEvent {
 /// PumpSwap Sell Event
 #[derive(Debug, Clone, Serialize, Deserialize, Default, BorshDeserialize)]
 pub struct PumpSwapSellEvent {
+    #[borsh(skip)]
+    #[serde(default)]
+    pub creator_fee_unclaimed: u64,
     #[borsh(skip)]
     pub metadata: EventMetadata,
     pub timestamp: i64,
@@ -2010,6 +2022,10 @@ pub struct PumpSwapPoolAccountEvent {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct PumpSwapPool {
+    #[serde(default)]
+    pub protocol_fees: u64,
+    #[serde(default)]
+    pub creator_fees: u64,
     pub pool_bump: u8,
     pub index: u16,
     pub creator: Pubkey,
@@ -2043,6 +2059,18 @@ pub struct PumpFunBondingCurveAccountEvent {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct PumpFunBondingCurve {
+    #[serde(default)]
+    pub creator_fee: u64,
+    #[serde(default)]
+    pub protocol_fees: u64,
+    #[serde(default)]
+    pub depth: u8,
+    #[serde(default)]
+    pub initial_virtual_quote_reserves: u64,
+    #[serde(default)]
+    pub post_complete_base_out: u64,
+    #[serde(default)]
+    pub post_complete_quote_in: u64,
     pub virtual_token_reserves: u64,
     pub virtual_quote_reserves: u64,
     pub real_token_reserves: u64,
@@ -2070,6 +2098,8 @@ pub struct PumpFunFeeConfigAccountEvent {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PumpFunFeeConfig {
+    #[serde(default)]
+    pub exotic_flat_fees: PumpFeesFees,
     pub bump: u8,
     pub admin: Pubkey,
     pub flat_fees: PumpFeesFees,
@@ -2144,6 +2174,17 @@ pub struct PumpFunGlobalAccountEvent {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PumpFunGlobal {
+    #[serde(default)]
+    pub creator_fee_configurable: bool,
+    #[serde(default)]
+    pub max_configurable_creator_fee_bps: u64,
+    #[serde(default)]
+    pub holder_reward_claim_authority: Pubkey,
+    #[serde(default)]
+    pub is_holder_reward_enabled: bool,
+    #[serde(default)]
+    pub max_curve_depth: u8,
+
     pub initialized: bool,
     pub authority: Pubkey,
     pub fee_recipient: Pubkey,
@@ -4071,4 +4112,57 @@ mod amm_swap_wire_compat_tests {
         assert!(e.ix_name.is_empty());
         assert_eq!((e.instruction_amount_in, e.instruction_amount_out), (0, 0));
     }
+}
+
+#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+pub struct PumpFunPostCompleteBuyEvent {
+    pub metadata: EventMetadata,
+    pub user: Pubkey,
+    pub mint: Pubkey,
+    pub bonding_curve: Pubkey,
+    pub quote_mint: Pubkey,
+    pub timestamp: i64,
+    pub base_out: u64,
+    pub quote_in: u64,
+    pub fee_basis_points: u64,
+    pub fee: u64,
+    pub creator_fee_basis_points: u64,
+    pub creator_fee: u64,
+    pub buyback_fee: u64,
+    pub pool_base_reserves_before: u64,
+    pub pool_quote_reserves_before: u64,
+    pub pool_base_reserves_after: u64,
+    pub pool_quote_reserves_after: u64,
+}
+#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+pub struct PumpFunSweepBondingCurveFeeEvent {
+    pub metadata: EventMetadata,
+    pub timestamp: i64,
+    pub mint: Pubkey,
+    pub bonding_curve: Pubkey,
+    pub quote_mint: Pubkey,
+    pub recipient: Pubkey,
+    pub amount: u64,
+    pub bucket: u8,
+}
+#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+pub struct PumpFunCompleteEvent {
+    pub metadata: EventMetadata,
+    pub user: Pubkey,
+    pub mint: Pubkey,
+    pub bonding_curve: Pubkey,
+    pub timestamp: i64,
+    pub quote_mint: Pubkey,
+}
+#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+pub struct PumpSwapSweepPoolFeeEvent {
+    pub metadata: EventMetadata,
+    pub timestamp: i64,
+    pub pool: Pubkey,
+    pub base_mint: Pubkey,
+    pub quote_mint: Pubkey,
+    pub recipient: Pubkey,
+    pub payer: Pubkey,
+    pub amount: u64,
+    pub bucket: u8,
 }

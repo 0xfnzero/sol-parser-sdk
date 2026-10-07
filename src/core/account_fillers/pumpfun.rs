@@ -53,6 +53,28 @@ pub fn fill_trade_accounts(e: &mut PumpFunTradeEvent, get: &AccountGetter<'_>) {
         }
     };
 
+    if get(16) == crate::instr::program_ids::PUMPFUN_PROGRAM_ID
+        && account_at_matches_mint(e, get, 1)
+    {
+        fill_pk(&mut e.global, 0);
+        fill_pk(&mut e.mint, 1);
+        fill_pk(&mut e.quote_mint, 2);
+        fill_pk(&mut e.token_program, 3);
+        fill_pk(&mut e.quote_token_program, 4);
+        fill_pk(&mut e.bonding_curve, 5);
+        fill_pk(&mut e.associated_bonding_curve, 6);
+        fill_pk(&mut e.associated_quote_bonding_curve, 7);
+        fill_pk(&mut e.user, 8);
+        fill_pk(&mut e.associated_user, 9);
+        fill_pk(&mut e.associated_quote_user, 10);
+        fill_pk(&mut e.user_volume_accumulator, 11);
+        fill_pk(&mut e.fee_config, 12);
+        fill_pk(&mut e.buyback_fee_recipient, 13);
+        fill_pk(&mut e.system_program, 14);
+        fill_pk(&mut e.event_authority, 15);
+        fill_pk(&mut e.program, 16);
+        return;
+    }
     if is_v2 {
         fill_pk(&mut e.global, 0);
         fill_pumpfun_quote_mint(&mut e.quote_mint, 2);

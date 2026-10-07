@@ -9,6 +9,10 @@ use solana_sdk::{pubkey::Pubkey, signature::Signature};
 
 /// PumpSwap instruction discriminator constants (from pump_amm.json)
 pub mod discriminators {
+    pub const BUY_V2: [u8; 8] = [184, 23, 238, 97, 103, 197, 211, 61];
+    pub const BUY_EXACT_QUOTE_IN_V2: [u8; 8] = [194, 171, 28, 70, 104, 77, 91, 47];
+    pub const SELL_V2: [u8; 8] = [93, 246, 130, 60, 231, 233, 64, 178];
+
     /// buy: Buy tokens with quote (SOL)
     pub const BUY: [u8; 8] = [102, 6, 61, 18, 1, 218, 235, 234];
     /// sell: Sell tokens for quote (SOL)
@@ -119,6 +123,85 @@ pub fn parse_instruction(
     let discriminator: [u8; 8] = instruction_data[0..8].try_into().ok()?;
     let data = &instruction_data[8..];
 
+    if discriminator == [184, 23, 238, 97, 103, 197, 211, 61] {
+        if accounts.len() != 17 || data.len() != 16 {
+            return None;
+        }
+        let mut mapped = [Pubkey::default(); 26];
+        mapped[0] = accounts[0];
+        mapped[1] = accounts[1];
+        mapped[2] = accounts[2];
+        mapped[3] = accounts[3];
+        mapped[4] = accounts[4];
+        mapped[5] = accounts[5];
+        mapped[6] = accounts[6];
+        mapped[7] = accounts[7];
+        mapped[8] = accounts[8];
+        mapped[11] = accounts[9];
+        mapped[12] = accounts[10];
+        mapped[13] = accounts[11];
+        mapped[15] = accounts[15];
+        mapped[16] = accounts[16];
+        mapped[20] = accounts[12];
+        mapped[21] = accounts[13];
+        mapped[25] = accounts[14];
+        return parse_buy_instruction(data, &mapped, signature, slot, tx_index, block_time_us);
+    }
+    if discriminator == [194, 171, 28, 70, 104, 77, 91, 47] {
+        if accounts.len() != 17 || data.len() != 16 {
+            return None;
+        }
+        let mut mapped = [Pubkey::default(); 26];
+        mapped[0] = accounts[0];
+        mapped[1] = accounts[1];
+        mapped[2] = accounts[2];
+        mapped[3] = accounts[3];
+        mapped[4] = accounts[4];
+        mapped[5] = accounts[5];
+        mapped[6] = accounts[6];
+        mapped[7] = accounts[7];
+        mapped[8] = accounts[8];
+        mapped[11] = accounts[9];
+        mapped[12] = accounts[10];
+        mapped[13] = accounts[11];
+        mapped[15] = accounts[15];
+        mapped[16] = accounts[16];
+        mapped[20] = accounts[12];
+        mapped[21] = accounts[13];
+        mapped[25] = accounts[14];
+        return parse_buy_exact_quote_in_instruction(
+            data,
+            &mapped,
+            signature,
+            slot,
+            tx_index,
+            block_time_us,
+        );
+    }
+    if discriminator == [93, 246, 130, 60, 231, 233, 64, 178] {
+        if accounts.len() != 17 || data.len() != 16 {
+            return None;
+        }
+        let mut mapped = [Pubkey::default(); 26];
+        mapped[0] = accounts[0];
+        mapped[1] = accounts[1];
+        mapped[2] = accounts[2];
+        mapped[3] = accounts[3];
+        mapped[4] = accounts[4];
+        mapped[5] = accounts[5];
+        mapped[6] = accounts[6];
+        mapped[7] = accounts[7];
+        mapped[8] = accounts[8];
+        mapped[11] = accounts[9];
+        mapped[12] = accounts[10];
+        mapped[13] = accounts[11];
+        mapped[15] = accounts[15];
+        mapped[16] = accounts[16];
+        mapped[20] = accounts[12];
+        mapped[21] = accounts[13];
+        mapped[25] = accounts[14];
+        return parse_sell_instruction(data, &mapped, signature, slot, tx_index, block_time_us);
+    }
     // Route based on discriminator
     match discriminator {
         discriminators::BUY => {
@@ -347,21 +430,11 @@ fn parse_create_pool_instruction(
     };
     let is_mayhem_mode = optional_bool(50)?;
     let is_cashback_coin = optional_bool(51)?;
-    let creator_fee_bps = if data.len() > 52 {
-        read_option_u64_idl(data, 52)?
-    } else {
-        0
-    };
+    let creator_fee_bps = if data.len() > 52 { read_option_u64_idl(data, 52)? } else { 0 };
     let can_edit_creator_fee = optional_bool(60)?;
     let is_holder_reward = optional_bool(61)?;
 
-    let metadata = create_metadata(
-        signature,
-        slot,
-        tx_index,
-        block_time_us.unwrap_or_default(),
-        0,
-    );
+    let metadata = create_metadata(signature, slot, tx_index, block_time_us.unwrap_or_default(), 0);
 
     Some(DexEvent::PumpSwapCreatePool(PumpSwapCreatePoolEvent {
         metadata,
@@ -402,13 +475,7 @@ fn parse_deposit_instruction(
     let max_base_amount_in = read_u64_le(data, 8)?;
     let max_quote_amount_in = read_u64_le(data, 16)?;
 
-    let metadata = create_metadata(
-        signature,
-        slot,
-        tx_index,
-        block_time_us.unwrap_or_default(),
-        0,
-    );
+    let metadata = create_metadata(signature, slot, tx_index, block_time_us.unwrap_or_default(), 0);
 
     Some(DexEvent::PumpSwapLiquidityAdded(PumpSwapLiquidityAdded {
         metadata,
@@ -441,28 +508,20 @@ fn parse_withdraw_instruction(
     let min_base_amount_out = read_u64_le(data, 8)?;
     let min_quote_amount_out = read_u64_le(data, 16)?;
 
-    let metadata = create_metadata(
-        signature,
-        slot,
-        tx_index,
-        block_time_us.unwrap_or_default(),
-        0,
-    );
+    let metadata = create_metadata(signature, slot, tx_index, block_time_us.unwrap_or_default(), 0);
 
-    Some(DexEvent::PumpSwapLiquidityRemoved(
-        PumpSwapLiquidityRemoved {
-            metadata,
-            lp_token_amount_in,
-            min_base_amount_out,
-            min_quote_amount_out,
-            pool: get_account(accounts, 0).unwrap_or_default(),
-            user: get_account(accounts, 2).unwrap_or_default(),
-            user_base_token_account: get_account(accounts, 6).unwrap_or_default(),
-            user_quote_token_account: get_account(accounts, 7).unwrap_or_default(),
-            user_pool_token_account: get_account(accounts, 8).unwrap_or_default(),
-            ..Default::default()
-        },
-    ))
+    Some(DexEvent::PumpSwapLiquidityRemoved(PumpSwapLiquidityRemoved {
+        metadata,
+        lp_token_amount_in,
+        min_base_amount_out,
+        min_quote_amount_out,
+        pool: get_account(accounts, 0).unwrap_or_default(),
+        user: get_account(accounts, 2).unwrap_or_default(),
+        user_base_token_account: get_account(accounts, 6).unwrap_or_default(),
+        user_quote_token_account: get_account(accounts, 7).unwrap_or_default(),
+        user_pool_token_account: get_account(accounts, 8).unwrap_or_default(),
+        ..Default::default()
+    }))
 }
 
 #[cfg(test)]
@@ -637,20 +696,26 @@ mod review_swap_argument_regressions {
     #[test]
     fn truncated_swap_arguments_are_not_fabricated_as_zero() {
         let accounts: Vec<_> = (0..23).map(|_| Pubkey::new_unique()).collect();
-        for disc in [discriminators::BUY, discriminators::BUY_EXACT_QUOTE_IN, discriminators::SELL] {
+        for disc in [discriminators::BUY, discriminators::BUY_EXACT_QUOTE_IN, discriminators::SELL]
+        {
             let mut data = disc.to_vec();
             data.extend_from_slice(&123u64.to_le_bytes());
             data.extend_from_slice(&456u64.to_le_bytes());
-            let parse = |data: &[u8]| parse_instruction(data, &accounts, Signature::default(), 1, 0, None);
-            for length in 0..data.len() { assert!(parse(&data[..length]).is_none(), "length={length}"); }
+            let parse =
+                |data: &[u8]| parse_instruction(data, &accounts, Signature::default(), 1, 0, None);
+            for length in 0..data.len() {
+                assert!(parse(&data[..length]).is_none(), "length={length}");
+            }
             assert!(parse(&data).is_some(), "legacy absence of trailing flag is supported");
             if disc != discriminators::SELL {
                 for flag in [2, 127, 255] {
-                    let mut invalid = data.clone(); invalid.push(flag);
+                    let mut invalid = data.clone();
+                    invalid.push(flag);
                     assert!(parse(&invalid).is_none(), "flag={flag}");
                 }
                 for flag in [0, 1] {
-                    let mut valid = data.clone(); valid.push(flag);
+                    let mut valid = data.clone();
+                    valid.push(flag);
                     let Some(DexEvent::PumpSwapBuy(event)) = parse(&valid) else { panic!("buy") };
                     assert_eq!(event.track_volume, flag == 1);
                 }

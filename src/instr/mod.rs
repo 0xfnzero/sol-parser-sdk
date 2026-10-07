@@ -46,6 +46,9 @@ fn supports_pumpfun_instruction(disc: [u8; 8]) -> bool {
     matches!(
         disc,
         pump::discriminators::CREATE
+            | pump::discriminators::BUY_V3
+            | pump::discriminators::BUY_EXACT_QUOTE_IN_V3
+            | pump::discriminators::SELL_V3
             | pump::discriminators::CREATE_V2
             | pump::discriminators::BUY
             | pump::discriminators::SELL
@@ -62,6 +65,9 @@ fn supports_pumpswap_instruction(disc: [u8; 8]) -> bool {
     matches!(
         disc,
         pump_amm::discriminators::BUY
+            | pump_amm::discriminators::BUY_V2
+            | pump_amm::discriminators::BUY_EXACT_QUOTE_IN_V2
+            | pump_amm::discriminators::SELL_V2
             | pump_amm::discriminators::SELL
             | pump_amm::discriminators::CREATE_POOL
             | pump_amm::discriminators::BUY_EXACT_QUOTE_IN

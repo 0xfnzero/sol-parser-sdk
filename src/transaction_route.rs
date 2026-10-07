@@ -15,8 +15,10 @@ use yellowstone_grpc_proto::prelude::{Transaction, TransactionStatusMeta};
 const ROUTE_SPL_TOKEN: Pubkey = solana_sdk::pubkey!("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA");
 const ROUTE_TOKEN_2022: Pubkey = solana_sdk::pubkey!("TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb");
 const ROUTE_WSOL: Pubkey = solana_sdk::pubkey!("So11111111111111111111111111111111111111112");
-const ROUTE_COMPUTE_BUDGET: Pubkey = solana_sdk::pubkey!("ComputeBudget111111111111111111111111111111");
-const ROUTE_ASSOCIATED_TOKEN: Pubkey = solana_sdk::pubkey!("ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL");
+const ROUTE_COMPUTE_BUDGET: Pubkey =
+    solana_sdk::pubkey!("ComputeBudget111111111111111111111111111111");
+const ROUTE_ASSOCIATED_TOKEN: Pubkey =
+    solana_sdk::pubkey!("ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL");
 const ROUTE_MEMO: Pubkey = solana_sdk::pubkey!("MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr");
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -35,6 +37,7 @@ pub enum SwapProtocol {
     RaydiumClmm,
     OrcaWhirlpool,
     MeteoraDlmm,
+    PumpFun,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -179,8 +182,7 @@ fn u64_at(data: &[u8], offset: usize) -> Option<u64> {
     Some(u64::from_le_bytes(data.get(offset..offset + 8)?.try_into().ok()?))
 }
 fn token_program(program: Pubkey) -> bool {
-    program == ROUTE_SPL_TOKEN
-        || program == ROUTE_TOKEN_2022
+    program == ROUTE_SPL_TOKEN || program == ROUTE_TOKEN_2022
 }
 fn checked_transfer(ix: &Invocation<'_>) -> bool {
     token_program(ix.program)
@@ -234,32 +236,41 @@ fn invocation_analysis(
     graduated: &[Pubkey],
     legs: &mut Vec<RouteSwapLeg>,
 ) -> Vec<InvocationAnalysis> {
-    let mut analysis: Vec<_> = invocations.iter().enumerate().map(|(i, ix)| {
-        let skip_route = token_program(ix.program)
-            || ix.program == Pubkey::default()
-            || ix.program == ROUTE_COMPUTE_BUDGET
-            || ix.program == ROUTE_ASSOCIATED_TOKEN
-            || ix.program == ROUTE_MEMO;
-        let swap_index = if skip_route { None } else {
-            swap(ix, keys, mints, graduated).map(|leg| {
-                let index = legs.len();
-                legs.push(leg);
-                index
-            })
-        };
-        InvocationAnalysis {
-            transfer: transfer(ix, keys, mints), swap_index,
-            descendant_end: i + 1,
-            has_token_transfers: false,
-            has_known_swap_descendants: false,
-            skip_route,
-        }
-    }).collect();
+    let mut analysis: Vec<_> = invocations
+        .iter()
+        .enumerate()
+        .map(|(i, ix)| {
+            let skip_route = token_program(ix.program)
+                || ix.program == Pubkey::default()
+                || ix.program == ROUTE_COMPUTE_BUDGET
+                || ix.program == ROUTE_ASSOCIATED_TOKEN
+                || ix.program == ROUTE_MEMO;
+            let swap_index = if skip_route {
+                None
+            } else {
+                swap(ix, keys, mints, graduated).map(|leg| {
+                    let index = legs.len();
+                    legs.push(leg);
+                    index
+                })
+            };
+            InvocationAnalysis {
+                transfer: transfer(ix, keys, mints),
+                swap_index,
+                descendant_end: i + 1,
+                has_token_transfers: false,
+                has_known_swap_descendants: false,
+                skip_route,
+            }
+        })
+        .collect();
     for i in (0..invocations.len()).rev() {
         let mut end = i + 1;
         let mut has_transfers = false;
         let mut has_swaps = false;
-        while end < invocations.len() && descendant(invocations[i].position, invocations[end].position) {
+        while end < invocations.len()
+            && descendant(invocations[i].position, invocations[end].position)
+        {
             let child = &analysis[end];
             has_transfers |= child.transfer.is_some() || child.has_token_transfers;
             has_swaps |= child.swap_index.is_some() || child.has_known_swap_descendants;
@@ -296,7 +307,9 @@ fn token_mints_from_invocations(
         if account != Pubkey::default() && mint != Pubkey::default() {
             use std::collections::hash_map::Entry;
             match mints.entry(account) {
-                Entry::Vacant(entry) => { entry.insert(mint); }
+                Entry::Vacant(entry) => {
+                    entry.insert(mint);
+                }
                 Entry::Occupied(mut entry) if *entry.get() != mint => {
                     // Retain an ambiguity marker through propagation. A closed
                     // and reused account can have different mints in one tx.
@@ -306,11 +319,7 @@ fn token_mints_from_invocations(
             }
         }
     };
-    for balance in meta
-        .pre_token_balances
-        .iter()
-        .chain(&meta.post_token_balances)
-    {
+    for balance in meta.pre_token_balances.iter().chain(&meta.post_token_balances) {
         if let Ok(mint) = balance.mint.parse() {
             record(&mut mints, key(&keys, balance.account_index), mint);
         }
@@ -331,10 +340,7 @@ fn token_mints_from_invocations(
         // identify ephemeral accounts without pre/post token balances.
         if token_program(ix.program)
             && ix.accounts.len() >= 2
-            && matches!(
-                (ix.data.first(), ix.data.len()),
-                (Some(1), 1) | (Some(16 | 18), 33)
-            )
+            && matches!((ix.data.first(), ix.data.len()), (Some(1), 1) | (Some(16 | 18), 33))
         {
             record(&mut mints, account(ix, &keys, 0), account(ix, &keys, 1));
         }
@@ -392,11 +398,19 @@ fn transaction_invocations<'a>(
     meta: &'a TransactionStatusMeta,
     keys: &[Pubkey],
 ) -> Vec<Invocation<'a>> {
-    let Some(message) = &transaction.message else { return Vec::new(); };
-    if message.instructions.is_empty() { return Vec::new(); }
-    let count = message.instructions.len() + meta.inner_instructions.iter()
-        .filter(|group| (group.index as usize) < message.instructions.len())
-        .map(|group| group.instructions.len()).sum::<usize>();
+    let Some(message) = &transaction.message else {
+        return Vec::new();
+    };
+    if message.instructions.is_empty() {
+        return Vec::new();
+    }
+    let count = message.instructions.len()
+        + meta
+            .inner_instructions
+            .iter()
+            .filter(|group| (group.index as usize) < message.instructions.len())
+            .map(|group| group.instructions.len())
+            .sum::<usize>();
     let mut result = Vec::with_capacity(count);
     // Canonical metadata is already sorted. Only unordered input needs an index;
     // original ordinal breaks ties so duplicate groups retain their old order.
@@ -414,21 +428,35 @@ fn transaction_invocations<'a>(
     let mut cursor = 0;
     for (i, ix) in message.instructions.iter().enumerate() {
         result.push(Invocation {
-            position: InstructionPosition { outer_index: i as u32, inner_index: None, stack_height: Some(1) },
+            position: InstructionPosition {
+                outer_index: i as u32,
+                inner_index: None,
+                stack_height: Some(1),
+            },
             program: key(keys, ix.program_id_index),
             program_resolved: (ix.program_id_index as usize) < keys.len(),
-            accounts: &ix.accounts, data: &ix.data,
+            accounts: &ix.accounts,
+            data: &ix.data,
         });
         while let Some(group) = group_at(cursor) {
-            if group.index > i as u32 { break; }
+            if group.index > i as u32 {
+                break;
+            }
             cursor += 1;
-            if group.index != i as u32 { continue; }
+            if group.index != i as u32 {
+                continue;
+            }
             for (j, ix) in group.instructions.iter().enumerate() {
                 result.push(Invocation {
-                    position: InstructionPosition { outer_index: i as u32, inner_index: Some(j as u32), stack_height: ix.stack_height },
+                    position: InstructionPosition {
+                        outer_index: i as u32,
+                        inner_index: Some(j as u32),
+                        stack_height: ix.stack_height,
+                    },
                     program: key(keys, ix.program_id_index),
                     program_resolved: (ix.program_id_index as usize) < keys.len(),
-                    accounts: &ix.accounts, data: &ix.data,
+                    accounts: &ix.accounts,
+                    data: &ix.data,
                 });
             }
         }
@@ -444,30 +472,19 @@ fn transfer(
         return None;
     }
     let (destination_index, amount_offset, fee) = match ix.data.first()? {
-        3 if ix.accounts.len() >= 3 && ix.data.len() >= 9 => (
-            1,
-            1,
-            if ix.program == ROUTE_SPL_TOKEN {
-                Some(0)
-            } else {
-                None
-            },
-        ),
-        12 if checked_transfer(ix) => (
-            2,
-            1,
-            if ix.program == ROUTE_SPL_TOKEN {
-                Some(0)
-            } else {
-                None
-            },
-        ),
+        3 if ix.accounts.len() >= 3 && ix.data.len() >= 9 => {
+            (1, 1, if ix.program == ROUTE_SPL_TOKEN { Some(0) } else { None })
+        }
+        12 if checked_transfer(ix) => {
+            (2, 1, if ix.program == ROUTE_SPL_TOKEN { Some(0) } else { None })
+        }
         26 if checked_transfer_with_fee(ix) => (2, 2, Some(u64_at(ix.data, 11)?)),
         _ => return None,
     };
     let source = account(ix, keys, 0);
     let destination = account(ix, keys, destination_index);
-    if source == Pubkey::default() || destination == Pubkey::default()
+    if source == Pubkey::default()
+        || destination == Pubkey::default()
         || (destination_index == 2 && account(ix, keys, 1) == Pubkey::default())
     {
         return None;
@@ -517,18 +534,12 @@ fn swap(
             if ix.accounts.len() < 15 {
                 return None;
             }
-            (
-                a(if direction { 7 } else { 9 }),
-                a(if direction { 9 } else { 7 }),
-            )
+            (a(if direction { 7 } else { 9 }), a(if direction { 9 } else { 7 }))
         } else {
             if ix.accounts.len() < 11 {
                 return None;
             }
-            (
-                a(if direction { 3 } else { 5 }),
-                a(if direction { 5 } else { 3 }),
-            )
+            (a(if direction { 3 } else { 5 }), a(if direction { 5 } else { 3 }))
         };
         (
             SwapProtocol::OrcaWhirlpool,
@@ -607,17 +618,54 @@ fn swap(
             u64_at(ix.data, 8)?,
             u64_at(ix.data, 16)?,
         )
-    } else if ix.program == PUMPSWAP_PROGRAM_ID && ix.accounts.len() >= 21 {
-        use crate::instr::pump_amm::discriminators::*;
-        let (buy, exact_in) = if disc == Some(&BUY_EXACT_QUOTE_IN[..]) {
-            (true, true)
-        } else if disc == Some(&BUY[..]) {
-            (true, false)
-        } else if disc == Some(&SELL[..]) {
-            (false, true)
-        } else {
+    } else if ix.program == PUMPFUN_PROGRAM_ID && ix.accounts.len() == 17 {
+        use crate::instr::pump::discriminators::*;
+        let buy = disc != Some(&SELL_V3[..]);
+        let exact = disc != Some(&BUY_V3[..]);
+        if ![BUY_V3, BUY_EXACT_QUOTE_IN_V3, SELL_V3].iter().any(|d| disc == Some(&d[..])) {
             return None;
+        }
+        let quote = a(2);
+        let source = if buy {
+            if quote == ROUTE_WSOL {
+                a(8)
+            } else {
+                a(10)
+            }
+        } else {
+            a(9)
         };
+        let dest = if buy {
+            a(9)
+        } else if quote == ROUTE_WSOL {
+            a(8)
+        } else {
+            a(10)
+        };
+        (
+            SwapProtocol::PumpFun,
+            a(5),
+            a(8),
+            source,
+            dest,
+            exact,
+            u64_at(ix.data, 8)?,
+            u64_at(ix.data, 16)?,
+        )
+    } else if ix.program == PUMPSWAP_PROGRAM_ID
+        && (ix.accounts.len() >= 21 || ix.accounts.len() == 17)
+    {
+        use crate::instr::pump_amm::discriminators::*;
+        let (buy, exact_in) =
+            if disc == Some(&BUY_EXACT_QUOTE_IN[..]) || disc == Some(&BUY_EXACT_QUOTE_IN_V2[..]) {
+                (true, true)
+            } else if disc == Some(&BUY[..]) || disc == Some(&BUY_V2[..]) {
+                (true, false)
+            } else if disc == Some(&SELL[..]) || disc == Some(&SELL_V2[..]) {
+                (false, true)
+            } else {
+                return None;
+            };
         if buy && ix.data.len() > 24 {
             crate::instr::utils::read_option_bool_idl(ix.data, 24)?;
         }
@@ -671,25 +719,22 @@ fn swap(
         return None;
     };
     let explicit_pair = match protocol {
-        SwapProtocol::LaunchLab => Some(if input == a(6) {
-            (a(10), a(9))
-        } else {
-            (a(9), a(10))
-        }),
+        SwapProtocol::PumpFun => {
+            Some(if exact_in && disc == Some(&crate::instr::pump::discriminators::SELL_V3[..]) {
+                (a(1), a(2))
+            } else {
+                (a(2), a(1))
+            })
+        }
+        SwapProtocol::LaunchLab => Some(if input == a(6) { (a(10), a(9)) } else { (a(9), a(10)) }),
         SwapProtocol::RaydiumCpmm => Some((a(10), a(11))),
         SwapProtocol::RaydiumClmm if disc == swap_v2 && ix.accounts.len() >= 13 => {
             Some((a(11), a(12)))
         }
-        SwapProtocol::OrcaWhirlpool if disc == swap_v2 => Some(if input == a(7) {
-            (a(5), a(6))
-        } else {
-            (a(6), a(5))
-        }),
-        SwapProtocol::PumpSwap => Some(if input == a(6) {
-            (a(4), a(3))
-        } else {
-            (a(3), a(4))
-        }),
+        SwapProtocol::OrcaWhirlpool if disc == swap_v2 => {
+            Some(if input == a(7) { (a(5), a(6)) } else { (a(6), a(5)) })
+        }
+        SwapProtocol::PumpSwap => Some(if input == a(6) { (a(4), a(3)) } else { (a(3), a(4)) }),
         _ => None,
     };
     Some(RouteSwapLeg {
@@ -700,16 +745,14 @@ fn swap(
         trader,
         input_account: input,
         output_account: output,
-        input_mint: mints.get(&input).copied().or_else(|| {
-            explicit_pair
-                .map(|pair| pair.0)
-                .filter(|mint| *mint != Pubkey::default())
-        }),
-        output_mint: mints.get(&output).copied().or_else(|| {
-            explicit_pair
-                .map(|pair| pair.1)
-                .filter(|mint| *mint != Pubkey::default())
-        }),
+        input_mint: mints
+            .get(&input)
+            .copied()
+            .or_else(|| explicit_pair.map(|pair| pair.0).filter(|mint| *mint != Pubkey::default())),
+        output_mint: mints
+            .get(&output)
+            .copied()
+            .or_else(|| explicit_pair.map(|pair| pair.1).filter(|mint| *mint != Pubkey::default())),
         amount_specified_is_input: exact_in,
         specified_amount: amount,
         other_amount_threshold: threshold,
@@ -859,12 +902,15 @@ pub fn analyze_yellowstone_transaction_routes(
     let invocations = transaction_invocations(transaction, meta, &keys);
     let mints = token_mints_from_invocations(meta, &keys, &invocations);
     let mut legs = Vec::new();
-    let analysis = invocation_analysis(&invocations, &keys, &mints, graduated_stonkfun_pools, &mut legs);
+    let analysis =
+        invocation_analysis(&invocations, &keys, &mints, graduated_stonkfun_pools, &mut legs);
     let succeeded = meta.err.is_none();
     let mut unknown = Vec::new();
     for (i, ix) in invocations.iter().enumerate() {
         let row = &analysis[i];
-        if row.skip_route { continue; }
+        if row.skip_route {
+            continue;
+        }
         if let Some(index) = row.swap_index {
             let leg = &mut legs[index];
             if succeeded {
@@ -872,7 +918,10 @@ pub fn analyze_yellowstone_transaction_routes(
                 let mut output_sum = Some(0u64);
                 let mut has_input = false;
                 let mut has_output = false;
-                for transfer in analysis[i + 1..row.descendant_end].iter().filter_map(|row| row.transfer.as_ref()) {
+                for transfer in analysis[i + 1..row.descendant_end]
+                    .iter()
+                    .filter_map(|row| row.transfer.as_ref())
+                {
                     if transfer.source == leg.input_account {
                         has_input = true;
                         input_sum = input_sum.and_then(|sum| sum.checked_add(transfer.amount));
@@ -960,11 +1009,7 @@ mod review_regressions {
                 index: 0,
                 instructions: vec![InnerInstruction {
                     program_id_index: 14,
-                    accounts: if fee.is_some() {
-                        vec![7, 11, 5, 1]
-                    } else {
-                        vec![7, 5, 1]
-                    },
+                    accounts: if fee.is_some() { vec![7, 11, 5, 1] } else { vec![7, 5, 1] },
                     data: transfer_data,
                     stack_height: Some(2),
                 }],
@@ -1028,10 +1073,7 @@ mod review_regressions {
     #[test]
     #[ignore = "manual local timing; excludes transport and ALT resolution"]
     fn route_parser_local_timing() {
-        let (tx, meta) = cpmm_with_output(
-            ROUTE_SPL_TOKEN,
-            None,
-        );
+        let (tx, meta) = cpmm_with_output(ROUTE_SPL_TOKEN, None);
         for _ in 0..100 {
             std::hint::black_box(analyze_yellowstone_transaction_routes(&tx, &meta, &[]));
         }
@@ -1062,19 +1104,34 @@ mod review_missing_mint_regressions {
 
     #[test]
     fn missing_accounts_never_seed_or_propagate_a_mint() {
-        let keys = [Pubkey::new_unique(), Pubkey::new_unique(), Pubkey::new_unique(), ROUTE_SPL_TOKEN];
+        let keys =
+            [Pubkey::new_unique(), Pubkey::new_unique(), Pubkey::new_unique(), ROUTE_SPL_TOKEN];
         let mint = Pubkey::new_unique();
-        let mut data = vec![3]; data.extend_from_slice(&10u64.to_le_bytes());
-        let tx = Transaction { message: Some(Message {
-            account_keys: keys.iter().map(|k| k.to_bytes().to_vec()).collect(),
-            instructions: vec![
-                CompiledInstruction { program_id_index: 3, accounts: vec![255, 0, 2], data: data.clone() },
-                CompiledInstruction { program_id_index: 3, accounts: vec![0, 1, 2], data },
-            ], ..Default::default()
-        }), ..Default::default() };
-        let meta = TransactionStatusMeta { pre_token_balances: vec![TokenBalance {
-            account_index: u32::MAX, mint: mint.to_string(), ..Default::default()
-        }], ..Default::default() };
+        let mut data = vec![3];
+        data.extend_from_slice(&10u64.to_le_bytes());
+        let tx = Transaction {
+            message: Some(Message {
+                account_keys: keys.iter().map(|k| k.to_bytes().to_vec()).collect(),
+                instructions: vec![
+                    CompiledInstruction {
+                        program_id_index: 3,
+                        accounts: vec![255, 0, 2],
+                        data: data.clone(),
+                    },
+                    CompiledInstruction { program_id_index: 3, accounts: vec![0, 1, 2], data },
+                ],
+                ..Default::default()
+            }),
+            ..Default::default()
+        };
+        let meta = TransactionStatusMeta {
+            pre_token_balances: vec![TokenBalance {
+                account_index: u32::MAX,
+                mint: mint.to_string(),
+                ..Default::default()
+            }],
+            ..Default::default()
+        };
         assert!(transaction_token_mints(&tx, &meta).is_empty());
         let route = analyze_yellowstone_transaction_routes(&tx, &meta, &[]);
         assert_eq!(route.transfers.len(), 1);
@@ -1093,19 +1150,38 @@ mod review_missing_program_regressions {
         let keys = [Pubkey::new_unique(), Pubkey::new_unique(), Pubkey::default()];
         let mut data = 2u32.to_le_bytes().to_vec();
         data.extend_from_slice(&100u64.to_le_bytes());
-        let mut tx = Transaction { message: Some(Message {
-            account_keys: keys.iter().map(|key| key.to_bytes().to_vec()).collect(),
-            instructions: vec![CompiledInstruction { program_id_index: 255, accounts: vec![0, 1], data }],
+        let mut tx = Transaction {
+            message: Some(Message {
+                account_keys: keys.iter().map(|key| key.to_bytes().to_vec()).collect(),
+                instructions: vec![CompiledInstruction {
+                    program_id_index: 255,
+                    accounts: vec![0, 1],
+                    data,
+                }],
+                ..Default::default()
+            }),
             ..Default::default()
-        }), ..Default::default() };
-        let meta = TransactionStatusMeta { pre_token_balances: vec![TokenBalance {
-            account_index: 1, mint: ROUTE_WSOL.to_string(), ..Default::default()
-        }], ..Default::default() };
-        assert!(analyze_yellowstone_transaction_routes(&tx, &meta, &[]).native_token_actions.is_empty());
+        };
+        let meta = TransactionStatusMeta {
+            pre_token_balances: vec![TokenBalance {
+                account_index: 1,
+                mint: ROUTE_WSOL.to_string(),
+                ..Default::default()
+            }],
+            ..Default::default()
+        };
+        assert!(analyze_yellowstone_transaction_routes(&tx, &meta, &[])
+            .native_token_actions
+            .is_empty());
         tx.message.as_mut().unwrap().instructions[0].program_id_index = 2;
-        assert_eq!(analyze_yellowstone_transaction_routes(&tx, &meta, &[]).native_token_actions.len(), 1);
+        assert_eq!(
+            analyze_yellowstone_transaction_routes(&tx, &meta, &[]).native_token_actions.len(),
+            1
+        );
         tx.message.as_mut().unwrap().instructions[0].accounts[0] = 255;
-        assert!(analyze_yellowstone_transaction_routes(&tx, &meta, &[]).native_token_actions.is_empty());
+        assert!(analyze_yellowstone_transaction_routes(&tx, &meta, &[])
+            .native_token_actions
+            .is_empty());
     }
 }
 
@@ -1118,25 +1194,34 @@ mod review_route_scope_regressions {
     fn pumpswap_invalid_optional_bool_is_not_a_known_route_swap() {
         let mut keys: Vec<_> = (0..21).map(|_| Pubkey::new_unique()).collect();
         keys.push(crate::instr::program_ids::PUMPSWAP_PROGRAM_ID);
-        for discriminator in [crate::instr::pump_amm::discriminators::BUY,
-                              crate::instr::pump_amm::discriminators::BUY_EXACT_QUOTE_IN] {
+        for discriminator in [
+            crate::instr::pump_amm::discriminators::BUY,
+            crate::instr::pump_amm::discriminators::BUY_EXACT_QUOTE_IN,
+        ] {
             let mut data = discriminator.to_vec();
             data.extend_from_slice(&100u64.to_le_bytes());
             data.extend_from_slice(&50u64.to_le_bytes());
             for flag in [None, Some(0), Some(1), Some(2), Some(255)] {
                 let mut wire = data.clone();
-                if let Some(flag) = flag { wire.push(flag); }
+                if let Some(flag) = flag {
+                    wire.push(flag);
+                }
                 let tx = Transaction {
                     message: Some(Message {
                         instructions: vec![CompiledInstruction {
-                            program_id_index: 21, accounts: (0..21).collect(), data: wire,
-                        }], ..Default::default()
-                    }), ..Default::default()
+                            program_id_index: 21,
+                            accounts: (0..21).collect(),
+                            data: wire,
+                        }],
+                        ..Default::default()
+                    }),
+                    ..Default::default()
                 };
                 let meta = TransactionStatusMeta::default();
                 let invocations = transaction_invocations(&tx, &meta, &keys);
                 let mut legs = Vec::new();
-                let rows = invocation_analysis(&invocations, &keys, &HashMap::new(), &[], &mut legs);
+                let rows =
+                    invocation_analysis(&invocations, &keys, &HashMap::new(), &[], &mut legs);
                 assert_eq!(legs.len(), usize::from(!matches!(flag, Some(2 | 255))));
                 assert_eq!(rows[0].swap_index.is_some(), !matches!(flag, Some(2 | 255)));
             }
@@ -1150,32 +1235,72 @@ mod review_route_scope_regressions {
         let mut wire = crate::instr::meteora_dlmm::discriminators::SWAP2.to_vec();
         wire.extend_from_slice(&100u64.to_le_bytes());
         wire.extend_from_slice(&50u64.to_le_bytes());
-        for tail in [vec![], vec![1,0,0,0,0,1], vec![0,0,0,0]] {
-            let mut data = wire.clone(); data.extend_from_slice(&tail);
-            let tx = Transaction { message: Some(Message {
-                account_keys: keys.iter().map(|k| k.to_bytes().to_vec()).collect(),
-                instructions: vec![CompiledInstruction { program_id_index: 16, accounts: (0..16).collect(), data }],
+        for tail in [vec![], vec![1, 0, 0, 0, 0, 1], vec![0, 0, 0, 0]] {
+            let mut data = wire.clone();
+            data.extend_from_slice(&tail);
+            let tx = Transaction {
+                message: Some(Message {
+                    account_keys: keys.iter().map(|k| k.to_bytes().to_vec()).collect(),
+                    instructions: vec![CompiledInstruction {
+                        program_id_index: 16,
+                        accounts: (0..16).collect(),
+                        data,
+                    }],
+                    ..Default::default()
+                }),
                 ..Default::default()
-            }), ..Default::default() };
-            let route = analyze_yellowstone_transaction_routes(&tx, &TransactionStatusMeta::default(), &[]);
-            assert_eq!(route.legs.len(), usize::from(tail == [0,0,0,0]));
-            assert_eq!(route.unknown_invocations.len(), usize::from(tail != [0,0,0,0]));
+            };
+            let route =
+                analyze_yellowstone_transaction_routes(&tx, &TransactionStatusMeta::default(), &[]);
+            assert_eq!(route.legs.len(), usize::from(tail == [0, 0, 0, 0]));
+            assert_eq!(route.unknown_invocations.len(), usize::from(tail != [0, 0, 0, 0]));
         }
     }
 
     #[test]
     fn conflicting_mint_evidence_is_sticky_and_cannot_spread_to_neighbours() {
-        let keys = [Pubkey::new_unique(), Pubkey::new_unique(), Pubkey::new_unique(), Pubkey::new_unique(), Pubkey::new_unique(), ROUTE_SPL_TOKEN];
-        let balance = |index, mint: Pubkey| TokenBalance { account_index: index, mint: mint.to_string(), ..Default::default() };
-        let mut plain = vec![3]; plain.extend_from_slice(&10u64.to_le_bytes());
-        let mut checked = vec![12]; checked.extend_from_slice(&10u64.to_le_bytes()); checked.push(6);
+        let keys = [
+            Pubkey::new_unique(),
+            Pubkey::new_unique(),
+            Pubkey::new_unique(),
+            Pubkey::new_unique(),
+            Pubkey::new_unique(),
+            ROUTE_SPL_TOKEN,
+        ];
+        let balance = |index, mint: Pubkey| TokenBalance {
+            account_index: index,
+            mint: mint.to_string(),
+            ..Default::default()
+        };
+        let mut plain = vec![3];
+        plain.extend_from_slice(&10u64.to_le_bytes());
+        let mut checked = vec![12];
+        checked.extend_from_slice(&10u64.to_le_bytes());
+        checked.push(6);
         let transaction = |with_checked| {
             let mut instructions = vec![];
-            if with_checked { instructions.push(CompiledInstruction { program_id_index: 5, accounts: vec![0, 4, 1, 2], data: checked.clone() }); }
-            for accounts in [vec![0, 1, 2], vec![1, 2, 3]] {
-                instructions.push(CompiledInstruction { program_id_index: 5, accounts, data: plain.clone() });
+            if with_checked {
+                instructions.push(CompiledInstruction {
+                    program_id_index: 5,
+                    accounts: vec![0, 4, 1, 2],
+                    data: checked.clone(),
+                });
             }
-            Transaction { message: Some(Message { account_keys: keys.iter().map(|k| k.to_bytes().to_vec()).collect(), instructions, ..Default::default() }), ..Default::default() }
+            for accounts in [vec![0, 1, 2], vec![1, 2, 3]] {
+                instructions.push(CompiledInstruction {
+                    program_id_index: 5,
+                    accounts,
+                    data: plain.clone(),
+                });
+            }
+            Transaction {
+                message: Some(Message {
+                    account_keys: keys.iter().map(|k| k.to_bytes().to_vec()).collect(),
+                    instructions,
+                    ..Default::default()
+                }),
+                ..Default::default()
+            }
         };
         for with_checked in [false, true] {
             for reverse in [false, true] {
@@ -1190,10 +1315,16 @@ mod review_route_scope_regressions {
                 assert_eq!(mints.get(&keys[0]), None);
                 assert_eq!(mints.get(&keys[1]), Some(&keys[4]));
                 assert_eq!(mints.get(&keys[2]), Some(&keys[4]));
-                assert_eq!(analyze_yellowstone_transaction_routes(&tx, &meta, &[]).transfers[0].mint, None);
+                assert_eq!(
+                    analyze_yellowstone_transaction_routes(&tx, &meta, &[]).transfers[0].mint,
+                    None
+                );
             }
         }
-        let meta = TransactionStatusMeta { pre_token_balances: vec![balance(0, keys[3])], ..Default::default() };
+        let meta = TransactionStatusMeta {
+            pre_token_balances: vec![balance(0, keys[3])],
+            ..Default::default()
+        };
         // A checked transfer cannot silently overwrite an authoritative balance mint.
         assert_eq!(transaction_token_mints(&transaction(true), &meta).get(&keys[0]), None);
     }
@@ -1203,30 +1334,54 @@ mod review_route_scope_regressions {
         let keys: Vec<_> = (0..13).map(|_| Pubkey::new_unique()).collect();
         let opaque = Pubkey::new_unique();
         let mut swap_data = crate::instr::raydium_cpmm::discriminators::SWAP_BASE_IN.to_vec();
-        swap_data.extend_from_slice(&100u64.to_le_bytes()); swap_data.extend_from_slice(&50u64.to_le_bytes());
+        swap_data.extend_from_slice(&100u64.to_le_bytes());
+        swap_data.extend_from_slice(&50u64.to_le_bytes());
         let swap_accounts: Vec<u8> = (0..13).collect();
-        let mut transfer_data = vec![3]; transfer_data.extend_from_slice(&70u64.to_le_bytes());
+        let mut transfer_data = vec![3];
+        transfer_data.extend_from_slice(&70u64.to_le_bytes());
         let transfer_accounts = [4, 5, 0];
         let mut state = 0x1234_5678u64;
         for seed in 0..128 {
             let mut invocations = Vec::new();
             for outer in 0..3 {
                 invocations.push(Invocation {
-                    position: InstructionPosition { outer_index: outer, inner_index: None, stack_height: Some(1) },
-                    program: opaque, program_resolved: true, accounts: &[], data: &[],
+                    position: InstructionPosition {
+                        outer_index: outer,
+                        inner_index: None,
+                        stack_height: Some(1),
+                    },
+                    program: opaque,
+                    program_resolved: true,
+                    accounts: &[],
+                    data: &[],
                 });
                 for j in 0..24 {
-                    state ^= state << 13; state ^= state >> 7; state ^= state << 17;
+                    state ^= state << 13;
+                    state ^= state >> 7;
+                    state ^= state << 17;
                     let (program, accounts, data): (_, &[u8], &[u8]) = match state % 3 {
                         0 => (opaque, &[], &[]),
-                        1 => (crate::instr::program_ids::RAYDIUM_CPMM_PROGRAM_ID, &swap_accounts, &swap_data),
+                        1 => (
+                            crate::instr::program_ids::RAYDIUM_CPMM_PROGRAM_ID,
+                            &swap_accounts,
+                            &swap_data,
+                        ),
                         _ => (ROUTE_SPL_TOKEN, &transfer_accounts, &transfer_data),
                     };
                     invocations.push(Invocation {
-                        position: InstructionPosition { outer_index: outer,
+                        position: InstructionPosition {
+                            outer_index: outer,
                             inner_index: Some(if seed % 7 == 0 { j / 2 } else { j }),
-                            stack_height: if state % 5 == 0 { None } else { Some(2 + (state % 6) as u32) },
-                        }, program, program_resolved: true, accounts, data,
+                            stack_height: if state % 5 == 0 {
+                                None
+                            } else {
+                                Some(2 + (state % 6) as u32)
+                            },
+                        },
+                        program,
+                        program_resolved: true,
+                        accounts,
+                        data,
                     });
                 }
             }
@@ -1235,8 +1390,14 @@ mod review_route_scope_regressions {
             for (i, row) in analysis.iter().enumerate() {
                 let reference = descendants(i, &invocations);
                 assert_eq!(row.descendant_end, i + 1 + reference.len());
-                assert_eq!(row.has_token_transfers, reference.iter().any(|ix| transfer(ix, &keys, &mints).is_some()));
-                assert_eq!(row.has_known_swap_descendants, reference.iter().any(|ix| swap(ix, &keys, &mints, &[]).is_some()));
+                assert_eq!(
+                    row.has_token_transfers,
+                    reference.iter().any(|ix| transfer(ix, &keys, &mints).is_some())
+                );
+                assert_eq!(
+                    row.has_known_swap_descendants,
+                    reference.iter().any(|ix| swap(ix, &keys, &mints, &[]).is_some())
+                );
             }
         }
     }
@@ -1245,68 +1406,87 @@ mod review_route_scope_regressions {
 #[cfg(test)]
 mod review_invocation_join_regressions {
     use super::*;
-    use yellowstone_grpc_proto::prelude::{CompiledInstruction, InnerInstruction, InnerInstructions, Message};
-fn exhaustive_invocations<'a>(
-    transaction: &'a Transaction,
-    meta: &'a TransactionStatusMeta,
-    keys: &[Pubkey],
-) -> Vec<Invocation<'a>> {
-    let mut result = Vec::new();
-    if let Some(message) = &transaction.message {
-        for (i, ix) in message.instructions.iter().enumerate() {
-            result.push(Invocation {
-                position: InstructionPosition {
-                    outer_index: i as u32,
-                    inner_index: None,
-                    stack_height: Some(1),
-                },
-                program: key(keys, ix.program_id_index),
-                program_resolved: (ix.program_id_index as usize) < keys.len(),
-                accounts: &ix.accounts,
-                data: &ix.data,
-            });
-            for group in meta
-                .inner_instructions
-                .iter()
-                .filter(|g| g.index == i as u32)
-            {
-                for (j, ix) in group.instructions.iter().enumerate() {
-                    result.push(Invocation {
-                        position: InstructionPosition {
-                            outer_index: i as u32,
-                            inner_index: Some(j as u32),
-                            stack_height: ix.stack_height,
-                        },
-                        program: key(keys, ix.program_id_index),
-                        program_resolved: (ix.program_id_index as usize) < keys.len(),
-                        accounts: &ix.accounts,
-                        data: &ix.data,
-                    });
+    use yellowstone_grpc_proto::prelude::{
+        CompiledInstruction, InnerInstruction, InnerInstructions, Message,
+    };
+    fn exhaustive_invocations<'a>(
+        transaction: &'a Transaction,
+        meta: &'a TransactionStatusMeta,
+        keys: &[Pubkey],
+    ) -> Vec<Invocation<'a>> {
+        let mut result = Vec::new();
+        if let Some(message) = &transaction.message {
+            for (i, ix) in message.instructions.iter().enumerate() {
+                result.push(Invocation {
+                    position: InstructionPosition {
+                        outer_index: i as u32,
+                        inner_index: None,
+                        stack_height: Some(1),
+                    },
+                    program: key(keys, ix.program_id_index),
+                    program_resolved: (ix.program_id_index as usize) < keys.len(),
+                    accounts: &ix.accounts,
+                    data: &ix.data,
+                });
+                for group in meta.inner_instructions.iter().filter(|g| g.index == i as u32) {
+                    for (j, ix) in group.instructions.iter().enumerate() {
+                        result.push(Invocation {
+                            position: InstructionPosition {
+                                outer_index: i as u32,
+                                inner_index: Some(j as u32),
+                                stack_height: ix.stack_height,
+                            },
+                            program: key(keys, ix.program_id_index),
+                            program_resolved: (ix.program_id_index as usize) < keys.len(),
+                            accounts: &ix.accounts,
+                            data: &ix.data,
+                        });
+                    }
                 }
             }
         }
+        result
     }
-    result
-}
 
     #[test]
     fn ordered_join_preserves_unsorted_duplicate_and_orphan_group_semantics() {
         let keys = [Pubkey::new_unique(), Pubkey::new_unique(), Pubkey::new_unique()];
-        let tx = Transaction { message: Some(Message {
-            account_keys: keys.iter().map(|k| k.to_bytes().to_vec()).collect(),
-            instructions: (0..3).map(|i| CompiledInstruction { program_id_index: i, data: vec![i as u8], accounts: vec![0, 1] }).collect(),
+        let tx = Transaction {
+            message: Some(Message {
+                account_keys: keys.iter().map(|k| k.to_bytes().to_vec()).collect(),
+                instructions: (0..3)
+                    .map(|i| CompiledInstruction {
+                        program_id_index: i,
+                        data: vec![i as u8],
+                        accounts: vec![0, 1],
+                    })
+                    .collect(),
+                ..Default::default()
+            }),
             ..Default::default()
-        }), ..Default::default() };
+        };
         let indices = [2, 0, u32::MAX, 1, 0, 2];
-        let mut groups: Vec<_> = indices.into_iter().enumerate().map(|(i, index)| InnerInstructions {
-            index, instructions: vec![InnerInstruction { program_id_index: if i % 2 == 0 { 1 } else { 255 },
-                accounts: vec![i as u8], data: vec![i as u8],
-                stack_height: if i % 3 == 0 { None } else { Some(2) },
-            }],
-        }).collect();
+        let mut groups: Vec<_> = indices
+            .into_iter()
+            .enumerate()
+            .map(|(i, index)| InnerInstructions {
+                index,
+                instructions: vec![InnerInstruction {
+                    program_id_index: if i % 2 == 0 { 1 } else { 255 },
+                    accounts: vec![i as u8],
+                    data: vec![i as u8],
+                    stack_height: if i % 3 == 0 { None } else { Some(2) },
+                }],
+            })
+            .collect();
         for permutation in 0..12 {
-            if permutation % 2 == 0 { groups.rotate_left(1); } else { groups.reverse(); }
-            let meta = TransactionStatusMeta { inner_instructions: groups.clone(), ..Default::default() };
+            if permutation % 2 == 0 {
+                groups.rotate_left(1);
+            } else {
+                groups.reverse();
+            }
+            let meta =
+                TransactionStatusMeta { inner_instructions: groups.clone(), ..Default::default() };
             let expected = exhaustive_invocations(&tx, &meta, &keys);
             let actual = transaction_invocations(&tx, &meta, &keys);
             assert_eq!(actual.len(), 8);
@@ -1323,7 +1503,10 @@ fn exhaustive_invocations<'a>(
         let meta = TransactionStatusMeta { inner_instructions: groups, ..Default::default() };
         let expected = exhaustive_invocations(&tx, &meta, &keys);
         let actual = transaction_invocations(&tx, &meta, &keys);
-        assert_eq!(actual.iter().map(|ix| (ix.position, ix.data)).collect::<Vec<_>>(), expected.iter().map(|ix| (ix.position, ix.data)).collect::<Vec<_>>());
+        assert_eq!(
+            actual.iter().map(|ix| (ix.position, ix.data)).collect::<Vec<_>>(),
+            expected.iter().map(|ix| (ix.position, ix.data)).collect::<Vec<_>>()
+        );
         assert!(transaction_invocations(&Transaction::default(), &meta, &keys).is_empty());
     }
 }

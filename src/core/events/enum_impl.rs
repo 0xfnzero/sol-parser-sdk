@@ -148,6 +148,10 @@ pub enum DexEvent {
 
     // 错误事件
     Error(String),
+    PumpFunPostCompleteBuy(PumpFunPostCompleteBuyEvent),
+    PumpFunSweepBondingCurveFee(PumpFunSweepBondingCurveFeeEvent),
+    PumpFunComplete(PumpFunCompleteEvent),
+    PumpSwapSweepPoolFee(PumpSwapSweepPoolFeeEvent),
 }
 
 // 静态默认 EventMetadata，用于 Error 事件
@@ -181,6 +185,10 @@ impl DexEvent {
             DexEvent::PumpFeesUpdateFeeConfig(e) => &e.metadata,
             DexEvent::PumpFeesUpdateFeeShares(e) => &e.metadata,
             DexEvent::PumpFeesUpsertFeeTiers(e) => &e.metadata,
+            DexEvent::PumpFunPostCompleteBuy(e) => &e.metadata,
+            DexEvent::PumpFunSweepBondingCurveFee(e) => &e.metadata,
+            DexEvent::PumpFunComplete(e) => &e.metadata,
+            DexEvent::PumpSwapSweepPoolFee(e) => &e.metadata,
             DexEvent::PumpFunMigrateBondingCurveCreator(e) => &e.metadata,
             DexEvent::PumpFunGlobalAccount(e) => &e.metadata,
             DexEvent::PumpFunBondingCurveAccount(e) => &e.metadata,
@@ -321,6 +329,10 @@ impl DexEvent {
             DexEvent::PumpFeesUpdateFeeConfig(e) => Some(&mut e.metadata),
             DexEvent::PumpFeesUpdateFeeShares(e) => Some(&mut e.metadata),
             DexEvent::PumpFeesUpsertFeeTiers(e) => Some(&mut e.metadata),
+            DexEvent::PumpFunPostCompleteBuy(e) => Some(&mut e.metadata),
+            DexEvent::PumpFunSweepBondingCurveFee(e) => Some(&mut e.metadata),
+            DexEvent::PumpFunComplete(e) => Some(&mut e.metadata),
+            DexEvent::PumpSwapSweepPoolFee(e) => Some(&mut e.metadata),
             DexEvent::PumpFunMigrateBondingCurveCreator(e) => Some(&mut e.metadata),
             DexEvent::PumpFunGlobalAccount(e) => Some(&mut e.metadata),
             DexEvent::PumpFunBondingCurveAccount(e) => Some(&mut e.metadata),

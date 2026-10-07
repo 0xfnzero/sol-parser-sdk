@@ -60,6 +60,19 @@ pub fn parse_pumpswap_inner_instruction(
     data: &[u8],
     metadata: EventMetadata,
 ) -> Option<DexEvent> {
+    let disc = if discriminator[..8] == [228, 69, 165, 46, 81, 203, 154, 29] {
+        Some(u64::from_le_bytes(discriminator[8..].try_into().ok()?))
+    } else if discriminator[8..] == [155, 167, 108, 32, 122, 76, 173, 64] {
+        Some(u64::from_le_bytes(discriminator[..8].try_into().ok()?))
+    } else {
+        None
+    };
+    let program = solana_sdk::pubkey!("pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA");
+    if let Some(disc) = disc {
+        if crate::logs::pump_upgrade::event_type(disc, Some(&program)).is_some() {
+            return crate::logs::pump_upgrade::parse(disc, data, metadata, Some(&program));
+        }
+    }
     match *discriminator {
         discriminators::BUY => parse_buy_inner(data, metadata),
         discriminators::SELL => parse_sell_inner(data, metadata),

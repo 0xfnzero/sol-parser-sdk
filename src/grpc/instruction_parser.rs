@@ -437,6 +437,20 @@ fn parse_inner_instruction(
     let mut discriminator = [0u8; 16];
     discriminator.copy_from_slice(&data[..16]);
     let inner_data = &data[16..];
+    let upgrade_disc = if discriminator[..8] == [228, 69, 165, 46, 81, 203, 154, 29] {
+        Some(u64::from_le_bytes(discriminator[8..].try_into().ok()?))
+    } else if discriminator[8..] == [155, 167, 108, 32, 122, 76, 173, 64] {
+        Some(u64::from_le_bytes(discriminator[..8].try_into().ok()?))
+    } else {
+        None
+    };
+    if let Some(disc) = upgrade_disc {
+        if crate::logs::pump_upgrade::event_type(disc, Some(program_id)).is_some() {
+            let event =
+                crate::logs::pump_upgrade::parse(disc, inner_data, metadata, Some(program_id));
+            return event.filter(|e| filter.map(|f| f.should_include_dex_event(e)).unwrap_or(true));
+        }
+    }
 
     use crate::instr::{all_inner, program_ids, pump_amm_inner, pump_inner, raydium_clmm_inner};
 
@@ -839,6 +853,7 @@ mod tests {
             DexEvent::PumpFunCreateV2(e) => {
                 assert_eq!(e.ix_name, "create_v2");
                 crate::core::events::PumpFunCreateTokenEvent {
+                    depth: 0,
                     metadata: e.metadata.clone(),
                     name: e.name.clone(),
                     symbol: e.symbol.clone(),
@@ -1532,18 +1547,18 @@ mod tests {
                 "{}: {}",
                 case.name, case.signature
             );
-            assert_eq!(create.quote_mint, PUMPFUN_SOLSCAN_SOL_QUOTE_MINT, "{}: {}", case.name, case.signature);
             assert_eq!(
-                create.quote_vault,
+                create.quote_mint, PUMPFUN_SOLSCAN_SOL_QUOTE_MINT,
+                "{}: {}",
+                case.name, case.signature
+            );
+            assert_eq!(create.quote_vault, Pubkey::default(), "{}: {}", case.name, case.signature);
+            assert_eq!(
+                create.quote_token_program,
                 Pubkey::default(),
                 "{}: {}",
                 case.name,
                 case.signature
-            );
-            assert_eq!(
-                create.quote_token_program, Pubkey::default(),
-                "{}: {}",
-                case.name, case.signature
             );
         }
     }
@@ -1634,7 +1649,8 @@ mod cpmm_account_decode_boundaries {
     #[test]
     fn invalid_or_same_family_filtered_cpmm_does_not_resolve_accounts() {
         use crate::instr::raydium_cpmm::discriminators::*;
-        let swaps_only = EventTypeFilter::include_only(vec![crate::grpc::EventType::RaydiumCpmmSwap]);
+        let swaps_only =
+            EventTypeFilter::include_only(vec![crate::grpc::EventType::RaydiumCpmmSwap]);
         let get_key = |_index: usize| -> Option<&Vec<u8>> { panic!("rejected account resolved") };
         for (data, count, filter) in [
             (COLLECT_CREATOR_FEE.to_vec(), 15, Some(&swaps_only)),
@@ -1649,9 +1665,16 @@ mod cpmm_account_decode_boundaries {
             assert!(parse_compiled_instruction(
                 &data,
                 &crate::instr::program_ids::RAYDIUM_CPMM_PROGRAM_ID,
-                Signature::default(), 1, 0, None, 0,
-                &vec![0; count], &get_key, filter,
-            ).is_none());
+                Signature::default(),
+                1,
+                0,
+                None,
+                0,
+                &vec![0; count],
+                &get_key,
+                filter,
+            )
+            .is_none());
         }
     }
 

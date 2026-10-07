@@ -83,6 +83,9 @@ fn pumpfun_outer_data_may_parse(data: &[u8]) -> bool {
             | discriminators::BUY
             | discriminators::SELL
             | discriminators::BUY_EXACT_SOL_IN
+            | discriminators::BUY_V3
+            | discriminators::SELL_V3
+            | discriminators::BUY_EXACT_QUOTE_IN_V3
             | discriminators::BUY_V2
             | discriminators::BUY_EXACT_QUOTE_IN_V2
             | discriminators::SELL_V2
@@ -552,6 +555,21 @@ fn parse_pumpfun_instruction(
     let disc: [u8; 8] = data[0..8].try_into().ok()?;
     let ix_data = &data[8..];
 
+    if [discriminators::BUY_V3, discriminators::SELL_V3, discriminators::BUY_EXACT_QUOTE_IN_V3]
+        .contains(&disc)
+    {
+        let mut ev = crate::instr::pump::parse_instruction(
+            data, accounts, signature, slot, tx_index, None, recv_us,
+        )?;
+        match &mut ev {
+            DexEvent::PumpFunBuy(t) | DexEvent::PumpFunSell(t) => {
+                t.is_created_buy = created_mints.contains(&t.mint);
+                t.mayhem_mode = mayhem_mints.contains(&t.mint);
+            }
+            _ => {}
+        }
+        return Some(ev);
+    }
     match disc {
         d if d == discriminators::CREATE => {
             parse_create_instruction(data, accounts, signature, slot, tx_index, recv_us)
@@ -1558,11 +1576,17 @@ mod tests {
             let mut keys = unique_accounts(count + 1);
             keys[count] = PUMPSWAP_PROGRAM_ID;
             let expected_pool = keys[0];
-            let expected_pool_v2 = pool_v2_index.map(|index| {
-                let pda = Pubkey::find_program_address(&[b"pool-v2", keys[3].as_ref()], &PUMPSWAP_PROGRAM_ID).0;
-                keys[index] = pda;
-                pda
-            }).unwrap_or_default();
+            let expected_pool_v2 = pool_v2_index
+                .map(|index| {
+                    let pda = Pubkey::find_program_address(
+                        &[b"pool-v2", keys[3].as_ref()],
+                        &PUMPSWAP_PROGRAM_ID,
+                    )
+                    .0;
+                    keys[index] = pda;
+                    pda
+                })
+                .unwrap_or_default();
             let expected_recipient = keys[count - 2];
             let expected_recipient_ata = keys[count - 1];
             let mut data = instruction_data(disc, 123, 456);
@@ -2011,9 +2035,11 @@ mod tests {
                         case.signature
                     );
                     assert_eq!(
-                        event.quote_token_program, Pubkey::default(),
+                        event.quote_token_program,
+                        Pubkey::default(),
                         "{}: {}",
-                        case.name, case.signature
+                        case.name,
+                        case.signature
                     );
                     assert_eq!(
                         event.program, PROGRAM_ID_PUBKEY,

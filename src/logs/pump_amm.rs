@@ -142,6 +142,7 @@ unsafe fn read_i64_unchecked(data: &[u8], offset: usize) -> i64 {
 
 #[derive(Default)]
 struct PumpSwapTradeTail {
+    creator_fee_unclaimed: u64,
     cashback_fee_basis_points: u64,
     cashback: u64,
     buyback_fee_basis_points: u64,
@@ -224,6 +225,10 @@ fn parse_trade_tail(data: &[u8]) -> Option<PumpSwapTradeTail> {
         tail.holder_rewards_bps = read_u64_le_at(data, 57)?;
         tail.holder_rewards = read_u64_le_at(data, 65)?;
     }
+    if data.len() > 73 && data.len() < 81 {
+        return None;
+    }
+    tail.creator_fee_unclaimed = read_u64_le_at(data, 73).unwrap_or(0);
     Some(tail)
 }
 
@@ -547,6 +552,7 @@ pub fn parse_buy_from_data(data: &[u8], metadata: EventMetadata) -> Option<DexEv
             base_supply: tail.base_supply,
             holder_rewards_bps: tail.holder_rewards_bps,
             holder_rewards: tail.holder_rewards,
+            creator_fee_unclaimed: tail.creator_fee_unclaimed,
             ..Default::default()
         }))
     }
@@ -624,6 +630,7 @@ pub fn parse_sell_from_data(data: &[u8], metadata: EventMetadata) -> Option<DexE
             base_supply: tail.base_supply,
             holder_rewards_bps: tail.holder_rewards_bps,
             holder_rewards: tail.holder_rewards,
+            creator_fee_unclaimed: tail.creator_fee_unclaimed,
             ..Default::default()
         }))
     }
@@ -676,21 +683,11 @@ pub fn parse_create_pool_from_data(data: &[u8], metadata: EventMetadata) -> Opti
         let user_quote_token_account = read_pubkey_unchecked(data, 261);
         let coin_creator = read_pubkey_unchecked(data, 293);
         let is_mayhem_mode = read_borsh_bool_at(data, 325)?;
-        let creator_fee_bps = if data.len() >= 334 {
-            read_u64_unchecked(data, 326)
-        } else {
-            0
-        };
-        let can_edit_creator_fee = if data.len() > 334 {
-            read_borsh_bool_at(data, 334)?
-        } else {
-            false
-        };
-        let is_holder_reward = if data.len() > 335 {
-            read_borsh_bool_at(data, 335)?
-        } else {
-            false
-        };
+        let creator_fee_bps = if data.len() >= 334 { read_u64_unchecked(data, 326) } else { 0 };
+        let can_edit_creator_fee =
+            if data.len() > 334 { read_borsh_bool_at(data, 334)? } else { false };
+        let is_holder_reward =
+            if data.len() > 335 { read_borsh_bool_at(data, 335)? } else { false };
 
         Some(DexEvent::PumpSwapCreatePool(PumpSwapCreatePoolEvent {
             metadata,
@@ -799,27 +796,25 @@ pub fn parse_remove_liquidity_from_data(data: &[u8], metadata: EventMetadata) ->
         let user_quote_token_account = read_pubkey_unchecked(data, 184);
         let user_pool_token_account = read_pubkey_unchecked(data, 216);
 
-        Some(DexEvent::PumpSwapLiquidityRemoved(
-            PumpSwapLiquidityRemoved {
-                metadata,
-                timestamp,
-                lp_token_amount_in,
-                min_base_amount_out,
-                min_quote_amount_out,
-                user_base_token_reserves,
-                user_quote_token_reserves,
-                pool_base_token_reserves,
-                pool_quote_token_reserves,
-                base_amount_out,
-                quote_amount_out,
-                lp_mint_supply,
-                pool,
-                user,
-                user_base_token_account,
-                user_quote_token_account,
-                user_pool_token_account,
-            },
-        ))
+        Some(DexEvent::PumpSwapLiquidityRemoved(PumpSwapLiquidityRemoved {
+            metadata,
+            timestamp,
+            lp_token_amount_in,
+            min_base_amount_out,
+            min_quote_amount_out,
+            user_base_token_reserves,
+            user_quote_token_reserves,
+            pool_base_token_reserves,
+            pool_quote_token_reserves,
+            base_amount_out,
+            quote_amount_out,
+            lp_mint_supply,
+            pool,
+            user,
+            user_base_token_account,
+            user_quote_token_account,
+            user_pool_token_account,
+        }))
     }
 }
 
@@ -1160,7 +1155,7 @@ mod tests {
     fn trade_tail_accepts_only_complete_layouts() {
         for len in 0..=80 {
             let tail = vec![0u8; len];
-            let expected = matches!(len, 0 | 16 | 32 | 57 | 73..=80);
+            let expected = matches!(len, 0 | 16 | 32 | 57 | 73 | 81..);
             assert_eq!(parse_trade_tail(&tail).is_some(), expected, "tail length {len}");
         }
 

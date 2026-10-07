@@ -483,6 +483,7 @@ fn parse_create_event_optimized(
             virtual_quote_reserves,
             creator_fee_bps,
             is_holder_reward,
+            depth: data.get(offset + 1).copied().unwrap_or(0),
             ix_name: "create".to_string(),
             ..Default::default()
         }))
@@ -629,6 +630,7 @@ fn parse_trade_event_optimized(
         };
 
         let trade_event = PumpFunTradeEvent {
+            creator_fee_unclaimed: read_optional_u64(data, &mut offset),
             metadata,
             mint,
             sol_amount,
@@ -691,10 +693,12 @@ fn parse_trade_event_optimized(
 
         // 根据 ix_name 返回不同的事件类型，支持用户过滤特定交易类型
         match ix_kind {
-            "buy" => Some(DexEvent::PumpFunBuy(trade_event)),
-            "sell" => Some(DexEvent::PumpFunSell(trade_event)),
+            "buy" | "buy_v3" => Some(DexEvent::PumpFunBuy(trade_event)),
+            "sell" | "sell_v3" => Some(DexEvent::PumpFunSell(trade_event)),
             "buy_exact_sol_in" => Some(DexEvent::PumpFunBuyExactSolIn(trade_event)),
-            "buy_exact_quote_in" => Some(DexEvent::PumpFunBuy(trade_event)),
+            "buy_exact_quote_in" | "buy_exact_quote_in_v3" => {
+                Some(DexEvent::PumpFunBuy(trade_event))
+            }
             _ => Some(DexEvent::PumpFunTrade(trade_event)), // 兼容旧版本或未知类型
         }
     }
@@ -954,6 +958,7 @@ pub fn parse_trade_from_data(
         ) = read_trade_event_extensions(data, &mut offset)?;
 
         let trade_event = PumpFunTradeEvent {
+            creator_fee_unclaimed: read_optional_u64(data, &mut offset),
             metadata,
             mint,
             sol_amount,
@@ -1016,10 +1021,12 @@ pub fn parse_trade_from_data(
 
         // 根据 ix_name 返回不同的事件类型
         match ix_kind {
-            "buy" => Some(DexEvent::PumpFunBuy(trade_event)),
-            "sell" => Some(DexEvent::PumpFunSell(trade_event)),
+            "buy" | "buy_v3" => Some(DexEvent::PumpFunBuy(trade_event)),
+            "sell" | "sell_v3" => Some(DexEvent::PumpFunSell(trade_event)),
             "buy_exact_sol_in" => Some(DexEvent::PumpFunBuyExactSolIn(trade_event)),
-            "buy_exact_quote_in" => Some(DexEvent::PumpFunBuy(trade_event)),
+            "buy_exact_quote_in" | "buy_exact_quote_in_v3" => {
+                Some(DexEvent::PumpFunBuy(trade_event))
+            }
             _ => Some(DexEvent::PumpFunTrade(trade_event)),
         }
     }
@@ -1182,6 +1189,7 @@ pub fn parse_create_from_data(data: &[u8], metadata: EventMetadata) -> Option<De
             virtual_quote_reserves,
             creator_fee_bps,
             is_holder_reward,
+            depth: data.get(offset + 1).copied().unwrap_or(0),
             ix_name: "create".to_string(),
             ..Default::default()
         }))

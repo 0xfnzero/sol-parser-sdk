@@ -86,6 +86,42 @@ pub fn fill_buy_accounts_with_count(
     get: &AccountGetter<'_>,
     count: usize,
 ) {
+    if count == 17 && get(16) == crate::instr::program_ids::PUMPSWAP_PROGRAM_ID {
+        if e.pool == Pubkey::default() {
+            e.pool = get(0);
+        }
+        if e.user == Pubkey::default() {
+            e.user = get(1);
+        }
+        if e.base_mint == Pubkey::default() {
+            e.base_mint = get(3);
+        }
+        if e.quote_mint == Pubkey::default() {
+            e.quote_mint = get(4);
+        }
+        if e.user_base_token_account == Pubkey::default() {
+            e.user_base_token_account = get(5);
+        }
+        if e.user_quote_token_account == Pubkey::default() {
+            e.user_quote_token_account = get(6);
+        }
+        if e.pool_base_token_account == Pubkey::default() {
+            e.pool_base_token_account = get(7);
+        }
+        if e.pool_quote_token_account == Pubkey::default() {
+            e.pool_quote_token_account = get(8);
+        }
+        if e.base_token_program == Pubkey::default() {
+            e.base_token_program = get(9);
+        }
+        if e.quote_token_program == Pubkey::default() {
+            e.quote_token_program = get(10);
+        }
+        if e.fee_recipient_quote_token_account == Pubkey::default() {
+            e.fee_recipient_quote_token_account = get(14);
+        }
+        return;
+    }
     fill_pumpswap_trade_common!(e, get);
     if !(23..=27).contains(&count) {
         return;
@@ -113,6 +149,42 @@ pub fn fill_sell_accounts_with_count(
     get: &AccountGetter<'_>,
     count: usize,
 ) {
+    if count == 17 && get(16) == crate::instr::program_ids::PUMPSWAP_PROGRAM_ID {
+        if e.pool == Pubkey::default() {
+            e.pool = get(0);
+        }
+        if e.user == Pubkey::default() {
+            e.user = get(1);
+        }
+        if e.base_mint == Pubkey::default() {
+            e.base_mint = get(3);
+        }
+        if e.quote_mint == Pubkey::default() {
+            e.quote_mint = get(4);
+        }
+        if e.user_base_token_account == Pubkey::default() {
+            e.user_base_token_account = get(5);
+        }
+        if e.user_quote_token_account == Pubkey::default() {
+            e.user_quote_token_account = get(6);
+        }
+        if e.pool_base_token_account == Pubkey::default() {
+            e.pool_base_token_account = get(7);
+        }
+        if e.pool_quote_token_account == Pubkey::default() {
+            e.pool_quote_token_account = get(8);
+        }
+        if e.base_token_program == Pubkey::default() {
+            e.base_token_program = get(9);
+        }
+        if e.quote_token_program == Pubkey::default() {
+            e.quote_token_program = get(10);
+        }
+        if e.fee_recipient_quote_token_account == Pubkey::default() {
+            e.fee_recipient_quote_token_account = get(14);
+        }
+        return;
+    }
     fill_pumpswap_trade_common!(e, get);
     if !(21..=26).contains(&count) {
         return;

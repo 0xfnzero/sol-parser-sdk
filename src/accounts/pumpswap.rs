@@ -232,6 +232,8 @@ pub fn parse_pool(account: &AccountData, metadata: EventMetadata) -> Option<DexE
     let is_holder_reward = read_u8(data, offset).unwrap_or_default() != 0;
 
     let pool = PumpSwapPool {
+        protocol_fees: read_u64_le(data, 263).unwrap_or_default(),
+        creator_fees: read_u64_le(data, 271).unwrap_or_default(),
         pool_bump,
         index,
         creator,

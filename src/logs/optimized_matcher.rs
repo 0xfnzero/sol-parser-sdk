@@ -666,6 +666,13 @@ fn parse_log_optimized_inner(
         recent_blockhash: recent_blockhash.map(|s| bs58::encode(s).into_string()),
     };
 
+    if crate::logs::pump_upgrade::event_type(discriminator, program_id).is_some() {
+        return apply_event_type_filter(
+            crate::logs::pump_upgrade::parse(discriminator, data, metadata, program_id)?,
+            event_type_filter,
+        );
+    }
+
     if let Some(program_id) = program_id {
         return parse_program_scoped_event(
             program_id,
@@ -968,6 +975,9 @@ fn program_scoped_discriminator_to_event_type(
     program_id: &Pubkey,
     discriminator: u64,
 ) -> Option<EventType> {
+    if let Some(kind) = crate::logs::pump_upgrade::event_type(discriminator, Some(program_id)) {
+        return Some(kind);
+    }
     match *program_id {
         program_ids::PUMPFUN_PROGRAM_ID => match discriminator {
             discriminators::PUMPFUN_CREATE => Some(EventType::PumpFunCreate),
@@ -1639,6 +1649,10 @@ fn filter_pumpfun_trade_variant(
 /// Map discriminator to EventType (compile-time optimized match)
 #[inline(always)]
 fn discriminator_to_event_type(discriminator: u64) -> Option<EventType> {
+    if let Some(kind) = crate::logs::pump_upgrade::event_type(discriminator, None) {
+        return Some(kind);
+    }
+
     match discriminator {
         discriminators::PUMPFUN_CREATE => Some(EventType::PumpFunCreate),
         discriminators::PUMPFUN_TRADE => Some(EventType::PumpFunTrade),

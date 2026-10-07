@@ -390,6 +390,9 @@ pub enum EventType {
     AccountRawSnapshot,
     AccountOrcaFeeTier,
     AccountOrcaWhirlpoolsConfig,
+    PumpFunPostCompleteBuy,
+    PumpFunSweepBondingCurveFee,
+    PumpSwapSweepPoolFee,
 }
 
 #[derive(Debug, Clone)]
@@ -524,6 +527,8 @@ impl EventTypeFilter {
             EventType::PumpFunComplete,
             EventType::PumpFunMigrate,
             EventType::PumpFunMigrateBondingCurveCreator,
+            EventType::PumpFunPostCompleteBuy,
+            EventType::PumpFunSweepBondingCurveFee,
         ])
     }
 
@@ -566,6 +571,7 @@ impl EventTypeFilter {
             EventType::PumpSwapBuy,
             EventType::PumpSwapSell,
             EventType::PumpSwapCreatePool,
+            EventType::PumpSwapSweepPoolFee,
             EventType::PumpSwapLiquidityAdded,
             EventType::PumpSwapLiquidityRemoved,
         ])
@@ -722,6 +728,10 @@ pub fn event_type_from_dex_event(event: &crate::core::events::DexEvent) -> Optio
         DexEvent::PumpFeesUpdateFeeConfig(_) => Some(EventType::PumpFeesUpdateFeeConfig),
         DexEvent::PumpFeesUpdateFeeShares(_) => Some(EventType::PumpFeesUpdateFeeShares),
         DexEvent::PumpFeesUpsertFeeTiers(_) => Some(EventType::PumpFeesUpsertFeeTiers),
+        DexEvent::PumpFunPostCompleteBuy(_) => Some(EventType::PumpFunPostCompleteBuy),
+        DexEvent::PumpFunSweepBondingCurveFee(_) => Some(EventType::PumpFunSweepBondingCurveFee),
+        DexEvent::PumpFunComplete(_) => Some(EventType::PumpFunComplete),
+        DexEvent::PumpSwapSweepPoolFee(_) => Some(EventType::PumpSwapSweepPoolFee),
         DexEvent::PumpFunMigrateBondingCurveCreator(_) => {
             Some(EventType::PumpFunMigrateBondingCurveCreator)
         }
