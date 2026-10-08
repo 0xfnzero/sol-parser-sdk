@@ -33,6 +33,8 @@ enum LogInstrDedupKey {
         /// 同签、同 `(mint,user,is_buy,ix_lane)` 下第几条（log 路与 ix 路各自从 0 计数）。
         lane_occurrence: u16,
     },
+    PumpFunComplete { mint: Pubkey, curve: Pubkey, user: Pubkey },
+    PumpFunPostCompleteBuy { mint: Pubkey, curve: Pubkey, user: Pubkey, base_out: u64, quote_in: u64 },
     PumpFunCreate {
         mint: Pubkey,
     },
@@ -180,6 +182,8 @@ fn pumpfun_trade_key_with_occ(
 fn log_instr_dedup_key(ev: &DexEvent) -> Option<LogInstrDedupKey> {
     use DexEvent::*;
     match ev {
+        PumpFunComplete(e) => Some(LogInstrDedupKey::PumpFunComplete { mint:e.mint,curve:e.bonding_curve,user:e.user }),
+        PumpFunPostCompleteBuy(e) => Some(LogInstrDedupKey::PumpFunPostCompleteBuy {mint:e.mint,curve:e.bonding_curve,user:e.user,base_out:e.base_out,quote_in:e.quote_in}),
         PumpFunCreate(c) => Some(LogInstrDedupKey::PumpFunCreate { mint: c.mint }),
         PumpFunCreateV2(c) => Some(LogInstrDedupKey::PumpFunCreate { mint: c.mint }),
         PumpFunMigrate(m) => {
