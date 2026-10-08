@@ -273,14 +273,17 @@ fn find_pumpfun_trade_invoke<'a>(
                 .map(|ix| ix.data.as_slice())
         };
         use crate::instr::pump::discriminators::*;
-        let (mint_idx, user_idx, is_buy) = match data.and_then(|data| data.get(..8)) {
-            Some(disc) if disc == BUY || disc == BUY_EXACT_SOL_IN => (2, 6, true),
-            Some(disc) if disc == SELL => (2, 6, false),
-            Some(disc) if disc == BUY_V2 || disc == BUY_EXACT_QUOTE_IN_V2 => (1, 13, true),
-            Some(disc) if disc == SELL_V2 => (1, 13, false),
+        let (mint_idx, user_idx, is_buy, minimum) = match data.and_then(|data| data.get(..8)) {
+            Some(disc) if disc == BUY || disc == BUY_EXACT_SOL_IN => (2, 6, true, 16),
+            Some(disc) if disc == SELL => (2, 6, false, 14),
+            Some(disc) if disc == BUY_V2 || disc == BUY_EXACT_QUOTE_IN_V2 => (1, 13, true, 27),
+            Some(disc) if disc == SELL_V2 => (1, 13, false, 26),
+            Some(disc) if disc == BUY_V3 || disc == BUY_EXACT_QUOTE_IN_V3 => (1, 8, true, 17),
+            Some(disc) if disc == SELL_V3 => (1, 8, false, 17),
             _ => return false,
         };
-        is_buy == event.is_buy
+        instruction_account_count(meta, transaction, invoke) >= minimum
+            && is_buy == event.is_buy
             && get_instruction_account_getter(
                 meta,
                 transaction,
