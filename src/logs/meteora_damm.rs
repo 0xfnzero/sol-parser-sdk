@@ -19,6 +19,8 @@ pub mod discriminators {
     pub const CLOSE_POSITION_EVENT: [u8; 8] = [20, 145, 144, 68, 143, 142, 214, 178];
     pub const CLAIM_POSITION_FEE_EVENT: [u8; 8] = [198, 182, 183, 52, 97, 12, 49, 56];
     pub const INITIALIZE_REWARD_EVENT: [u8; 8] = [129, 91, 188, 3, 246, 52, 185, 249];
+    pub const UPDATE_REWARD_DURATION_EVENT: [u8; 8] = [149, 135, 65, 231, 129, 153, 65, 57];
+    pub const UPDATE_REWARD_FUNDER_EVENT: [u8; 8] = [76, 154, 208, 13, 40, 115, 246, 146];
     pub const FUND_REWARD_EVENT: [u8; 8] = [104, 233, 237, 122, 199, 191, 121, 85];
     pub const CLAIM_REWARD_EVENT: [u8; 8] = [218, 86, 147, 200, 235, 188, 215, 231];
     pub const UPDATE_DELEGATE_PERMISSION_EVENT: [u8; 8] = [66, 188, 75, 151, 150, 232, 87, 93];
@@ -131,6 +133,30 @@ fn parse_structured_log(
             block_time_us,
             grpc_recv_us,
         ),
+        discriminators::UPDATE_REWARD_DURATION_EVENT => {
+            let pool = read_pubkey(data, 0)?;
+            let metadata = create_metadata_simple(
+                signature,
+                slot,
+                tx_index,
+                block_time_us,
+                pool,
+                grpc_recv_us,
+            );
+            parse_update_reward_duration_from_data(data, metadata)
+        }
+        discriminators::UPDATE_REWARD_FUNDER_EVENT => {
+            let pool = read_pubkey(data, 0)?;
+            let metadata = create_metadata_simple(
+                signature,
+                slot,
+                tx_index,
+                block_time_us,
+                pool,
+                grpc_recv_us,
+            );
+            parse_update_reward_funder_from_data(data, metadata)
+        }
         discriminators::FUND_REWARD_EVENT => {
             parse_fund_reward_event(data, signature, slot, tx_index, block_time_us, grpc_recv_us)
         }
@@ -788,34 +814,10 @@ fn parse_initialize_reward_event(
     block_time_us: Option<i64>,
     grpc_recv_us: i64,
 ) -> Option<DexEvent> {
-    // let mut offset = 0;
-
-    // let lb_pair = read_pubkey(data, offset)?;
-    // offset += 32;
-
-    // let reward_mint = read_pubkey(data, offset)?;
-    // offset += 32;
-
-    // let funder = read_pubkey(data, offset)?;
-    // offset += 32;
-
-    // let reward_index = read_u64_le(data, offset)?;
-    // offset += 8;
-
-    // let reward_duration = read_u64_le(data, offset)?;
-
-    // let metadata =
-    //     create_metadata_simple(signature, slot, tx_index, block_time_us, lb_pair, grpc_recv_us);
-
-    // Some(DexEvent::MeteoraDammV2InitializeReward(MeteoraDammV2InitializeRewardEvent {
-    //     metadata,
-    //     lb_pair,
-    //     reward_mint,
-    //     funder,
-    //     reward_index,
-    //     reward_duration,
-    // }))
-    None
+    let pool = read_pubkey(data, 0)?;
+    let metadata =
+        create_metadata_simple(signature, slot, tx_index, block_time_us, pool, grpc_recv_us);
+    parse_initialize_reward_from_data(data, metadata)
 }
 
 /// 解析 Fund Reward 事件
@@ -925,6 +927,55 @@ pub fn parse_withdraw_ineligible_reward_from_data(
     Some(DexEvent::MeteoraDammV2WithdrawIneligibleReward(
         MeteoraDammV2WithdrawIneligibleRewardEvent { metadata, pool, reward_mint, amount },
     ))
+}
+pub fn parse_update_reward_funder_from_data(
+    data: &[u8],
+    metadata: EventMetadata,
+) -> Option<DexEvent> {
+    let pool = read_pubkey(data, 0)?;
+    let reward_index = read_u8(data, 32)?;
+    let old_funder = read_pubkey(data, 33)?;
+    let new_funder = read_pubkey(data, 65)?;
+    Some(DexEvent::MeteoraDammV2UpdateRewardFunder(MeteoraDammV2UpdateRewardFunderEvent {
+        metadata,
+        pool,
+        reward_index,
+        old_funder,
+        new_funder,
+    }))
+}
+pub fn parse_update_reward_duration_from_data(
+    data: &[u8],
+    metadata: EventMetadata,
+) -> Option<DexEvent> {
+    let pool = read_pubkey(data, 0)?;
+    let reward_index = read_u8(data, 32)?;
+    let old_reward_duration = read_u64_le(data, 33)?;
+    let new_reward_duration = read_u64_le(data, 41)?;
+    Some(DexEvent::MeteoraDammV2UpdateRewardDuration(MeteoraDammV2UpdateRewardDurationEvent {
+        metadata,
+        pool,
+        reward_index,
+        old_reward_duration,
+        new_reward_duration,
+    }))
+}
+pub fn parse_initialize_reward_from_data(data: &[u8], metadata: EventMetadata) -> Option<DexEvent> {
+    let pool = read_pubkey(data, 0)?;
+    let reward_mint = read_pubkey(data, 32)?;
+    let funder = read_pubkey(data, 64)?;
+    let creator = read_pubkey(data, 96)?;
+    let reward_index = read_u8(data, 128)?;
+    let reward_duration = read_u64_le(data, 129)?;
+    Some(DexEvent::MeteoraDammV2InitializeReward(MeteoraDammV2InitializeRewardEvent {
+        metadata,
+        pool,
+        reward_mint,
+        funder,
+        creator,
+        reward_index,
+        reward_duration,
+    }))
 }
 pub fn parse_fund_reward_from_data(data: &[u8], metadata: EventMetadata) -> Option<DexEvent> {
     let pool = read_pubkey(data, 0)?;

@@ -344,6 +344,9 @@ pub enum EventType {
     MeteoraDammV2UpdateDelegatePermission,
     MeteoraDammV2WithdrawDeadLiquidityReward,
     MeteoraDammV2WithdrawIneligibleReward,
+    MeteoraDammV2UpdateRewardFunder,
+    MeteoraDammV2UpdateRewardDuration,
+    MeteoraDammV2InitializeReward,
     MeteoraDammV2FundReward,
     MeteoraDammV2CreateConfig,
     MeteoraDammV2CreateDynamicConfig,
@@ -551,6 +554,9 @@ impl EventTypeFilter {
             EventType::MeteoraDammV2UpdateDelegatePermission,
             EventType::MeteoraDammV2WithdrawDeadLiquidityReward,
             EventType::MeteoraDammV2WithdrawIneligibleReward,
+            EventType::MeteoraDammV2UpdateRewardFunder,
+            EventType::MeteoraDammV2UpdateRewardDuration,
+            EventType::MeteoraDammV2InitializeReward,
             EventType::MeteoraDammV2FundReward,
             EventType::MeteoraDammV2CreateConfig,
             EventType::MeteoraDammV2CreateDynamicConfig,
@@ -780,6 +786,15 @@ pub fn event_type_from_dex_event(event: &crate::core::events::DexEvent) -> Optio
         }
         DexEvent::MeteoraDammV2WithdrawIneligibleReward(_) => {
             Some(EventType::MeteoraDammV2WithdrawIneligibleReward)
+        }
+        DexEvent::MeteoraDammV2UpdateRewardFunder(_) => {
+            Some(EventType::MeteoraDammV2UpdateRewardFunder)
+        }
+        DexEvent::MeteoraDammV2UpdateRewardDuration(_) => {
+            Some(EventType::MeteoraDammV2UpdateRewardDuration)
+        }
+        DexEvent::MeteoraDammV2InitializeReward(_) => {
+            Some(EventType::MeteoraDammV2InitializeReward)
         }
         DexEvent::MeteoraDammV2FundReward(_) => Some(EventType::MeteoraDammV2FundReward),
         DexEvent::MeteoraDammV2CreateConfig(_) => Some(EventType::MeteoraDammV2CreateConfig),

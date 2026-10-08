@@ -315,6 +315,12 @@ mod discriminators {
         u64::from_le_bytes([228, 66, 150, 195, 42, 62, 163, 13]);
     pub const METEORA_DAMM_WITHDRAW_INELIGIBLE_REWARD: u64 =
         u64::from_le_bytes([248, 215, 184, 78, 31, 180, 179, 168]);
+    pub const METEORA_DAMM_UPDATE_REWARD_FUNDER: u64 =
+        u64::from_le_bytes([76, 154, 208, 13, 40, 115, 246, 146]);
+    pub const METEORA_DAMM_UPDATE_REWARD_DURATION: u64 =
+        u64::from_le_bytes([149, 135, 65, 231, 129, 153, 65, 57]);
+    pub const METEORA_DAMM_INITIALIZE_REWARD: u64 =
+        u64::from_le_bytes([129, 91, 188, 3, 246, 52, 185, 249]);
     pub const METEORA_DAMM_FUND_REWARD: u64 =
         u64::from_le_bytes([104, 233, 237, 122, 199, 191, 121, 85]);
     pub const METEORA_DAMM_CREATE_CONFIG: u64 =
@@ -963,6 +969,15 @@ fn parse_log_optimized_inner(
         discriminators::METEORA_DAMM_WITHDRAW_INELIGIBLE_REWARD => {
             crate::logs::meteora_damm::parse_withdraw_ineligible_reward_from_data(data, metadata)
         }
+        discriminators::METEORA_DAMM_UPDATE_REWARD_FUNDER => {
+            crate::logs::meteora_damm::parse_update_reward_funder_from_data(data, metadata)
+        }
+        discriminators::METEORA_DAMM_UPDATE_REWARD_DURATION => {
+            crate::logs::meteora_damm::parse_update_reward_duration_from_data(data, metadata)
+        }
+        discriminators::METEORA_DAMM_INITIALIZE_REWARD => {
+            crate::logs::meteora_damm::parse_initialize_reward_from_data(data, metadata)
+        }
         discriminators::METEORA_DAMM_FUND_REWARD => {
             crate::logs::meteora_damm::parse_fund_reward_from_data(data, metadata)
         }
@@ -1166,6 +1181,15 @@ fn program_scoped_discriminator_to_event_type(
             }
             discriminators::METEORA_DAMM_WITHDRAW_INELIGIBLE_REWARD => {
                 Some(EventType::MeteoraDammV2WithdrawIneligibleReward)
+            }
+            discriminators::METEORA_DAMM_UPDATE_REWARD_FUNDER => {
+                Some(EventType::MeteoraDammV2UpdateRewardFunder)
+            }
+            discriminators::METEORA_DAMM_UPDATE_REWARD_DURATION => {
+                Some(EventType::MeteoraDammV2UpdateRewardDuration)
+            }
+            discriminators::METEORA_DAMM_INITIALIZE_REWARD => {
+                Some(EventType::MeteoraDammV2InitializeReward)
             }
             discriminators::METEORA_DAMM_FUND_REWARD => Some(EventType::MeteoraDammV2FundReward),
             discriminators::METEORA_DAMM_CREATE_CONFIG => {
@@ -1574,6 +1598,17 @@ fn parse_program_scoped_event(
                         data, metadata,
                     )
                 }
+                discriminators::METEORA_DAMM_UPDATE_REWARD_FUNDER => {
+                    crate::logs::meteora_damm::parse_update_reward_funder_from_data(data, metadata)
+                }
+                discriminators::METEORA_DAMM_UPDATE_REWARD_DURATION => {
+                    crate::logs::meteora_damm::parse_update_reward_duration_from_data(
+                        data, metadata,
+                    )
+                }
+                discriminators::METEORA_DAMM_INITIALIZE_REWARD => {
+                    crate::logs::meteora_damm::parse_initialize_reward_from_data(data, metadata)
+                }
                 discriminators::METEORA_DAMM_FUND_REWARD => {
                     crate::logs::meteora_damm::parse_fund_reward_from_data(data, metadata)
                 }
@@ -1842,6 +1877,15 @@ fn discriminator_to_event_type(discriminator: u64) -> Option<EventType> {
         }
         discriminators::METEORA_DAMM_WITHDRAW_INELIGIBLE_REWARD => {
             Some(EventType::MeteoraDammV2WithdrawIneligibleReward)
+        }
+        discriminators::METEORA_DAMM_UPDATE_REWARD_FUNDER => {
+            Some(EventType::MeteoraDammV2UpdateRewardFunder)
+        }
+        discriminators::METEORA_DAMM_UPDATE_REWARD_DURATION => {
+            Some(EventType::MeteoraDammV2UpdateRewardDuration)
+        }
+        discriminators::METEORA_DAMM_INITIALIZE_REWARD => {
+            Some(EventType::MeteoraDammV2InitializeReward)
         }
         discriminators::METEORA_DAMM_FUND_REWARD => Some(EventType::MeteoraDammV2FundReward),
         discriminators::METEORA_DAMM_CREATE_CONFIG => Some(EventType::MeteoraDammV2CreateConfig),
