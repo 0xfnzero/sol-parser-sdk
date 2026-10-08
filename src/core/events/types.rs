@@ -2705,23 +2705,15 @@ pub struct OrcaWhirlpoolSwapEvent {
 pub struct OrcaWhirlpoolLiquidityIncreasedEvent {
     #[cfg_attr(feature = "parse-borsh", borsh(skip))]
     pub metadata: EventMetadata,
-
-    // === Borsh 序列化字段（从 inner instruction data 读取）===
-    pub whirlpool: Pubkey,   // 32 bytes
-    pub liquidity: u128,     // 16 bytes
-    pub token_a_amount: u64, // 8 bytes
-    pub token_b_amount: u64, // 8 bytes
-
-    // === 非 Borsh 字段（从日志或其他来源填充）===
-    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
+    // Current official LiquidityIncreased Borsh payload, in wire order.
+    pub whirlpool: Pubkey,
     pub position: Pubkey,
-    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
     pub tick_lower_index: i32,
-    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
     pub tick_upper_index: i32,
-    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
+    pub liquidity: u128,
+    pub token_a_amount: u64,
+    pub token_b_amount: u64,
     pub token_a_transfer_fee: u64,
-    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
     pub token_b_transfer_fee: u64,
 }
 
@@ -2731,23 +2723,15 @@ pub struct OrcaWhirlpoolLiquidityIncreasedEvent {
 pub struct OrcaWhirlpoolLiquidityDecreasedEvent {
     #[cfg_attr(feature = "parse-borsh", borsh(skip))]
     pub metadata: EventMetadata,
-
-    // === Borsh 序列化字段（从 inner instruction data 读取）===
-    pub whirlpool: Pubkey,   // 32 bytes
-    pub liquidity: u128,     // 16 bytes
-    pub token_a_amount: u64, // 8 bytes
-    pub token_b_amount: u64, // 8 bytes
-
-    // === 非 Borsh 字段（从日志或其他来源填充）===
-    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
+    // Current official LiquidityDecreased Borsh payload, in wire order.
+    pub whirlpool: Pubkey,
     pub position: Pubkey,
-    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
     pub tick_lower_index: i32,
-    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
     pub tick_upper_index: i32,
-    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
+    pub liquidity: u128,
+    pub token_a_amount: u64,
+    pub token_b_amount: u64,
     pub token_a_transfer_fee: u64,
-    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
     pub token_b_transfer_fee: u64,
 }
 

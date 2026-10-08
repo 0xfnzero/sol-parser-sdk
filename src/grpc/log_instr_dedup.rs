@@ -6,6 +6,9 @@
 //! **刻意不包含成交量**：instruction 侧数值可能与程序日志不一致，若用金额做键会导致 log/ix 无法配对，
 //! 合并后仍以 **log 数值为准**（见 [`crate::core::merger::merge_grpc_instruction_into_log`]）。
 //!
+//! Whirlpool 流动性变更使用池、仓位、方向、精确 liquidity delta 与出现次数配对；
+//! 指令 token max/min 不参与配对，也不会覆盖日志实际金额。
+//!
 //! **同签多笔**：同一 `(mint, user, is_buy, ix_lane)` 可能出现多次（例如捆绑里同一钱包连买两笔）。
 //! PumpFun 键上增加 **`lane_occurrence`**（在本路 `log_events` / `instr_events` 各自列表中的出现次序，从 0 递增），
 //! 与 log、ix 两路各自遍历顺序一致时，仍能与首条 log 正确配对合并。
@@ -97,6 +100,13 @@ enum LogInstrDedupKey {
         instruction_amount: u64,
         occurrence: u16,
     },
+    OrcaWhirlpoolLiquidity {
+        whirlpool: Pubkey,
+        position: Pubkey,
+        liquidity: u128,
+        decrease: bool,
+        occurrence: u16,
+    },
     OrcaWhirlpoolSwap {
         whirlpool: Pubkey,
         occurrence: u16,
@@ -135,6 +145,7 @@ enum OccurrenceBase {
     RaydiumCpmm { pool: Pubkey, base_input: bool },
     RaydiumAmmV4 { pool: Pubkey, base_out: bool, amount: u64 },
     OrcaWhirlpool(Pubkey),
+    OrcaWhirlpoolLiquidity { whirlpool: Pubkey, position: Pubkey, liquidity: u128, decrease: bool },
     MeteoraDlmm { pool: Pubkey, from: Pubkey, swap_for_y: bool },
 }
 
@@ -263,6 +274,18 @@ fn occurrence_base(ev: &DexEvent) -> Option<OccurrenceBase> {
             };
             Some(OccurrenceBase::RaydiumAmmV4 { pool: s.amm, base_out, amount })
         }
+        OrcaWhirlpoolLiquidityIncreased(e) => Some(OccurrenceBase::OrcaWhirlpoolLiquidity {
+            whirlpool: e.whirlpool,
+            position: e.position,
+            liquidity: e.liquidity,
+            decrease: false,
+        }),
+        OrcaWhirlpoolLiquidityDecreased(e) => Some(OccurrenceBase::OrcaWhirlpoolLiquidity {
+            whirlpool: e.whirlpool,
+            position: e.position,
+            liquidity: e.liquidity,
+            decrease: true,
+        }),
         OrcaWhirlpoolSwap(s) => Some(OccurrenceBase::OrcaWhirlpool(s.whirlpool)),
         MeteoraDlmmSwap(s) => Some(OccurrenceBase::MeteoraDlmm {
             pool: s.pool,
@@ -320,6 +343,20 @@ fn dedup_key_with_occurrence(ev: &DexEvent, occurrence: u16) -> Option<LogInstrD
                 occurrence,
             })
         }
+        OrcaWhirlpoolLiquidityIncreased(e) => Some(LogInstrDedupKey::OrcaWhirlpoolLiquidity {
+            whirlpool: e.whirlpool,
+            position: e.position,
+            liquidity: e.liquidity,
+            decrease: false,
+            occurrence,
+        }),
+        OrcaWhirlpoolLiquidityDecreased(e) => Some(LogInstrDedupKey::OrcaWhirlpoolLiquidity {
+            whirlpool: e.whirlpool,
+            position: e.position,
+            liquidity: e.liquidity,
+            decrease: true,
+            occurrence,
+        }),
         OrcaWhirlpoolSwap(s) => {
             Some(LogInstrDedupKey::OrcaWhirlpoolSwap { whirlpool: s.whirlpool, occurrence })
         }
@@ -388,6 +425,7 @@ pub(crate) fn dedupe_log_instruction_events(
                 | OccurrenceBase::PumpSwap { .. }
                 | OccurrenceBase::RaydiumCpmm { .. }
                 | OccurrenceBase::RaydiumAmmV4 { .. }
+                | OccurrenceBase::OrcaWhirlpoolLiquidity { .. }
         )
     }) {
         for event in &instr_events {
@@ -398,6 +436,7 @@ pub(crate) fn dedupe_log_instruction_events(
                         | OccurrenceBase::PumpSwap { .. }
                         | OccurrenceBase::RaydiumCpmm { .. }
                         | OccurrenceBase::RaydiumAmmV4 { .. }
+                        | OccurrenceBase::OrcaWhirlpoolLiquidity { .. }
                 ) {
                     next_occurrence(base, &mut ix_occurrences);
                 }
@@ -428,6 +467,18 @@ pub(crate) fn dedupe_log_instruction_events(
                     pool: *pool,
                     base_out: *base_out,
                     amount: *instruction_amount,
+                },
+                LogInstrDedupKey::OrcaWhirlpoolLiquidity {
+                    whirlpool,
+                    position,
+                    liquidity,
+                    decrease,
+                    ..
+                } => OccurrenceBase::OrcaWhirlpoolLiquidity {
+                    whirlpool: *whirlpool,
+                    position: *position,
+                    liquidity: *liquidity,
+                    decrease: *decrease,
                 },
                 _ => return true,
             };
@@ -1091,4 +1142,58 @@ mod amm_v2_merge_tests {
             );
         }
     }
+}
+
+#[test]
+fn whirlpool_liquidity_occurrences_and_missing_logs() {
+    use crate::core::events::EventMetadata;
+    use base64::Engine;
+    let f: serde_json::Value = serde_json::from_str(include_str!(
+        "../../tests/fixtures/whirlpool_liquidity_20261008.json"
+    ))
+    .unwrap();
+    let c = f["cases"].as_array().unwrap().iter().find(|c| c["name"] == "increase").unwrap();
+    let encoded = c["raw"]["meta"]["logMessages"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter_map(|v| v.as_str()?.strip_prefix("Program data: "))
+        .map(|v| base64::engine::general_purpose::STANDARD.decode(v).unwrap())
+        .find(|b| b.starts_with(&[30, 7, 144, 181, 102, 254, 155, 161]))
+        .unwrap();
+    let log = crate::logs::orca_whirlpool::parse_liquidity_increased_from_data(
+        &encoded[8..],
+        EventMetadata::default(),
+    )
+    .unwrap();
+    let mut ix = log.clone();
+    if let DexEvent::OrcaWhirlpoolLiquidityIncreased(e) = &mut ix {
+        e.token_a_amount = u64::MAX;
+        e.token_b_amount = u64::MAX;
+        e.tick_lower_index = 0;
+        e.tick_upper_index = 0;
+    }
+    let events =
+        dedupe_log_instruction_events(vec![log.clone(), log.clone()], vec![ix.clone(), ix.clone()]);
+    assert_eq!(events.len(), 2);
+    for e in events {
+        if let (
+            DexEvent::OrcaWhirlpoolLiquidityIncreased(e),
+            DexEvent::OrcaWhirlpoolLiquidityIncreased(want),
+        ) = (e, &log)
+        {
+            assert_eq!(e.token_a_amount, want.token_a_amount);
+            assert_eq!(e.tick_lower_index, want.tick_lower_index);
+        } else {
+            panic!("wrong kind")
+        }
+    }
+    assert_eq!(
+        dedupe_log_instruction_events(vec![log.clone()], vec![ix.clone(), ix.clone()]).len(),
+        3
+    );
+    if let DexEvent::OrcaWhirlpoolLiquidityIncreased(e) = &mut ix {
+        e.position = Pubkey::default();
+    }
+    assert_eq!(dedupe_log_instruction_events(vec![log], vec![ix]).len(), 2);
 }
