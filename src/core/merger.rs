@@ -39,19 +39,9 @@ pub fn try_merge_events(
     inner: DexEvent,
     unmerged: &mut Option<DexEvent>,
 ) -> bool {
-    // Different Pump venues under one outer multi-hop instruction are separate fills.
-    if let (Some((kind, a, scoped)), Some((other, b, other_scoped))) =
-        (pump_venue_identity(base), pump_venue_identity(&inner))
-    {
-        if kind == other
-            && (scoped || other_scoped)
-            && a != Pubkey::default()
-            && b != Pubkey::default()
-            && a != b
-        {
-            *unmerged = Some(inner);
-            return false;
-        }
+    if pump_trade_identity_conflicts(base, &inner) {
+        *unmerged = Some(inner);
+        return false;
     }
     use DexEvent::*;
 
@@ -604,6 +594,9 @@ fn merge_pumpswap_sell(base: &mut PumpSwapSellEvent, inner: PumpSwapSellEvent) {
 /// 3. 来自同一个交易（signature 相同）
 #[inline(always)]
 pub fn can_merge(base: &DexEvent, inner: &DexEvent) -> bool {
+    if pump_trade_identity_conflicts(base, inner) {
+        return false;
+    }
     // 检查 signature 是否相同
     if base.metadata().signature != inner.metadata().signature {
         return false;
@@ -629,6 +622,9 @@ pub fn can_merge(base: &DexEvent, inner: &DexEvent) -> bool {
 
         // PumpFun Migrate 可以合并
         (DexEvent::PumpFunMigrate(_), DexEvent::PumpFunMigrate(_)) => true,
+
+        (DexEvent::PumpSwapBuy(_), DexEvent::PumpSwapBuy(_))
+        | (DexEvent::PumpSwapSell(_), DexEvent::PumpSwapSell(_)) => true,
 
         // 其他组合不支持合并
         _ => false,
@@ -1707,6 +1703,7 @@ mod tests {
         let mut base = DexEvent::PumpFunTrade(PumpFunTradeEvent {
             metadata: metadata.clone(),
             ix_name: "buy_exact_quote_in".to_string(),
+            is_buy: true,
             quote_mint,
             spendable_quote_in: 1_000,
             min_tokens_out: 2_000,
@@ -2724,14 +2721,36 @@ mod amm_swap_parameter_merge_tests {
     }
 }
 
-fn pump_venue_identity(event: &DexEvent) -> Option<(u8, Pubkey, bool)> {
+// Instruction/CPI events sharing an outer index may still be distinct trades.
+fn pump_trade_identity(event: &DexEvent) -> Option<(u8, Pubkey, Pubkey, Option<bool>)> {
     use DexEvent::*;
     match event {
-        PumpFunTrade(e) | PumpFunBuy(e) | PumpFunSell(e) | PumpFunBuyExactSolIn(e) => {
-            Some((0, e.mint, e.ix_name == "multi_hop_swap"))
-        }
-        PumpSwapBuy(e) => Some((1, e.pool, true)),
-        PumpSwapSell(e) => Some((1, e.pool, true)),
+        PumpFunTrade(e) | PumpFunBuy(e) | PumpFunSell(e) | PumpFunBuyExactSolIn(e) => Some((
+            0,
+            e.mint,
+            e.user,
+            (e.mint != Pubkey::default()
+                || !e.ix_name.is_empty()
+                || e.sol_amount != 0
+                || e.token_amount != 0)
+                .then_some(e.is_buy),
+        )),
+        PumpSwapBuy(e) => Some((1, e.pool, e.user, Some(true))),
+        PumpSwapSell(e) => Some((1, e.pool, e.user, Some(false))),
         _ => None,
     }
+}
+
+fn pump_trade_identity_conflicts(base: &DexEvent, inner: &DexEvent) -> bool {
+    let (Some((kind, venue, user, buy)), Some((other, other_venue, other_user, other_buy))) =
+        (pump_trade_identity(base), pump_trade_identity(inner))
+    else {
+        return false;
+    };
+    kind == other
+        && ((buy.is_some() && other_buy.is_some() && buy != other_buy)
+            || (venue != Pubkey::default()
+                && other_venue != Pubkey::default()
+                && venue != other_venue)
+            || (user != Pubkey::default() && other_user != Pubkey::default() && user != other_user))
 }
