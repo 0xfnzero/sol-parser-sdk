@@ -61,10 +61,12 @@ enum LogInstrDedupKey {
     PumpSwapBuy {
         pool: Pubkey,
         user: Pubkey,
+        occurrence: u16,
     },
     PumpSwapSell {
         pool: Pubkey,
         user: Pubkey,
+        occurrence: u16,
     },
     PumpSwapCreatePool {
         pool: Pubkey,
@@ -125,6 +127,7 @@ fn pumpswap_ix_lane(ix_name: &str) -> u8 {
 
 #[derive(Clone, Hash, PartialEq, Eq)]
 enum OccurrenceBase {
+    PumpSwap { pool: Pubkey, user: Pubkey, buy: bool },
     PumpFun { mint: Pubkey, user: Pubkey, is_buy: bool, lane: u8 },
     RaydiumLaunchlab { pool: Pubkey, user: Pubkey, is_buy: bool },
     RaydiumClmm(Pubkey),
@@ -186,8 +189,8 @@ fn log_instr_dedup_key(ev: &DexEvent) -> Option<LogInstrDedupKey> {
             is_buy: t.is_buy,
             ix_lane: pumpswap_ix_lane(t.ix_name.as_str()),
         }),
-        PumpSwapBuy(b) => Some(LogInstrDedupKey::PumpSwapBuy { pool: b.pool, user: b.user }),
-        PumpSwapSell(s) => Some(LogInstrDedupKey::PumpSwapSell { pool: s.pool, user: s.user }),
+        PumpSwapBuy(b) => Some(LogInstrDedupKey::PumpSwapBuy { pool: b.pool, user: b.user, occurrence: 0 }),
+        PumpSwapSell(s) => Some(LogInstrDedupKey::PumpSwapSell { pool: s.pool, user: s.user, occurrence: 0 }),
         PumpSwapCreatePool(c) => Some(LogInstrDedupKey::PumpSwapCreatePool {
             pool: c.pool,
             base_mint: c.base_mint,
@@ -227,6 +230,8 @@ fn occurrence_base(ev: &DexEvent) -> Option<OccurrenceBase> {
             let lane = pumpfun_ix_lane(t.ix_name.as_str());
             Some(OccurrenceBase::PumpFun { mint: t.mint, user: t.user, is_buy: t.is_buy, lane })
         }
+        PumpSwapBuy(e) => Some(OccurrenceBase::PumpSwap { pool: e.pool, user: e.user, buy: true }),
+        PumpSwapSell(e) => Some(OccurrenceBase::PumpSwap { pool: e.pool, user: e.user, buy: false }),
         RaydiumLaunchlabTrade(t) => Some(OccurrenceBase::RaydiumLaunchlab {
             pool: t.pool_state,
             user: t.user,
@@ -258,6 +263,8 @@ fn dedup_key_with_occurrence(ev: &DexEvent, occurrence: u16) -> Option<LogInstrD
         PumpFunTrade(t) | PumpFunBuy(t) | PumpFunSell(t) | PumpFunBuyExactSolIn(t) => {
             Some(pumpfun_trade_key_with_occ(t, occurrence))
         }
+        PumpSwapBuy(e) => Some(LogInstrDedupKey::PumpSwapBuy { pool: e.pool, user: e.user, occurrence }),
+        PumpSwapSell(e) => Some(LogInstrDedupKey::PumpSwapSell { pool: e.pool, user: e.user, occurrence }),
         RaydiumLaunchlabTrade(t) => Some(LogInstrDedupKey::RaydiumLaunchlabTrade {
             pool: t.pool_state,
             user: t.user,
@@ -847,6 +854,72 @@ mod cpmm_incomplete_lane_regressions {
                 assert!(log.ix_name.is_empty());
                 assert_eq!(log.amount_in, 0);
                 assert!(log.input_amount >= 100);
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+mod pumpswap_occurrence_tests {
+    use super::*;
+    use crate::core::events::{PumpSwapBuyEvent, PumpSwapSellEvent};
+    #[test]
+    fn repeated_swap_fills_pair_in_order() {
+        let pool = Pubkey::new_unique();
+        let user = Pubkey::new_unique();
+        let accounts = [Pubkey::new_unique(), Pubkey::new_unique()];
+        for buy in [true, false] {
+            let mut logs = vec![];
+            let mut instructions = vec![];
+            for (account, amount) in accounts.into_iter().zip([100, 200]) {
+                if buy {
+                    logs.push(DexEvent::PumpSwapBuy(PumpSwapBuyEvent {
+                        pool,
+                        user,
+                        quote_amount_in: amount - 10,
+                        ..Default::default()
+                    }));
+                    instructions.push(DexEvent::PumpSwapBuy(PumpSwapBuyEvent {
+                        pool,
+                        user,
+                        max_quote_amount_in: amount,
+                        user_base_token_account: account,
+                        ..Default::default()
+                    }));
+                } else {
+                    logs.push(DexEvent::PumpSwapSell(PumpSwapSellEvent {
+                        pool,
+                        user,
+                        quote_amount_out: amount - 10,
+                        ..Default::default()
+                    }));
+                    instructions.push(DexEvent::PumpSwapSell(PumpSwapSellEvent {
+                        pool,
+                        user,
+                        min_quote_amount_out: amount,
+                        user_base_token_account: account,
+                        ..Default::default()
+                    }));
+                }
+            }
+            assert_eq!(
+                dedupe_log_instruction_events(vec![], instructions.clone()).len(),
+                2
+            );
+            let out = dedupe_log_instruction_events(logs, instructions);
+            assert_eq!(out.len(), 2);
+            for ((e, amount), account) in out.iter().zip([100, 200]).zip(accounts) {
+                match e {
+                    DexEvent::PumpSwapBuy(e) => assert_eq!(
+                        (e.user_base_token_account, e.quote_amount_in),
+                        (account, amount - 10)
+                    ),
+                    DexEvent::PumpSwapSell(e) => assert_eq!(
+                        (e.user_base_token_account, e.quote_amount_out),
+                        (account, amount - 10)
+                    ),
+                    _ => panic!(),
+                }
             }
         }
     }

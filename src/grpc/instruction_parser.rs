@@ -19,7 +19,7 @@ struct IndexedInstructionEvent {
     outer_idx: usize,
     inner_idx: Option<usize>,
     stack_height: Option<u32>,
-    is_dlmm_event_cpi: bool,
+    is_event_cpi: bool,
     event: DexEvent,
 }
 
@@ -186,7 +186,7 @@ pub(crate) fn parse_instructions_enhanced_with_created_buy(
                 outer_idx: i,
                 inner_idx: None,
                 stack_height: Some(1),
-                is_dlmm_event_cpi: false,
+                is_event_cpi: false,
                 event,
             });
         }
@@ -235,7 +235,9 @@ pub(crate) fn parse_instructions_enhanced_with_created_buy(
                     outer_idx,
                     inner_idx: Some(j),
                     stack_height: inner_ix.stack_height,
-                    is_dlmm_event_cpi: pid == crate::instr::program_ids::METEORA_DLMM_PROGRAM_ID
+                    is_event_cpi: (pid == crate::instr::program_ids::METEORA_DLMM_PROGRAM_ID
+                        || pid == crate::instr::program_ids::PUMPFUN_PROGRAM_ID
+                        || pid == crate::instr::program_ids::PUMPSWAP_PROGRAM_ID)
                         && crate::instr::all_inner::meteora_dlmm::is_event_cpi(&inner_ix.data),
                     event,
                 });
@@ -555,12 +557,30 @@ fn parse_inner_instruction(
 
 /// 合并相关的 instruction 和 inner instruction 事件
 ///
-/// 合并策略：
-/// 1. 同一个 outer_idx 的 instruction 和 inner instruction 可以合并
-/// 2. Inner instruction 在 outer instruction 之后出现（排序保证主指令在前）
-/// 3. 同一 outer 下若有多个 inner，依次链式合并进同一条事件，再输出
-/// 4. 合并后返回更完整的事件
 #[inline(always)]
+fn is_pump_trade(event: &DexEvent) -> bool {
+    matches!(
+        event,
+        DexEvent::PumpFunTrade(_)
+            | DexEvent::PumpFunBuy(_)
+            | DexEvent::PumpFunSell(_)
+            | DexEvent::PumpFunBuyExactSolIn(_)
+            | DexEvent::PumpSwapBuy(_)
+            | DexEvent::PumpSwapSell(_)
+    )
+}
+
+fn pump_trade_has_instruction_name(event: &DexEvent) -> bool {
+    match event {
+        DexEvent::PumpFunTrade(e)
+        | DexEvent::PumpFunBuy(e)
+        | DexEvent::PumpFunSell(e)
+        | DexEvent::PumpFunBuyExactSolIn(e) => !e.ix_name.is_empty(),
+        DexEvent::PumpSwapBuy(_) | DexEvent::PumpSwapSell(_) => true,
+        _ => false,
+    }
+}
+/// Pair Pump event CPI with its nearest trade invocation, once per call.
 fn merge_instruction_events(events: Vec<IndexedInstructionEvent>) -> Vec<DexEvent> {
     if events.is_empty() {
         return Vec::new();
@@ -570,7 +590,10 @@ fn merge_instruction_events(events: Vec<IndexedInstructionEvent>) -> Vec<DexEven
     // （`None` 若用 MAX 会把 outer 排到 inner 后面，导致无法 merge）
     let mut events = events;
     events.sort_unstable_by_key(|event| {
-        (event.outer_idx, event.inner_idx.map_or(0, |inner_idx| inner_idx + 1))
+        (
+            event.outer_idx,
+            event.inner_idx.map_or(0, |inner_idx| inner_idx + 1),
+        )
     });
 
     let mut result = Vec::with_capacity(events.len());
@@ -580,12 +603,13 @@ fn merge_instruction_events(events: Vec<IndexedInstructionEvent>) -> Vec<DexEven
     let mut dlmm_targets: [Option<(usize, Option<u32>, usize)>; 8] = [None; 8];
     let mut dlmm_targets_len = 0usize;
 
+    let mut pump_targets: Vec<(usize, Option<u32>, usize, bool)> = Vec::new();
     for indexed in events {
         let IndexedInstructionEvent {
             outer_idx,
             inner_idx,
             stack_height,
-            is_dlmm_event_cpi,
+            is_event_cpi,
             event,
         } = indexed;
         match inner_idx {
@@ -594,6 +618,10 @@ fn merge_instruction_events(events: Vec<IndexedInstructionEvent>) -> Vec<DexEven
                 let target_idx = result.len();
                 result.push(event);
                 outer_target = Some((outer_idx, target_idx));
+                pump_targets.clear();
+                if is_pump_trade(&result[target_idx]) {
+                    pump_targets.push((outer_idx, stack_height, target_idx, false));
+                }
                 dlmm_targets_len = 0;
                 if is_dlmm {
                     dlmm_targets[0] = Some((outer_idx, stack_height, target_idx));
@@ -601,7 +629,46 @@ fn merge_instruction_events(events: Vec<IndexedInstructionEvent>) -> Vec<DexEven
                 }
             }
             Some(_) => {
-                if is_dlmm_event_cpi {
+                if is_pump_trade(&event)
+                    && (is_event_cpi || pump_trade_has_instruction_name(&event))
+                {
+                    if is_event_cpi {
+                        let candidate = pump_targets.iter().rposition(|t| {
+                            t.0 == outer_idx
+                                && match (t.1, stack_height) {
+                                    (Some(parent), Some(child)) => child == parent + 1,
+                                    _ => true,
+                                }
+                        });
+                        if let Some(i) = candidate {
+                            let target = &mut pump_targets[i];
+                            if !target.3 {
+                                target.3 = true;
+                                let mut unmerged = None;
+                                if !try_merge_events(&mut result[target.2], event, &mut unmerged) {
+                                    result.push(unmerged.unwrap());
+                                }
+                                continue;
+                            }
+                        }
+                        result.push(event);
+                    } else {
+                        if let Some(height) = stack_height {
+                            while pump_targets.last().is_some_and(|t| {
+                                t.0 != outer_idx || t.1.is_some_and(|h| h >= height)
+                            }) {
+                                pump_targets.pop();
+                            }
+                        } else {
+                            pump_targets.clear();
+                        }
+                        let target_idx = result.len();
+                        result.push(event);
+                        pump_targets.push((outer_idx, stack_height, target_idx, false));
+                    }
+                    continue;
+                }
+                if is_event_cpi && is_dlmm_event(&event) {
                     let target = (0..dlmm_targets_len).rev().find_map(|idx| {
                         let (target_outer, target_height, target_idx) = dlmm_targets[idx]?;
                         let is_direct_child = match (target_height, stack_height) {
@@ -990,14 +1057,14 @@ mod tests {
                 outer_idx: 0,
                 inner_idx: None,
                 stack_height: Some(1),
-                is_dlmm_event_cpi: false,
+                is_event_cpi: false,
                 event: outer_event,
             },
             IndexedInstructionEvent {
                 outer_idx: 0,
                 inner_idx: Some(0),
                 stack_height: Some(2),
-                is_dlmm_event_cpi: false,
+                is_event_cpi: false,
                 event: inner_event,
             },
         ];
@@ -1059,21 +1126,21 @@ mod tests {
                 outer_idx: 0,
                 inner_idx: None,
                 stack_height: Some(1),
-                is_dlmm_event_cpi: false,
+                is_event_cpi: false,
                 event: outer_event,
             },
             IndexedInstructionEvent {
                 outer_idx: 0,
                 inner_idx: Some(0),
                 stack_height: Some(2),
-                is_dlmm_event_cpi: false,
+                is_event_cpi: false,
                 event: inner_trade,
             },
             IndexedInstructionEvent {
                 outer_idx: 0,
                 inner_idx: Some(1),
                 stack_height: Some(2),
-                is_dlmm_event_cpi: false,
+                is_event_cpi: false,
                 event: inner_fee_only,
             },
         ];
@@ -1131,14 +1198,14 @@ mod tests {
                 outer_idx: 0,
                 inner_idx: None,
                 stack_height: Some(1),
-                is_dlmm_event_cpi: false,
+                is_event_cpi: false,
                 event: dlmm_swap(Pubkey::default(), 0, 0),
             },
             IndexedInstructionEvent {
                 outer_idx: 0,
                 inner_idx: Some(0),
                 stack_height: Some(2),
-                is_dlmm_event_cpi: false,
+                is_event_cpi: false,
                 event: dlmm_add_liquidity(),
             },
         ];
@@ -1158,28 +1225,28 @@ mod tests {
                 outer_idx: 0,
                 inner_idx: Some(0),
                 stack_height: Some(2),
-                is_dlmm_event_cpi: false,
+                is_event_cpi: false,
                 event: dlmm_swap(first_pool, 1, 0),
             },
             IndexedInstructionEvent {
                 outer_idx: 0,
                 inner_idx: Some(1),
                 stack_height: Some(3),
-                is_dlmm_event_cpi: true,
+                is_event_cpi: true,
                 event: dlmm_swap(first_pool, 10, 9),
             },
             IndexedInstructionEvent {
                 outer_idx: 0,
                 inner_idx: Some(2),
                 stack_height: Some(2),
-                is_dlmm_event_cpi: false,
+                is_event_cpi: false,
                 event: dlmm_swap(second_pool, 2, 0),
             },
             IndexedInstructionEvent {
                 outer_idx: 0,
                 inner_idx: Some(3),
                 stack_height: Some(3),
-                is_dlmm_event_cpi: true,
+                is_event_cpi: true,
                 event: dlmm_swap(second_pool, 20, 18),
             },
         ];
@@ -1734,6 +1801,116 @@ mod cpmm_account_decode_boundaries {
                     None,
                 )
                 .is_none());
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+mod pump_occurrence_tests {
+    use super::*;
+    #[test]
+    fn repeated_trades_pair_with_own_cpi() {
+        let mint = Pubkey::new_unique();
+        let user = Pubkey::new_unique();
+        for known in [true, false] {
+            let event = |amount, executed| {
+                DexEvent::PumpFunTrade(PumpFunTradeEvent {
+                    mint,
+                    user,
+                    is_buy: true,
+                    ix_name: "buy_v3".into(),
+                    amount: if executed { 0 } else { amount },
+                    token_amount: if executed { amount } else { 0 },
+                    ..Default::default()
+                })
+            };
+            let item = |inner_idx, height, is_cpi, event| IndexedInstructionEvent {
+                outer_idx: 0,
+                inner_idx,
+                stack_height: if known { Some(height) } else { None },
+                is_event_cpi: is_cpi,
+                event,
+            };
+            let result = merge_instruction_events(vec![
+                item(None, 1, false, event(100, false)),
+                item(Some(0), 2, true, event(90, true)),
+                item(Some(1), 2, false, event(200, false)),
+                item(Some(2), 3, true, event(180, true)),
+            ]);
+            assert_eq!(result.len(), 2);
+            for (e, (amount, tokens)) in result.iter().zip([(100, 90), (200, 180)]) {
+                let DexEvent::PumpFunTrade(e) = e else {
+                    panic!()
+                };
+                assert_eq!((e.amount, e.token_amount), (amount, tokens));
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+mod swap_occurrence_tests {
+    use super::*;
+    #[test]
+    fn repeated_swap_calls_pair_with_their_own_cpi() {
+        let pool = Pubkey::new_unique();
+        let user = Pubkey::new_unique();
+        let accounts = [Pubkey::new_unique(), Pubkey::new_unique()];
+        for buy in [true, false] {
+            for known in [true, false] {
+                let event = |n: usize, execution| {
+                    let account = if execution {
+                        Pubkey::default()
+                    } else {
+                        accounts[n]
+                    };
+                    let amount = if execution { 90 * (n as u64 + 1) } else { 0 };
+                    if buy {
+                        DexEvent::PumpSwapBuy(PumpSwapBuyEvent {
+                            pool,
+                            user,
+                            user_base_token_account: account,
+                            quote_amount_in: amount,
+                            ..Default::default()
+                        })
+                    } else {
+                        DexEvent::PumpSwapSell(PumpSwapSellEvent {
+                            pool,
+                            user,
+                            user_base_token_account: account,
+                            quote_amount_out: amount,
+                            ..Default::default()
+                        })
+                    }
+                };
+                let item = |inner_idx, height, is_cpi, event| IndexedInstructionEvent {
+                    outer_idx: 0,
+                    inner_idx,
+                    stack_height: if known { Some(height) } else { None },
+                    is_event_cpi: is_cpi,
+                    event,
+                };
+                let out = merge_instruction_events(vec![
+                    item(None, 1, false, event(0, false)),
+                    item(Some(0), 2, true, event(0, true)),
+                    item(Some(1), 2, false, event(1, false)),
+                    item(Some(2), 3, true, event(1, true)),
+                ]);
+                assert_eq!(out.len(), 2);
+                for (i, e) in out.iter().enumerate() {
+                    match e {
+                        DexEvent::PumpSwapBuy(e) => assert_eq!(
+                            (e.user_base_token_account, e.quote_amount_in),
+                            (accounts[i], 90 * (i as u64 + 1))
+                        ),
+                        DexEvent::PumpSwapSell(e) => assert_eq!(
+                            (e.user_base_token_account, e.quote_amount_out),
+                            (accounts[i], 90 * (i as u64 + 1))
+                        ),
+                        _ => panic!(),
+                    }
+                }
             }
         }
     }
