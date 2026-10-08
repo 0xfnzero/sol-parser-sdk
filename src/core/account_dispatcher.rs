@@ -485,7 +485,11 @@ pub(crate) fn find_pumpswap_trade_invoke<'a>(
     if pool == Pubkey::default() {
         return None;
     }
-    let keys = transaction.as_ref()?.message.as_ref().map(|msg| &msg.account_keys);
+    let keys = transaction
+        .as_ref()?
+        .message
+        .as_ref()
+        .map(|msg| &msg.account_keys);
     let mut matches = invokes.iter().filter(|invoke| {
         let data = if invoke.1 >= 0 {
             meta.inner_instructions
@@ -501,18 +505,28 @@ pub(crate) fn find_pumpswap_trade_invoke<'a>(
                 .map(|ix| ix.data.as_slice())
         };
         use crate::instr::pump_amm::discriminators::{
-            BOOST_BUY_AND_BURN, BUY, BUY_EXACT_QUOTE_IN, SELL,
+            BOOST_BUY_AND_BURN, BUY, BUY_EXACT_QUOTE_IN, BUY_EXACT_QUOTE_IN_V2, BUY_V2, SELL,
+            SELL_V2,
         };
         let direction_matches = match data.and_then(|data| data.get(..8)) {
             Some(disc) if buy => {
-                disc == BUY || disc == BUY_EXACT_QUOTE_IN || disc == BOOST_BUY_AND_BURN
+                disc == BUY
+                    || disc == BUY_EXACT_QUOTE_IN
+                    || disc == BOOST_BUY_AND_BURN
+                    || disc == BUY_V2
+                    || disc == BUY_EXACT_QUOTE_IN_V2
             }
-            Some(disc) => disc == SELL,
+            Some(disc) => disc == SELL || disc == SELL_V2,
             None => false,
         };
         let boost =
             buy && data.and_then(|data| data.get(..8)) == Some(BOOST_BUY_AND_BURN.as_slice());
-        let minimum_count = if boost {
+        let compact = data
+            .and_then(|d| d.get(..8))
+            .is_some_and(|disc| disc == BUY_V2 || disc == BUY_EXACT_QUOTE_IN_V2 || disc == SELL_V2);
+        let minimum_count = if compact {
+            17
+        } else if boost {
             13
         } else if buy {
             23
