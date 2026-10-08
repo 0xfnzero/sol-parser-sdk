@@ -3364,6 +3364,14 @@ pub struct MeteoraDammV2WithdrawDeadLiquidityRewardEvent {
     pub reward_mint: Pubkey,
     pub amount: u64,
 }
+/// Meteora DAMM V2 Withdraw Ineligible Reward Event (IDL `EvtWithdrawIneligibleReward`)
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct MeteoraDammV2WithdrawIneligibleRewardEvent {
+    pub metadata: EventMetadata,
+    pub pool: Pubkey,
+    pub reward_mint: Pubkey,
+    pub amount: u64,
+}
 
 /// Meteora DAMM V2 Create Config Event (IDL `EvtCreateConfig`, includes 0.2.4 `permission`)
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]

@@ -58,6 +58,7 @@ pub enum DexEvent {
     MeteoraDammV2InitializePool(MeteoraDammV2InitializePoolEvent), // - 已对接
     MeteoraDammV2UpdateDelegatePermission(MeteoraDammV2UpdateDelegatePermissionEvent),
     MeteoraDammV2WithdrawDeadLiquidityReward(MeteoraDammV2WithdrawDeadLiquidityRewardEvent),
+    MeteoraDammV2WithdrawIneligibleReward(MeteoraDammV2WithdrawIneligibleRewardEvent),
     MeteoraDammV2CreateConfig(MeteoraDammV2CreateConfigEvent),
     MeteoraDammV2CreateDynamicConfig(MeteoraDammV2CreateDynamicConfigEvent),
 
@@ -220,6 +221,7 @@ impl DexEvent {
             DexEvent::MeteoraDammV2InitializePool(e) => &e.metadata,
             DexEvent::MeteoraDammV2UpdateDelegatePermission(e) => &e.metadata,
             DexEvent::MeteoraDammV2WithdrawDeadLiquidityReward(e) => &e.metadata,
+            DexEvent::MeteoraDammV2WithdrawIneligibleReward(e) => &e.metadata,
             DexEvent::MeteoraDammV2CreateConfig(e) => &e.metadata,
             DexEvent::MeteoraDammV2CreateDynamicConfig(e) => &e.metadata,
             DexEvent::MeteoraDbcSwap(e) => &e.metadata,
@@ -363,6 +365,7 @@ impl DexEvent {
             DexEvent::MeteoraDammV2InitializePool(e) => Some(&mut e.metadata),
             DexEvent::MeteoraDammV2UpdateDelegatePermission(e) => Some(&mut e.metadata),
             DexEvent::MeteoraDammV2WithdrawDeadLiquidityReward(e) => Some(&mut e.metadata),
+            DexEvent::MeteoraDammV2WithdrawIneligibleReward(e) => Some(&mut e.metadata),
             DexEvent::MeteoraDammV2CreateConfig(e) => Some(&mut e.metadata),
             DexEvent::MeteoraDammV2CreateDynamicConfig(e) => Some(&mut e.metadata),
             DexEvent::MeteoraDbcSwap(e) => Some(&mut e.metadata),

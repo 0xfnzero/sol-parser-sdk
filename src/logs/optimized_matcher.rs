@@ -313,6 +313,8 @@ mod discriminators {
         u64::from_le_bytes([66, 188, 75, 151, 150, 232, 87, 93]);
     pub const METEORA_DAMM_WITHDRAW_DEAD_LIQUIDITY_REWARD: u64 =
         u64::from_le_bytes([228, 66, 150, 195, 42, 62, 163, 13]);
+    pub const METEORA_DAMM_WITHDRAW_INELIGIBLE_REWARD: u64 =
+        u64::from_le_bytes([248, 215, 184, 78, 31, 180, 179, 168]);
     pub const METEORA_DAMM_CREATE_CONFIG: u64 =
         u64::from_le_bytes([131, 207, 180, 174, 180, 73, 165, 54]);
     pub const METEORA_DAMM_CREATE_DYNAMIC_CONFIG: u64 =
@@ -956,6 +958,9 @@ fn parse_log_optimized_inner(
                 data, metadata,
             )
         }
+        discriminators::METEORA_DAMM_WITHDRAW_INELIGIBLE_REWARD => {
+            crate::logs::meteora_damm::parse_withdraw_ineligible_reward_from_data(data, metadata)
+        }
         discriminators::METEORA_DAMM_CREATE_CONFIG => {
             crate::logs::meteora_damm::parse_create_config_from_data(data, metadata)
         }
@@ -1153,6 +1158,9 @@ fn program_scoped_discriminator_to_event_type(
             }
             discriminators::METEORA_DAMM_WITHDRAW_DEAD_LIQUIDITY_REWARD => {
                 Some(EventType::MeteoraDammV2WithdrawDeadLiquidityReward)
+            }
+            discriminators::METEORA_DAMM_WITHDRAW_INELIGIBLE_REWARD => {
+                Some(EventType::MeteoraDammV2WithdrawIneligibleReward)
             }
             discriminators::METEORA_DAMM_CREATE_CONFIG => {
                 Some(EventType::MeteoraDammV2CreateConfig)
@@ -1555,6 +1563,11 @@ fn parse_program_scoped_event(
                         data, metadata,
                     )
                 }
+                discriminators::METEORA_DAMM_WITHDRAW_INELIGIBLE_REWARD => {
+                    crate::logs::meteora_damm::parse_withdraw_ineligible_reward_from_data(
+                        data, metadata,
+                    )
+                }
                 discriminators::METEORA_DAMM_CREATE_CONFIG => {
                     crate::logs::meteora_damm::parse_create_config_from_data(data, metadata)
                 }
@@ -1817,6 +1830,9 @@ fn discriminator_to_event_type(discriminator: u64) -> Option<EventType> {
         }
         discriminators::METEORA_DAMM_WITHDRAW_DEAD_LIQUIDITY_REWARD => {
             Some(EventType::MeteoraDammV2WithdrawDeadLiquidityReward)
+        }
+        discriminators::METEORA_DAMM_WITHDRAW_INELIGIBLE_REWARD => {
+            Some(EventType::MeteoraDammV2WithdrawIneligibleReward)
         }
         discriminators::METEORA_DAMM_CREATE_CONFIG => Some(EventType::MeteoraDammV2CreateConfig),
         discriminators::METEORA_DAMM_CREATE_DYNAMIC_CONFIG => {

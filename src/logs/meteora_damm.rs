@@ -23,6 +23,7 @@ pub mod discriminators {
     pub const CLAIM_REWARD_EVENT: [u8; 8] = [218, 86, 147, 200, 235, 188, 215, 231];
     pub const UPDATE_DELEGATE_PERMISSION_EVENT: [u8; 8] = [66, 188, 75, 151, 150, 232, 87, 93];
     pub const WITHDRAW_DEAD_LIQUIDITY_REWARD_EVENT: [u8; 8] = [228, 66, 150, 195, 42, 62, 163, 13];
+    pub const WITHDRAW_INELIGIBLE_REWARD_EVENT: [u8; 8] = [248, 215, 184, 78, 31, 180, 179, 168];
     pub const CREATE_CONFIG_EVENT: [u8; 8] = [131, 207, 180, 174, 180, 73, 165, 54];
     pub const CREATE_DYNAMIC_CONFIG_EVENT: [u8; 8] = [231, 197, 13, 164, 248, 213, 133, 152];
 }
@@ -154,6 +155,14 @@ fn parse_structured_log(
                 grpc_recv_us,
             )
         }
+        discriminators::WITHDRAW_INELIGIBLE_REWARD_EVENT => parse_withdraw_ineligible_reward_event(
+            data,
+            signature,
+            slot,
+            tx_index,
+            block_time_us,
+            grpc_recv_us,
+        ),
         discriminators::CREATE_CONFIG_EVENT => {
             parse_create_config_event(data, signature, slot, tx_index, block_time_us, grpc_recv_us)
         }
@@ -922,6 +931,21 @@ pub fn parse_withdraw_dead_liquidity_reward_from_data(
         MeteoraDammV2WithdrawDeadLiquidityRewardEvent { metadata, pool, reward_mint, amount },
     ))
 }
+pub fn parse_withdraw_ineligible_reward_from_data(
+    data: &[u8],
+    metadata: EventMetadata,
+) -> Option<DexEvent> {
+    let mut offset = 0;
+    let pool = read_pubkey(data, offset)?;
+    offset += 32;
+    let reward_mint = read_pubkey(data, offset)?;
+    offset += 32;
+    let amount = read_u64_le(data, offset)?;
+
+    Some(DexEvent::MeteoraDammV2WithdrawIneligibleReward(
+        MeteoraDammV2WithdrawIneligibleRewardEvent { metadata, pool, reward_mint, amount },
+    ))
+}
 
 fn parse_withdraw_dead_liquidity_reward_event(
     data: &[u8],
@@ -935,6 +959,19 @@ fn parse_withdraw_dead_liquidity_reward_event(
     let metadata =
         create_metadata_simple(signature, slot, tx_index, block_time_us, pool, grpc_recv_us);
     parse_withdraw_dead_liquidity_reward_from_data(data, metadata)
+}
+fn parse_withdraw_ineligible_reward_event(
+    data: &[u8],
+    signature: Signature,
+    slot: u64,
+    tx_index: u64,
+    block_time_us: Option<i64>,
+    grpc_recv_us: i64,
+) -> Option<DexEvent> {
+    let pool = read_pubkey(data, 0)?;
+    let metadata =
+        create_metadata_simple(signature, slot, tx_index, block_time_us, pool, grpc_recv_us);
+    parse_withdraw_ineligible_reward_from_data(data, metadata)
 }
 
 fn parse_dynamic_fee_parameters(

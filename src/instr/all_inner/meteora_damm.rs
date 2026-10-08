@@ -41,6 +41,8 @@ pub mod discriminators {
         [228, 69, 165, 46, 81, 203, 154, 29, 66, 188, 75, 151, 150, 232, 87, 93];
     pub const WITHDRAW_DEAD_LIQUIDITY_REWARD: [u8; 16] =
         [228, 69, 165, 46, 81, 203, 154, 29, 228, 66, 150, 195, 42, 62, 163, 13];
+    pub const WITHDRAW_INELIGIBLE_REWARD: [u8; 16] =
+        [228, 69, 165, 46, 81, 203, 154, 29, 248, 215, 184, 78, 31, 180, 179, 168];
     pub const CREATE_CONFIG: [u8; 16] =
         [228, 69, 165, 46, 81, 203, 154, 29, 131, 207, 180, 174, 180, 73, 165, 54];
     pub const CREATE_DYNAMIC_CONFIG: [u8; 16] =
@@ -76,6 +78,9 @@ pub fn parse(disc: &[u8; 16], data: &[u8], metadata: EventMetadata) -> Option<De
             crate::logs::meteora_damm::parse_withdraw_dead_liquidity_reward_from_data(
                 data, metadata,
             )
+        }
+        discriminators::WITHDRAW_INELIGIBLE_REWARD => {
+            crate::logs::meteora_damm::parse_withdraw_ineligible_reward_from_data(data, metadata)
         }
         discriminators::CREATE_CONFIG => {
             crate::logs::meteora_damm::parse_create_config_from_data(data, metadata)
