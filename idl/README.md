@@ -20,3 +20,7 @@ formatting may differ; use a canonical JSON hash (`jq -S -c .`) when comparing c
 Raydium AMM V4 is not an Anchor program and has no current protocol-maintained Anchor IDL. Its
 instruction and `ray_log` layouts are validated against `raydium-io/raydium-amm` source. The
 `raydium_amm_v4.json` and `raydium_pool_v4.json` files remain compatibility references.
+
+Checked 2026-10-08: DAMM v2 IDL 0.2.5 and DBC IDL 0.2.1. Raydium CPMM creator-fee-share
+definitions are verified against `raydium-io/raydium-cp-swap@b3187ae53a1b95a201f855a59024a12ca8f5b51a`;
+the aggregate IDL repository currently omits them.

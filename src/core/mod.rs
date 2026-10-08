@@ -12,6 +12,7 @@ pub mod account_fillers; // 账户填充器实现 - 按协议拆分的具体实�
 pub mod cache;
 pub mod clock; // 高性能时钟 - 微秒级时间戳获取
 pub mod common_filler;
+pub(crate) mod dbc_compatibility;
 pub mod events; // 事件定义
 pub(crate) mod invoke_context;
 pub mod merger; // 事件合并器 - instruction + inner instruction

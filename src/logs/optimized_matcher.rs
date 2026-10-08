@@ -316,6 +316,9 @@ mod discriminators {
 
     // Meteora DBC discriminators. Some values intentionally overlap DAMM V2,
     // so they must be routed with program context.
+    pub const METEORA_DBC_SWAP2: u64 = u64::from_le_bytes([189, 66, 51, 168, 38, 80, 117, 153]);
+    pub const METEORA_DBC_SWAP2_TRANSFER_HOOK: u64 =
+        u64::from_le_bytes([134, 59, 168, 120, 94, 51, 114, 231]);
     pub const METEORA_DBC_SWAP: u64 = u64::from_le_bytes([27, 60, 21, 213, 138, 170, 187, 147]);
     pub const METEORA_DBC_INITIALIZE_POOL: u64 =
         u64::from_le_bytes([228, 50, 246, 85, 203, 66, 134, 37]);
@@ -1144,7 +1147,9 @@ fn program_scoped_discriminator_to_event_type(
             _ => None,
         },
         program_ids::METEORA_DBC_PROGRAM_ID => match discriminator {
-            discriminators::METEORA_DBC_SWAP => Some(EventType::MeteoraDbcSwap),
+            discriminators::METEORA_DBC_SWAP
+            | discriminators::METEORA_DBC_SWAP2
+            | discriminators::METEORA_DBC_SWAP2_TRANSFER_HOOK => Some(EventType::MeteoraDbcSwap),
             discriminators::METEORA_DBC_INITIALIZE_POOL => {
                 Some(EventType::MeteoraDbcInitializePool)
             }
@@ -1545,6 +1550,14 @@ fn parse_program_scoped_event(
             match discriminator {
                 discriminators::METEORA_DBC_SWAP => {
                     crate::logs::meteora_dbc::parse_swap_from_data(data, metadata)
+                }
+                discriminators::METEORA_DBC_SWAP2
+                | discriminators::METEORA_DBC_SWAP2_TRANSFER_HOOK => {
+                    crate::logs::meteora_dbc::parse_swap2_from_data(
+                        data,
+                        metadata,
+                        discriminator == discriminators::METEORA_DBC_SWAP2_TRANSFER_HOOK,
+                    )
                 }
                 discriminators::METEORA_DBC_INITIALIZE_POOL => {
                     crate::logs::meteora_dbc::parse_initialize_pool_from_data(data, metadata)

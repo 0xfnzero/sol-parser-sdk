@@ -254,6 +254,10 @@ pub(crate) fn instruction_data_may_parse(program_id: &Pubkey, instruction_data: 
     if *program_id == METEORA_DLMM_PROGRAM_ID {
         return supports_meteora_dlmm_instruction(instruction_data);
     }
+    if *program_id == METEORA_DBC_PROGRAM_ID {
+        return instruction_data.get(..8) == Some(&[228, 69, 165, 46, 81, 203, 154, 29])
+            && instruction_data.len() >= 16;
+    }
     if *program_id == METEORA_DAMM_V2_PROGRAM_ID {
         return supports_meteora_damm_v2_instruction(instruction_data);
     }
@@ -287,6 +291,9 @@ pub(crate) fn normal_instruction_data_may_parse(
     program_id: &Pubkey,
     instruction_data: &[u8],
 ) -> bool {
+    if *program_id == METEORA_DBC_PROGRAM_ID {
+        return false;
+    }
     if *program_id == METEORA_DAMM_V2_PROGRAM_ID {
         return disc8(instruction_data)
             .is_some_and(|disc| disc == meteora_damm::discriminators::INITIALIZE_POOL);
@@ -323,6 +330,24 @@ pub fn parse_instruction_unified(
     // 快速检查指令数据长度，避免无效解析
     if instruction_data.is_empty() {
         return None;
+    }
+
+    if *program_id == METEORA_DBC_PROGRAM_ID {
+        if event_type_filter.is_some_and(|f| !f.includes_meteora_dbc()) {
+            return None;
+        }
+        let metadata = crate::logs::utils::create_metadata_simple(
+            signature,
+            slot,
+            tx_index,
+            block_time_us,
+            Pubkey::default(),
+            grpc_recv_us,
+        );
+        return filter_parsed_event(
+            crate::logs::meteora_dbc::parse_event_cpi(instruction_data, metadata),
+            event_type_filter,
+        );
     }
 
     // 根据程序 ID 路由到相应的解析器，按使用频率排序

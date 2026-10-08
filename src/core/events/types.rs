@@ -1202,6 +1202,21 @@ pub struct RaydiumCpmmSwapEvent {
     #[cfg_attr(feature = "parse-borsh", borsh(skip))]
     #[serde(default)]
     pub output_token_account: Pubkey,
+    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
+    #[serde(default)]
+    pub input_mint: Pubkey,
+    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
+    #[serde(default)]
+    pub output_mint: Pubkey,
+    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
+    #[serde(default)]
+    pub trade_fee: u64,
+    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
+    #[serde(default)]
+    pub creator_fee: u64,
+    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
+    #[serde(default)]
+    pub creator_fee_on_input: bool,
 }
 
 /// Raydium CPMM Deposit Event
@@ -3392,6 +3407,27 @@ pub struct MeteoraDammV2CreateDynamicConfigEvent {
 /// Meteora DBC Swap Event (IDL `EvtSwap`)
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct MeteoraDbcSwapEvent {
+    #[serde(default)]
+    pub event_version: u8,
+    #[serde(default)]
+    pub swap_mode: u8,
+    #[serde(default)]
+    pub amount_0: u64,
+    #[serde(default)]
+    pub amount_1: u64,
+    #[serde(default)]
+    pub maximum_amount_in: u64,
+    #[serde(default)]
+    pub included_fee_input_amount: u64,
+    #[serde(default)]
+    pub amount_left: u64,
+    #[serde(default)]
+    pub quote_reserve_amount: u64,
+    #[serde(default)]
+    pub migration_threshold: u64,
+    #[serde(default)]
+    pub has_transfer_hook: bool,
+
     pub metadata: EventMetadata,
     pub pool: Pubkey,
     pub config: Pubkey,
@@ -3489,6 +3525,24 @@ pub struct MeteoraDlmmSwapEvent {
     #[cfg_attr(feature = "parse-borsh", borsh(skip))]
     #[serde(default)]
     pub bin_arrays: Vec<Pubkey>,
+    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
+    #[serde(default)]
+    pub event_version: u8,
+    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
+    #[serde(default)]
+    pub amount_left: u64,
+    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
+    #[serde(default)]
+    pub mm_fee: u64,
+    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
+    #[serde(default)]
+    pub limit_order_fee: u64,
+    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
+    #[serde(default)]
+    pub fees_on_input: bool,
+    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
+    #[serde(default)]
+    pub fees_on_token_x: bool,
 }
 
 /// Meteora DLMM Add Liquidity Event

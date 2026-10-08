@@ -529,6 +529,11 @@ fn parse_inner_instruction(
             }
         }
         all_inner::meteora_damm::parse(&discriminator, inner_data, metadata)
+    } else if *program_id == program_ids::METEORA_DBC_PROGRAM_ID {
+        if filter.is_some_and(|f| !f.includes_meteora_dbc()) {
+            return None;
+        }
+        crate::logs::meteora_dbc::parse_event_cpi(data, metadata)
     } else if *program_id == program_ids::METEORA_DLMM_PROGRAM_ID {
         if let Some(f) = filter {
             if !f.includes_meteora_dlmm() {
@@ -590,10 +595,7 @@ fn merge_instruction_events(events: Vec<IndexedInstructionEvent>) -> Vec<DexEven
     // （`None` 若用 MAX 会把 outer 排到 inner 后面，导致无法 merge）
     let mut events = events;
     events.sort_unstable_by_key(|event| {
-        (
-            event.outer_idx,
-            event.inner_idx.map_or(0, |inner_idx| inner_idx + 1),
-        )
+        (event.outer_idx, event.inner_idx.map_or(0, |inner_idx| inner_idx + 1))
     });
 
     let mut result = Vec::with_capacity(events.len());
@@ -605,13 +607,8 @@ fn merge_instruction_events(events: Vec<IndexedInstructionEvent>) -> Vec<DexEven
 
     let mut pump_targets: Vec<(usize, Option<u32>, usize, bool)> = Vec::new();
     for indexed in events {
-        let IndexedInstructionEvent {
-            outer_idx,
-            inner_idx,
-            stack_height,
-            is_event_cpi,
-            event,
-        } = indexed;
+        let IndexedInstructionEvent { outer_idx, inner_idx, stack_height, is_event_cpi, event } =
+            indexed;
         match inner_idx {
             None => {
                 let is_dlmm = is_dlmm_event(&event);
@@ -776,6 +773,7 @@ fn should_parse_instructions(filter: Option<&EventTypeFilter>) -> bool {
         || filter.includes_meteora_pools()
         || filter.includes_meteora_damm_v2()
         || filter.includes_meteora_dlmm()
+        || filter.includes_meteora_dbc()
 }
 
 #[cfg(test)]
@@ -1009,8 +1007,8 @@ mod tests {
 
         let filter = EventTypeFilter::include_only(vec![EventType::MeteoraDbcSwap]);
         assert!(
-            !should_parse_instructions(Some(&filter)),
-            "DBC events are log-only until an instruction parser is implemented"
+            should_parse_instructions(Some(&filter)),
+            "DBC event CPI must parse even with a DBC-only filter"
         );
 
         let filter = EventTypeFilter::include_only(vec![
@@ -1840,9 +1838,7 @@ mod pump_occurrence_tests {
             ]);
             assert_eq!(result.len(), 2);
             for (e, (amount, tokens)) in result.iter().zip([(100, 90), (200, 180)]) {
-                let DexEvent::PumpFunTrade(e) = e else {
-                    panic!()
-                };
+                let DexEvent::PumpFunTrade(e) = e else { panic!() };
                 assert_eq!((e.amount, e.token_amount), (amount, tokens));
             }
         }
@@ -1860,11 +1856,7 @@ mod swap_occurrence_tests {
         for buy in [true, false] {
             for known in [true, false] {
                 let event = |n: usize, execution| {
-                    let account = if execution {
-                        Pubkey::default()
-                    } else {
-                        accounts[n]
-                    };
+                    let account = if execution { Pubkey::default() } else { accounts[n] };
                     let amount = if execution { 90 * (n as u64 + 1) } else { 0 };
                     if buy {
                         DexEvent::PumpSwapBuy(PumpSwapBuyEvent {

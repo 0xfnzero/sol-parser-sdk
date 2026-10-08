@@ -185,7 +185,8 @@ fn parses_saved_mainnet_meteora_dlmm_and_nested_orca_rpc_transaction() {
     assert_eq!(dlmm.metadata.slot, 438_873_646);
     assert_eq!(dlmm.amount_in, 2_738_183_783);
     assert_eq!(dlmm.amount_out, 81_555_062);
-    assert_eq!(dlmm.fee, 18_486_656);
+    assert_eq!(dlmm.mm_fee, 18_486_656);
+    assert_eq!(dlmm.fee, 20_540_728);
     assert_eq!(dlmm.protocol_fee, 2_054_072);
 
     let orca = events.iter().find_map(|event| match event {
