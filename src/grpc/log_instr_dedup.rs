@@ -109,8 +109,11 @@ enum LogInstrDedupKey {
 #[inline]
 fn pumpfun_ix_lane(ix_name: &str) -> u8 {
     match ix_name {
-        "sell" | "sell_v2" => 1,
-        "buy_exact_sol_in" | "buy_exact_quote_in" | "buy_exact_quote_in_v2" => 2,
+        "sell" | "sell_v2" | "sell_v3" => 1,
+        "buy_exact_sol_in"
+        | "buy_exact_quote_in"
+        | "buy_exact_quote_in_v2"
+        | "buy_exact_quote_in_v3" => 2,
         _ => 0,
     }
 }

@@ -709,9 +709,15 @@ fn merge_pumpfun_trade_log_preferred(log: &mut PumpFunTradeEvent, ix: PumpFunTra
     put_u64_if_nonzero(&mut log.spendable_sol_in, ix.spendable_sol_in);
     put_u64_if_nonzero(&mut log.spendable_quote_in, ix.spendable_quote_in);
     put_u64_if_nonzero(&mut log.min_tokens_out, ix.min_tokens_out);
-    put_u64_if_nonzero(&mut log.quote_amount, ix.quote_amount);
-    put_u64_if_nonzero(&mut log.virtual_quote_reserves, ix.virtual_quote_reserves);
-    put_u64_if_nonzero(&mut log.real_quote_reserves, ix.real_quote_reserves);
+    if log.quote_amount == 0 {
+        put_u64_if_nonzero(&mut log.quote_amount, ix.quote_amount);
+    }
+    if log.virtual_quote_reserves == 0 {
+        put_u64_if_nonzero(&mut log.virtual_quote_reserves, ix.virtual_quote_reserves);
+    }
+    if log.real_quote_reserves == 0 {
+        put_u64_if_nonzero(&mut log.real_quote_reserves, ix.real_quote_reserves);
+    }
     if !log.is_created_buy && ix.is_created_buy {
         log.is_created_buy = true;
     }
