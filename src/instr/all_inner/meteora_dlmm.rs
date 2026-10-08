@@ -59,6 +59,9 @@ pub fn parse(disc: &[u8; 16], data: &[u8], metadata: EventMetadata) -> Option<De
         discriminators::INITIALIZE_BIN_ARRAY => parse_initialize_bin_array(data, metadata),
         discriminators::CREATE_POSITION => parse_position_create(data, metadata),
         discriminators::CLOSE_POSITION => parse_position_close(data, metadata),
+        [27, 143, 244, 33, 80, 43, 110, 146] => {
+            crate::logs::meteora_dlmm::parse_claim_reward2_from_data(data, metadata)
+        }
         discriminators::CLAIM_FEE => parse_claim_fee(data, metadata),
         discriminators::CLAIM_FEE2 => parse_claim_fee2(data, metadata),
         _ => None,

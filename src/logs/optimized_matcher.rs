@@ -305,6 +305,8 @@ mod discriminators {
         u64::from_le_bytes([156, 15, 119, 198, 29, 181, 221, 55]);
     pub const METEORA_DAMM_CLAIM_POSITION_FEE: u64 =
         u64::from_le_bytes([198, 182, 183, 52, 97, 12, 49, 56]);
+    pub const METEORA_DAMM_CLAIM_REWARD: u64 =
+        u64::from_le_bytes([218, 86, 147, 200, 235, 188, 215, 231]);
     pub const METEORA_DAMM_CLOSE_POSITION: u64 =
         u64::from_le_bytes([20, 145, 144, 68, 143, 142, 214, 178]);
     pub const METEORA_DAMM_UPDATE_DELEGATE_PERMISSION: u64 =
@@ -347,6 +349,8 @@ mod discriminators {
         u64::from_le_bytes([75, 122, 154, 48, 140, 74, 123, 163]);
     pub const METEORA_DLMM_CLAIM_FEE2: u64 =
         u64::from_le_bytes([232, 171, 242, 97, 58, 77, 35, 45]);
+    pub const METEORA_DLMM_CLAIM_REWARD2: u64 =
+        u64::from_le_bytes([27, 143, 244, 33, 80, 43, 110, 146]);
 }
 
 /// Optimized unified log parser with **discriminator predecode, decode-on-match** strategy
@@ -938,6 +942,9 @@ fn parse_log_optimized_inner(
         discriminators::METEORA_DAMM_CLAIM_POSITION_FEE => {
             crate::logs::meteora_damm::parse_claim_position_fee_from_data(data, metadata)
         }
+        discriminators::METEORA_DAMM_CLAIM_REWARD => {
+            crate::logs::meteora_damm::parse_claim_reward_from_data(data, metadata)
+        }
         discriminators::METEORA_DAMM_CLOSE_POSITION => {
             crate::logs::meteora_damm::parse_close_position_from_data(data, metadata)
         }
@@ -1137,6 +1144,7 @@ fn program_scoped_discriminator_to_event_type(
             discriminators::METEORA_DAMM_CLAIM_POSITION_FEE => {
                 Some(EventType::MeteoraDammV2ClaimPositionFee)
             }
+            discriminators::METEORA_DAMM_CLAIM_REWARD => Some(EventType::MeteoraDammV2ClaimReward),
             discriminators::METEORA_DAMM_CLOSE_POSITION => {
                 Some(EventType::MeteoraDammV2ClosePosition)
             }
@@ -1187,6 +1195,7 @@ fn program_scoped_discriminator_to_event_type(
             discriminators::METEORA_DLMM_CLAIM_FEE | discriminators::METEORA_DLMM_CLAIM_FEE2 => {
                 Some(EventType::MeteoraDlmmClaimFee)
             }
+            discriminators::METEORA_DLMM_CLAIM_REWARD2 => Some(EventType::MeteoraDlmmClaimReward),
             _ => None,
         },
         _ => None,
@@ -1530,6 +1539,9 @@ fn parse_program_scoped_event(
                 discriminators::METEORA_DAMM_CLAIM_POSITION_FEE => {
                     crate::logs::meteora_damm::parse_claim_position_fee_from_data(data, metadata)
                 }
+                discriminators::METEORA_DAMM_CLAIM_REWARD => {
+                    crate::logs::meteora_damm::parse_claim_reward_from_data(data, metadata)
+                }
                 discriminators::METEORA_DAMM_CLOSE_POSITION => {
                     crate::logs::meteora_damm::parse_close_position_from_data(data, metadata)
                 }
@@ -1616,6 +1628,9 @@ fn parse_program_scoped_event(
                 discriminators::METEORA_DLMM_CLAIM_FEE2 => {
                     crate::logs::meteora_dlmm::parse_claim_fee2_from_data(data, metadata)
                 }
+                discriminators::METEORA_DLMM_CLAIM_REWARD2 => {
+                    crate::logs::meteora_dlmm::parse_claim_reward2_from_data(data, metadata)
+                }
                 _ => None,
             }
         }
@@ -1673,6 +1688,9 @@ fn filter_pumpfun_trade_variant(
 /// Map discriminator to EventType (compile-time optimized match)
 #[inline(always)]
 fn discriminator_to_event_type(discriminator: u64) -> Option<EventType> {
+    if discriminator == discriminators::METEORA_DLMM_CLAIM_REWARD2 {
+        return Some(EventType::MeteoraDlmmClaimReward);
+    }
     if let Some(kind) = crate::logs::pump_upgrade::event_type(discriminator, None) {
         return Some(kind);
     }
@@ -1792,6 +1810,7 @@ fn discriminator_to_event_type(discriminator: u64) -> Option<EventType> {
         discriminators::METEORA_DAMM_CLAIM_POSITION_FEE => {
             Some(EventType::MeteoraDammV2ClaimPositionFee)
         }
+        discriminators::METEORA_DAMM_CLAIM_REWARD => Some(EventType::MeteoraDammV2ClaimReward),
         discriminators::METEORA_DAMM_CLOSE_POSITION => Some(EventType::MeteoraDammV2ClosePosition),
         discriminators::METEORA_DAMM_UPDATE_DELEGATE_PERMISSION => {
             Some(EventType::MeteoraDammV2UpdateDelegatePermission)

@@ -33,6 +33,8 @@ pub mod discriminators {
         [228, 69, 165, 46, 81, 203, 154, 29, 156, 15, 119, 198, 29, 181, 221, 55];
     pub const CLAIM_POSITION_FEE: [u8; 16] =
         [228, 69, 165, 46, 81, 203, 154, 29, 198, 182, 183, 52, 97, 12, 49, 56];
+    pub const CLAIM_REWARD: [u8; 16] =
+        [228, 69, 165, 46, 81, 203, 154, 29, 218, 86, 147, 200, 235, 188, 215, 231];
     pub const CLOSE_POSITION: [u8; 16] =
         [228, 69, 165, 46, 81, 203, 154, 29, 20, 145, 144, 68, 143, 142, 214, 178];
     pub const UPDATE_DELEGATE_PERMISSION: [u8; 16] =
@@ -62,6 +64,9 @@ pub fn parse(disc: &[u8; 16], data: &[u8], metadata: EventMetadata) -> Option<De
         discriminators::CREATE_POSITION => parse_create_position(data, metadata),
         discriminators::CLAIM_POSITION_FEE => {
             crate::logs::meteora_damm::parse_claim_position_fee_from_data(data, metadata)
+        }
+        discriminators::CLAIM_REWARD => {
+            crate::logs::meteora_damm::parse_claim_reward_from_data(data, metadata)
         }
         discriminators::CLOSE_POSITION => parse_close_position(data, metadata),
         discriminators::UPDATE_DELEGATE_PERMISSION => {

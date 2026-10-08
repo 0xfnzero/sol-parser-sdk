@@ -853,34 +853,10 @@ fn parse_claim_reward_event(
     block_time_us: Option<i64>,
     grpc_recv_us: i64,
 ) -> Option<DexEvent> {
-    // let mut offset = 0;
-
-    // let lb_pair = read_pubkey(data, offset)?;
-    // offset += 32;
-
-    // let position = read_pubkey(data, offset)?;
-    // offset += 32;
-
-    // let owner = read_pubkey(data, offset)?;
-    // offset += 32;
-
-    // let reward_index = read_u64_le(data, offset)?;
-    // offset += 8;
-
-    // let total_reward = read_u64_le(data, offset)?;
-
-    // let metadata =
-    //     create_metadata_simple(signature, slot, tx_index, block_time_us, lb_pair, grpc_recv_us);
-
-    // Some(DexEvent::MeteoraDammV2ClaimReward(MeteoraDammV2ClaimRewardEvent {
-    //     metadata,
-    //     lb_pair,
-    //     position,
-    //     owner,
-    //     reward_index,
-    //     total_reward,
-    // }))
-    None
+    let pool = read_pubkey(data, 0)?;
+    let metadata =
+        create_metadata_simple(signature, slot, tx_index, block_time_us, pool, grpc_recv_us);
+    parse_claim_reward_from_data(data, metadata)
 }
 
 /// Parse `EvtUpdateDelegatePermission`.
@@ -1545,5 +1521,23 @@ pub(crate) fn parse_claim_position_fee_from_data(
         owner: read_pubkey(data, 64)?,
         fee_a_claimed: read_u64_le(data, 96)?,
         fee_b_claimed: read_u64_le(data, 104)?,
+    }))
+}
+
+pub(crate) fn parse_claim_reward_from_data(
+    data: &[u8],
+    metadata: EventMetadata,
+) -> Option<DexEvent> {
+    if data.len() < 137 {
+        return None;
+    }
+    Some(DexEvent::MeteoraDammV2ClaimReward(MeteoraDammV2ClaimRewardEvent {
+        metadata,
+        pool: read_pubkey(data, 0)?,
+        position: read_pubkey(data, 32)?,
+        owner: read_pubkey(data, 64)?,
+        mint_reward: read_pubkey(data, 96)?,
+        reward_index: *data.get(128)?,
+        total_reward: read_u64_le(data, 129)?,
     }))
 }

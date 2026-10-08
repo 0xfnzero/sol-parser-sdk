@@ -1374,7 +1374,6 @@ pub struct RaydiumClmmDecreaseLiquidityEvent {
     #[serde(default)]
     #[cfg_attr(feature = "parse-borsh", borsh(skip))]
     pub personal_position: Pubkey,
-
 }
 
 /// Raydium CLMM Collect Fee Event
@@ -1443,7 +1442,6 @@ pub struct RaydiumClmmIncreaseLiquidityEvent {
     #[serde(default)]
     #[cfg_attr(feature = "parse-borsh", borsh(skip))]
     pub personal_position: Pubkey,
-
 }
 
 /// Raydium CLMM Liquidity Change Event (IDL `LiquidityChangeEvent`)
@@ -4227,4 +4225,32 @@ pub struct MeteoraDammV2ClaimPositionFeeEvent {
     pub owner: Pubkey,
     pub fee_a_claimed: u64,
     pub fee_b_claimed: u64,
+}
+
+/// Official EvtClaimReward gross quantities before token transfer fees.
+#[cfg_attr(feature = "parse-borsh", derive(BorshDeserialize))]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MeteoraDammV2ClaimRewardEvent {
+    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
+    pub metadata: EventMetadata,
+    pub pool: Pubkey,
+    pub position: Pubkey,
+    pub owner: Pubkey,
+    pub mint_reward: Pubkey,
+    pub reward_index: u8,
+    pub total_reward: u64,
+}
+
+/// Modern DLMM ClaimReward2; accompanying legacy duplicate notification is not emitted.
+#[cfg_attr(feature = "parse-borsh", derive(BorshDeserialize))]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MeteoraDlmmClaimRewardEvent {
+    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
+    pub metadata: EventMetadata,
+    pub pool: Pubkey,
+    pub position: Pubkey,
+    pub owner: Pubkey,
+    pub reward_index: u64,
+    pub total_reward: u64,
+    pub active_bin_id: i32,
 }

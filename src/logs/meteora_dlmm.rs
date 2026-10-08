@@ -118,6 +118,18 @@ fn parse_structured_log(
         discriminators::LEGACY_CLOSE_POSITION_EVENT => {
             parse_close_position_event(data, signature, slot, tx_index, block_time_us, grpc_recv_us)
         }
+        [27, 143, 244, 33, 80, 43, 110, 146] => {
+            let pool = read_pubkey(data, 0)?;
+            let metadata = create_metadata_simple(
+                signature,
+                slot,
+                tx_index,
+                block_time_us,
+                pool,
+                grpc_recv_us,
+            );
+            parse_claim_reward2_from_data(data, metadata)
+        }
         discriminators::CLAIM_FEE_EVENT | discriminators::LEGACY_CLAIM_FEE_EVENT => {
             parse_claim_fee_event(data, signature, slot, tx_index, block_time_us, grpc_recv_us)
         }
@@ -1170,4 +1182,22 @@ mod current_component_tests {
         b[146] = 2;
         assert!(parse_swap2_from_data(&b, EventMetadata::default()).is_none());
     }
+}
+
+pub(crate) fn parse_claim_reward2_from_data(
+    data: &[u8],
+    metadata: EventMetadata,
+) -> Option<DexEvent> {
+    if data.len() < 116 {
+        return None;
+    }
+    Some(DexEvent::MeteoraDlmmClaimReward(MeteoraDlmmClaimRewardEvent {
+        metadata,
+        pool: read_pubkey(data, 0)?,
+        position: read_pubkey(data, 32)?,
+        owner: read_pubkey(data, 64)?,
+        reward_index: read_u64_le(data, 96)?,
+        total_reward: read_u64_le(data, 104)?,
+        active_bin_id: i32::from_le_bytes(data[112..116].try_into().ok()?),
+    }))
 }
