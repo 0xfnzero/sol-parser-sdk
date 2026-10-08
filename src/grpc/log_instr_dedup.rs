@@ -113,6 +113,7 @@ enum LogInstrDedupKey {
         whirlpool: Pubkey,
         occurrence: u16,
     },
+    MeteoraPoolsPoolCreated { pool: Pubkey },
     MeteoraDlmmSwap {
         pool: Pubkey,
         from: Pubkey,
@@ -224,6 +225,7 @@ fn log_instr_dedup_key(ev: &DexEvent) -> Option<LogInstrDedupKey> {
         RaydiumClmmSwap(_) => None,
         RaydiumCpmmSwap(_) | RaydiumAmmV4Swap(_) => None,
         OrcaWhirlpoolSwap(_) => None,
+        MeteoraPoolsPoolCreated(e) if e.pool != Pubkey::default() => Some(LogInstrDedupKey::MeteoraPoolsPoolCreated { pool: e.pool }),
         MeteoraDammV2Swap(_) => None,
         MeteoraDlmmSwap(_) => None,
         // 无稳定链上指纹或其它路径：不去重

@@ -372,7 +372,7 @@ fn parse_curve_pool_instruction(
     block_time_us: Option<i64>,
     kind: MeteoraPoolsInstruction,
 ) -> Option<DexEvent> {
-    let (pool_type, stable_curve, mut offset) = parse_curve_type(data)?;
+    let (_, stable_curve, mut offset) = parse_curve_type(data)?;
     let permissioned = kind == MeteoraPoolsInstruction::InitializePermissionedPool;
     let fee_tier = kind == MeteoraPoolsInstruction::InitializePermissionlessPoolWithFeeTier;
     let trade_fee_bps = if fee_tier {
@@ -398,7 +398,8 @@ fn parse_curve_pool_instruction(
             "initialize_permissionless_pool"
         }
         .into(),
-        pool_type,
+        // PoolType is permission status; CurveType is represented by stable_curve.
+        pool_type: if permissioned { 0 } else { 1 },
         stable_curve,
         trade_fee_bps,
         token_a_in_amount,
@@ -448,7 +449,7 @@ fn parse_customizable_pool_instruction(
             activation_type,
             padding,
         }),
-        pool_type: 0,
+        pool_type: 1,
         ..Default::default()
     };
     crate::core::account_fillers::meteora::fill_pools_pool_created_accounts(&mut event, &|i| {
@@ -489,8 +490,8 @@ fn parse_create_pool_instruction(
         token_a_in_amount,
         token_b_in_amount,
         activation_point,
-        // These instructions explicitly initialize a ConstantProduct curve.
-        pool_type: 0,
+        // PoolType::Permissionless; independent of the ConstantProduct curve.
+        pool_type: 1,
         ..Default::default()
     };
     crate::core::account_fillers::meteora::fill_pools_pool_created_accounts(&mut event, &|i| {
@@ -968,7 +969,7 @@ mod pools_management_idl_tests {
                     );
                     assert_eq!((e.token_a_in_amount, e.token_b_in_amount), (0, u64::MAX));
                     assert_eq!(e.activation_point, if config2 { activation } else { None });
-                    assert_eq!(e.pool_type, 0);
+                    assert_eq!(e.pool_type, 1);
                     assert_eq!(e.pool, accounts[..count].get(0).copied().unwrap_or_default());
                     assert_eq!(e.config, accounts[..count].get(1).copied().unwrap_or_default());
                     assert_eq!(e.lp_mint, accounts[..count].get(2).copied().unwrap_or_default());
@@ -1183,7 +1184,7 @@ mod remaining_creation_idl_tests {
                     e.system_program,
                     accounts[..count].get(23).copied().unwrap_or_default()
                 );
-                assert_eq!(e.pool_type, curve[0]);
+                assert_eq!(e.pool_type, 0);
                 if curve[0] == 0 {
                     assert!(e.stable_curve.is_none());
                 } else {
@@ -1292,7 +1293,7 @@ mod remaining_creation_idl_tests {
                     e.system_program,
                     accounts[..count].get(25).copied().unwrap_or_default()
                 );
-                assert_eq!(e.pool_type, curve[0]);
+                assert_eq!(e.pool_type, 1);
                 if curve[0] == 0 {
                     assert!(e.stable_curve.is_none());
                 } else {
@@ -1403,7 +1404,7 @@ mod remaining_creation_idl_tests {
                     e.system_program,
                     accounts[..count].get(25).copied().unwrap_or_default()
                 );
-                assert_eq!(e.pool_type, curve[0]);
+                assert_eq!(e.pool_type, 1);
                 if curve[0] == 0 {
                     assert!(e.stable_curve.is_none());
                 } else {
@@ -1521,7 +1522,7 @@ mod remaining_creation_idl_tests {
                     e.system_program,
                     accounts[..count].get(24).copied().unwrap_or_default()
                 );
-                assert_eq!(e.pool_type, 0);
+                assert_eq!(e.pool_type, 1);
                 assert_eq!(e.activation_point, activation);
                 assert_eq!((e.token_a_in_amount, e.token_b_in_amount), (0, u64::MAX));
                 let p = e.customizable_params.unwrap();
