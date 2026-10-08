@@ -468,7 +468,7 @@ fn parse_deposit_instruction(
     tx_index: u64,
     block_time_us: Option<i64>,
 ) -> Option<DexEvent> {
-    if accounts.len() < 9 {
+    if accounts.len() < 15 {
         return None;
     }
     let lp_token_amount_out = read_u64_le(data, 0)?;
@@ -501,7 +501,7 @@ fn parse_withdraw_instruction(
     tx_index: u64,
     block_time_us: Option<i64>,
 ) -> Option<DexEvent> {
-    if accounts.len() < 9 {
+    if accounts.len() < 15 {
         return None;
     }
     let lp_token_amount_in = read_u64_le(data, 0)?;
