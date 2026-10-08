@@ -3419,6 +3419,7 @@ pub struct MeteoraDbcSwapEvent {
     pub maximum_amount_in: u64,
     #[serde(default)]
     pub included_fee_input_amount: u64,
+    /// Curve remainder uses fee-excluded units with input fees, not gross unspent wallet funding.
     #[serde(default)]
     pub amount_left: u64,
     #[serde(default)]
