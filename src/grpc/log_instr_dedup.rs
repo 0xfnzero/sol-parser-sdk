@@ -302,7 +302,7 @@ fn dedup_key_with_occurrence(ev: &DexEvent, occurrence: u16) -> Option<LogInstrD
 }
 
 /// 合并 log + instruction 两路解析结果：匹配时 **log 优先、ix 补充**。
-/// CPMM 按 pool、exact-in/out 类型和出现次序配对；同 lane 两路数量不一致时
+/// Pump/PumpSwap/CPMM 按交易身份、指令类型和出现次序配对；同 lane 两路数量不一致时
 /// 保留两路事件，不把无法定位的指令限价/账户写入执行日志。
 pub(crate) fn dedupe_log_instruction_events(
     log_events: Vec<DexEvent>,
@@ -347,26 +347,31 @@ pub(crate) fn dedupe_log_instruction_events(
     }
 
     let mut ix_occurrences: HashMap<OccurrenceBase, u16> = HashMap::new();
-    // When a CPMM lane has missing logs/instructions, ordinal pairing cannot
-    // identify which invocation survived. Preserve both sources rather than
-    // attaching another invocation's limits/accounts to an executed log.
-    // Reuse the occurrence map and its buckets; no extra map is allocated.
-    if log_occurrences.keys().any(|key| matches!(key, OccurrenceBase::RaydiumCpmm { .. })) {
+    // A missing invocation makes ordinal pairing ambiguous in these lanes.
+    // Preserve both sources instead of attaching another trade's accounts/limits.
+    if log_occurrences.keys().any(|key| matches!(key,
+        OccurrenceBase::PumpFun { .. } | OccurrenceBase::PumpSwap { .. } | OccurrenceBase::RaydiumCpmm { .. }
+    )) {
         for event in &instr_events {
-            if let DexEvent::RaydiumCpmmSwap(swap) = event {
-                next_occurrence(
-                    OccurrenceBase::RaydiumCpmm { pool: swap.pool_id, base_input: swap.base_input },
-                    &mut ix_occurrences,
-                );
+            if let Some(base) = occurrence_base(event) {
+                if matches!(base, OccurrenceBase::PumpFun { .. } | OccurrenceBase::PumpSwap { .. } | OccurrenceBase::RaydiumCpmm { .. }) {
+                    next_occurrence(base, &mut ix_occurrences);
+                }
             }
         }
         idx_by_key.retain(|key, _| {
-            if let LogInstrDedupKey::RaydiumCpmmSwap { pool, base_input, .. } = key {
-                let lane = OccurrenceBase::RaydiumCpmm { pool: *pool, base_input: *base_input };
-                log_occurrences.get(&lane) == ix_occurrences.get(&lane)
-            } else {
-                true
-            }
+            let base = match key {
+                LogInstrDedupKey::PumpFunTrade { mint, user, is_buy, ix_lane, .. } =>
+                    OccurrenceBase::PumpFun { mint: *mint, user: *user, is_buy: *is_buy, lane: *ix_lane },
+                LogInstrDedupKey::PumpSwapBuy { pool, user, .. } =>
+                    OccurrenceBase::PumpSwap { pool: *pool, user: *user, buy: true },
+                LogInstrDedupKey::PumpSwapSell { pool, user, .. } =>
+                    OccurrenceBase::PumpSwap { pool: *pool, user: *user, buy: false },
+                LogInstrDedupKey::RaydiumCpmmSwap { pool, base_input, .. } =>
+                    OccurrenceBase::RaydiumCpmm { pool: *pool, base_input: *base_input },
+                _ => return true,
+            };
+            log_occurrences.get(&base) == ix_occurrences.get(&base)
         });
         for count in ix_occurrences.values_mut() {
             *count = 0;
@@ -919,6 +924,49 @@ mod pumpswap_occurrence_tests {
                         (account, amount - 10)
                     ),
                     _ => panic!(),
+                }
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+mod incomplete_pump_sources_tests {
+    use super::*;
+    use crate::core::events::{PumpFunTradeEvent, PumpSwapBuyEvent, PumpSwapSellEvent};
+
+    #[test]
+    fn mismatched_sources_preserve_accounts_and_limits() {
+        let mint = Pubkey::new_unique();
+        let user = Pubkey::new_unique();
+        for kind in 0..3 {
+            for (log_count, ix_count) in [(1, 2), (2, 1)] {
+                let event = |account, amount| match kind {
+                    0 => DexEvent::PumpFunTrade(PumpFunTradeEvent {
+                        mint, user, is_buy: true, ix_name: "buy_v3".into(),
+                        bonding_curve: account, amount, ..Default::default()
+                    }),
+                    1 => DexEvent::PumpSwapBuy(PumpSwapBuyEvent {
+                        pool: mint, user, user_base_token_account: account,
+                        max_quote_amount_in: amount, ..Default::default()
+                    }),
+                    _ => DexEvent::PumpSwapSell(PumpSwapSellEvent {
+                        pool: mint, user, user_base_token_account: account,
+                        min_quote_amount_out: amount, ..Default::default()
+                    }),
+                };
+                let logs = (0..log_count).map(|_| event(Pubkey::default(), 0)).collect();
+                let instructions = (0..ix_count).map(|i| event(Pubkey::new_unique(), 100 + i)).collect();
+                let out = dedupe_log_instruction_events(logs, instructions);
+                assert_eq!(out.len(), (log_count + ix_count) as usize);
+                for e in &out[..log_count as usize] {
+                    let (account, amount) = match e {
+                        DexEvent::PumpFunTrade(e) => (e.bonding_curve, e.amount),
+                        DexEvent::PumpSwapBuy(e) => (e.user_base_token_account, e.max_quote_amount_in),
+                        DexEvent::PumpSwapSell(e) => (e.user_base_token_account, e.min_quote_amount_out),
+                        _ => panic!(),
+                    };
+                    assert_eq!((account, amount), (Pubkey::default(), 0));
                 }
             }
         }
