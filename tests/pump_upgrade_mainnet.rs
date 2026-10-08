@@ -30,51 +30,77 @@ fn captured_mainnet_matches_official_idl_and_wire() {
     {
         let tx: EncodedConfirmedTransactionWithStatusMeta =
             serde_json::from_value(case["encoded"].clone()).unwrap();
-        let parsed = sol_parser_sdk::parse_rpc_transaction(&tx, None).unwrap();
-        if !case["raw"]["meta"]["err"].is_null() {
-            assert!(parsed.is_empty());
-            continue;
-        }
-        let mut events: Value =
-            serde_json::from_str(&serde_json::to_string(&parsed).unwrap()).unwrap();
-        normalize(&mut events);
-        let bodies: Vec<_> = events
-            .as_array()
-            .unwrap()
-            .iter()
-            .flat_map(|e| e.as_object().unwrap().values())
-            .collect();
-        for expected in case["expected"].as_array().unwrap() {
-            let d = &expected["data"];
-            let identity = if expected["name"] == "TradeEvent" { "mint" } else { "pool" };
-            let matches: Vec<_> = bodies
+        let rpc = sol_parser_sdk::parse_rpc_transaction(&tx, None).unwrap();
+        let (meta, transaction) = sol_parser_sdk::convert_rpc_to_grpc(&tx).unwrap();
+        let update = yellowstone_grpc_proto::prelude::SubscribeUpdateTransaction {
+            slot: tx.slot,
+            transaction: Some(yellowstone_grpc_proto::prelude::SubscribeUpdateTransactionInfo {
+                signature: transaction.signatures[0].clone(),
+                transaction: Some(transaction),
+                meta: Some(meta),
+                ..Default::default()
+            }),
+        };
+        let time = tx.block_time.map(|s| s * 1_000_000);
+        for parsed in [
+            rpc,
+            sol_parser_sdk::grpc::parse_subscribe_update_transaction(&update, 0, time, None),
+            sol_parser_sdk::grpc::parse_subscribe_update_transaction_low_latency(
+                &update, 0, time, None,
+            ),
+        ] {
+            if !case["raw"]["meta"]["err"].is_null() {
+                assert!(parsed.is_empty());
+                continue;
+            }
+            let mut events: Value =
+                serde_json::from_str(&serde_json::to_string(&parsed).unwrap()).unwrap();
+            normalize(&mut events);
+            let bodies: Vec<_> = events
+                .as_array()
+                .unwrap()
                 .iter()
-                .copied()
-                .filter(|a| {
-                    a[identity] == d[identity]
-                        && a["user"] == d["user"]
-                        && (d["is_buy"].is_null() || a["is_buy"] == d["is_buy"])
-                        && (expected["name"] != "BuyEvent" || !a["base_amount_out"].is_null())
-                        && (expected["name"] != "SellEvent" || !a["base_amount_in"].is_null())
-                })
+                .flat_map(|e| e.as_object().unwrap().values())
                 .collect();
-            assert_eq!(matches.len(), 1, "{}", case["signature"]);
-            for (field, value) in d.as_object().unwrap() {
-                if field == "shareholders" {
-                    continue;
-                }
-                let got = &matches[0][field];
-                if field == "quote_mint" && value == "11111111111111111111111111111111" {
-                    assert!([
-                        "11111111111111111111111111111111",
-                        "So11111111111111111111111111111111111111111",
-                        "So11111111111111111111111111111111111111112"
-                    ]
-                    .contains(&got.as_str().unwrap()));
+            for expected in case["expected"].as_array().unwrap() {
+                let d = &expected["data"];
+                let identity = if expected["name"] == "RaydiumAmmSwap" {
+                    "amm"
+                } else if expected["name"] == "TradeEvent" {
+                    "mint"
                 } else {
-                    let text =
-                        |v: &Value| v.as_str().map(str::to_owned).unwrap_or_else(|| v.to_string());
-                    assert_eq!(text(got), text(value), "{} {field}", case["signature"]);
+                    "pool"
+                };
+                let matches: Vec<_> = bodies
+                    .iter()
+                    .copied()
+                    .filter(|a| {
+                        a[identity] == d[identity]
+                            && a["user"] == d["user"]
+                            && (d["is_buy"].is_null() || a["is_buy"] == d["is_buy"])
+                            && (expected["name"] != "BuyEvent" || !a["base_amount_out"].is_null())
+                            && (expected["name"] != "SellEvent" || !a["base_amount_in"].is_null())
+                    })
+                    .collect();
+                assert_eq!(matches.len(), 1, "{}", case["signature"]);
+                for (field, value) in d.as_object().unwrap() {
+                    if field == "shareholders" {
+                        continue;
+                    }
+                    let got = &matches[0][field];
+                    if field == "quote_mint" && value == "11111111111111111111111111111111" {
+                        assert!([
+                            "11111111111111111111111111111111",
+                            "So11111111111111111111111111111111111111111",
+                            "So11111111111111111111111111111111111111112"
+                        ]
+                        .contains(&got.as_str().unwrap()));
+                    } else {
+                        let text = |v: &Value| {
+                            v.as_str().map(str::to_owned).unwrap_or_else(|| v.to_string())
+                        };
+                        assert_eq!(text(got), text(value), "{} {field}", case["signature"]);
+                    }
                 }
             }
         }

@@ -230,16 +230,32 @@ fn parse_converted_rpc_transaction(
     struct ActiveProgram<'a> {
         encoded: &'a str,
         pubkey: Pubkey,
+        position: (i32, i32),
     }
 
     let mut active_program_stack: SmallVec<[ActiveProgram<'_>; 8]> = SmallVec::new();
     let mut log_events = Vec::new();
+    let mut outer_index = -1;
+    let mut inner_index = -1;
 
     for log in log_messages {
         if let Some((pid, depth)) = crate::logs::optimized_matcher::parse_invoke_info(log) {
             let pk = crate::grpc::program_ids::known_program_id(pid).unwrap_or_default();
             active_program_stack.truncate(depth - 1);
-            active_program_stack.push(ActiveProgram { encoded: pid, pubkey: pk });
+            if depth == 1 {
+                outer_index = crate::grpc::yellowstone_tx_parse::next_logged_outer_index(
+                    &grpc_tx_opt,
+                    outer_index,
+                );
+                inner_index = -1;
+            } else {
+                inner_index += 1;
+            }
+            active_program_stack.push(ActiveProgram {
+                encoded: pid,
+                pubkey: pk,
+                position: (outer_index, inner_index),
+            });
         }
 
         if let Some(mut event) = crate::logs::parse_log_with_program_id(
@@ -255,12 +271,25 @@ fn parse_converted_rpc_transaction(
             active_program_stack.last().map(|active| &active.pubkey),
         ) {
             // Fill account fields - use same function as gRPC parsing
-            crate::core::account_dispatcher::fill_accounts_with_owned_keys(
-                &mut event,
-                &grpc_meta,
-                &grpc_tx_opt,
-                &program_invokes,
-            );
+            if matches!(&event, DexEvent::RaydiumAmmV4Swap(_)) {
+                let mut scoped = crate::core::invoke_context::InvokeContext::default();
+                if let Some(active) = active_program_stack.last() {
+                    scoped.push(active.pubkey, active.position);
+                }
+                crate::core::account_dispatcher::fill_accounts_with_invoke_context(
+                    &mut event,
+                    &grpc_meta,
+                    &grpc_tx_opt,
+                    &scoped,
+                );
+            } else {
+                crate::core::account_dispatcher::fill_accounts_with_owned_keys(
+                    &mut event,
+                    &grpc_meta,
+                    &grpc_tx_opt,
+                    &program_invokes,
+                );
+            }
 
             // Fill additional data fields (e.g., PumpSwap is_pump_pool)
             crate::core::common_filler::fill_data(
