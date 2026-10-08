@@ -48,9 +48,10 @@ pub enum DexEvent {
 
     // Meteora DAMM V2 事件
     MeteoraDammV2Swap(MeteoraDammV2SwapEvent), // - 已对接
+    MeteoraDammV2ClaimPositionFee(MeteoraDammV2ClaimPositionFeeEvent),
     MeteoraDammV2CreatePosition(MeteoraDammV2CreatePositionEvent), // - 已对接
-    MeteoraDammV2ClosePosition(MeteoraDammV2ClosePositionEvent), // - 已对接
-    MeteoraDammV2AddLiquidity(MeteoraDammV2AddLiquidityEvent), // - 已对接
+    MeteoraDammV2ClosePosition(MeteoraDammV2ClosePositionEvent),   // - 已对接
+    MeteoraDammV2AddLiquidity(MeteoraDammV2AddLiquidityEvent),     // - 已对接
     MeteoraDammV2RemoveLiquidity(MeteoraDammV2RemoveLiquidityEvent), // - 已对接
     MeteoraDammV2InitializePool(MeteoraDammV2InitializePoolEvent), // - 已对接
     MeteoraDammV2UpdateDelegatePermission(MeteoraDammV2UpdateDelegatePermissionEvent),
@@ -207,6 +208,7 @@ impl DexEvent {
 
             // Meteora DAMM V2 事件
             DexEvent::MeteoraDammV2Swap(e) => &e.metadata,
+            DexEvent::MeteoraDammV2ClaimPositionFee(e) => &e.metadata,
             DexEvent::MeteoraDammV2CreatePosition(e) => &e.metadata,
             DexEvent::MeteoraDammV2ClosePosition(e) => &e.metadata,
             DexEvent::MeteoraDammV2AddLiquidity(e) => &e.metadata,
@@ -347,6 +349,7 @@ impl DexEvent {
             DexEvent::PumpSwapLiquidityAdded(e) => Some(&mut e.metadata),
             DexEvent::PumpSwapLiquidityRemoved(e) => Some(&mut e.metadata),
             DexEvent::MeteoraDammV2Swap(e) => Some(&mut e.metadata),
+            DexEvent::MeteoraDammV2ClaimPositionFee(e) => Some(&mut e.metadata),
             DexEvent::MeteoraDammV2CreatePosition(e) => Some(&mut e.metadata),
             DexEvent::MeteoraDammV2ClosePosition(e) => Some(&mut e.metadata),
             DexEvent::MeteoraDammV2AddLiquidity(e) => Some(&mut e.metadata),

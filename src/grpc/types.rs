@@ -337,12 +337,12 @@ pub enum EventType {
     MeteoraDammV2RemoveLiquidity,
     MeteoraDammV2InitializePool,
     MeteoraDammV2CreatePosition,
+    MeteoraDammV2ClaimPositionFee,
     MeteoraDammV2ClosePosition,
     MeteoraDammV2UpdateDelegatePermission,
     MeteoraDammV2WithdrawDeadLiquidityReward,
     MeteoraDammV2CreateConfig,
     MeteoraDammV2CreateDynamicConfig,
-    // MeteoraDammV2ClaimPositionFee,
     // MeteoraDammV2InitializeReward,
     // MeteoraDammV2FundReward,
     // MeteoraDammV2ClaimReward,
@@ -538,6 +538,7 @@ impl EventTypeFilter {
             EventType::MeteoraDammV2Swap,
             EventType::MeteoraDammV2AddLiquidity,
             EventType::MeteoraDammV2CreatePosition,
+            EventType::MeteoraDammV2ClaimPositionFee,
             EventType::MeteoraDammV2ClosePosition,
             EventType::MeteoraDammV2InitializePool,
             EventType::MeteoraDammV2RemoveLiquidity,
@@ -752,6 +753,9 @@ pub fn event_type_from_dex_event(event: &crate::core::events::DexEvent) -> Optio
         DexEvent::PumpSwapLiquidityAdded(_) => Some(EventType::PumpSwapLiquidityAdded),
         DexEvent::PumpSwapLiquidityRemoved(_) => Some(EventType::PumpSwapLiquidityRemoved),
         DexEvent::MeteoraDammV2Swap(_) => Some(EventType::MeteoraDammV2Swap),
+        DexEvent::MeteoraDammV2ClaimPositionFee(_) => {
+            Some(EventType::MeteoraDammV2ClaimPositionFee)
+        }
         DexEvent::MeteoraDammV2CreatePosition(_) => Some(EventType::MeteoraDammV2CreatePosition),
         DexEvent::MeteoraDammV2ClosePosition(_) => Some(EventType::MeteoraDammV2ClosePosition),
         DexEvent::MeteoraDammV2AddLiquidity(_) => Some(EventType::MeteoraDammV2AddLiquidity),

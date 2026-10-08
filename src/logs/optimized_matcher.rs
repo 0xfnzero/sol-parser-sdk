@@ -303,6 +303,8 @@ mod discriminators {
         u64::from_le_bytes([228, 50, 246, 85, 203, 66, 134, 37]);
     pub const METEORA_DAMM_CREATE_POSITION: u64 =
         u64::from_le_bytes([156, 15, 119, 198, 29, 181, 221, 55]);
+    pub const METEORA_DAMM_CLAIM_POSITION_FEE: u64 =
+        u64::from_le_bytes([198, 182, 183, 52, 97, 12, 49, 56]);
     pub const METEORA_DAMM_CLOSE_POSITION: u64 =
         u64::from_le_bytes([20, 145, 144, 68, 143, 142, 214, 178]);
     pub const METEORA_DAMM_UPDATE_DELEGATE_PERMISSION: u64 =
@@ -933,6 +935,9 @@ fn parse_log_optimized_inner(
         discriminators::METEORA_DAMM_CREATE_POSITION => {
             crate::logs::meteora_damm::parse_create_position_from_data(data, metadata)
         }
+        discriminators::METEORA_DAMM_CLAIM_POSITION_FEE => {
+            crate::logs::meteora_damm::parse_claim_position_fee_from_data(data, metadata)
+        }
         discriminators::METEORA_DAMM_CLOSE_POSITION => {
             crate::logs::meteora_damm::parse_close_position_from_data(data, metadata)
         }
@@ -1128,6 +1133,9 @@ fn program_scoped_discriminator_to_event_type(
             }
             discriminators::METEORA_DAMM_CREATE_POSITION => {
                 Some(EventType::MeteoraDammV2CreatePosition)
+            }
+            discriminators::METEORA_DAMM_CLAIM_POSITION_FEE => {
+                Some(EventType::MeteoraDammV2ClaimPositionFee)
             }
             discriminators::METEORA_DAMM_CLOSE_POSITION => {
                 Some(EventType::MeteoraDammV2ClosePosition)
@@ -1519,6 +1527,9 @@ fn parse_program_scoped_event(
                 discriminators::METEORA_DAMM_CREATE_POSITION => {
                     crate::logs::meteora_damm::parse_create_position_from_data(data, metadata)
                 }
+                discriminators::METEORA_DAMM_CLAIM_POSITION_FEE => {
+                    crate::logs::meteora_damm::parse_claim_position_fee_from_data(data, metadata)
+                }
                 discriminators::METEORA_DAMM_CLOSE_POSITION => {
                     crate::logs::meteora_damm::parse_close_position_from_data(data, metadata)
                 }
@@ -1777,6 +1788,9 @@ fn discriminator_to_event_type(discriminator: u64) -> Option<EventType> {
         }
         discriminators::METEORA_DAMM_CREATE_POSITION => {
             Some(EventType::MeteoraDammV2CreatePosition)
+        }
+        discriminators::METEORA_DAMM_CLAIM_POSITION_FEE => {
+            Some(EventType::MeteoraDammV2ClaimPositionFee)
         }
         discriminators::METEORA_DAMM_CLOSE_POSITION => Some(EventType::MeteoraDammV2ClosePosition),
         discriminators::METEORA_DAMM_UPDATE_DELEGATE_PERMISSION => {

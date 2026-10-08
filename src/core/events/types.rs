@@ -4221,3 +4221,16 @@ pub struct PumpSwapSweepPoolFeeEvent {
     pub amount: u64,
     pub bucket: u8,
 }
+
+/// Official EvtClaimPositionFee gross quantities before token transfer fees.
+#[cfg_attr(feature = "parse-borsh", derive(BorshDeserialize))]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MeteoraDammV2ClaimPositionFeeEvent {
+    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
+    pub metadata: EventMetadata,
+    pub pool: Pubkey,
+    pub position: Pubkey,
+    pub owner: Pubkey,
+    pub fee_a_claimed: u64,
+    pub fee_b_claimed: u64,
+}

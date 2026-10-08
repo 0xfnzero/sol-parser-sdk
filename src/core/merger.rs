@@ -173,6 +173,7 @@ pub fn try_merge_events(
         (MeteoraDammV2AddLiquidity(b), MeteoraDammV2AddLiquidity(i)) => merge_generic(b, i),
         (MeteoraDammV2RemoveLiquidity(b), MeteoraDammV2RemoveLiquidity(i)) => merge_generic(b, i),
         (MeteoraDammV2InitializePool(b), MeteoraDammV2InitializePool(i)) => merge_generic(b, i),
+        (MeteoraDammV2ClaimPositionFee(b), MeteoraDammV2ClaimPositionFee(i)) => merge_generic(b, i),
         (MeteoraDammV2CreatePosition(b), MeteoraDammV2CreatePosition(i)) => merge_generic(b, i),
         (MeteoraDammV2ClosePosition(b), MeteoraDammV2ClosePosition(i)) => merge_generic(b, i),
         (MeteoraDammV2UpdateDelegatePermission(b), MeteoraDammV2UpdateDelegatePermission(i)) => {

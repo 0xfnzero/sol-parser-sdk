@@ -764,34 +764,10 @@ fn parse_claim_position_fee_event(
     block_time_us: Option<i64>,
     grpc_recv_us: i64,
 ) -> Option<DexEvent> {
-    // let mut offset = 0;
-
-    // let lb_pair = read_pubkey(data, offset)?;
-    // offset += 32;
-
-    // let position = read_pubkey(data, offset)?;
-    // offset += 32;
-
-    // let owner = read_pubkey(data, offset)?;
-    // offset += 32;
-
-    // let fee_x = read_u64_le(data, offset)?;
-    // offset += 8;
-
-    // let fee_y = read_u64_le(data, offset)?;
-
-    // let metadata =
-    //     create_metadata_simple(signature, slot, tx_index, block_time_us, lb_pair, grpc_recv_us);
-
-    // Some(DexEvent::MeteoraDammV2ClaimPositionFee(MeteoraDammV2ClaimPositionFeeEvent {
-    //     metadata,
-    //     lb_pair,
-    //     position,
-    //     owner,
-    //     fee_x,
-    //     fee_y,
-    // }))
-    None
+    let pool = read_pubkey(data, 0)?;
+    let metadata =
+        create_metadata_simple(signature, slot, tx_index, block_time_us, pool, grpc_recv_us);
+    parse_claim_position_fee_from_data(data, metadata)
 }
 
 /// 解析 Initialize Reward 事件
@@ -1553,4 +1529,21 @@ mod tests {
             (config, authority, 3, 99)
         );
     }
+}
+
+pub(crate) fn parse_claim_position_fee_from_data(
+    data: &[u8],
+    metadata: EventMetadata,
+) -> Option<DexEvent> {
+    if data.len() < 112 {
+        return None;
+    }
+    Some(DexEvent::MeteoraDammV2ClaimPositionFee(MeteoraDammV2ClaimPositionFeeEvent {
+        metadata,
+        pool: read_pubkey(data, 0)?,
+        position: read_pubkey(data, 32)?,
+        owner: read_pubkey(data, 64)?,
+        fee_a_claimed: read_u64_le(data, 96)?,
+        fee_b_claimed: read_u64_le(data, 104)?,
+    }))
 }
