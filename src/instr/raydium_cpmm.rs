@@ -297,8 +297,8 @@ fn parse_deposit_instruction(
         pool,
         user: get_account(accounts, 0).unwrap_or_default(),
         lp_token_amount,
-        token0_amount: maximum_token_0_amount, // 先赋值为maximum，logs会覆盖
-        token1_amount: maximum_token_1_amount, // 先赋值为maximum，logs会覆盖
+        token0_amount: maximum_token_0_amount, // Instruction maximum, not an executed LpChangeEvent amount.
+        token1_amount: maximum_token_1_amount, // Instruction maximum, not an executed LpChangeEvent amount.
     }))
 }
 
@@ -334,8 +334,8 @@ fn parse_withdraw_instruction(
         pool,
         user: get_account(accounts, 0).unwrap_or_default(),
         lp_token_amount,
-        token0_amount: minimum_token_0_amount, // 先赋值为minimum，logs会覆盖
-        token1_amount: minimum_token_1_amount, // 先赋值为minimum，logs会覆盖
+        token0_amount: minimum_token_0_amount, // Instruction minimum, not an executed LpChangeEvent amount.
+        token1_amount: minimum_token_1_amount, // Instruction minimum, not an executed LpChangeEvent amount.
     }))
 }
 
