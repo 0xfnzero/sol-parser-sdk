@@ -4280,7 +4280,9 @@ pub struct MeteoraDammV2ClaimPositionFeeEvent {
     pub fee_b_claimed: u64,
 }
 
-/// Official EvtClaimReward gross quantities before token transfer fees.
+/// Official EvtClaimReward accrued gross amount cleared from the position.
+/// A frozen-vault skip can emit a nonzero total_reward without transferring tokens.
+/// Determine wallet credits from actual token transfers and net balance changes.
 #[cfg_attr(feature = "parse-borsh", derive(BorshDeserialize))]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MeteoraDammV2ClaimRewardEvent {
