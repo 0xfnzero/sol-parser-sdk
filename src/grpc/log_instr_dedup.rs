@@ -84,6 +84,8 @@ enum LogInstrDedupKey {
         pool: Pubkey,
         user: Pubkey,
     },
+    // Requested liquidity may be zero when base_flag resolves it from a budget.
+    RaydiumClmmLiquidity { position: Pubkey, decrease: bool, occurrence: u16 },
     /// `sender` 可能仅 ix 填全，不参与键以免与 log 配对失败。
     RaydiumClmmSwap {
         pool: Pubkey,
@@ -142,6 +144,7 @@ enum OccurrenceBase {
     PumpFun { mint: Pubkey, user: Pubkey, is_buy: bool, lane: u8 },
     RaydiumLaunchlab { pool: Pubkey, user: Pubkey, is_buy: bool },
     RaydiumClmm(Pubkey),
+    RaydiumClmmLiquidity { position: Pubkey, decrease: bool },
     RaydiumCpmm { pool: Pubkey, base_input: bool },
     RaydiumAmmV4 { pool: Pubkey, base_out: bool, amount: u64 },
     OrcaWhirlpool(Pubkey),
@@ -274,6 +277,8 @@ fn occurrence_base(ev: &DexEvent) -> Option<OccurrenceBase> {
             };
             Some(OccurrenceBase::RaydiumAmmV4 { pool: s.amm, base_out, amount })
         }
+        RaydiumClmmIncreaseLiquidity(e) if e.personal_position != Pubkey::default() => Some(OccurrenceBase::RaydiumClmmLiquidity { position: e.personal_position, decrease: false }),
+        RaydiumClmmDecreaseLiquidity(e) if e.personal_position != Pubkey::default() => Some(OccurrenceBase::RaydiumClmmLiquidity { position: e.personal_position, decrease: true }),
         OrcaWhirlpoolLiquidityIncreased(e) => Some(OccurrenceBase::OrcaWhirlpoolLiquidity {
             whirlpool: e.whirlpool,
             position: e.position,
@@ -343,6 +348,8 @@ fn dedup_key_with_occurrence(ev: &DexEvent, occurrence: u16) -> Option<LogInstrD
                 occurrence,
             })
         }
+        RaydiumClmmIncreaseLiquidity(e) if e.personal_position != Pubkey::default() => Some(LogInstrDedupKey::RaydiumClmmLiquidity { position: e.personal_position, decrease: false, occurrence }),
+        RaydiumClmmDecreaseLiquidity(e) if e.personal_position != Pubkey::default() => Some(LogInstrDedupKey::RaydiumClmmLiquidity { position: e.personal_position, decrease: true, occurrence }),
         OrcaWhirlpoolLiquidityIncreased(e) => Some(LogInstrDedupKey::OrcaWhirlpoolLiquidity {
             whirlpool: e.whirlpool,
             position: e.position,
@@ -426,6 +433,7 @@ pub(crate) fn dedupe_log_instruction_events(
                 | OccurrenceBase::RaydiumCpmm { .. }
                 | OccurrenceBase::RaydiumAmmV4 { .. }
                 | OccurrenceBase::OrcaWhirlpoolLiquidity { .. }
+                | OccurrenceBase::RaydiumClmmLiquidity { .. }
         )
     }) {
         for event in &instr_events {
@@ -437,6 +445,7 @@ pub(crate) fn dedupe_log_instruction_events(
                         | OccurrenceBase::RaydiumCpmm { .. }
                         | OccurrenceBase::RaydiumAmmV4 { .. }
                         | OccurrenceBase::OrcaWhirlpoolLiquidity { .. }
+                        | OccurrenceBase::RaydiumClmmLiquidity { .. }
                 ) {
                     next_occurrence(base, &mut ix_occurrences);
                 }
@@ -468,6 +477,7 @@ pub(crate) fn dedupe_log_instruction_events(
                     base_out: *base_out,
                     amount: *instruction_amount,
                 },
+                LogInstrDedupKey::RaydiumClmmLiquidity { position, decrease, .. } => OccurrenceBase::RaydiumClmmLiquidity { position: *position, decrease: *decrease },
                 LogInstrDedupKey::OrcaWhirlpoolLiquidity {
                     whirlpool,
                     position,
@@ -1194,6 +1204,61 @@ fn whirlpool_liquidity_occurrences_and_missing_logs() {
     );
     if let DexEvent::OrcaWhirlpoolLiquidityIncreased(e) = &mut ix {
         e.position = Pubkey::default();
+    }
+    assert_eq!(dedupe_log_instruction_events(vec![log], vec![ix]).len(), 2);
+}
+
+#[cfg(test)]
+#[test]
+fn clmm_liquidity_occurrences_keep_executed_amounts_and_unpaired_sources() {
+    use solana_transaction_status::EncodedConfirmedTransactionWithStatusMeta;
+    let f: serde_json::Value = serde_json::from_str(include_str!(
+        "../../tests/fixtures/clmm_liquidity_20261008.json"
+    ))
+    .unwrap();
+    let c = f["cases"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|c| c["name"] == "increase_base0")
+        .unwrap();
+    let tx: EncodedConfirmedTransactionWithStatusMeta =
+        serde_json::from_value(c["wire_rpc"].clone()).unwrap();
+    let parsed = crate::parse_rpc_transaction_with_cost(&tx, None).unwrap();
+    let log = parsed
+        .events
+        .into_iter()
+        .find(|e| matches!(e, DexEvent::RaydiumClmmIncreaseLiquidity(_)))
+        .unwrap();
+    let mut ix = log.clone();
+    if let DexEvent::RaydiumClmmIncreaseLiquidity(e) = &mut ix {
+        e.liquidity = 0;
+        e.amount_0 = 0;
+        e.amount_1 = 0;
+        e.position_nft_mint = Pubkey::default();
+    }
+    let out =
+        dedupe_log_instruction_events(vec![log.clone(), log.clone()], vec![ix.clone(), ix.clone()]);
+    assert_eq!(out.len(), 2);
+    for e in out {
+        if let (
+            DexEvent::RaydiumClmmIncreaseLiquidity(e),
+            DexEvent::RaydiumClmmIncreaseLiquidity(want),
+        ) = (&e, &log)
+        {
+            assert_eq!(e.liquidity, want.liquidity);
+            assert_eq!(e.position_nft_mint, want.position_nft_mint);
+            assert_eq!(e.amount_0, want.amount_0);
+        } else {
+            panic!("wrong event")
+        }
+    }
+    assert_eq!(
+        dedupe_log_instruction_events(vec![log.clone()], vec![ix.clone(), ix.clone()]).len(),
+        3
+    );
+    if let DexEvent::RaydiumClmmIncreaseLiquidity(e) = &mut ix {
+        e.personal_position = Pubkey::new_unique();
     }
     assert_eq!(dedupe_log_instruction_events(vec![log], vec![ix]).len(), 2);
 }

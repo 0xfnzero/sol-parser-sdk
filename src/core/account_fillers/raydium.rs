@@ -274,9 +274,6 @@ pub fn fill_clmm_increase_liquidity_accounts(
     if e.user == Pubkey::default() {
         e.user = get(0);
     }
-    if e.position_nft_mint == Pubkey::default() {
-        e.position_nft_mint = get(1);
-    }
     if e.pool == Pubkey::default() {
         e.pool = get(2);
     }
@@ -303,9 +300,6 @@ pub fn fill_clmm_decrease_liquidity_accounts(
 ) {
     if e.user == Pubkey::default() {
         e.user = get(0);
-    }
-    if e.position_nft_mint == Pubkey::default() {
-        e.position_nft_mint = get(1);
     }
     if e.pool == Pubkey::default() {
         e.pool = get(3);

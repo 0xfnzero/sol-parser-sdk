@@ -1370,6 +1370,11 @@ pub struct RaydiumClmmDecreaseLiquidityEvent {
     pub amount1_min: u64,
     #[cfg_attr(feature = "parse-borsh", borsh(skip))]
     pub user: Pubkey,
+    /// Personal position PDA, not the NFT token account or mint.
+    #[serde(default)]
+    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
+    pub personal_position: Pubkey,
+
 }
 
 /// Raydium CLMM Collect Fee Event
@@ -1434,6 +1439,11 @@ pub struct RaydiumClmmIncreaseLiquidityEvent {
     pub amount1_max: u64,
     #[cfg_attr(feature = "parse-borsh", borsh(skip))]
     pub user: Pubkey,
+    /// Personal position PDA, not the NFT token account or mint.
+    #[serde(default)]
+    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
+    pub personal_position: Pubkey,
+
 }
 
 /// Raydium CLMM Liquidity Change Event (IDL `LiquidityChangeEvent`)

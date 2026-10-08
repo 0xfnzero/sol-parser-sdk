@@ -1366,6 +1366,24 @@ pub fn merge_grpc_instruction_into_log(log: &mut DexEvent, ix: DexEvent) {
                 merge_orca_swap_context(l, i);
             }
         }
+        RaydiumClmmIncreaseLiquidity(l) => {
+            if let RaydiumClmmIncreaseLiquidity(i) = ix {
+                fill_pk(&mut l.pool, i.pool);
+                fill_pk(&mut l.user, i.user);
+                fill_pk(&mut l.personal_position, i.personal_position);
+                l.amount0_max = i.amount0_max;
+                l.amount1_max = i.amount1_max;
+            }
+        }
+        RaydiumClmmDecreaseLiquidity(l) => {
+            if let RaydiumClmmDecreaseLiquidity(i) = ix {
+                fill_pk(&mut l.pool, i.pool);
+                fill_pk(&mut l.user, i.user);
+                fill_pk(&mut l.personal_position, i.personal_position);
+                l.amount0_min = i.amount0_min;
+                l.amount1_min = i.amount1_min;
+            }
+        }
         RaydiumClmmSwap(l) => {
             if let RaydiumClmmSwap(i) = ix {
                 merge_raydium_clmm_swap_log_preferred(l, i);

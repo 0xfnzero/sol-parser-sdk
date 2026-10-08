@@ -208,8 +208,9 @@ fn parse_increase_liquidity_v2_instruction(
     let metadata = create_metadata_simple(signature, slot, tx_index, block_time_us, pool);
 
     Some(DexEvent::RaydiumClmmIncreaseLiquidity(RaydiumClmmIncreaseLiquidityEvent {
+        personal_position: get_account(accounts, 4).unwrap_or_default(),
         metadata,
-        position_nft_mint: get_account(accounts, 1).unwrap_or_default(),
+        position_nft_mint: Pubkey::default(), // NFT token account does not reveal its mint.
         liquidity,
         amount_0: 0,
         amount_1: 0,
@@ -245,8 +246,9 @@ fn parse_decrease_liquidity_v2_instruction(
     let metadata = create_metadata_simple(signature, slot, tx_index, block_time_us, pool);
 
     Some(DexEvent::RaydiumClmmDecreaseLiquidity(RaydiumClmmDecreaseLiquidityEvent {
+        personal_position: get_account(accounts, 2).unwrap_or_default(),
         metadata,
-        position_nft_mint: get_account(accounts, 1).unwrap_or_default(),
+        position_nft_mint: Pubkey::default(), // NFT token account does not reveal its mint.
         liquidity,
         decrease_amount_0: 0,
         decrease_amount_1: 0,

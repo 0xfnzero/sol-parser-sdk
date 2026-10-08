@@ -290,6 +290,7 @@ fn parse_increase_liquidity_event(
     );
 
     Some(DexEvent::RaydiumClmmIncreaseLiquidity(RaydiumClmmIncreaseLiquidityEvent {
+        personal_position: Pubkey::default(),
         metadata,
         position_nft_mint,
         liquidity,
@@ -354,6 +355,7 @@ fn parse_decrease_liquidity_event(
     );
 
     Some(DexEvent::RaydiumClmmDecreaseLiquidity(RaydiumClmmDecreaseLiquidityEvent {
+        personal_position: Pubkey::default(),
         metadata,
         position_nft_mint,
         liquidity,
@@ -807,6 +809,7 @@ fn parse_increase_liquidity_from_text(
     );
 
     Some(DexEvent::RaydiumClmmIncreaseLiquidity(RaydiumClmmIncreaseLiquidityEvent {
+        personal_position: Pubkey::default(),
         metadata,
         position_nft_mint: Pubkey::default(),
         liquidity: extract_number_from_text(log, "liquidity").unwrap_or(1_000_000) as u128,
@@ -842,6 +845,7 @@ fn parse_decrease_liquidity_from_text(
     );
 
     Some(DexEvent::RaydiumClmmDecreaseLiquidity(RaydiumClmmDecreaseLiquidityEvent {
+        personal_position: Pubkey::default(),
         metadata,
         position_nft_mint: Pubkey::default(),
         liquidity: extract_number_from_text(log, "liquidity").unwrap_or(1_000_000) as u128,
@@ -1024,6 +1028,7 @@ pub fn parse_increase_liquidity_from_data(
     let amount_1_transfer_fee = read_u64_le(data, offset)?;
 
     Some(DexEvent::RaydiumClmmIncreaseLiquidity(RaydiumClmmIncreaseLiquidityEvent {
+        personal_position: Pubkey::default(),
         metadata,
         position_nft_mint,
         liquidity,
@@ -1076,6 +1081,7 @@ pub fn parse_decrease_liquidity_from_data(
     let transfer_fee_1 = read_u64_le(data, offset)?;
 
     Some(DexEvent::RaydiumClmmDecreaseLiquidity(RaydiumClmmDecreaseLiquidityEvent {
+        personal_position: Pubkey::default(),
         metadata,
         position_nft_mint,
         liquidity,

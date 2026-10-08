@@ -150,6 +150,64 @@ fn find_cpmm_invoke<'a>(
     }))
 }
 
+fn find_clmm_liquidity_invoke<'a>(
+    invokes: &'a [(i32, i32)],
+    meta: &TransactionStatusMeta,
+    transaction: &Option<Transaction>,
+    position: Pubkey,
+    decrease: bool,
+) -> Option<&'a (i32, i32)> {
+    if position == Pubkey::default() {
+        return None;
+    }
+    let keys = transaction
+        .as_ref()?
+        .message
+        .as_ref()
+        .map(|msg| &msg.account_keys);
+    only_match(invokes.iter().filter(|invoke| {
+        let data = if invoke.1 >= 0 {
+            meta.inner_instructions
+                .iter()
+                .find(|g| g.index == invoke.0 as u32)
+                .and_then(|g| g.instructions.get(invoke.1 as usize))
+                .map(|ix| ix.data.as_slice())
+        } else {
+            transaction
+                .as_ref()
+                .and_then(|tx| tx.message.as_ref())
+                .and_then(|msg| msg.instructions.get(invoke.0 as usize))
+                .map(|ix| ix.data.as_slice())
+        };
+        let allowed = if decrease {
+            [
+                [58, 127, 188, 62, 79, 82, 196, 96],
+                [160, 38, 208, 111, 104, 91, 44, 1],
+            ]
+        } else {
+            [
+                [133, 29, 89, 223, 69, 238, 176, 10],
+                [46, 156, 243, 118, 13, 205, 251, 178],
+            ]
+        };
+        if !data
+            .and_then(|data| data.get(..8))
+            .is_some_and(|disc| allowed.iter().any(|allowed| disc == allowed))
+        {
+            return false;
+        }
+        get_instruction_account_getter(
+            meta,
+            transaction,
+            keys,
+            &meta.loaded_writable_addresses,
+            &meta.loaded_readonly_addresses,
+            invoke,
+        )
+        .is_some_and(|get| get(if decrease { 2 } else { 4 }) == position)
+    }))
+}
+
 fn only_match<T>(mut matches: impl Iterator<Item = T>) -> Option<T> {
     let first = matches.next()?;
     matches.next().is_none().then_some(first)
@@ -911,28 +969,28 @@ fn fill_accounts_with_lookup<L: InvokeLookup + ?Sized>(
             );
         }
         DexEvent::RaydiumClmmIncreaseLiquidity(e) => {
-            fill_event_accounts!(
-                e,
-                meta,
-                transaction,
-                program_invokes,
-                &RAYDIUM_CLMM_PROGRAM,
-                |get: &AccountGetter<'_>| {
-                    account_fillers::raydium::fill_clmm_increase_liquidity_accounts(e, get);
+            if e.position_nft_mint != Pubkey::default() {
+                e.personal_position = Pubkey::find_program_address(&[b"position", e.position_nft_mint.as_ref()], &RAYDIUM_CLMM_PROGRAM).0;
+            }
+            if let Some(invokes) = program_invokes.get_invokes(&RAYDIUM_CLMM_PROGRAM) {
+                if let Some(invoke) = find_clmm_liquidity_invoke(invokes, meta, transaction, e.personal_position, false) {
+                    fill_event_accounts_with_invoke!(e, meta, transaction, invoke, |get: &AccountGetter<'_>| {
+                        account_fillers::raydium::fill_clmm_increase_liquidity_accounts(e, get);
+                    });
                 }
-            );
+            }
         }
         DexEvent::RaydiumClmmDecreaseLiquidity(e) => {
-            fill_event_accounts!(
-                e,
-                meta,
-                transaction,
-                program_invokes,
-                &RAYDIUM_CLMM_PROGRAM,
-                |get: &AccountGetter<'_>| {
-                    account_fillers::raydium::fill_clmm_decrease_liquidity_accounts(e, get);
+            if e.position_nft_mint != Pubkey::default() {
+                e.personal_position = Pubkey::find_program_address(&[b"position", e.position_nft_mint.as_ref()], &RAYDIUM_CLMM_PROGRAM).0;
+            }
+            if let Some(invokes) = program_invokes.get_invokes(&RAYDIUM_CLMM_PROGRAM) {
+                if let Some(invoke) = find_clmm_liquidity_invoke(invokes, meta, transaction, e.personal_position, true) {
+                    fill_event_accounts_with_invoke!(e, meta, transaction, invoke, |get: &AccountGetter<'_>| {
+                        account_fillers::raydium::fill_clmm_decrease_liquidity_accounts(e, get);
+                    });
                 }
-            );
+            }
         }
 
         // Raydium CPMM
