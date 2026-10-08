@@ -188,6 +188,7 @@ pub fn try_merge_events(
         (MeteoraDammV2WithdrawIneligibleReward(b), MeteoraDammV2WithdrawIneligibleReward(i)) => {
             merge_generic(b, i)
         }
+        (MeteoraDammV2FundReward(b), MeteoraDammV2FundReward(i)) => merge_generic(b, i),
         (MeteoraDammV2CreateConfig(b), MeteoraDammV2CreateConfig(i)) => merge_generic(b, i),
         (MeteoraDammV2CreateDynamicConfig(b), MeteoraDammV2CreateDynamicConfig(i)) => {
             merge_generic(b, i)

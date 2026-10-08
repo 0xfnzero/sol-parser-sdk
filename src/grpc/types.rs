@@ -344,6 +344,7 @@ pub enum EventType {
     MeteoraDammV2UpdateDelegatePermission,
     MeteoraDammV2WithdrawDeadLiquidityReward,
     MeteoraDammV2WithdrawIneligibleReward,
+    MeteoraDammV2FundReward,
     MeteoraDammV2CreateConfig,
     MeteoraDammV2CreateDynamicConfig,
     // MeteoraDammV2InitializeReward,
@@ -550,6 +551,7 @@ impl EventTypeFilter {
             EventType::MeteoraDammV2UpdateDelegatePermission,
             EventType::MeteoraDammV2WithdrawDeadLiquidityReward,
             EventType::MeteoraDammV2WithdrawIneligibleReward,
+            EventType::MeteoraDammV2FundReward,
             EventType::MeteoraDammV2CreateConfig,
             EventType::MeteoraDammV2CreateDynamicConfig,
         ])
@@ -779,6 +781,7 @@ pub fn event_type_from_dex_event(event: &crate::core::events::DexEvent) -> Optio
         DexEvent::MeteoraDammV2WithdrawIneligibleReward(_) => {
             Some(EventType::MeteoraDammV2WithdrawIneligibleReward)
         }
+        DexEvent::MeteoraDammV2FundReward(_) => Some(EventType::MeteoraDammV2FundReward),
         DexEvent::MeteoraDammV2CreateConfig(_) => Some(EventType::MeteoraDammV2CreateConfig),
         DexEvent::MeteoraDammV2CreateDynamicConfig(_) => {
             Some(EventType::MeteoraDammV2CreateDynamicConfig)

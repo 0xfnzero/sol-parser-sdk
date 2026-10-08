@@ -3372,6 +3372,22 @@ pub struct MeteoraDammV2WithdrawIneligibleRewardEvent {
     pub reward_mint: Pubkey,
     pub amount: u64,
 }
+/// Meteora DAMM V2 Fund Reward Event (IDL `EvtFundReward`).
+/// Amount includes net new funding and carried empty rewards; the post rate also
+/// includes unexpired rewards from the previous period.
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct MeteoraDammV2FundRewardEvent {
+    pub metadata: EventMetadata,
+    pub pool: Pubkey,
+    pub funder: Pubkey,
+    pub mint_reward: Pubkey,
+    pub reward_index: u8,
+    pub amount: u64,
+    pub transfer_fee_excluded_amount_in: u64,
+    pub reward_duration_end: u64,
+    pub pre_reward_rate: u128,
+    pub post_reward_rate: u128,
+}
 
 /// Meteora DAMM V2 Create Config Event (IDL `EvtCreateConfig`, includes 0.2.4 `permission`)
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]

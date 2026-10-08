@@ -827,30 +827,10 @@ fn parse_fund_reward_event(
     block_time_us: Option<i64>,
     grpc_recv_us: i64,
 ) -> Option<DexEvent> {
-    // let mut offset = 0;
-
-    // let lb_pair = read_pubkey(data, offset)?;
-    // offset += 32;
-
-    // let funder = read_pubkey(data, offset)?;
-    // offset += 32;
-
-    // let reward_index = read_u64_le(data, offset)?;
-    // offset += 8;
-
-    // let amount = read_u64_le(data, offset)?;
-
-    // let metadata =
-    //     create_metadata_simple(signature, slot, tx_index, block_time_us, lb_pair, grpc_recv_us);
-
-    // Some(DexEvent::MeteoraDammV2FundReward(MeteoraDammV2FundRewardEvent {
-    //     metadata,
-    //     lb_pair,
-    //     funder,
-    //     reward_index,
-    //     amount,
-    // }))
-    None
+    let pool = read_pubkey(data, 0)?;
+    let metadata =
+        create_metadata_simple(signature, slot, tx_index, block_time_us, pool, grpc_recv_us);
+    parse_fund_reward_from_data(data, metadata)
 }
 
 /// 解析 Claim Reward 事件
@@ -945,6 +925,29 @@ pub fn parse_withdraw_ineligible_reward_from_data(
     Some(DexEvent::MeteoraDammV2WithdrawIneligibleReward(
         MeteoraDammV2WithdrawIneligibleRewardEvent { metadata, pool, reward_mint, amount },
     ))
+}
+pub fn parse_fund_reward_from_data(data: &[u8], metadata: EventMetadata) -> Option<DexEvent> {
+    let pool = read_pubkey(data, 0)?;
+    let funder = read_pubkey(data, 32)?;
+    let mint_reward = read_pubkey(data, 64)?;
+    let reward_index = read_u8(data, 96)?;
+    let amount = read_u64_le(data, 97)?;
+    let transfer_fee_excluded_amount_in = read_u64_le(data, 105)?;
+    let reward_duration_end = read_u64_le(data, 113)?;
+    let pre_reward_rate = read_u128_le(data, 121)?;
+    let post_reward_rate = read_u128_le(data, 137)?;
+    Some(DexEvent::MeteoraDammV2FundReward(MeteoraDammV2FundRewardEvent {
+        metadata,
+        pool,
+        funder,
+        mint_reward,
+        reward_index,
+        amount,
+        transfer_fee_excluded_amount_in,
+        reward_duration_end,
+        pre_reward_rate,
+        post_reward_rate,
+    }))
 }
 
 fn parse_withdraw_dead_liquidity_reward_event(
