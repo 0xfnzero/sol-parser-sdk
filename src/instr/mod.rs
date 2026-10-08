@@ -117,6 +117,7 @@ fn supports_cpmm_instruction(disc: [u8; 8]) -> bool {
         raydium_cpmm::discriminators::SWAP_BASE_IN
             | raydium_cpmm::discriminators::SWAP_BASE_OUT
             | raydium_cpmm::discriminators::INITIALIZE
+            | raydium_cpmm::discriminators::INITIALIZE_PERMISSION
             | raydium_cpmm::discriminators::DEPOSIT
             | raydium_cpmm::discriminators::WITHDRAW
             | raydium_cpmm::discriminators::COLLECT_CREATOR_FEE

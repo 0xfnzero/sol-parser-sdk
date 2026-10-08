@@ -13,6 +13,7 @@ pub mod discriminators {
     pub const COLLECT_CREATOR_FEE: [u8; 8] = [20, 22, 86, 123, 198, 28, 219, 132];
     pub const SWAP_BASE_IN: [u8; 8] = [143, 190, 90, 218, 196, 30, 51, 222];
     pub const SWAP_BASE_OUT: [u8; 8] = [55, 217, 98, 86, 163, 74, 180, 173];
+    pub const INITIALIZE_PERMISSION: [u8; 8] = [63, 55, 254, 65, 49, 178, 89, 121];
     pub const INITIALIZE: [u8; 8] = [175, 175, 109, 31, 13, 152, 155, 237];
     pub const DEPOSIT: [u8; 8] = [242, 35, 198, 137, 82, 225, 242, 182];
     pub const WITHDRAW: [u8; 8] = [183, 18, 70, 156, 148, 109, 161, 34];
@@ -37,6 +38,7 @@ pub(crate) fn instruction_may_parse(
         discriminators::SWAP_BASE_IN | discriminators::SWAP_BASE_OUT =>
             (EventType::RaydiumCpmmSwap, 24, 13),
         discriminators::INITIALIZE => (EventType::RaydiumCpmmInitialize, 32, 20),
+        discriminators::INITIALIZE_PERMISSION => (EventType::RaydiumCpmmInitialize, 33, 21),
         discriminators::DEPOSIT => (EventType::RaydiumCpmmDeposit, 32, 13),
         discriminators::WITHDRAW => (EventType::RaydiumCpmmWithdraw, 32, 14),
         discriminators::COLLECT_CREATOR_FEE => (EventType::RaydiumCpmmCollectCreatorFee, 8, 15),
@@ -89,7 +91,10 @@ pub fn parse_instruction(
             block_time_us,
         ),
         discriminators::INITIALIZE => {
-            parse_initialize_instruction(data, accounts, signature, slot, tx_index, block_time_us)
+            parse_initialize_instruction(data, accounts, signature, slot, tx_index, block_time_us, false)
+        }
+        discriminators::INITIALIZE_PERMISSION => {
+            parse_initialize_instruction(data, accounts, signature, slot, tx_index, block_time_us, true)
         }
         discriminators::DEPOSIT => {
             parse_deposit_instruction(data, accounts, signature, slot, tx_index, block_time_us)
@@ -237,9 +242,10 @@ fn parse_initialize_instruction(
     slot: u64,
     tx_index: u64,
     block_time_us: Option<i64>,
+    permission: bool,
 ) -> Option<DexEvent> {
     // IDL fixed accounts must be complete before constructing an intent event.
-    if accounts.len() < 20 {
+    if accounts.len() < if permission { 21 } else { 20 } || data.len() < if permission { 25 } else { 24 } {
         return None;
     }
 
@@ -253,13 +259,13 @@ fn parse_initialize_instruction(
 
     let _open_time = read_u64_le(data, offset)?;
 
-    let pool = get_account(accounts, 3)?;
+    let pool = get_account(accounts, if permission { 4 } else { 3 })?;
     let metadata = create_metadata_simple(signature, slot, tx_index, block_time_us, pool);
 
     Some(DexEvent::RaydiumCpmmInitialize(RaydiumCpmmInitializeEvent {
         metadata,
         pool,
-        creator: get_account(accounts, 0).unwrap_or_default(),
+        creator: get_account(accounts, if permission { 1 } else { 0 }).unwrap_or_default(),
         init_amount0,
         init_amount1,
     }))
