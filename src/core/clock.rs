@@ -270,7 +270,8 @@ mod tests {
 
         let elapsed = t2 - t1;
         assert!(elapsed >= 10_000, "elapsed: {} μs", elapsed); // 至少 10ms
-        assert!(elapsed < 20_000, "elapsed: {} μs", elapsed); // 不超过 20ms
+        // sleep guarantees a minimum duration; scheduler delay has no upper bound.
+        assert!(clock.now_micros() >= t2);
     }
 
     #[test]
@@ -281,7 +282,7 @@ mod tests {
         let elapsed = clock.elapsed_micros_since(start);
 
         assert!(elapsed >= 5_000, "elapsed: {} μs", elapsed);
-        assert!(elapsed < 10_000, "elapsed: {} μs", elapsed);
+        assert!(clock.elapsed_micros_since(start) >= elapsed);
     }
 
     #[test]
@@ -301,7 +302,7 @@ mod tests {
         let elapsed = elapsed_micros_since(start);
 
         assert!(elapsed >= 2_000, "elapsed: {} μs", elapsed);
-        assert!(elapsed < 5_000, "elapsed: {} μs", elapsed);
+        assert!(elapsed_micros_since(start) >= elapsed);
     }
 
     #[test]

@@ -1,0 +1,469 @@
+{
+  "provenance": "Local genuinely signed Legacy messages, public fixed seed; synthetic successful meta solely exercises parse fallback; no execution claimed. Every altered message is independently re-signed.",
+  "cases": [
+    {
+      "name": "valid_before",
+      "wire": "AR6YTWphKDQjM+oK57oqCwIdT+KQ7rbsYFdA8NWjsfCQyyv5zH6JZsmYoAaKOTV4bRIzuvbTXS0ty4WtmxfbkQQBAAEOA6EHv/POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbgQLQ4JYGCpgoNwJzQMKQysVrdFaNoEbyV68Bsz+XYrcZT75BX5pTj6GxYNR782OE+Nr3IAaNabTQwdDJAlh+vnlNFXFpBd++ZW6ulLorM/HBr6ZDNnWFTaSbieM1lef0C0Unc0v4q1XyRfW96hQa1OJHIfNYJTOeLIZlLH7NDZZStFp0g2+AOewi43JvPSis8TddzEP82glaxpKMrtoQmgMrAfMjK1mwGGrim2HvqhcA55dmp9F9uUs7HRr1937HQDFaRa1ugOrdSPEw2RhFzkp2QnZB+A95456XLsnUoYWUKXId5nFv4wxstlot8XKStG84grsBIyFZ1jJ+52avUFpqXn0fmiDJSQyixcbNroa3iPhIWfiEQ76qz16xuOXn2u7YbyG0x8vdEeOG+N4m3jGdJ5/odIros1dR68zvb3l0yVI8Tb6p6y+hTuGbbTWJc4EatZKJxa4ifwQUOJRQHSkv2UUNh0ACAeq7eNlqEADCjwOrLkuL1dcD6tUOMYJ0ml1cqeBM9dtZC3FLov4yyxWRM/wcGStyJX/QfTnLBAHgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQ0NAAECAwQFBgcICQoLDBorRNSnWS+kAXsAAAAAAAAAAAAAAAAAAAACAQ==",
+      "valid_instruction": true,
+      "rpc": {
+        "slot": 1,
+        "blockTime": null,
+        "version": "legacy",
+        "transaction": [
+          "AR6YTWphKDQjM+oK57oqCwIdT+KQ7rbsYFdA8NWjsfCQyyv5zH6JZsmYoAaKOTV4bRIzuvbTXS0ty4WtmxfbkQQBAAEOA6EHv/POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbgQLQ4JYGCpgoNwJzQMKQysVrdFaNoEbyV68Bsz+XYrcZT75BX5pTj6GxYNR782OE+Nr3IAaNabTQwdDJAlh+vnlNFXFpBd++ZW6ulLorM/HBr6ZDNnWFTaSbieM1lef0C0Unc0v4q1XyRfW96hQa1OJHIfNYJTOeLIZlLH7NDZZStFp0g2+AOewi43JvPSis8TddzEP82glaxpKMrtoQmgMrAfMjK1mwGGrim2HvqhcA55dmp9F9uUs7HRr1937HQDFaRa1ugOrdSPEw2RhFzkp2QnZB+A95456XLsnUoYWUKXId5nFv4wxstlot8XKStG84grsBIyFZ1jJ+52avUFpqXn0fmiDJSQyixcbNroa3iPhIWfiEQ76qz16xuOXn2u7YbyG0x8vdEeOG+N4m3jGdJ5/odIros1dR68zvb3l0yVI8Tb6p6y+hTuGbbTWJc4EatZKJxa4ifwQUOJRQHSkv2UUNh0ACAeq7eNlqEADCjwOrLkuL1dcD6tUOMYJ0ml1cqeBM9dtZC3FLov4yyxWRM/wcGStyJX/QfTnLBAHgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQ0NAAECAwQFBgcICQoLDBorRNSnWS+kAXsAAAAAAAAAAAAAAAAAAAACAQ==",
+          "base64"
+        ],
+        "meta": {
+          "status": {
+            "Ok": null
+          },
+          "err": null,
+          "fee": 0,
+          "preBalances": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "postBalances": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "innerInstructions": [],
+          "logMessages": [],
+          "preTokenBalances": [],
+          "postTokenBalances": [],
+          "rewards": []
+        }
+      }
+    },
+    {
+      "name": "missing_flags",
+      "wire": "AQiYLSK1S+BrMeffsMypk0jdX1NsUCfw5n/2RpS7uXXKcl0b2/DOpr4eBtezkVqfYk9345vc5OpGvfavlwf1uA4BAAEOA6EHv/POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbgQLQ4JYGCpgoNwJzQMKQysVrdFaNoEbyV68Bsz+XYrcZT75BX5pTj6GxYNR782OE+Nr3IAaNabTQwdDJAlh+vnlNFXFpBd++ZW6ulLorM/HBr6ZDNnWFTaSbieM1lef0C0Unc0v4q1XyRfW96hQa1OJHIfNYJTOeLIZlLH7NDZZStFp0g2+AOewi43JvPSis8TddzEP82glaxpKMrtoQmgMrAfMjK1mwGGrim2HvqhcA55dmp9F9uUs7HRr1937HQDFaRa1ugOrdSPEw2RhFzkp2QnZB+A95456XLsnUoYWUKXId5nFv4wxstlot8XKStG84grsBIyFZ1jJ+52avUFpqXn0fmiDJSQyixcbNroa3iPhIWfiEQ76qz16xuOXn2u7YbyG0x8vdEeOG+N4m3jGdJ5/odIros1dR68zvb3l0yVI8Tb6p6y+hTuGbbTWJc4EatZKJxa4ifwQUOJRQHSkv2UUNh0ACAeq7eNlqEADCjwOrLkuL1dcD6tUOMYJ0ml1cqeBM9dtZC3FLov4yyxWRM/wcGStyJX/QfTnLBAHgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQ0NAAECAwQFBgcICQoLDBgrRNSnWS+kAXsAAAAAAAAAAAAAAAAAAAA=",
+      "valid_instruction": false,
+      "rpc": {
+        "slot": 1,
+        "blockTime": null,
+        "version": "legacy",
+        "transaction": [
+          "AQiYLSK1S+BrMeffsMypk0jdX1NsUCfw5n/2RpS7uXXKcl0b2/DOpr4eBtezkVqfYk9345vc5OpGvfavlwf1uA4BAAEOA6EHv/POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbgQLQ4JYGCpgoNwJzQMKQysVrdFaNoEbyV68Bsz+XYrcZT75BX5pTj6GxYNR782OE+Nr3IAaNabTQwdDJAlh+vnlNFXFpBd++ZW6ulLorM/HBr6ZDNnWFTaSbieM1lef0C0Unc0v4q1XyRfW96hQa1OJHIfNYJTOeLIZlLH7NDZZStFp0g2+AOewi43JvPSis8TddzEP82glaxpKMrtoQmgMrAfMjK1mwGGrim2HvqhcA55dmp9F9uUs7HRr1937HQDFaRa1ugOrdSPEw2RhFzkp2QnZB+A95456XLsnUoYWUKXId5nFv4wxstlot8XKStG84grsBIyFZ1jJ+52avUFpqXn0fmiDJSQyixcbNroa3iPhIWfiEQ76qz16xuOXn2u7YbyG0x8vdEeOG+N4m3jGdJ5/odIros1dR68zvb3l0yVI8Tb6p6y+hTuGbbTWJc4EatZKJxa4ifwQUOJRQHSkv2UUNh0ACAeq7eNlqEADCjwOrLkuL1dcD6tUOMYJ0ml1cqeBM9dtZC3FLov4yyxWRM/wcGStyJX/QfTnLBAHgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQ0NAAECAwQFBgcICQoLDBgrRNSnWS+kAXsAAAAAAAAAAAAAAAAAAAA=",
+          "base64"
+        ],
+        "meta": {
+          "status": {
+            "Ok": null
+          },
+          "err": null,
+          "fee": 0,
+          "preBalances": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "postBalances": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "innerInstructions": [],
+          "logMessages": [],
+          "preTokenBalances": [],
+          "postTokenBalances": [],
+          "rewards": []
+        }
+      }
+    },
+    {
+      "name": "truncated_bool",
+      "wire": "AYvh4yDAKjnfNb974tR+l4spLPaFsqDtVIBkD0EwuPae9TuXQQfxN0VU29vJlwv2jpcxhyjJTtpRvYtCco4k4gkBAAEOA6EHv/POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbgQLQ4JYGCpgoNwJzQMKQysVrdFaNoEbyV68Bsz+XYrcZT75BX5pTj6GxYNR782OE+Nr3IAaNabTQwdDJAlh+vnlNFXFpBd++ZW6ulLorM/HBr6ZDNnWFTaSbieM1lef0C0Unc0v4q1XyRfW96hQa1OJHIfNYJTOeLIZlLH7NDZZStFp0g2+AOewi43JvPSis8TddzEP82glaxpKMrtoQmgMrAfMjK1mwGGrim2HvqhcA55dmp9F9uUs7HRr1937HQDFaRa1ugOrdSPEw2RhFzkp2QnZB+A95456XLsnUoYWUKXId5nFv4wxstlot8XKStG84grsBIyFZ1jJ+52avUFpqXn0fmiDJSQyixcbNroa3iPhIWfiEQ76qz16xuOXn2u7YbyG0x8vdEeOG+N4m3jGdJ5/odIros1dR68zvb3l0yVI8Tb6p6y+hTuGbbTWJc4EatZKJxa4ifwQUOJRQHSkv2UUNh0ACAeq7eNlqEADCjwOrLkuL1dcD6tUOMYJ0ml1cqeBM9dtZC3FLov4yyxWRM/wcGStyJX/QfTnLBAHgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQ0NAAECAwQFBgcICQoLDBkrRNSnWS+kAXsAAAAAAAAAAAAAAAAAAAAC",
+      "valid_instruction": false,
+      "rpc": {
+        "slot": 1,
+        "blockTime": null,
+        "version": "legacy",
+        "transaction": [
+          "AYvh4yDAKjnfNb974tR+l4spLPaFsqDtVIBkD0EwuPae9TuXQQfxN0VU29vJlwv2jpcxhyjJTtpRvYtCco4k4gkBAAEOA6EHv/POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbgQLQ4JYGCpgoNwJzQMKQysVrdFaNoEbyV68Bsz+XYrcZT75BX5pTj6GxYNR782OE+Nr3IAaNabTQwdDJAlh+vnlNFXFpBd++ZW6ulLorM/HBr6ZDNnWFTaSbieM1lef0C0Unc0v4q1XyRfW96hQa1OJHIfNYJTOeLIZlLH7NDZZStFp0g2+AOewi43JvPSis8TddzEP82glaxpKMrtoQmgMrAfMjK1mwGGrim2HvqhcA55dmp9F9uUs7HRr1937HQDFaRa1ugOrdSPEw2RhFzkp2QnZB+A95456XLsnUoYWUKXId5nFv4wxstlot8XKStG84grsBIyFZ1jJ+52avUFpqXn0fmiDJSQyixcbNroa3iPhIWfiEQ76qz16xuOXn2u7YbyG0x8vdEeOG+N4m3jGdJ5/odIros1dR68zvb3l0yVI8Tb6p6y+hTuGbbTWJc4EatZKJxa4ifwQUOJRQHSkv2UUNh0ACAeq7eNlqEADCjwOrLkuL1dcD6tUOMYJ0ml1cqeBM9dtZC3FLov4yyxWRM/wcGStyJX/QfTnLBAHgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQ0NAAECAwQFBgcICQoLDBkrRNSnWS+kAXsAAAAAAAAAAAAAAAAAAAAC",
+          "base64"
+        ],
+        "meta": {
+          "status": {
+            "Ok": null
+          },
+          "err": null,
+          "fee": 0,
+          "preBalances": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "postBalances": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "innerInstructions": [],
+          "logMessages": [],
+          "preTokenBalances": [],
+          "postTokenBalances": [],
+          "rewards": []
+        }
+      }
+    },
+    {
+      "name": "bad_enum",
+      "wire": "AaYZKjMvjLIQzgKf/V+LrjP+PRI8Hix/n/a0uj7V6jkJVczC1lPg1ufjCxnKO3wdLXjgx/gM1eXvAbbIJi1BNAoBAAEOA6EHv/POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbgQLQ4JYGCpgoNwJzQMKQysVrdFaNoEbyV68Bsz+XYrcZT75BX5pTj6GxYNR782OE+Nr3IAaNabTQwdDJAlh+vnlNFXFpBd++ZW6ulLorM/HBr6ZDNnWFTaSbieM1lef0C0Unc0v4q1XyRfW96hQa1OJHIfNYJTOeLIZlLH7NDZZStFp0g2+AOewi43JvPSis8TddzEP82glaxpKMrtoQmgMrAfMjK1mwGGrim2HvqhcA55dmp9F9uUs7HRr1937HQDFaRa1ugOrdSPEw2RhFzkp2QnZB+A95456XLsnUoYWUKXId5nFv4wxstlot8XKStG84grsBIyFZ1jJ+52avUFpqXn0fmiDJSQyixcbNroa3iPhIWfiEQ76qz16xuOXn2u7YbyG0x8vdEeOG+N4m3jGdJ5/odIros1dR68zvb3l0yVI8Tb6p6y+hTuGbbTWJc4EatZKJxa4ifwQUOJRQHSkv2UUNh0ACAeq7eNlqEADCjwOrLkuL1dcD6tUOMYJ0ml1cqeBM9dtZC3FLov4yyxWRM/wcGStyJX/QfTnLBAHgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQ0NAAECAwQFBgcICQoLDBorRNSnWS+kAXsAAAAAAAAAAAAAAAAAAAADAQ==",
+      "valid_instruction": false,
+      "rpc": {
+        "slot": 1,
+        "blockTime": null,
+        "version": "legacy",
+        "transaction": [
+          "AaYZKjMvjLIQzgKf/V+LrjP+PRI8Hix/n/a0uj7V6jkJVczC1lPg1ufjCxnKO3wdLXjgx/gM1eXvAbbIJi1BNAoBAAEOA6EHv/POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbgQLQ4JYGCpgoNwJzQMKQysVrdFaNoEbyV68Bsz+XYrcZT75BX5pTj6GxYNR782OE+Nr3IAaNabTQwdDJAlh+vnlNFXFpBd++ZW6ulLorM/HBr6ZDNnWFTaSbieM1lef0C0Unc0v4q1XyRfW96hQa1OJHIfNYJTOeLIZlLH7NDZZStFp0g2+AOewi43JvPSis8TddzEP82glaxpKMrtoQmgMrAfMjK1mwGGrim2HvqhcA55dmp9F9uUs7HRr1937HQDFaRa1ugOrdSPEw2RhFzkp2QnZB+A95456XLsnUoYWUKXId5nFv4wxstlot8XKStG84grsBIyFZ1jJ+52avUFpqXn0fmiDJSQyixcbNroa3iPhIWfiEQ76qz16xuOXn2u7YbyG0x8vdEeOG+N4m3jGdJ5/odIros1dR68zvb3l0yVI8Tb6p6y+hTuGbbTWJc4EatZKJxa4ifwQUOJRQHSkv2UUNh0ACAeq7eNlqEADCjwOrLkuL1dcD6tUOMYJ0ml1cqeBM9dtZC3FLov4yyxWRM/wcGStyJX/QfTnLBAHgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQ0NAAECAwQFBgcICQoLDBorRNSnWS+kAXsAAAAAAAAAAAAAAAAAAAADAQ==",
+          "base64"
+        ],
+        "meta": {
+          "status": {
+            "Ok": null
+          },
+          "err": null,
+          "fee": 0,
+          "preBalances": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "postBalances": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "innerInstructions": [],
+          "logMessages": [],
+          "preTokenBalances": [],
+          "postTokenBalances": [],
+          "rewards": []
+        }
+      }
+    },
+    {
+      "name": "bad_bool",
+      "wire": "AYuzjEgJdeBGCNCZ6S0N0AsD6KR0Bh+MWnTVlSwRSuyzYqEcgWfrcxgHmAd5lVXw1CdrxJTC0M4X0+MMfF0LjQkBAAEOA6EHv/POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbgQLQ4JYGCpgoNwJzQMKQysVrdFaNoEbyV68Bsz+XYrcZT75BX5pTj6GxYNR782OE+Nr3IAaNabTQwdDJAlh+vnlNFXFpBd++ZW6ulLorM/HBr6ZDNnWFTaSbieM1lef0C0Unc0v4q1XyRfW96hQa1OJHIfNYJTOeLIZlLH7NDZZStFp0g2+AOewi43JvPSis8TddzEP82glaxpKMrtoQmgMrAfMjK1mwGGrim2HvqhcA55dmp9F9uUs7HRr1937HQDFaRa1ugOrdSPEw2RhFzkp2QnZB+A95456XLsnUoYWUKXId5nFv4wxstlot8XKStG84grsBIyFZ1jJ+52avUFpqXn0fmiDJSQyixcbNroa3iPhIWfiEQ76qz16xuOXn2u7YbyG0x8vdEeOG+N4m3jGdJ5/odIros1dR68zvb3l0yVI8Tb6p6y+hTuGbbTWJc4EatZKJxa4ifwQUOJRQHSkv2UUNh0ACAeq7eNlqEADCjwOrLkuL1dcD6tUOMYJ0ml1cqeBM9dtZC3FLov4yyxWRM/wcGStyJX/QfTnLBAHgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQ0NAAECAwQFBgcICQoLDBorRNSnWS+kAXsAAAAAAAAAAAAAAAAAAAACAg==",
+      "valid_instruction": false,
+      "rpc": {
+        "slot": 1,
+        "blockTime": null,
+        "version": "legacy",
+        "transaction": [
+          "AYuzjEgJdeBGCNCZ6S0N0AsD6KR0Bh+MWnTVlSwRSuyzYqEcgWfrcxgHmAd5lVXw1CdrxJTC0M4X0+MMfF0LjQkBAAEOA6EHv/POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbgQLQ4JYGCpgoNwJzQMKQysVrdFaNoEbyV68Bsz+XYrcZT75BX5pTj6GxYNR782OE+Nr3IAaNabTQwdDJAlh+vnlNFXFpBd++ZW6ulLorM/HBr6ZDNnWFTaSbieM1lef0C0Unc0v4q1XyRfW96hQa1OJHIfNYJTOeLIZlLH7NDZZStFp0g2+AOewi43JvPSis8TddzEP82glaxpKMrtoQmgMrAfMjK1mwGGrim2HvqhcA55dmp9F9uUs7HRr1937HQDFaRa1ugOrdSPEw2RhFzkp2QnZB+A95456XLsnUoYWUKXId5nFv4wxstlot8XKStG84grsBIyFZ1jJ+52avUFpqXn0fmiDJSQyixcbNroa3iPhIWfiEQ76qz16xuOXn2u7YbyG0x8vdEeOG+N4m3jGdJ5/odIros1dR68zvb3l0yVI8Tb6p6y+hTuGbbTWJc4EatZKJxa4ifwQUOJRQHSkv2UUNh0ACAeq7eNlqEADCjwOrLkuL1dcD6tUOMYJ0ml1cqeBM9dtZC3FLov4yyxWRM/wcGStyJX/QfTnLBAHgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQ0NAAECAwQFBgcICQoLDBorRNSnWS+kAXsAAAAAAAAAAAAAAAAAAAACAg==",
+          "base64"
+        ],
+        "meta": {
+          "status": {
+            "Ok": null
+          },
+          "err": null,
+          "fee": 0,
+          "preBalances": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "postBalances": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "innerInstructions": [],
+          "logMessages": [],
+          "preTokenBalances": [],
+          "postTokenBalances": [],
+          "rewards": []
+        }
+      }
+    },
+    {
+      "name": "trailing_byte",
+      "wire": "AR0Hb7XDOonzhe7S1agdR2z0wq2HZVeCnUIqC0KZ2kPbuTGGy0/YPc3DchUMAKqI9YwoUlY1cEHOB/QUjVBuUQUBAAEOA6EHv/POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbgQLQ4JYGCpgoNwJzQMKQysVrdFaNoEbyV68Bsz+XYrcZT75BX5pTj6GxYNR782OE+Nr3IAaNabTQwdDJAlh+vnlNFXFpBd++ZW6ulLorM/HBr6ZDNnWFTaSbieM1lef0C0Unc0v4q1XyRfW96hQa1OJHIfNYJTOeLIZlLH7NDZZStFp0g2+AOewi43JvPSis8TddzEP82glaxpKMrtoQmgMrAfMjK1mwGGrim2HvqhcA55dmp9F9uUs7HRr1937HQDFaRa1ugOrdSPEw2RhFzkp2QnZB+A95456XLsnUoYWUKXId5nFv4wxstlot8XKStG84grsBIyFZ1jJ+52avUFpqXn0fmiDJSQyixcbNroa3iPhIWfiEQ76qz16xuOXn2u7YbyG0x8vdEeOG+N4m3jGdJ5/odIros1dR68zvb3l0yVI8Tb6p6y+hTuGbbTWJc4EatZKJxa4ifwQUOJRQHSkv2UUNh0ACAeq7eNlqEADCjwOrLkuL1dcD6tUOMYJ0ml1cqeBM9dtZC3FLov4yyxWRM/wcGStyJX/QfTnLBAHgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQ0NAAECAwQFBgcICQoLDBsrRNSnWS+kAXsAAAAAAAAAAAAAAAAAAAACAQA=",
+      "valid_instruction": false,
+      "rpc": {
+        "slot": 1,
+        "blockTime": null,
+        "version": "legacy",
+        "transaction": [
+          "AR0Hb7XDOonzhe7S1agdR2z0wq2HZVeCnUIqC0KZ2kPbuTGGy0/YPc3DchUMAKqI9YwoUlY1cEHOB/QUjVBuUQUBAAEOA6EHv/POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbgQLQ4JYGCpgoNwJzQMKQysVrdFaNoEbyV68Bsz+XYrcZT75BX5pTj6GxYNR782OE+Nr3IAaNabTQwdDJAlh+vnlNFXFpBd++ZW6ulLorM/HBr6ZDNnWFTaSbieM1lef0C0Unc0v4q1XyRfW96hQa1OJHIfNYJTOeLIZlLH7NDZZStFp0g2+AOewi43JvPSis8TddzEP82glaxpKMrtoQmgMrAfMjK1mwGGrim2HvqhcA55dmp9F9uUs7HRr1937HQDFaRa1ugOrdSPEw2RhFzkp2QnZB+A95456XLsnUoYWUKXId5nFv4wxstlot8XKStG84grsBIyFZ1jJ+52avUFpqXn0fmiDJSQyixcbNroa3iPhIWfiEQ76qz16xuOXn2u7YbyG0x8vdEeOG+N4m3jGdJ5/odIros1dR68zvb3l0yVI8Tb6p6y+hTuGbbTWJc4EatZKJxa4ifwQUOJRQHSkv2UUNh0ACAeq7eNlqEADCjwOrLkuL1dcD6tUOMYJ0ml1cqeBM9dtZC3FLov4yyxWRM/wcGStyJX/QfTnLBAHgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQ0NAAECAwQFBgcICQoLDBsrRNSnWS+kAXsAAAAAAAAAAAAAAAAAAAACAQA=",
+          "base64"
+        ],
+        "meta": {
+          "status": {
+            "Ok": null
+          },
+          "err": null,
+          "fee": 0,
+          "preBalances": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "postBalances": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "innerInstructions": [],
+          "logMessages": [],
+          "preTokenBalances": [],
+          "postTokenBalances": [],
+          "rewards": []
+        }
+      }
+    },
+    {
+      "name": "short_accounts",
+      "wire": "AXEqqvzUJAO1udcUsj/trUH+MDR2bZRx9OBGE2Gu9PUrUW0hhNoVxLCvAyQGJuXyOFDyts2+vlRibH+ZA2XCNQcBAAEOA6EHv/POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbgQLQ4JYGCpgoNwJzQMKQysVrdFaNoEbyV68Bsz+XYrcZT75BX5pTj6GxYNR782OE+Nr3IAaNabTQwdDJAlh+vnlNFXFpBd++ZW6ulLorM/HBr6ZDNnWFTaSbieM1lef0C0Unc0v4q1XyRfW96hQa1OJHIfNYJTOeLIZlLH7NDZZStFp0g2+AOewi43JvPSis8TddzEP82glaxpKMrtoQmgMrAfMjK1mwGGrim2HvqhcA55dmp9F9uUs7HRr1937HQDFaRa1ugOrdSPEw2RhFzkp2QnZB+A95456XLsnUoYWUKXId5nFv4wxstlot8XKStG84grsBIyFZ1jJ+52avUFpqXn0fmiDJSQyixcbNroa3iPhIWfiEQ76qz16xuOXn2u7YbyG0x8vdEeOG+N4m3jGdJ5/odIros1dR68zvb3l0yVI8Tb6p6y+hTuGbbTWJc4EatZKJxa4ifwQUOJRQHSkv2UUNh0ACAeq7eNlqEADCjwOrLkuL1dcD6tUOMYJ0ml1cqeBM9dtZC3FLov4yyxWRM/wcGStyJX/QfTnLBAHgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQ0MAAECAwQFBgcICQoLGitE1KdZL6QBewAAAAAAAAAAAAAAAAAAAAIB",
+      "valid_instruction": false,
+      "rpc": {
+        "slot": 1,
+        "blockTime": null,
+        "version": "legacy",
+        "transaction": [
+          "AXEqqvzUJAO1udcUsj/trUH+MDR2bZRx9OBGE2Gu9PUrUW0hhNoVxLCvAyQGJuXyOFDyts2+vlRibH+ZA2XCNQcBAAEOA6EHv/POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbgQLQ4JYGCpgoNwJzQMKQysVrdFaNoEbyV68Bsz+XYrcZT75BX5pTj6GxYNR782OE+Nr3IAaNabTQwdDJAlh+vnlNFXFpBd++ZW6ulLorM/HBr6ZDNnWFTaSbieM1lef0C0Unc0v4q1XyRfW96hQa1OJHIfNYJTOeLIZlLH7NDZZStFp0g2+AOewi43JvPSis8TddzEP82glaxpKMrtoQmgMrAfMjK1mwGGrim2HvqhcA55dmp9F9uUs7HRr1937HQDFaRa1ugOrdSPEw2RhFzkp2QnZB+A95456XLsnUoYWUKXId5nFv4wxstlot8XKStG84grsBIyFZ1jJ+52avUFpqXn0fmiDJSQyixcbNroa3iPhIWfiEQ76qz16xuOXn2u7YbyG0x8vdEeOG+N4m3jGdJ5/odIros1dR68zvb3l0yVI8Tb6p6y+hTuGbbTWJc4EatZKJxa4ifwQUOJRQHSkv2UUNh0ACAeq7eNlqEADCjwOrLkuL1dcD6tUOMYJ0ml1cqeBM9dtZC3FLov4yyxWRM/wcGStyJX/QfTnLBAHgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQ0MAAECAwQFBgcICQoLGitE1KdZL6QBewAAAAAAAAAAAAAAAAAAAAIB",
+          "base64"
+        ],
+        "meta": {
+          "status": {
+            "Ok": null
+          },
+          "err": null,
+          "fee": 0,
+          "preBalances": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "postBalances": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "innerInstructions": [],
+          "logMessages": [],
+          "preTokenBalances": [],
+          "postTokenBalances": [],
+          "rewards": []
+        }
+      }
+    },
+    {
+      "name": "valid_after",
+      "wire": "AR6YTWphKDQjM+oK57oqCwIdT+KQ7rbsYFdA8NWjsfCQyyv5zH6JZsmYoAaKOTV4bRIzuvbTXS0ty4WtmxfbkQQBAAEOA6EHv/POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbgQLQ4JYGCpgoNwJzQMKQysVrdFaNoEbyV68Bsz+XYrcZT75BX5pTj6GxYNR782OE+Nr3IAaNabTQwdDJAlh+vnlNFXFpBd++ZW6ulLorM/HBr6ZDNnWFTaSbieM1lef0C0Unc0v4q1XyRfW96hQa1OJHIfNYJTOeLIZlLH7NDZZStFp0g2+AOewi43JvPSis8TddzEP82glaxpKMrtoQmgMrAfMjK1mwGGrim2HvqhcA55dmp9F9uUs7HRr1937HQDFaRa1ugOrdSPEw2RhFzkp2QnZB+A95456XLsnUoYWUKXId5nFv4wxstlot8XKStG84grsBIyFZ1jJ+52avUFpqXn0fmiDJSQyixcbNroa3iPhIWfiEQ76qz16xuOXn2u7YbyG0x8vdEeOG+N4m3jGdJ5/odIros1dR68zvb3l0yVI8Tb6p6y+hTuGbbTWJc4EatZKJxa4ifwQUOJRQHSkv2UUNh0ACAeq7eNlqEADCjwOrLkuL1dcD6tUOMYJ0ml1cqeBM9dtZC3FLov4yyxWRM/wcGStyJX/QfTnLBAHgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQ0NAAECAwQFBgcICQoLDBorRNSnWS+kAXsAAAAAAAAAAAAAAAAAAAACAQ==",
+      "valid_instruction": true,
+      "rpc": {
+        "slot": 1,
+        "blockTime": null,
+        "version": "legacy",
+        "transaction": [
+          "AR6YTWphKDQjM+oK57oqCwIdT+KQ7rbsYFdA8NWjsfCQyyv5zH6JZsmYoAaKOTV4bRIzuvbTXS0ty4WtmxfbkQQBAAEOA6EHv/POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbgQLQ4JYGCpgoNwJzQMKQysVrdFaNoEbyV68Bsz+XYrcZT75BX5pTj6GxYNR782OE+Nr3IAaNabTQwdDJAlh+vnlNFXFpBd++ZW6ulLorM/HBr6ZDNnWFTaSbieM1lef0C0Unc0v4q1XyRfW96hQa1OJHIfNYJTOeLIZlLH7NDZZStFp0g2+AOewi43JvPSis8TddzEP82glaxpKMrtoQmgMrAfMjK1mwGGrim2HvqhcA55dmp9F9uUs7HRr1937HQDFaRa1ugOrdSPEw2RhFzkp2QnZB+A95456XLsnUoYWUKXId5nFv4wxstlot8XKStG84grsBIyFZ1jJ+52avUFpqXn0fmiDJSQyixcbNroa3iPhIWfiEQ76qz16xuOXn2u7YbyG0x8vdEeOG+N4m3jGdJ5/odIros1dR68zvb3l0yVI8Tb6p6y+hTuGbbTWJc4EatZKJxa4ifwQUOJRQHSkv2UUNh0ACAeq7eNlqEADCjwOrLkuL1dcD6tUOMYJ0ml1cqeBM9dtZC3FLov4yyxWRM/wcGStyJX/QfTnLBAHgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQ0NAAECAwQFBgcICQoLDBorRNSnWS+kAXsAAAAAAAAAAAAAAAAAAAACAQ==",
+          "base64"
+        ],
+        "meta": {
+          "status": {
+            "Ok": null
+          },
+          "err": null,
+          "fee": 0,
+          "preBalances": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "postBalances": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "innerInstructions": [],
+          "logMessages": [],
+          "preTokenBalances": [],
+          "postTokenBalances": [],
+          "rewards": []
+        }
+      }
+    }
+  ]
+}

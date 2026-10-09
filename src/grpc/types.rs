@@ -12,7 +12,8 @@ pub enum OrderMode {
     #[default]
     Unordered,
     /// 有序模式：按 slot + tx_index 排序后输出
-    /// 同一 slot 内的交易会等待收齐后按 tx_index 排序
+    /// 新 slot 或超时触发排序输出；不保证已收齐全部交易。
+    /// 已关闭 slot 或输出水位之前的迟到事件会丢弃并记录 continuity break 警告。
     /// 延迟增加约 1-50ms（取决于 slot 内交易数量）
     Ordered,
     /// 流式有序模式：连续序列立即释放，低延迟 + 顺序保证

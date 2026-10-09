@@ -40,14 +40,14 @@
 
 解析 SDK 的各语言版本及相关 Rust SDK：
 
-| 语言 | 仓库 | 描述 |
+| 语言 | 仓库 | 描述 | 版本 |
 |------|------|------|
-| **Rust** | [sol-parser-sdk](https://github.com/0xfnzero/sol-parser-sdk) | 超低延迟，SIMD 优化 |
-| **Node.js** | [sol-parser-sdk-nodejs](https://github.com/0xfnzero/sol-parser-sdk-nodejs) | TypeScript/JavaScript，Node.js 支持 |
-| **Python** | [sol-parser-sdk-python](https://github.com/0xfnzero/sol-parser-sdk-python) | 原生 async/await 支持 |
-| **Go** | [sol-parser-sdk-golang](https://github.com/0xfnzero/sol-parser-sdk-golang) | 并发安全，goroutine 支持 |
-| **Rust** | [sol-shred-sdk](https://github.com/0xfnzero/sol-shred-sdk) | Solana 原始 shred 解码与 ShredStream DEX 事件解析 |
-| **Rust** | [sol-trade-sdk](https://github.com/0xfnzero/sol-trade-sdk) | Solana DEX 交易构建与交易执行 |
+| **Rust** | [sol-parser-sdk](https://github.com/0xfnzero/sol-parser-sdk) | 超低延迟，SIMD 优化 | `v0.7.11` |
+| **Node.js** | [sol-parser-sdk-nodejs](https://github.com/0xfnzero/sol-parser-sdk-nodejs) | TypeScript/JavaScript，Node.js 支持 | `v0.5.18` |
+| **Python** | [sol-parser-sdk-python](https://github.com/0xfnzero/sol-parser-sdk-python) | 原生 async/await 支持 | `v0.5.11` |
+| **Go** | [sol-parser-sdk-golang](https://github.com/0xfnzero/sol-parser-sdk-golang) | 并发安全，goroutine 支持 | `v0.5.11` |
+| **Rust** | [sol-shred-sdk](https://github.com/0xfnzero/sol-shred-sdk) | Solana 原始 shred 解码与 ShredStream DEX 事件解析 | `v4.0.3` |
+| **Rust** | [sol-trade-sdk](https://github.com/0xfnzero/sol-trade-sdk) | Solana DEX 交易构建与交易执行 | `v6.0.0` |
 
 ## 这个 SDK 适合什么场景
 
@@ -76,7 +76,9 @@
 | **Unordered** | 10-20μs | 立即输出，超低延迟 |
 | **MicroBatch** | 50-200μs | 微批次排序，时间窗口内排序 |
 | **StreamingOrdered** | 0.1-5ms | 流式排序，连续序列立即释放 |
-| **Ordered** | 1-50ms | 完整 slot 排序，等待整个 slot 完成 |
+| **Ordered** | 1-50ms | 缓存 slot 排序，新 slot 或超时触发输出 |
+
+Ordered 保留最后输出的 `(slot, tx_index)` 水位。新 slot 刷新会关闭旧 slot；超时刷新后，同 slot 中更高索引的交易仍可继续输出。已关闭 slot 或水位之前/等于水位的迟到数据会被丢弃，并记录 `Ordered continuity break` 警告。同一交易内事件保持解析顺序；此模式不保证上游数据完整。
 
 ### 🚀 优化特性
 - ✅ **零堆分配** 热路径无堆分配
@@ -115,16 +117,22 @@ sol-parser-sdk = { path = "../sol-parser-sdk", default-features = false, feature
 
 ```toml
 # 在 Cargo.toml 中添加
-sol-parser-sdk = "0.7.10"
+sol-parser-sdk = "0.7.11"
 ```
 
 或使用零拷贝解析器（最高性能）：
 
 ```toml
-sol-parser-sdk = { version = "0.7.10", default-features = false, features = ["parse-zero-copy"] }
+sol-parser-sdk = { version = "0.7.11", default-features = false, features = ["parse-zero-copy"] }
 ```
 
 ### 发布说明
+
+## v0.7.11 — Signed transaction and hot-path hardening
+
+Hardens signed transaction sanitization, loaded-address boundaries, ordered stream filtering and parser lifecycle. Aligns CLMM and DEX instruction/event layouts, nested CPI route attribution and liquidity/reward accounting. Adds independently signed wire fixtures, ALT failure cases and offline bank regressions.
+
+Validation includes local CPU benchmarks and offline signed-bank scenarios. Measured hot paths use cached inputs without RPC. Benchmarks do not establish production network or transaction-landing latency. No funded mainnet transactions were broadcast.
 
 #### v0.7.10
 
@@ -721,7 +729,7 @@ let config = ClientConfig {
     ..ClientConfig::default()
 };
 
-// 完整 slot 排序（1-50ms，等待整个 slot）
+// 缓存 slot 排序（新 slot 或超时触发输出）
 let config = ClientConfig {
     order_mode: OrderMode::Ordered,
     order_timeout_ms: 100,

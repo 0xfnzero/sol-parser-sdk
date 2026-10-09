@@ -1,0 +1,46 @@
+{
+  "source": "actual two-signature transaction ALT load rejection before execution; bank simulate+local send; no broadcast",
+  "source_sha256": "91685de0fa16cfee246a293d4f35092acb25c81ccda1f2ec6a033a6f63c50211",
+  "cases": [
+    {
+      "name": "actual-bank/writable/table_length",
+      "wire": "AmoWIx5Z8aLEqIKH+xcgNbZu9fqqbYD7Df1Ksz30a1PaYmtMKT3HTv1/VbxHu1FpZoL/JpNpNIpLxQaCqUCsoAHzjcQKvNCNarTkdgds0zi4DaM3lwS7GCHdnuhIv5ITjiTUSRpu/FP6ok7X1yNgR9cHTotiW97XpPRSc4OZZhQBgAIBAgTIbQGtiy+2lLIv9g48nZ5+2Q21YEdyt0RQ1AkTuanLrxkgTIw7qFugWc0YrJAXvQKhjaXRDGj7d5o0vkPvBneRAwZGb+UhFzL/7K26csOb57yM5bvF9xJrLEObOkAAAACpKlqLTylZUoQlUKqT/VuVtazmqOuSDJOULkNpDCDsc67rrUp5b8wuFdxMYGG0Xtmzc/Jq38eYyn0tjMWBgnGOAwIABQLAXBUAAw0BDA8FCAYJBA0LDgoHGI++WtrEHjPeEScAAAAAAAAAAAAAAAAAAAMNAQwPBQgGCQQNCw4KBxiPvlraxB4z3hEnAAAAAAAA//////////8CVka8x/0eOQ3goeYOZnCuPacEEjvnnsbBX7szHOhqLGoDBgECAwUEANulvVyFEvKEohPkrymezIED5lEfbSnl9QDVBSufL1YmAwUBAgMDBAA=",
+      "valid_structure": true,
+      "valid_signature": true,
+      "bank_err": "InvalidAddressLookupTableIndex",
+      "invalid_table_index": 6,
+      "table_address_count": 6,
+      "token_balances_unchanged": true
+    },
+    {
+      "name": "actual-bank/writable/u8_max",
+      "wire": "AhKXSOrEqI6P32PLb8e2b3cphC/LeaXLuyizFvEirkPR+Ba7BYMa5q3WhACZe4wljckY2Oof9pfhZQgUdbSF7QH9QOEkndFx8U3tbGutRK2quEjVZbfBBBYmyZwYZZxkjsCIp8EKyKIxDPoTtmtZCsXZE0XRv4ULcHxiBcjxbQQIgAIBAgTIbQGtiy+2lLIv9g48nZ5+2Q21YEdyt0RQ1AkTuanLrxkgTIw7qFugWc0YrJAXvQKhjaXRDGj7d5o0vkPvBneRAwZGb+UhFzL/7K26csOb57yM5bvF9xJrLEObOkAAAACpKlqLTylZUoQlUKqT/VuVtazmqOuSDJOULkNpDCDsc67rrUp5b8wuFdxMYGG0Xtmzc/Jq38eYyn0tjMWBgnGOAwIABQLAXBUAAw0BDA8FCAYJBA0LDgoHGI++WtrEHjPeEScAAAAAAAAAAAAAAAAAAAMNAQwPBQgGCQQNCw4KBxiPvlraxB4z3hEnAAAAAAAA//////////8CVka8x/0eOQ3goeYOZnCuPacEEjvnnsbBX7szHOhqLGoD/wECAwUEANulvVyFEvKEohPkrymezIED5lEfbSnl9QDVBSufL1YmAwUBAgMDBAA=",
+      "valid_structure": true,
+      "valid_signature": true,
+      "bank_err": "InvalidAddressLookupTableIndex",
+      "invalid_table_index": 255,
+      "table_address_count": 6,
+      "token_balances_unchanged": true
+    },
+    {
+      "name": "actual-bank/readonly/table_length",
+      "wire": "AknEYkOlwTG/TQ20/7+S7AEEPkaoWPQMz5PmBn6ritN/i6kI7A7KWk2C2aU2rwIlFLSKIYZG0PT0l64CK1CDFQYpC+IK0843XrseXCUG6BwZIeb/wK0XfcZ403TrTAGE3SdKBaRz7piQzl5175YgEXuQeomWYcAFQM0gaQKrVVsCgAIBAgTIbQGtiy+2lLIv9g48nZ5+2Q21YEdyt0RQ1AkTuanLrxkgTIw7qFugWc0YrJAXvQKhjaXRDGj7d5o0vkPvBneRAwZGb+UhFzL/7K26csOb57yM5bvF9xJrLEObOkAAAACpKlqLTylZUoQlUKqT/VuVtazmqOuSDJOULkNpDCDsc67rrUp5b8wuFdxMYGG0Xtmzc/Jq38eYyn0tjMWBgnGOAwIABQLAXBUAAw0BDA8FCAYJBA0LDgoHGI++WtrEHjPeEScAAAAAAAAAAAAAAAAAAAMNAQwPBQgGCQQNCw4KBxiPvlraxB4z3hEnAAAAAAAA//////////8CVka8x/0eOQ3goeYOZnCuPacEEjvnnsbBX7szHOhqLGoDAwECAwYEANulvVyFEvKEohPkrymezIED5lEfbSnl9QDVBSufL1YmAwUBAgMDBAA=",
+      "valid_structure": true,
+      "valid_signature": true,
+      "bank_err": "InvalidAddressLookupTableIndex",
+      "invalid_table_index": 6,
+      "table_address_count": 6,
+      "token_balances_unchanged": true
+    },
+    {
+      "name": "actual-bank/readonly/u8_max",
+      "wire": "AqFedyrireltAA7/r7BMLsP5e5P3JfTySwf+DiU/XYxszz/u9weWVsMJv+N3CRZRdeEVQcE4NGF5tGSPftTLugLVHEWfVAp0x8WMqCsGHCH9e8ESQ4s6ayAhG8vyzZtDz5H007iahXQhqf1eB/IO70EvcaQgam40mnu3+qssakcDgAIBAgTIbQGtiy+2lLIv9g48nZ5+2Q21YEdyt0RQ1AkTuanLrxkgTIw7qFugWc0YrJAXvQKhjaXRDGj7d5o0vkPvBneRAwZGb+UhFzL/7K26csOb57yM5bvF9xJrLEObOkAAAACpKlqLTylZUoQlUKqT/VuVtazmqOuSDJOULkNpDCDsc67rrUp5b8wuFdxMYGG0Xtmzc/Jq38eYyn0tjMWBgnGOAwIABQLAXBUAAw0BDA8FCAYJBA0LDgoHGI++WtrEHjPeEScAAAAAAAAAAAAAAAAAAAMNAQwPBQgGCQQNCw4KBxiPvlraxB4z3hEnAAAAAAAA//////////8CVka8x/0eOQ3goeYOZnCuPacEEjvnnsbBX7szHOhqLGoDAwECA/8EANulvVyFEvKEohPkrymezIED5lEfbSnl9QDVBSufL1YmAwUBAgMDBAA=",
+      "valid_structure": true,
+      "valid_signature": true,
+      "bank_err": "InvalidAddressLookupTableIndex",
+      "invalid_table_index": 255,
+      "table_address_count": 6,
+      "token_balances_unchanged": true
+    }
+  ]
+}

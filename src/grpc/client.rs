@@ -594,7 +594,7 @@ impl YellowstoneGrpc {
                         self.push_queue(queue, e);
                     }
                 }
-                *last_slot = slot;
+                *last_slot = (*last_slot).max(slot);
                 for (idx, e) in
                     parse_transaction_to_vec(&tx, grpc_us, Some(block_us), filter.as_ref())
                 {
@@ -602,12 +602,15 @@ impl YellowstoneGrpc {
                 }
             }
             OrderMode::StreamingOrdered => {
-                for (idx, e) in
-                    parse_transaction_to_vec(&tx, grpc_us, Some(block_us), filter.as_ref())
-                {
-                    for evt in slot_buf.push_streaming(slot, idx, e) {
-                        self.push_queue(queue, evt);
-                    }
+                let idx = tx.transaction.as_ref().map_or(0, |info| info.index);
+                let events = crate::grpc::parse_subscribe_update_transaction_low_latency(
+                    &tx,
+                    grpc_us,
+                    Some(block_us),
+                    filter.as_ref(),
+                );
+                for event in slot_buf.push_streaming_batch(slot, idx, events) {
+                    self.push_queue(queue, event);
                 }
             }
             OrderMode::MicroBatch => {

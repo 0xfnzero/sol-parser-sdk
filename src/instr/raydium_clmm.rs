@@ -308,6 +308,10 @@ fn parse_create_customizable_pool_instruction(
     tx_index: u64,
     block_time_us: Option<i64>,
 ) -> Option<DexEvent> {
+    // IDL: u128 + CollectFeeOn (3 variants) + bool; 13 fixed accounts.
+    if data.len() != 18 || accounts.len() < 13 || data[16] > 2 || data[17] > 1 {
+        return None;
+    }
     let sqrt_price_x64 = read_u128_le(data, 0)?;
     let pool = get_account(accounts, 2)?;
     let metadata = create_metadata_simple(signature, slot, tx_index, block_time_us, pool);
@@ -473,5 +477,31 @@ mod swap_wire_tests {
                 assert_eq!(old.sqrt_price_limit_x64, 0);
             }
         }
+    }
+}
+
+
+#[cfg(test)]
+mod customizable_boundaries {
+    use super::*;
+    #[test]
+    fn customizable_pool_idl_boundaries() {
+        let accounts: Vec<_> = (0..13).map(|_| Pubkey::new_unique()).collect();
+        let mut valid = discriminators::CREATE_CUSTOMIZABLE_POOL.to_vec();
+        valid.extend_from_slice(&123u128.to_le_bytes());
+        valid.extend_from_slice(&[0, 0]);
+        let parse = |data: &[u8], accounts: &[Pubkey]| parse_instruction(data, accounts, Signature::default(), 1, 0, None);
+        for fee in 0..3 { for dynamic in 0..2 {
+            valid[24] = fee; valid[25] = dynamic;
+            assert!(parse(&valid, &accounts).is_some());
+        } }
+        let mut enum_bad = valid.clone(); enum_bad[24] = 3;
+        let mut bool_bad = valid.clone(); bool_bad[25] = 2;
+        let mut extra = valid.clone(); extra.push(0);
+        for data in [&valid[..24], &valid[..25], &extra, &enum_bad, &bool_bad] {
+            assert!(parse(data, &accounts).is_none());
+        }
+        assert!(parse(&valid, &accounts[..12]).is_none());
+        assert!(parse(&valid, &accounts).is_some());
     }
 }

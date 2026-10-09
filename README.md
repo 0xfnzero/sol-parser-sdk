@@ -40,14 +40,20 @@
 
 Parser SDK language versions and related Rust SDKs:
 
-| Language | Repository | Description |
-|----------|------------|-------------|
-| **Rust** | [sol-parser-sdk](https://github.com/0xfnzero/sol-parser-sdk) | Ultra-low latency with SIMD optimization |
-| **Node.js** | [sol-parser-sdk-nodejs](https://github.com/0xfnzero/sol-parser-sdk-nodejs) | TypeScript/JavaScript for Node.js |
-| **Python** | [sol-parser-sdk-python](https://github.com/0xfnzero/sol-parser-sdk-python) | Async/await native support |
-| **Go** | [sol-parser-sdk-golang](https://github.com/0xfnzero/sol-parser-sdk-golang) | Concurrent-safe with goroutine support |
-| **Rust** | [sol-shred-sdk](https://github.com/0xfnzero/sol-shred-sdk) | Raw Solana shred decoding and ShredStream DEX event parsing |
-| **Rust** | [sol-trade-sdk](https://github.com/0xfnzero/sol-trade-sdk) | Solana DEX trade construction and transaction execution |
+| Language | Repository | Description | Version |
+|----------|------------|-------------|---------|
+| **Rust** | [sol-parser-sdk](https://github.com/0xfnzero/sol-parser-sdk) | Ultra-low latency with SIMD optimization | `v0.7.11` |
+| **Node.js** | [sol-parser-sdk-nodejs](https://github.com/0xfnzero/sol-parser-sdk-nodejs) | TypeScript/JavaScript for Node.js | `v0.5.18` |
+| **Python** | [sol-parser-sdk-python](https://github.com/0xfnzero/sol-parser-sdk-python) | Async/await native support | `v0.5.11` |
+| **Go** | [sol-parser-sdk-golang](https://github.com/0xfnzero/sol-parser-sdk-golang) | Concurrent-safe with goroutine support | `v0.5.11` |
+| **Rust** | [sol-shred-sdk](https://github.com/0xfnzero/sol-shred-sdk) | Raw Solana shred decoding and ShredStream DEX event parsing | `v4.0.3` |
+| **Rust** | [sol-trade-sdk](https://github.com/0xfnzero/sol-trade-sdk) | Solana DEX trade construction and transaction execution | `v6.0.0` |
+
+## v0.7.11 — Signed transaction and hot-path hardening
+
+Hardens signed transaction sanitization, loaded-address boundaries, ordered stream filtering and parser lifecycle. Aligns CLMM and DEX instruction/event layouts, nested CPI route attribution and liquidity/reward accounting. Adds independently signed wire fixtures, ALT failure cases and offline bank regressions.
+
+Validation includes local CPU benchmarks and offline signed-bank scenarios. Measured hot paths use cached inputs without RPC. Benchmarks do not establish production network or transaction-landing latency. No funded mainnet transactions were broadcast.
 
 ## What This SDK Is For
 
@@ -76,7 +82,9 @@ Parser SDK language versions and related Rust SDKs:
 | **Unordered** | 10-20μs | Immediate output, ultra-low latency |
 | **MicroBatch** | 50-200μs | Micro-batch ordering with time window |
 | **StreamingOrdered** | 0.1-5ms | Stream ordering with continuous sequence release |
-| **Ordered** | 1-50ms | Full slot ordering, wait for complete slot |
+| **Ordered** | 1-50ms | Buffered slot ordering, flush on newer slot or timeout |
+
+Ordered output retains its last emitted `(slot, tx_index)` watermark. A newer-slot flush closes older slots; timeout flushing still accepts later transactions in the same slot with a higher index. Late data from closed slots or at/before the watermark is dropped with an `Ordered continuity break` warning. Events within one transaction preserve parser order. This mode cannot guarantee upstream completeness.
 
 ### 🚀 Optimization Highlights
 - ✅ **Zero heap allocation** for hot paths
@@ -115,13 +123,13 @@ sol-parser-sdk = { path = "../sol-parser-sdk", default-features = false, feature
 
 ```toml
 # Add to your Cargo.toml
-sol-parser-sdk = "0.7.10"
+sol-parser-sdk = "0.7.11"
 ```
 
 Or with the zero-copy parser (maximum performance):
 
 ```toml
-sol-parser-sdk = { version = "0.7.10", default-features = false, features = ["parse-zero-copy"] }
+sol-parser-sdk = { version = "0.7.11", default-features = false, features = ["parse-zero-copy"] }
 ```
 
 ### Release Notes
@@ -738,7 +746,7 @@ let config = ClientConfig {
     ..ClientConfig::default()
 };
 
-// Full slot ordering (1-50ms, wait for complete slot)
+// Buffered slot ordering (flush on newer slot or timeout)
 let config = ClientConfig {
     order_mode: OrderMode::Ordered,
     order_timeout_ms: 100,

@@ -240,11 +240,13 @@ fn invocation_analysis(
         .iter()
         .enumerate()
         .map(|(i, ix)| {
-            let skip_route = token_program(ix.program)
-                || ix.program == Pubkey::default()
-                || ix.program == ROUTE_COMPUTE_BUDGET
-                || ix.program == ROUTE_ASSOCIATED_TOKEN
-                || ix.program == ROUTE_MEMO;
+            // Unresolved indexes use the default-key sentinel; they are not SystemProgram.
+            let skip_route = ix.program_resolved
+                && (token_program(ix.program)
+                    || ix.program == Pubkey::default()
+                    || ix.program == ROUTE_COMPUTE_BUDGET
+                    || ix.program == ROUTE_ASSOCIATED_TOKEN
+                    || ix.program == ROUTE_MEMO);
             let swap_index = if skip_route {
                 None
             } else {
@@ -411,6 +413,22 @@ fn transaction_invocations<'a>(
             .filter(|group| (group.index as usize) < message.instructions.len())
             .map(|group| group.instructions.len())
             .sum::<usize>();
+    // Protobuf bytes are not fixed-size Pubkeys. Keep malformed keys unresolved.
+    // Direct indexes preserve static / writable ALT / readonly ALT order without allocation.
+    let resolve_program = |index: u32| {
+        let index = index as usize;
+        let bytes = message.account_keys.get(index).or_else(|| {
+            let index = index.checked_sub(message.account_keys.len())?;
+            meta.loaded_writable_addresses.get(index).or_else(|| {
+                meta.loaded_readonly_addresses
+                    .get(index.checked_sub(meta.loaded_writable_addresses.len())?)
+            })
+        })?;
+        if bytes.len() != 32 {
+            return None;
+        }
+        keys.get(index).copied()
+    };
     let mut result = Vec::with_capacity(count);
     // Canonical metadata is already sorted. Only unordered input needs an index;
     // original ordinal breaks ties so duplicate groups retain their old order.
@@ -427,14 +445,15 @@ fn transaction_invocations<'a>(
     };
     let mut cursor = 0;
     for (i, ix) in message.instructions.iter().enumerate() {
+        let program = resolve_program(ix.program_id_index);
         result.push(Invocation {
             position: InstructionPosition {
                 outer_index: i as u32,
                 inner_index: None,
                 stack_height: Some(1),
             },
-            program: key(keys, ix.program_id_index),
-            program_resolved: (ix.program_id_index as usize) < keys.len(),
+            program: program.unwrap_or_default(),
+            program_resolved: program.is_some(),
             accounts: &ix.accounts,
             data: &ix.data,
         });
@@ -447,14 +466,15 @@ fn transaction_invocations<'a>(
                 continue;
             }
             for (j, ix) in group.instructions.iter().enumerate() {
+                let program = resolve_program(ix.program_id_index);
                 result.push(Invocation {
                     position: InstructionPosition {
                         outer_index: i as u32,
                         inner_index: Some(j as u32),
                         stack_height: ix.stack_height,
                     },
-                    program: key(keys, ix.program_id_index),
-                    program_resolved: (ix.program_id_index as usize) < keys.len(),
+                    program: program.unwrap_or_default(),
+                    program_resolved: program.is_some(),
                     accounts: &ix.accounts,
                     data: &ix.data,
                 });
@@ -1208,6 +1228,7 @@ mod review_route_scope_regressions {
                 }
                 let tx = Transaction {
                     message: Some(Message {
+                        account_keys: keys.iter().map(|key| key.to_bytes().to_vec()).collect(),
                         instructions: vec![CompiledInstruction {
                             program_id_index: 21,
                             accounts: (0..21).collect(),
