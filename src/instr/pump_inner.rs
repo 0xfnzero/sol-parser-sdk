@@ -46,9 +46,11 @@ pub mod discriminators {
     pub const CREATE_TOKEN_EVENT: [u8; 16] =
         [27, 114, 169, 77, 222, 235, 99, 118, 155, 167, 108, 32, 122, 76, 173, 64];
 
-    /// MigrateEvent discriminator (PumpAmm migration)
+    /// MigrateEvent discriminator (PumpAmm migration), as its event CPI carries it:
+    /// the Anchor event-instruction tag, then the event discriminator. The CPI
+    /// survives log truncation, which cuts this event's late log line.
     pub const COMPLETE_PUMP_AMM_MIGRATION_EVENT: [u8; 16] =
-        [189, 233, 93, 185, 92, 148, 234, 148, 155, 167, 108, 32, 122, 76, 173, 64];
+        [228, 69, 165, 46, 81, 203, 154, 29, 189, 233, 93, 185, 92, 148, 234, 148];
 }
 
 // ============================================================================
