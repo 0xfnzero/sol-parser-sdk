@@ -42,7 +42,7 @@
 
 | 语言 | 仓库 | 描述 | 版本 |
 |------|------|------|
-| **Rust** | [sol-parser-sdk](https://github.com/0xfnzero/sol-parser-sdk) | 超低延迟，SIMD 优化 | `v0.7.11` |
+| **Rust** | [sol-parser-sdk](https://github.com/0xfnzero/sol-parser-sdk) | 超低延迟，SIMD 优化 | `v0.7.12` |
 | **Node.js** | [sol-parser-sdk-nodejs](https://github.com/0xfnzero/sol-parser-sdk-nodejs) | TypeScript/JavaScript，Node.js 支持 | `v0.5.18` |
 | **Python** | [sol-parser-sdk-python](https://github.com/0xfnzero/sol-parser-sdk-python) | 原生 async/await 支持 | `v0.5.11` |
 | **Go** | [sol-parser-sdk-golang](https://github.com/0xfnzero/sol-parser-sdk-golang) | 并发安全，goroutine 支持 | `v0.5.11` |
@@ -117,16 +117,20 @@ sol-parser-sdk = { path = "../sol-parser-sdk", default-features = false, feature
 
 ```toml
 # 在 Cargo.toml 中添加
-sol-parser-sdk = "0.7.11"
+sol-parser-sdk = "0.7.12"
 ```
 
 或使用零拷贝解析器（最高性能）：
 
 ```toml
-sol-parser-sdk = { version = "0.7.11", default-features = false, features = ["parse-zero-copy"] }
+sol-parser-sdk = { version = "0.7.12", default-features = false, features = ["parse-zero-copy"] }
 ```
 
 ### 发布说明
+
+## v0.7.12 — PumpFun migration event CPI 修复
+
+修复从 event CPI 指令解析 PumpFun migration 事件，包含 migrate_v2 与已迁移交易的离线主网样本回归；保留 0.7.11 的签名交易、ALT、顺序流和生命周期修复。配套 solana-streamer-sdk 3.0.10 锁定本版本。
 
 ## v0.7.11 — Signed transaction and hot-path hardening
 

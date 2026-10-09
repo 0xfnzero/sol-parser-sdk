@@ -42,12 +42,18 @@ Parser SDK language versions and related Rust SDKs:
 
 | Language | Repository | Description | Version |
 |----------|------------|-------------|---------|
-| **Rust** | [sol-parser-sdk](https://github.com/0xfnzero/sol-parser-sdk) | Ultra-low latency with SIMD optimization | `v0.7.11` |
+| **Rust** | [sol-parser-sdk](https://github.com/0xfnzero/sol-parser-sdk) | Ultra-low latency with SIMD optimization | `v0.7.12` |
 | **Node.js** | [sol-parser-sdk-nodejs](https://github.com/0xfnzero/sol-parser-sdk-nodejs) | TypeScript/JavaScript for Node.js | `v0.5.18` |
 | **Python** | [sol-parser-sdk-python](https://github.com/0xfnzero/sol-parser-sdk-python) | Async/await native support | `v0.5.11` |
 | **Go** | [sol-parser-sdk-golang](https://github.com/0xfnzero/sol-parser-sdk-golang) | Concurrent-safe with goroutine support | `v0.5.11` |
 | **Rust** | [sol-shred-sdk](https://github.com/0xfnzero/sol-shred-sdk) | Raw Solana shred decoding and ShredStream DEX event parsing | `v4.0.3` |
 | **Rust** | [sol-trade-sdk](https://github.com/0xfnzero/sol-trade-sdk) | Solana DEX trade construction and transaction execution | `v6.0.0` |
+
+## v0.7.12 — PumpFun migration event CPI fix
+
+Fixes PumpFun migration event decoding from event CPI instructions, including captured `migrate_v2` and already-migrated transaction regressions. Retains the signed transaction, loaded-address, ordered stream and parser lifecycle hardening from 0.7.11.
+
+Published together with `solana-streamer-sdk 3.0.10`, which pins this parser release. Validation uses offline transaction fixtures and local tests; no funded mainnet transactions are broadcast.
 
 ## v0.7.11 — Signed transaction and hot-path hardening
 
@@ -64,7 +70,7 @@ Validation includes local CPU benchmarks and offline signed-bank scenarios. Meas
 | Parser inputs | Yellowstone gRPC, ShredStream, RPC transactions, encoded transactions, protocol account data |
 | DEX protocols | PumpFun, PumpSwap, Pump Fees, LaunchLab (including StonkFun), Raydium CPMM, Raydium CLMM, Raydium AMM V4, Meteora DAMM v2, Meteora DLMM, Meteora DBC, Orca Whirlpool |
 | Parser backends | Default Borsh parser for maintainability, optional zero-copy parser for latency-sensitive hot paths |
-| Related SDK | Use [solana-streamer](https://github.com/0xfnzero/solana-streamer) when you want a higher-level streaming facade over this parser core |
+| Related SDK | Use [solana-streamer](https://github.com/0xfnzero/solana-streamer) (`3.0.10`) when you want a higher-level streaming facade over this parser core |
 
 ---
 
@@ -123,13 +129,13 @@ sol-parser-sdk = { path = "../sol-parser-sdk", default-features = false, feature
 
 ```toml
 # Add to your Cargo.toml
-sol-parser-sdk = "0.7.11"
+sol-parser-sdk = "0.7.12"
 ```
 
 Or with the zero-copy parser (maximum performance):
 
 ```toml
-sol-parser-sdk = { version = "0.7.11", default-features = false, features = ["parse-zero-copy"] }
+sol-parser-sdk = { version = "0.7.12", default-features = false, features = ["parse-zero-copy"] }
 ```
 
 ### Release Notes
