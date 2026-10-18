@@ -137,19 +137,8 @@ pub fn decode_multi_hop_intent(
     data: &[u8],
     accounts: &[Pubkey],
 ) -> Option<PumpMultiHopIntent> {
-    if program != solana_sdk::pubkey!("pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA")
-        || data.len() != 24
-        || data[..8] != [43, 100, 73, 19, 233, 246, 111, 148]
-        || accounts.len() < 21
-        || (accounts.len() - 16) % 5 != 0
-    {
-        return None;
-    }
-    let amount_in = u64::from_le_bytes(data[8..16].try_into().ok()?);
-    let min_amount_out = u64::from_le_bytes(data[16..24].try_into().ok()?);
-    if amount_in == 0 || min_amount_out == 0 {
-        return None;
-    }
+    let (amount_in, min_amount_out) =
+        crate::instr::pump_routes::multi_hop_args(program, data, accounts)?;
     Some(PumpMultiHopIntent {
         user: accounts[0],
         input_account: accounts[1],

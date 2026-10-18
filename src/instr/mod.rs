@@ -632,3 +632,6 @@ mod tests {
         ));
     }
 }
+
+/// Offline Pump route-intent decoding for supported outer instruction layouts.
+pub mod pump_routes;

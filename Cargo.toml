@@ -1,6 +1,6 @@
 [package]
 name = "sol-parser-sdk"
-version = "0.7.13"
+version = "0.7.14"
 edition = "2021"
 rust-version = "1.91"
 authors = ["William <byteblock6@gmail.com>", "sgxiang <sgxiang@gmail.com>", "wei <1415121722@qq.com>"]
@@ -117,6 +117,12 @@ libc = "0.2"
 smallvec = "1.13"  # 零延迟优化：栈分配小数组
 
 [dev-dependencies]
+solana-sha256-hasher = "=3.1.0"
+litesvm = "=0.16.0"
+flate2 = "1.1"
+solana-account = "=4.3.2"
+solana-clock = "=3.1.1"
+solana-keypair = "=3.1.2"
 criterion = { version = "0.7.0", features = ["html_reports"] }
 serde_json = "1.0.134"
 [profile.release]

@@ -55,8 +55,8 @@
 //!
 //! ## 限制说明
 //! ShredStream 相比 gRPC 订阅有以下限制：
-//! - 仅 `static_account_keys()`：V0 交易若带 **地址查找表（ALT）**，ALT-loaded 指令账户会以 `Pubkey::default()` 占位；若程序 ID 也来自 ALT，会按指令 discriminator 做 best-effort 解析。
-//! - 不解析 **inner instructions**：只覆盖外层指令可解析的事件；若事件只存在于 CPI/Program log，需使用 gRPC/RPC 路径。
+//! - 默认跳过未解析的 ALT 指令账户；通过缓存 resolver 或 loaded-addresses API 补齐。显式 best-effort API 保留旧版占位行为。
+//! - 官方多跳与已知 wrapper 输出 `PumpRouteIntent`，不是实际成交；任意 CPI 结果仍需执行元数据。
 //! - 无 block_time，恒为 0
 //! - tx_index 在单个 ShredStream payload 内递增，不保证等同于完整 slot 全局交易索引
 
@@ -65,6 +65,9 @@ pub mod config;
 pub mod proto;
 pub(crate) mod pump_ix;
 
-pub use client::ShredStreamClient;
+pub use client::{AddressLookupResolver, ShredStreamClient};
 pub use config::ShredStreamConfig;
-pub use pump_ix::{parse_transaction_dex_events, parse_transaction_dex_events_with_filter};
+pub use pump_ix::{
+    parse_transaction_dex_events, parse_transaction_dex_events_best_effort,
+    parse_transaction_dex_events_with_filter, parse_transaction_dex_events_with_loaded_addresses,
+};

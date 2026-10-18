@@ -11,7 +11,8 @@ use std::time::Duration;
 use crossbeam_queue::ArrayQueue;
 use futures::StreamExt;
 use solana_entry::entry::Entry as SolanaEntry;
-use solana_sdk::message::VersionedMessage;
+use solana_sdk::message::v0::LoadedAddresses;
+use solana_sdk::transaction::VersionedTransaction;
 use tokio::sync::Mutex;
 use tokio::task::JoinHandle;
 use tonic::transport::{Channel, Endpoint};
@@ -56,10 +57,17 @@ fn record_shredstream_dropped_event() -> u64 {
     dropped
 }
 
+/// Synchronous ALT lookup from a prewarmed, slot-aware local cache. Called on
+/// the receive task; never perform RPC or blocking I/O here. Address identity
+/// and table activation at the requested slot are the caller's responsibility.
+pub type AddressLookupResolver =
+    dyn Fn(&VersionedTransaction, u64) -> crate::common::AnyResult<LoadedAddresses> + Send + Sync;
+
 /// ShredStream 客户端
 #[derive(Clone)]
 pub struct ShredStreamClient {
     endpoint: String,
+    address_lookup_resolver: Option<Arc<AddressLookupResolver>>,
     config: ShredStreamConfig,
     subscription_handle: Arc<Mutex<Option<JoinHandle<()>>>>,
     subscription_lifecycle: Arc<Mutex<()>>,
@@ -82,10 +90,24 @@ impl ShredStreamClient {
 
         Ok(Self {
             endpoint,
+            address_lookup_resolver: None,
             config,
             subscription_handle: Arc::new(Mutex::new(None)),
             subscription_lifecycle: Arc::new(Mutex::new(())),
         })
+    }
+
+    /// Resolve ALT keys from a caller-owned cache before parsing. A cache miss
+    /// returns an error and skips the transaction, never emits placeholder keys.
+    pub fn with_address_lookup_resolver<F>(mut self, resolver: F) -> Self
+    where
+        F: Fn(&VersionedTransaction, u64) -> crate::common::AnyResult<LoadedAddresses>
+            + Send
+            + Sync
+            + 'static,
+    {
+        self.address_lookup_resolver = Some(Arc::new(resolver));
+        self
     }
 
     /// 订阅 DEX 事件（自动重连）
@@ -110,6 +132,7 @@ impl ShredStreamClient {
 
         let endpoint = self.endpoint.clone();
         let config = self.config.clone();
+        let resolver = self.address_lookup_resolver.clone();
 
         let handle = tokio::spawn(async move {
             let mut delay = config.reconnect_delay_ms;
@@ -127,6 +150,7 @@ impl ShredStreamClient {
                     &config,
                     event_type_filter.as_ref(),
                     EventSink::Queue(&queue_clone),
+                    resolver.as_deref(),
                 )
                 .await
                 {
@@ -165,6 +189,7 @@ impl ShredStreamClient {
 
         let endpoint = self.endpoint.clone();
         let config = self.config.clone();
+        let resolver = self.address_lookup_resolver.clone();
         let callback = Arc::new(callback);
 
         let handle = tokio::spawn(async move {
@@ -183,6 +208,7 @@ impl ShredStreamClient {
                     &config,
                     event_type_filter.as_ref(),
                     callback.clone(),
+                    resolver.as_deref(),
                 )
                 .await
                 {
@@ -237,6 +263,7 @@ impl ShredStreamClient {
         config: &ShredStreamConfig,
         event_type_filter: Option<&EventTypeFilter>,
         sink: EventSink<'_>,
+        resolver: Option<&AddressLookupResolver>,
     ) -> Result<(), String> {
         let mut client = Self::connect_client(endpoint, config).await.map_err(|e| e.to_string())?;
         let request = tonic::Request::new(SubscribeEntriesRequest {});
@@ -264,7 +291,13 @@ impl ShredStreamClient {
         while let Some(message) = stream.next().await {
             match message {
                 Ok(entry) => {
-                    Self::process_entry(entry, event_type_filter, &sink, &mut events);
+                    Self::process_entry_with_resolver(
+                        entry,
+                        event_type_filter,
+                        &sink,
+                        &mut events,
+                        resolver,
+                    );
                 }
                 Err(e) => {
                     log::error!("Stream error: {:?}", e);
@@ -281,23 +314,36 @@ impl ShredStreamClient {
         config: &ShredStreamConfig,
         event_type_filter: Option<&EventTypeFilter>,
         callback: Arc<dyn Fn(DexEvent) + Send + Sync>,
+        resolver: Option<&AddressLookupResolver>,
     ) -> Result<(), String> {
         Self::stream_events(
             endpoint,
             config,
             event_type_filter,
             EventSink::Callback(callback.as_ref()),
+            resolver,
         )
         .await
     }
 
+    #[cfg(test)]
+    fn process_entry(
+        entry: Entry,
+        filter: Option<&EventTypeFilter>,
+        sink: &EventSink<'_>,
+        events: &mut Vec<DexEvent>,
+    ) {
+        Self::process_entry_with_resolver(entry, filter, sink, events, None);
+    }
+
     /// 处理单个 Entry 消息
     #[inline]
-    fn process_entry(
+    fn process_entry_with_resolver(
         entry: Entry,
         event_type_filter: Option<&EventTypeFilter>,
         sink: &EventSink<'_>,
         events: &mut Vec<DexEvent>,
+        resolver: Option<&AddressLookupResolver>,
     ) {
         let slot = entry.slot;
         let recv_us = now_micros();
@@ -329,6 +375,7 @@ impl ShredStreamClient {
                     event_type_filter,
                     events,
                     sink,
+                    resolver,
                 );
                 tx_index += 1;
             }
@@ -345,6 +392,7 @@ impl ShredStreamClient {
         event_type_filter: Option<&EventTypeFilter>,
         events: &mut Vec<DexEvent>,
         sink: &EventSink<'_>,
+        resolver: Option<&AddressLookupResolver>,
     ) {
         Self::parse_transaction_events(
             transaction,
@@ -353,6 +401,7 @@ impl ShredStreamClient {
             tx_index,
             event_type_filter,
             events,
+            resolver,
         );
 
         for event in events.drain(..) {
@@ -368,16 +417,33 @@ impl ShredStreamClient {
         tx_index: u64,
         event_type_filter: Option<&EventTypeFilter>,
         events: &mut Vec<DexEvent>,
+        resolver: Option<&AddressLookupResolver>,
     ) {
         let Some(&signature) = transaction.signatures.first() else {
             return;
         };
-        if let VersionedMessage::V0(m) = &transaction.message {
-            if !m.address_table_lookups.is_empty() {
-                log::trace!(
-                    target: "sol_parser_sdk::shredstream",
-                    "V0 tx uses address lookup tables; shred parser will use static accounts and default placeholders for ALT-loaded accounts"
-                );
+        if transaction.message.address_table_lookups().is_some_and(|lookups| !lookups.is_empty()) {
+            if let Some(resolver) = resolver {
+                let result = resolver(transaction, slot).and_then(|loaded| {
+                    super::pump_ix::parse_transaction_dex_events_with_loaded_addresses(
+                        transaction,
+                        &loaded.writable,
+                        &loaded.readonly,
+                        signature,
+                        slot,
+                        tx_index,
+                        recv_us,
+                        event_type_filter,
+                        events,
+                    )?;
+                    Ok(())
+                });
+                if let Err(error) = result {
+                    log::debug!(
+                        "Skipping unresolved ALT transaction {signature} at {slot}: {error}"
+                    );
+                }
+                return;
             }
         }
         // 热路径：`static_account_keys` 零拷贝、`pump_ix` 内不克隆 CompiledInstruction。
@@ -390,13 +456,6 @@ impl ShredStreamClient {
             event_type_filter,
             events,
         );
-        crate::core::pumpfun_fee_enrich::enrich_pumpfun_same_tx_post_merge(events);
-
-        for event in events.iter_mut() {
-            if let Some(meta) = event.metadata_mut() {
-                meta.grpc_recv_us = recv_us;
-            }
-        }
     }
 }
 
@@ -553,5 +612,114 @@ mod tests {
         );
 
         assert_eq!(count.load(AtomicOrdering::Relaxed), 0);
+    }
+    #[test]
+    fn cached_alt_routes_reach_queue_and_callback_without_network() {
+        use base64::{engine::general_purpose::STANDARD, Engine};
+        let fixtures: serde_json::Value =
+            serde_json::from_str(include_str!("../../tests/fixtures/shred_routes/reported.json"))
+                .unwrap();
+        let f = fixtures
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|f| !f["loaded_writable"].as_array().unwrap().is_empty())
+            .unwrap();
+        let tx: VersionedTransaction =
+            wincode::deserialize_exact(&STANDARD.decode(f["wire"].as_str().unwrap()).unwrap())
+                .unwrap();
+        let loaded = LoadedAddresses {
+            writable: f["loaded_writable"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|s| s.as_str().unwrap().parse().unwrap())
+                .collect(),
+            readonly: f["loaded_readonly"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|s| s.as_str().unwrap().parse().unwrap())
+                .collect(),
+        };
+        let slot = f["slot"].as_u64().unwrap();
+        let signature = tx.signatures[0];
+        let calls = Arc::new(AtomicUsize::new(0));
+        let resolver_calls = Arc::clone(&calls);
+        let resolver = move |transaction: &VersionedTransaction,
+                             at: u64|
+              -> crate::common::AnyResult<LoadedAddresses> {
+            assert_eq!(transaction.signatures[0], signature);
+            assert_eq!(at, slot);
+            resolver_calls.fetch_add(1, AtomicOrdering::Relaxed);
+            Ok(loaded.clone())
+        };
+        let entry = || Entry {
+            slot,
+            entries: wincode::serialize(&vec![SolanaEntry {
+                num_hashes: 1,
+                hash: Hash::default(),
+                transactions: vec![tx.clone()],
+            }])
+            .unwrap(),
+        };
+        let filter = EventTypeFilter::include_only(vec![crate::grpc::EventType::PumpFunTrade]);
+        let queue = Arc::new(ArrayQueue::new(4));
+        let mut events = Vec::new();
+        ShredStreamClient::process_entry_with_resolver(
+            entry(),
+            Some(&filter),
+            &EventSink::Queue(&queue),
+            &mut events,
+            Some(&resolver),
+        );
+        assert!(matches!(queue.pop(), Some(DexEvent::PumpRouteIntent(_))));
+        let callback_count = AtomicUsize::new(0);
+        ShredStreamClient::process_entry_with_resolver(
+            entry(),
+            Some(&filter),
+            &EventSink::Callback(&|event| {
+                assert!(matches!(event, DexEvent::PumpRouteIntent(_)));
+                assert_eq!(event.metadata().slot, slot);
+                callback_count.fetch_add(1, AtomicOrdering::Relaxed);
+            }),
+            &mut events,
+            Some(&resolver),
+        );
+        assert_eq!(callback_count.load(AtomicOrdering::Relaxed), 1);
+        assert_eq!(calls.load(AtomicOrdering::Relaxed), 2);
+        // Without a cache, skip the unresolved route rather than emit zero pubkeys.
+        ShredStreamClient::process_entry_with_resolver(
+            entry(),
+            None,
+            &EventSink::Queue(&queue),
+            &mut events,
+            None,
+        );
+        assert!(queue.pop().is_none());
+        let miss =
+            |_: &VersionedTransaction, _: u64| -> crate::common::AnyResult<LoadedAddresses> {
+                Err(std::io::Error::new(std::io::ErrorKind::NotFound, "ALT cache miss").into())
+            };
+        ShredStreamClient::process_entry_with_resolver(
+            entry(),
+            None,
+            &EventSink::Queue(&queue),
+            &mut events,
+            Some(&miss),
+        );
+        assert!(queue.pop().is_none());
+        let wrong_count =
+            |_: &VersionedTransaction, _: u64| -> crate::common::AnyResult<LoadedAddresses> {
+                Ok(LoadedAddresses::default())
+            };
+        ShredStreamClient::process_entry_with_resolver(
+            entry(),
+            None,
+            &EventSink::Queue(&queue),
+            &mut events,
+            Some(&wrong_count),
+        );
+        assert!(queue.pop().is_none());
     }
 }
