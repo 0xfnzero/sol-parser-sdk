@@ -83,12 +83,10 @@ fn signed_wires_preserve_every_account_and_byte_without_execution_metadata() {
                 if f["signature"].as_str().unwrap().starts_with("3nMX") { 2 } else { 3 }
             );
             assert!(default.iter().all(|e| matches!(e, DexEvent::RawInstruction(_))));
-            assert!(parse(
-                &tx,
-                &f,
-                Some(&EventTypeFilter::include_only(vec![EventType::PumpFunTrade]))
-            )
-            .is_empty());
+            let selected =
+                parse(&tx, &f, Some(&EventTypeFilter::include_only(vec![EventType::PumpFunTrade])));
+            assert!(!selected.is_empty());
+            assert!(selected.iter().all(|e| matches!(e, DexEvent::RawInstruction(raw) if raw.dexes.iter().any(|d| d.dex_type == sol_parser_sdk::core::events::RawInstructionDexType::PumpFun))));
         }
     }
 }
@@ -126,4 +124,107 @@ fn unknown_programs_changed_layouts_and_unresolved_accounts_stay_raw() {
     assert_eq!(raw.accounts.last(), Some(&None));
     assert_eq!(raw.accounts[0], raw.accounts[raw.accounts.len() - 2]);
     assert_eq!(raw.accounts.len(), ix.accounts.len());
+}
+
+#[test]
+fn raw_dex_subscriptions_are_instruction_local_and_never_infer_pool_layout() {
+    use sol_parser_sdk::grpc::program_ids::*;
+    use solana_sdk::{
+        instruction::{AccountMeta, Instruction},
+        message::Message,
+        signature::Signature,
+    };
+    let wrapper = Pubkey::new_unique();
+    let payer = Pubkey::new_unique();
+    let pairs = [
+        (PUMPFUN_PROGRAM, EventType::PumpFunTrade, "pumpfun"),
+        (PUMPSWAP_PROGRAM, EventType::PumpSwapTrade, "pumpswap"),
+        (RAYDIUM_LAUNCHLAB_PROGRAM, EventType::RaydiumLaunchlabTrade, "raydium_launchlab"),
+        (RAYDIUM_CPMM_PROGRAM, EventType::RaydiumCpmmSwap, "raydium_cpmm"),
+        (RAYDIUM_CLMM_PROGRAM, EventType::RaydiumClmmSwap, "raydium_clmm"),
+        (RAYDIUM_AMM_V4_PROGRAM, EventType::RaydiumAmmV4Swap, "raydium_amm_v4"),
+        (ORCA_WHIRLPOOL_PROGRAM, EventType::OrcaWhirlpoolSwap, "orca_whirlpool"),
+        (METEORA_POOLS_PROGRAM, EventType::MeteoraPoolsSwap, "meteora_pools"),
+        (METEORA_DAMM_V2_PROGRAM, EventType::MeteoraDammV2Swap, "meteora_damm_v2"),
+        (METEORA_DLMM_PROGRAM, EventType::MeteoraDlmmSwap, "meteora_dlmm"),
+        (METEORA_DBC_PROGRAM, EventType::MeteoraDbcSwap, "meteora_dbc"),
+    ];
+    for (program, event_type, name) in pairs {
+        let tx = VersionedTransaction {
+            signatures: vec![Signature::default()],
+            message: VersionedMessage::Legacy(Message::new(
+                &[
+                    Instruction {
+                        program_id: wrapper,
+                        accounts: vec![
+                            AccountMeta::new_readonly(program, false),
+                            AccountMeta::new_readonly(program, false),
+                        ],
+                        data: vec![255],
+                    },
+                    // This instruction can see none of the DEX accounts, although the transaction can.
+                    Instruction { program_id: wrapper, accounts: vec![], data: vec![254] },
+                ],
+                Some(&payer),
+            )),
+        };
+        let mut events = vec![];
+        let filter = EventTypeFilter::include_only(vec![event_type]);
+        sol_parser_sdk::shredstream::parse_transaction_dex_events_with_filter(
+            &tx,
+            tx.signatures[0],
+            1,
+            0,
+            0,
+            Some(&filter),
+            &mut events,
+        );
+        let [DexEvent::RawInstruction(raw)] = &events[..] else { panic!("{name}: {events:?}") };
+        assert_eq!(raw.instruction_index, 0);
+        assert_eq!(raw.dexes.len(), 1);
+        assert_eq!(raw.dexes[0].dex_type.as_str(), name);
+        assert_eq!(raw.dexes[0].pool, None);
+        assert_eq!(raw.accounts.len(), 2);
+        assert!(filter.should_include_dex_event(&events[0]));
+        let unrelated = EventTypeFilter::include_only(vec![if name == "pumpfun" {
+            EventType::RaydiumCpmmSwap
+        } else {
+            EventType::PumpFunTrade
+        }]);
+        assert!(!unrelated.should_include_dex_event(&events[0]));
+        let exclude = EventTypeFilter {
+            include_only: Some(vec![event_type]),
+            exclude_types: Some(vec![EventType::RawInstruction]),
+        };
+        assert!(!exclude.should_include_dex_event(&events[0]));
+    }
+}
+
+#[test]
+fn raw_multi_dex_and_alt_boundaries() {
+    use sol_parser_sdk::core::events::{raw_instruction_dexes, raw_instruction_matches_filter};
+    use sol_parser_sdk::grpc::program_ids::*;
+    let dexes = raw_instruction_dexes(
+        Pubkey::new_unique(),
+        &[Some(PUMPFUN_PROGRAM), None, Some(RAYDIUM_CPMM_PROGRAM), Some(PUMPFUN_PROGRAM)],
+    );
+    assert_eq!(dexes.len(), 2);
+    for event in [EventType::PumpFunTrade, EventType::RaydiumCpmmSwap] {
+        assert!(raw_instruction_matches_filter(
+            &dexes,
+            &EventTypeFilter::include_only(vec![event])
+        ));
+    }
+    assert!(!raw_instruction_matches_filter(
+        &dexes,
+        &EventTypeFilter::include_only(vec![EventType::PumpFunBuy])
+    ));
+    assert!(!raw_instruction_matches_filter(
+        &[],
+        &EventTypeFilter::include_only(vec![EventType::PumpFunTrade])
+    ));
+    assert!(raw_instruction_matches_filter(
+        &[],
+        &EventTypeFilter::include_only(vec![EventType::RawInstruction])
+    ));
 }

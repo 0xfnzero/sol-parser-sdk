@@ -673,8 +673,20 @@ fn parse_transaction_pump_events_with_filter(
                     .is_some_and(|types| types.contains(&crate::grpc::EventType::RawInstruction))
             });
             let unknown = is_unknown_program_for_raw(program);
+            let dexes = if explicit_raw || unknown {
+                crate::core::events::raw_instruction_dexes(
+                    *program,
+                    &ix.accounts
+                        .iter()
+                        .map(|i| static_keys.get(*i as usize).copied())
+                        .collect::<Vec<_>>(),
+                )
+            } else {
+                Vec::new()
+            };
             if (explicit_raw || unknown)
-                && filter.is_none_or(|f| f.should_include(crate::grpc::EventType::RawInstruction))
+                && filter
+                    .is_none_or(|f| crate::core::events::raw_instruction_matches_filter(&dexes, f))
             {
                 events.push(DexEvent::RawInstruction(Box::new(
                     crate::core::events::RawInstructionEvent {
@@ -688,6 +700,7 @@ fn parse_transaction_pump_events_with_filter(
                             ),
                             ..Default::default()
                         },
+                        dexes,
                         program_id: *program,
                         instruction_index,
                         accounts: ix
@@ -783,8 +796,8 @@ fn parse_transaction_pump_events_with_filter(
 // --- 单条 outer ix 解析（由原 `client.rs` 迁入） ---
 
 /// Collect only unknown outer programs without decoding any protocol payload.
-/// Useful when a caller separately narrows protocol parsing but still wants
-/// default raw passthrough. ALT account indices remain unresolved as None.
+/// This unfiltered helper returns all unknown programs. Callers with a DEX
+/// subscription must filter the returned dexes. ALT addresses remain None.
 pub fn parse_transaction_unknown_instructions(
     transaction: &VersionedTransaction,
     signature: Signature,
@@ -810,6 +823,10 @@ pub fn parse_transaction_unknown_instructions(
                 recent_blockhash: Some(transaction.message.recent_blockhash().to_string()),
                 ..Default::default()
             },
+            dexes: crate::core::events::raw_instruction_dexes(
+                program_id,
+                &ix.accounts.iter().map(|i| keys.get(*i as usize).copied()).collect::<Vec<_>>(),
+            ),
             program_id,
             instruction_index,
             accounts: ix.accounts.iter().map(|i| keys.get(*i as usize).copied()).collect(),

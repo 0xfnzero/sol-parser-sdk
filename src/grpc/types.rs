@@ -511,6 +511,9 @@ impl EventTypeFilter {
     }
 
     pub fn should_include_dex_event(&self, event: &crate::core::events::DexEvent) -> bool {
+        if let crate::core::events::DexEvent::RawInstruction(raw) = event {
+            return crate::core::events::raw_instruction_matches_filter(&raw.dexes, self);
+        }
         if let crate::core::events::DexEvent::PumpRouteIntent(intent) = event {
             return self.includes_pump_route(intent.kind);
         }
