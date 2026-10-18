@@ -404,6 +404,7 @@ pub enum EventType {
     PumpSwapSweepPoolFee,
     /// Pre-execution route intent, separate from confirmed fills.
     PumpRouteIntent,
+    RawInstruction,
 }
 
 #[derive(Debug, Clone)]
@@ -427,6 +428,11 @@ impl EventTypeFilter {
     }
 
     pub fn should_include(&self, event_type: EventType) -> bool {
+        if event_type == EventType::RawInstruction
+            && self.exclude_types.as_ref().is_some_and(|types| types.contains(&event_type))
+        {
+            return false;
+        }
         if let Some(ref include_only) = self.include_only {
             // Direct match
             if include_only.contains(&event_type) {
@@ -744,6 +750,7 @@ pub fn event_type_from_dex_event(event: &crate::core::events::DexEvent) -> Optio
     use crate::core::events::DexEvent;
     match event {
         DexEvent::PumpRouteIntent(_) => Some(EventType::PumpRouteIntent),
+        DexEvent::RawInstruction(_) => Some(EventType::RawInstruction),
         DexEvent::PumpFunCreate(_) => Some(EventType::PumpFunCreate),
         DexEvent::PumpFunCreateV2(_) => Some(EventType::PumpFunCreateV2),
         DexEvent::PumpFunTrade(_) => Some(EventType::PumpFunTrade),

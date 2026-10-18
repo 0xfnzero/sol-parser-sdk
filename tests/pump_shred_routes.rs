@@ -19,7 +19,9 @@ use sdk::shredstream::{
 use serde_json::Value;
 
 fn fixtures() -> Vec<Value> {
-    serde_json::from_str(include_str!("fixtures/shred_routes/reported.json")).unwrap()
+    let fixtures: Vec<Value> =
+        serde_json::from_str(include_str!("fixtures/shred_routes/reported.json")).unwrap();
+    fixtures.into_iter().filter(|f| f["expected"][0]["kind"] == "MultiHopSwap").collect()
 }
 fn transaction(f: &Value) -> VersionedTransaction {
     let tx: VersionedTransaction =
@@ -71,7 +73,7 @@ fn instructions_mut(tx: &mut VersionedTransaction) -> &mut Vec<CompiledInstructi
 }
 
 #[test]
-fn route_trade_hints_are_optional_and_survive_serialization() {
+fn official_route_hints_are_optional_and_survive_serialization() {
     let mut seen = std::collections::HashSet::new();
     for f in fixtures() {
         for event in resolved(&transaction(&f), &f, None) {
@@ -114,14 +116,11 @@ fn route_trade_hints_are_optional_and_survive_serialization() {
             assert_eq!(legacy.ix_name, None);
         }
     }
-    assert_eq!(
-        seen,
-        ["RapidBuy", "BuyPumpDelta", "MultiHopSwap"].into_iter().map(str::to_owned).collect()
-    );
+    assert_eq!(seen, ["MultiHopSwap"].into_iter().map(str::to_owned).collect());
 }
 
 #[test]
-fn six_signed_reported_transactions_replay_without_rpc() {
+fn official_signed_reported_transactions_replay_without_rpc() {
     for f in fixtures() {
         let tx = transaction(&f);
         let expected = f["expected"].as_array().unwrap();
@@ -215,7 +214,7 @@ fn six_signed_reported_transactions_replay_without_rpc() {
 }
 
 #[test]
-fn malformed_routes_and_unknown_programs_do_not_emit_or_panic() {
+fn malformed_official_routes_are_rejected_and_unknown_programs_stay_raw() {
     for f in fixtures() {
         let tx = transaction(&f);
         let index = f["expected"][0]["instruction_index"].as_u64().unwrap() as usize;
@@ -251,7 +250,12 @@ fn malformed_routes_and_unknown_programs_do_not_emit_or_panic() {
                 ix.data.push(0);
             }
             *instructions_mut(&mut malformed) = vec![ix];
-            assert!(resolved(&malformed, &f, None).is_empty());
+            let events = resolved(&malformed, &f, None);
+            if mutate == 1 {
+                assert!(matches!(&events[..], [DexEvent::RawInstruction(_)]));
+            } else {
+                assert!(events.is_empty());
+            }
         }
         // Resolved-key validation is transactional: errors leave the output unchanged.
         let mut events = resolved(&tx, &f, None);

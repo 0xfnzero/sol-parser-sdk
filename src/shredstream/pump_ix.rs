@@ -666,6 +666,46 @@ fn parse_transaction_pump_events_with_filter(
         (PumpMintSet::new(), PumpMintSet::new())
     };
     for (instruction_index, ix) in transaction.message.instructions().iter().enumerate() {
+        if let Some(program) = static_keys.get(ix.program_id_index as usize) {
+            let explicit_raw = filter.is_some_and(|f| {
+                f.include_only
+                    .as_ref()
+                    .is_some_and(|types| types.contains(&crate::grpc::EventType::RawInstruction))
+            });
+            let unknown = is_unknown_program_for_raw(program);
+            if (explicit_raw || unknown)
+                && filter.is_none_or(|f| f.should_include(crate::grpc::EventType::RawInstruction))
+            {
+                events.push(DexEvent::RawInstruction(Box::new(
+                    crate::core::events::RawInstructionEvent {
+                        metadata: EventMetadata {
+                            signature,
+                            slot,
+                            tx_index,
+                            grpc_recv_us: recv_us,
+                            recent_blockhash: Some(
+                                transaction.message.recent_blockhash().to_string(),
+                            ),
+                            ..Default::default()
+                        },
+                        program_id: *program,
+                        instruction_index,
+                        accounts: ix
+                            .accounts
+                            .iter()
+                            .map(|i| static_keys.get(*i as usize).copied())
+                            .collect(),
+                        account_indices: ix.accounts.clone(),
+                        instruction_data: ix.data.clone(),
+                    },
+                )));
+            }
+            // Third-party payloads are opaque, even when their bytes happen to
+            // contain a known Pump discriminator. Do not infer internal CPIs.
+            if unknown {
+                continue;
+            }
+        }
         if !best_effort
             && static_keys.get(ix.program_id_index as usize) == Some(&PROGRAM_ID_PUBKEY)
             && ix.data.len() >= 8
@@ -741,6 +781,67 @@ fn parse_transaction_pump_events_with_filter(
 }
 
 // --- 单条 outer ix 解析（由原 `client.rs` 迁入） ---
+
+/// Collect only unknown outer programs without decoding any protocol payload.
+/// Useful when a caller separately narrows protocol parsing but still wants
+/// default raw passthrough. ALT account indices remain unresolved as None.
+pub fn parse_transaction_unknown_instructions(
+    transaction: &VersionedTransaction,
+    signature: Signature,
+    slot: u64,
+    tx_index: u64,
+    recv_us: i64,
+    events: &mut Vec<DexEvent>,
+) {
+    let keys = transaction.message.static_account_keys();
+    for (instruction_index, ix) in transaction.message.instructions().iter().enumerate() {
+        let Some(&program_id) = keys.get(ix.program_id_index as usize) else {
+            continue;
+        };
+        if !is_unknown_program_for_raw(&program_id) {
+            continue;
+        }
+        events.push(DexEvent::RawInstruction(Box::new(crate::core::events::RawInstructionEvent {
+            metadata: EventMetadata {
+                signature,
+                slot,
+                tx_index,
+                grpc_recv_us: recv_us,
+                recent_blockhash: Some(transaction.message.recent_blockhash().to_string()),
+                ..Default::default()
+            },
+            program_id,
+            instruction_index,
+            accounts: ix.accounts.iter().map(|i| keys.get(*i as usize).copied()).collect(),
+            account_indices: ix.accounts.clone(),
+            instruction_data: ix.data.clone(),
+        })));
+    }
+}
+
+pub(crate) fn is_unknown_program_for_raw(program: &Pubkey) -> bool {
+    *program != PROGRAM_ID_PUBKEY
+        && !supported_unified_outer_programs().contains(program)
+        && !is_infrastructure_program(program)
+}
+
+fn is_infrastructure_program(program: &Pubkey) -> bool {
+    [
+        solana_sdk::pubkey!("11111111111111111111111111111111"),
+        solana_sdk::pubkey!("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"),
+        solana_sdk::pubkey!("TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"),
+        solana_sdk::pubkey!("ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"),
+        solana_sdk::pubkey!("ComputeBudget111111111111111111111111111111"),
+        solana_sdk::pubkey!("MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr"),
+        solana_sdk::pubkey!("Memo1UhkJRfHyvLMcVucJwxXeuD728EqVDDwQDxFMNo"),
+        solana_sdk::pubkey!("AddressLookupTab1e1111111111111111111111111"),
+        solana_sdk::pubkey!("Vote111111111111111111111111111111111111111"),
+        solana_sdk::pubkey!("Ed25519SigVerify111111111111111111111111111"),
+        solana_sdk::pubkey!("KeccakSecp256k11111111111111111111111111111"),
+        solana_sdk::pubkey!("Secp256r1SigVerify1111111111111111111111111"),
+    ]
+    .contains(program)
+}
 
 #[inline]
 fn parse_pumpfun_instruction(

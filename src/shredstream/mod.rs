@@ -56,7 +56,8 @@
 //! ## 限制说明
 //! ShredStream 相比 gRPC 订阅有以下限制：
 //! - 默认跳过未解析的 ALT 指令账户；通过缓存 resolver 或 loaded-addresses API 补齐。显式 best-effort API 保留旧版占位行为。
-//! - 官方多跳与已知 wrapper 输出 `PumpRouteIntent`，不是实际成交；任意 CPI 结果仍需执行元数据。
+//! - 官方多跳输出 `PumpRouteIntent`；第三方未知程序输出 `RawInstruction`，不推断内部 CPI。
+//! - 原始事件保留账户顺序、重复项和 data；未解析 ALT 账户为 None，并保留原始索引。
 //! - 无 block_time，恒为 0
 //! - tx_index 在单个 ShredStream payload 内递增，不保证等同于完整 slot 全局交易索引
 
@@ -70,4 +71,5 @@ pub use config::ShredStreamConfig;
 pub use pump_ix::{
     parse_transaction_dex_events, parse_transaction_dex_events_best_effort,
     parse_transaction_dex_events_with_filter, parse_transaction_dex_events_with_loaded_addresses,
+    parse_transaction_unknown_instructions,
 };

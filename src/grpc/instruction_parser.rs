@@ -169,6 +169,7 @@ pub(crate) fn parse_instructions_enhanced_with_created_buy(
             filter,
             is_created_buy,
         ) {
+            event = clear_pump_instruction_execution_amounts(event);
             match &mut event {
                 DexEvent::PumpFunBuy(trade)
                 | DexEvent::PumpFunBuyExactSolIn(trade)
@@ -216,6 +217,7 @@ pub(crate) fn parse_instructions_enhanced_with_created_buy(
                 &get_key,
                 filter,
             )
+            .map(clear_pump_instruction_execution_amounts)
             .or_else(|| {
                 parse_inner_instruction(
                     &inner_ix.data,
@@ -573,6 +575,22 @@ fn is_pump_trade(event: &DexEvent) -> bool {
             | DexEvent::PumpSwapBuy(_)
             | DexEvent::PumpSwapSell(_)
     )
+}
+
+// Compiled buy/sell payloads contain budgets and limits, never executed amounts.
+fn clear_pump_instruction_execution_amounts(mut event: DexEvent) -> DexEvent {
+    match &mut event {
+        DexEvent::PumpFunTrade(e)
+        | DexEvent::PumpFunBuy(e)
+        | DexEvent::PumpFunSell(e)
+        | DexEvent::PumpFunBuyExactSolIn(e) => {
+            e.sol_amount = 0;
+            e.quote_amount = 0;
+            e.token_amount = 0;
+        }
+        _ => {}
+    }
+    event
 }
 
 fn pump_trade_has_instruction_name(event: &DexEvent) -> bool {

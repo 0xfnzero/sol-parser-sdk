@@ -24,7 +24,7 @@ use std::str::FromStr;
 fn main() {
     // 交易签名：优先从环境变量 TX_SIGNATURE 读取，否则用默认示例
     let default_sig =
-        "64srGF8CnTz9zPbdayWYmzs5aVRFBcfjDcidFVvBgAD25VMh52wr88vma7ytSbAZT3C5Giu5BPyGfNfLexLSrKhP";
+        "4ARos3Yq1SMNE3izDpy9YdKrRgMmD7UCDxvnVrBRaGCJHiifPHSmQWc4DPfjUaEUcxS7puGmEN64K7EZdeXLJaj2";
     let tx_sig = std::env::var("TX_SIGNATURE").unwrap_or_else(|_| default_sig.to_string());
 
     println!("=== PumpFun Transaction Parser ===\n");

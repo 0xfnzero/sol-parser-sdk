@@ -147,6 +147,16 @@ pub fn parse_pumpfun_inner_instruction(
             return crate::logs::pump_upgrade::parse(disc, data, metadata, Some(&program));
         }
     }
+    // Anchor event CPI: instruction tag followed by the 8-byte event discriminator.
+    // Retain the historical discriminator+suffix representation as well.
+    if discriminator[..8] == [228, 69, 165, 46, 81, 203, 154, 29] {
+        if discriminator[8..] == discriminators::TRADE_EVENT[..8] {
+            return parse_trade_event_inner(data, metadata, is_created_buy);
+        }
+        if discriminator[8..] == discriminators::CREATE_TOKEN_EVENT[..8] {
+            return parse_create_event_inner(data, metadata);
+        }
+    }
     match *discriminator {
         discriminators::TRADE_EVENT => parse_trade_event_inner(data, metadata, is_created_buy),
         discriminators::CREATE_TOKEN_EVENT => parse_create_event_inner(data, metadata),
