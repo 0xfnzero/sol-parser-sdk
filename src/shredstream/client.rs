@@ -358,6 +358,7 @@ impl ShredStreamClient {
         };
 
         // 处理每个 Entry 中的交易
+        // Message-local position only: the next Entries message starts at zero again.
         let mut tx_index = 0u64;
         for entry in entries {
             for transaction in entry.transactions.iter() {

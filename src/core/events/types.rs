@@ -60,8 +60,13 @@ pub fn is_pumpfun_solscan_sol_quote_mint(quote_mint: Pubkey) -> bool {
 pub struct EventMetadata {
     pub signature: Signature,
     pub slot: u64,
-    pub tx_index: u64, // 交易在slot中的索引，参考solana-streamer
+    /// Caller-supplied transaction position. Yellowstone supplies its node index;
+    /// Entries clients enumerate within one received message, restarting at zero.
+    /// Not a slot-wide identity on Shred paths; deduplicate transactions by signature.
+    pub tx_index: u64,
     pub block_time_us: i64,
+    /// Local receive timestamp in microseconds, supplied by the ingestion path.
+    /// Not a chain execution timestamp or a guarantee of execution order.
     pub grpc_recv_us: i64,
     /// Transaction's recent blockhash as base58 string, when available.
     #[serde(default)]
