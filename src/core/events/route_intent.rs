@@ -28,6 +28,14 @@ pub struct PumpRouteHop {
 pub struct PumpRouteIntentEvent {
     pub metadata: EventMetadata,
     pub kind: PumpRouteKind,
+    /// Intended direction relative to the single wrapper hop's base mint.
+    /// None for multi-hop routes; this does not assert that a trade executed.
+    #[serde(default)]
+    pub is_buy: Option<bool>,
+    /// Expected underlying Pump instruction, only when encoded in the validated
+    /// wrapper payload. Not the outer route name or a confirmed CPI invocation.
+    #[serde(default)]
+    pub ix_name: Option<String>,
     pub program: Pubkey,
     /// Index within the signed message, distinct from metadata.tx_index.
     pub instruction_index: usize,

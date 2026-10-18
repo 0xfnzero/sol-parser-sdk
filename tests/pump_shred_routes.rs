@@ -71,6 +71,56 @@ fn instructions_mut(tx: &mut VersionedTransaction) -> &mut Vec<CompiledInstructi
 }
 
 #[test]
+fn route_trade_hints_are_optional_and_survive_serialization() {
+    let mut seen = std::collections::HashSet::new();
+    for f in fixtures() {
+        for event in resolved(&transaction(&f), &f, None) {
+            let DexEvent::PumpRouteIntent(intent) = event else {
+                panic!("expected route intent");
+            };
+            seen.insert(format!("{:?}", intent.kind));
+            match intent.kind {
+                PumpRouteKind::RapidBuy => {
+                    assert_eq!(intent.is_buy, Some(true));
+                    assert_eq!(intent.ix_name.as_deref(), Some("buy_exact_quote_in_v2"));
+                    assert_eq!(intent.hops.len(), 1);
+                    assert_eq!(
+                        &intent.instruction_data[17..25],
+                        &sdk::instr::pump::discriminators::BUY_EXACT_QUOTE_IN_V2
+                    );
+                }
+                PumpRouteKind::BuyPumpDelta => {
+                    assert_eq!(intent.is_buy, Some(true));
+                    assert_eq!(intent.ix_name, None);
+                    assert_eq!(intent.amount_in, None);
+                    assert_eq!(intent.hops.len(), 1);
+                }
+                PumpRouteKind::MultiHopSwap | PumpRouteKind::MultiHopCurveSwap => {
+                    assert_eq!(intent.is_buy, None);
+                    assert_eq!(intent.ix_name, None);
+                }
+            }
+            let mut json = serde_json::to_value(&intent).unwrap();
+            let restored: sdk::core::events::PumpRouteIntentEvent =
+                serde_json::from_value(json.clone()).unwrap();
+            assert_eq!(restored.is_buy, intent.is_buy);
+            assert_eq!(restored.ix_name, intent.ix_name);
+            // Previously persisted events have no hints: unknown must stay unknown.
+            json.as_object_mut().unwrap().remove("is_buy");
+            json.as_object_mut().unwrap().remove("ix_name");
+            let legacy: sdk::core::events::PumpRouteIntentEvent =
+                serde_json::from_value(json).unwrap();
+            assert_eq!(legacy.is_buy, None);
+            assert_eq!(legacy.ix_name, None);
+        }
+    }
+    assert_eq!(
+        seen,
+        ["RapidBuy", "BuyPumpDelta", "MultiHopSwap"].into_iter().map(str::to_owned).collect()
+    );
+}
+
+#[test]
 fn six_signed_reported_transactions_replay_without_rpc() {
     for f in fixtures() {
         let tx = transaction(&f);
@@ -290,6 +340,8 @@ fn signed_static_official_routes_and_curve_bounds() {
     assert_eq!(events.len(), 1);
     let DexEvent::PumpRouteIntent(e) = &events[0] else { panic!() };
     assert_eq!(e.kind, PumpRouteKind::MultiHopCurveSwap);
+    assert_eq!(e.is_buy, None);
+    assert_eq!(e.ix_name, None);
     assert_eq!(e.hops.len(), 1);
     assert_eq!(e.hops[0].base_mint.to_string(), curve["accounts"][13].as_str().unwrap());
     assert_eq!(e.min_amount_out, None);

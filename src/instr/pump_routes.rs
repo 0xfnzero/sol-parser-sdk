@@ -159,6 +159,11 @@ pub fn parse(
     Some(PumpRouteIntentEvent {
         metadata,
         kind,
+        is_buy: match kind {
+            PumpRouteKind::RapidBuy | PumpRouteKind::BuyPumpDelta => Some(true),
+            PumpRouteKind::MultiHopSwap | PumpRouteKind::MultiHopCurveSwap => None,
+        },
+        ix_name: (kind == PumpRouteKind::RapidBuy).then(|| "buy_exact_quote_in_v2".to_owned()),
         program,
         instruction_index,
         user: accounts[user],
