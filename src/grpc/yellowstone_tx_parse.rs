@@ -88,6 +88,7 @@ pub(crate) fn parse_transaction_core(
 
     let mut events =
         crate::grpc::log_instr_dedup::dedupe_log_instruction_events(log_events, instr_events);
+    crate::core::common_filler::fill_pump_creation_context(&mut events, meta, &info.transaction);
     crate::grpc::transaction_meta::fill_recent_blockhash(&mut events, &info.transaction);
     for event in &mut events {
         crate::core::common_filler::fill_token_balances(event, meta, &info.transaction);
@@ -168,6 +169,7 @@ fn parse_transaction_core_sequential(
 
     let mut events =
         crate::grpc::log_instr_dedup::dedupe_log_instruction_events(log_events, instr_events);
+    crate::core::common_filler::fill_pump_creation_context(&mut events, meta, &info.transaction);
     crate::grpc::transaction_meta::fill_recent_blockhash(&mut events, &info.transaction);
     for event in &mut events {
         crate::core::common_filler::fill_token_balances(event, meta, &info.transaction);

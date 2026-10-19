@@ -311,6 +311,7 @@ fn parse_converted_rpc_transaction(
     }
 
     let mut events = merge_log_and_instruction_events(log_events, instr_events);
+    crate::core::common_filler::fill_pump_creation_context(&mut events, &grpc_meta, &grpc_tx_opt);
     fill_rpc_event_metadata(&mut events, rpc_tx, &grpc_meta, &grpc_tx_opt);
     Ok(events)
 }

@@ -1,5 +1,7 @@
 <div align="center">
 
+[第三方 Pump.fun 包装指令：离线规则、热路径边界与真实交易回放](docs/wrapped-pumpfun.md)
+
 ## v0.7.18 — Shred 元数据透传与顺序范围
 
 保留并验证 `tx_index`、接收时间从解析入口传到原始指令回调。明确 Entries 消息内序号与 Yellowstone 节点 index 的区别：本地序号不是全 slot 索引；跨消息去重使用交易签名。此版本完善文档和回归保护，不改变现有字段或编号规则。

@@ -32,6 +32,9 @@ fn trades(events: &[DexEvent]) -> Vec<Value> {
                 "token_amount",
                 "quote_amount",
                 "sol_amount",
+                "is_created_buy",
+                "mayhem_mode",
+                "ix_name",
                 "base_amount_out",
                 "base_amount_in",
                 "quote_amount_in",
@@ -50,6 +53,7 @@ fn execution_survives_missing_or_truncated_logs() {
         include_str!("fixtures/pump_execution_20261019.json"),
         include_str!("fixtures/pump_routes_20261009.json"),
         include_str!("fixtures/pump_execution_original.json"),
+        include_str!("fixtures/wrapped_pumpfun_reported.json"),
     ] {
         let fixture: Value = serde_json::from_str(fixture).unwrap();
         for c in fixture["cases"].as_array().unwrap() {

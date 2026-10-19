@@ -250,6 +250,7 @@ pub(crate) fn parse_instructions_enhanced_with_created_buy(
     // 步骤 3: 合并相关事件（instruction + inner instruction）
     let mut final_result = merge_instruction_events(result);
     enrich_pumpfun_same_tx_post_merge(&mut final_result);
+    crate::core::common_filler::fill_pump_creation_context(&mut final_result, meta, transaction);
 
     // 步骤 4: 填充账户上下文（invokes 与 fill_data 均使用 Pubkey 键，无堆泄漏）
     for event in &mut final_result {

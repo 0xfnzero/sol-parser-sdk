@@ -20,8 +20,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             },
         )?]
     } else {
-        let fixture: serde_json::Value =
+        let mut fixture: serde_json::Value =
             serde_json::from_str(include_str!("../tests/fixtures/pump_execution_20261019.json"))?;
+        let reported: serde_json::Value =
+            serde_json::from_str(include_str!("../tests/fixtures/wrapped_pumpfun_reported.json"))?;
+        fixture["cases"]
+            .as_array_mut()
+            .unwrap()
+            .extend(reported["cases"].as_array().unwrap().iter().cloned());
         fixture["cases"]
             .as_array()
             .unwrap()

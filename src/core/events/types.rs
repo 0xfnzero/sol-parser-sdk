@@ -313,6 +313,10 @@ impl RaydiumLaunchlabMigrateAmmEvent {
 /// - INSTRUCTION: 来自指令解析，用于补充事件缺失的上下文信息
 #[derive(Debug, Clone, Serialize, Deserialize, Default, BorshDeserialize)]
 pub struct PumpFunTradeEvent {
+    /// Present only for explicitly enabled Shred wrapper-rule reconstruction.
+    #[borsh(skip)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub third_program: Option<crate::wrapped_pumpfun_parser::ThirdProgram>,
     #[borsh(skip)]
     #[serde(default)]
     pub creator_fee_unclaimed: u64,
@@ -343,7 +347,8 @@ pub struct PumpFunTradeEvent {
     pub total_claimed_tokens: u64,
     pub current_sol_volume: u64,
     pub last_update_timestamp: i64,
-    /// Instruction name as emitted by the program, for example `"buy"`, `"buy_v2"`,
+    /// Compiled instruction's IDL name when available; otherwise the event-log name,
+    /// for example `"buy"`, `"buy_v2"`,
     /// `"sell"`, `"sell_v2"`, `"buy_exact_sol_in"`, or `"buy_exact_quote_in_v2"`.
     pub ix_name: String,
     /// 与链上 / Explorer `tradeEvent` 中 `mayhemMode` 一致（gRPC 日志解析填充；勿用 fee 地址推断）。

@@ -4,6 +4,135 @@ use solana_sdk::pubkey::Pubkey;
 use std::collections::HashMap;
 use yellowstone_grpc_proto::prelude::{Transaction, TransactionStatusMeta};
 
+/// Creation context comes from real instructions, including router CPIs, and is
+/// scoped to the traded mint. Logs can be missing, truncated, or mention another
+/// mint created in the same transaction. No network/account fetch is performed.
+pub(crate) fn fill_pump_creation_context(
+    events: &mut [DexEvent],
+    meta: &TransactionStatusMeta,
+    transaction: &Option<Transaction>,
+) {
+    let Some(message) = transaction.as_ref().and_then(|tx| tx.message.as_ref()) else { return };
+    if !events.iter().any(|e| {
+        matches!(
+            e,
+            DexEvent::PumpFunTrade(_)
+                | DexEvent::PumpFunBuy(_)
+                | DexEvent::PumpFunSell(_)
+                | DexEvent::PumpFunBuyExactSolIn(_)
+        )
+    }) {
+        return;
+    }
+    let get = |i: usize| {
+        let static_len = message.account_keys.len();
+        let writable_len = meta.loaded_writable_addresses.len();
+        let bytes = if i < static_len {
+            message.account_keys.get(i)
+        } else if i < static_len + writable_len {
+            meta.loaded_writable_addresses.get(i - static_len)
+        } else {
+            meta.loaded_readonly_addresses.get(i - static_len - writable_len)
+        }?;
+        Pubkey::try_from(bytes.as_slice()).ok()
+    };
+    let mut created = smallvec::SmallVec::<[(Pubkey, bool); 4]>::new();
+    let mut inspect = |program_index: u32, accounts: &[u8], data: &[u8]| {
+        use crate::instr::pump::discriminators::{CREATE, CREATE_V2};
+        if get(program_index as usize) != Some(crate::instr::pump::PROGRAM_ID_PUBKEY) {
+            return;
+        }
+        let Some(disc) = data.get(..8) else { return };
+        if disc != CREATE && disc != CREATE_V2 {
+            return;
+        }
+        let Some(mint) = accounts.first().and_then(|i| get(*i as usize)) else { return };
+        let mayhem = disc == CREATE_V2
+            && crate::instr::utils::parse_create_v2_tail_fields(&data[8..])
+                .is_some_and(|(_, mayhem, _, _, _)| mayhem);
+        created.push((mint, mayhem));
+    };
+    for ix in &message.instructions {
+        inspect(ix.program_id_index, &ix.accounts, &ix.data);
+    }
+    for group in &meta.inner_instructions {
+        for ix in &group.instructions {
+            inspect(ix.program_id_index, &ix.accounts, &ix.data);
+        }
+    }
+    for event in events {
+        match event {
+            DexEvent::PumpFunTrade(t)
+            | DexEvent::PumpFunBuy(t)
+            | DexEvent::PumpFunSell(t)
+            | DexEvent::PumpFunBuyExactSolIn(t) => {
+                t.is_created_buy = t.is_buy && created.iter().any(|(mint, _)| *mint == t.mint);
+                t.mayhem_mode |= created.iter().any(|(mint, mayhem)| *mint == t.mint && *mayhem);
+            }
+            _ => {}
+        }
+    }
+}
+
+#[cfg(test)]
+mod pump_creation_context_tests {
+    use super::*;
+    use yellowstone_grpc_proto::prelude::{InnerInstruction, InnerInstructions, Message};
+
+    #[test]
+    fn inner_create_is_scoped_to_mint_even_without_logs() {
+        let created = Pubkey::new_unique();
+        let other = Pubkey::new_unique();
+        let transaction = Some(Transaction {
+            message: Some(Message {
+                account_keys: vec![
+                    crate::instr::pump::PROGRAM_ID_PUBKEY.to_bytes().to_vec(),
+                    created.to_bytes().to_vec(),
+                    other.to_bytes().to_vec(),
+                ],
+                ..Default::default()
+            }),
+            ..Default::default()
+        });
+        let meta = TransactionStatusMeta {
+            inner_instructions: vec![InnerInstructions {
+                index: 0,
+                instructions: vec![InnerInstruction {
+                    program_id_index: 0,
+                    accounts: vec![1],
+                    data: crate::instr::pump::discriminators::CREATE.to_vec(),
+                    stack_height: Some(2),
+                }],
+            }],
+            ..Default::default()
+        };
+        let mut events = vec![
+            DexEvent::PumpFunTrade(PumpFunTradeEvent {
+                mint: created,
+                is_buy: true,
+                ..Default::default()
+            }),
+            DexEvent::PumpFunTrade(PumpFunTradeEvent {
+                mint: other,
+                is_buy: true,
+                is_created_buy: true,
+                ..Default::default()
+            }),
+            DexEvent::PumpFunTrade(PumpFunTradeEvent {
+                mint: created,
+                is_buy: false,
+                is_created_buy: true,
+                ..Default::default()
+            }),
+        ];
+        fill_pump_creation_context(&mut events, &meta, &transaction);
+        for (event, expected) in events.iter().zip([true, false, false]) {
+            let DexEvent::PumpFunTrade(t) = event else { unreachable!() };
+            assert_eq!(t.is_created_buy, expected);
+        }
+    }
+}
+
 /// `get_fees` / `get_fees_with_quote_mint`: discriminator followed by is_pump_pool.
 /// Other instructions in the fee program do not carry this parameter.
 #[inline]
@@ -33,11 +162,17 @@ fn set_pumpswap_is_pump_pool_from_fees_ix<L: InvokeLookup + ?Sized>(
 ) {
     // Standalone fee queries carry no pool identity. Only a direct fee CPI
     // belonging to the uniquely matched swap can enrich this event.
-    let Some(swaps) = program_invokes.get_invokes(&crate::grpc::program_ids::PUMPSWAP_PROGRAM) else {
+    let Some(swaps) = program_invokes.get_invokes(&crate::grpc::program_ids::PUMPSWAP_PROGRAM)
+    else {
         return;
     };
     let Some(swap) = crate::core::account_dispatcher::find_pumpswap_trade_invoke(
-        swaps, meta, transaction, pool, user, buy,
+        swaps,
+        meta,
+        transaction,
+        pool,
+        user,
+        buy,
     ) else {
         return;
     };
@@ -47,12 +182,14 @@ fn set_pumpswap_is_pump_pool_from_fees_ix<L: InvokeLookup + ?Sized>(
     let (start, depth) = if swap.1 < 0 {
         (0, 1)
     } else {
-        let Some(depth) = group.instructions.get(swap.1 as usize).and_then(|ix| ix.stack_height) else {
+        let Some(depth) = group.instructions.get(swap.1 as usize).and_then(|ix| ix.stack_height)
+        else {
             return;
         };
         (swap.1 as usize + 1, depth)
     };
-    let Some(fees) = program_invokes.get_invokes(&crate::grpc::program_ids::PUMPSWAP_FEES_PROGRAM) else {
+    let Some(fees) = program_invokes.get_invokes(&crate::grpc::program_ids::PUMPSWAP_FEES_PROGRAM)
+    else {
         return;
     };
     let Some(child_depth) = depth.checked_add(1) else {
@@ -422,7 +559,9 @@ mod fee_instruction_layout_tests {
 #[cfg(test)]
 mod review_fee_scope_regressions {
     use super::*;
-    use yellowstone_grpc_proto::prelude::{CompiledInstruction, InnerInstruction, InnerInstructions, Message};
+    use yellowstone_grpc_proto::prelude::{
+        CompiledInstruction, InnerInstruction, InnerInstructions, Message,
+    };
 
     #[test]
     fn fees_only_enrich_their_own_swap_and_unknown_parentage_preserves_logs() {
@@ -441,16 +580,38 @@ mod review_fee_scope_regressions {
         };
         let tx = Some(Transaction {
             message: Some(Message {
-                account_keys: vec![pool0.to_bytes().to_vec(), pool1.to_bytes().to_vec(), user.to_bytes().to_vec()],
-                instructions: vec![swap(0), swap(1), CompiledInstruction { data: fee(1), ..Default::default() }],
+                account_keys: vec![
+                    pool0.to_bytes().to_vec(),
+                    pool1.to_bytes().to_vec(),
+                    user.to_bytes().to_vec(),
+                ],
+                instructions: vec![
+                    swap(0),
+                    swap(1),
+                    CompiledInstruction { data: fee(1), ..Default::default() },
+                ],
                 ..Default::default()
             }),
             ..Default::default()
         });
         let mut meta = TransactionStatusMeta {
             inner_instructions: vec![
-                InnerInstructions { index: 0, instructions: vec![InnerInstruction { data: fee(1), stack_height: Some(2), ..Default::default() }] },
-                InnerInstructions { index: 1, instructions: vec![InnerInstruction { data: fee(0), stack_height: Some(2), ..Default::default() }] },
+                InnerInstructions {
+                    index: 0,
+                    instructions: vec![InnerInstruction {
+                        data: fee(1),
+                        stack_height: Some(2),
+                        ..Default::default()
+                    }],
+                },
+                InnerInstructions {
+                    index: 1,
+                    instructions: vec![InnerInstruction {
+                        data: fee(0),
+                        stack_height: Some(2),
+                        ..Default::default()
+                    }],
+                },
             ],
             ..Default::default()
         };
@@ -466,7 +627,14 @@ mod review_fee_scope_regressions {
         meta.inner_instructions.clear();
         set_pumpswap_is_pump_pool_from_fees_ix(&meta, &tx, &invokes, pool0, user, true, &mut flag);
         assert!(!flag, "standalone query cannot be attributed to this pool");
-        meta.inner_instructions = vec![InnerInstructions { index: 1, instructions: vec![InnerInstruction { data: fee(0), stack_height: None, ..Default::default() }] }];
+        meta.inner_instructions = vec![InnerInstructions {
+            index: 1,
+            instructions: vec![InnerInstruction {
+                data: fee(0),
+                stack_height: None,
+                ..Default::default()
+            }],
+        }];
         flag = true;
         set_pumpswap_is_pump_pool_from_fees_ix(&meta, &tx, &invokes, pool1, user, true, &mut flag);
         assert!(flag, "preserve a log-derived flag without parentage evidence");

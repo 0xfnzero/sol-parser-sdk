@@ -10,6 +10,8 @@ pub mod logs; // 日志解析器
 pub mod stonkfun_registry;
 pub mod transaction_cost;
 pub mod transaction_route;
+pub mod wrapped_pumpfun_parser;
+pub mod wrapped_pumpfun_rpc_analyzer;
 pub mod utils;
 pub mod warmup; // 预热模块
 

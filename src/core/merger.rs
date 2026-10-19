@@ -405,7 +405,7 @@ fn merge_pumpfun_trade(base: &mut PumpFunTradeEvent, inner: PumpFunTradeEvent) {
         base.total_claimed_tokens = inner.total_claimed_tokens;
         base.current_sol_volume = inner.current_sol_volume;
         base.last_update_timestamp = inner.last_update_timestamp;
-        if !inner.ix_name.is_empty() {
+        if prefer_pump_instruction_name(&base.ix_name, &inner.ix_name) {
             base.ix_name = inner.ix_name;
         }
         base.mayhem_mode |= inner.mayhem_mode;
@@ -451,7 +451,7 @@ fn merge_pumpfun_trade(base: &mut PumpFunTradeEvent, inner: PumpFunTradeEvent) {
         put_u64_if_nonzero(&mut base.holder_rewards, inner.holder_rewards);
         put_i64_if_nonzero(&mut base.timestamp, inner.timestamp);
         put_i64_if_nonzero(&mut base.last_update_timestamp, inner.last_update_timestamp);
-        if !inner.ix_name.is_empty() {
+        if prefer_pump_instruction_name(&base.ix_name, &inner.ix_name) {
             base.ix_name = inner.ix_name;
         }
         base.track_volume |= inner.track_volume;
@@ -500,6 +500,13 @@ fn merge_pumpfun_trade(base: &mut PumpFunTradeEvent, inner: PumpFunTradeEvent) {
 
     base.is_created_buy |= inner.is_created_buy;
     // 保留 base 的账户上下文字段（bonding_curve, associated_bonding_curve 等）
+}
+
+// CPI TradeEvent may say `buy_exact_quote_in`/`sell` for v2 and v3.
+// Preserve the actual compiled instruction's IDL name when available.
+fn prefer_pump_instruction_name(current: &str, incoming: &str) -> bool {
+    let versioned = |s: &str| s.ends_with("_v2") || s.ends_with("_v3");
+    !incoming.is_empty() && (!versioned(current) || versioned(incoming))
 }
 
 /// 合并 PumpFun Create 事件
@@ -710,7 +717,7 @@ fn merge_pumpfun_trade_log_preferred(log: &mut PumpFunTradeEvent, ix: PumpFunTra
     if log.account.is_none() {
         log.account = ix.account;
     }
-    if log.ix_name.is_empty() && !ix.ix_name.is_empty() {
+    if prefer_pump_instruction_name(&log.ix_name, &ix.ix_name) {
         log.ix_name = ix.ix_name;
     }
     put_u64_if_nonzero(&mut log.amount, ix.amount);
