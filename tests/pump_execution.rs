@@ -35,6 +35,8 @@ fn trades(events: &[DexEvent]) -> Vec<Value> {
                 "is_created_buy",
                 "mayhem_mode",
                 "ix_name",
+                "third_program",
+                "parse_status",
                 "base_amount_out",
                 "base_amount_in",
                 "quote_amount_in",

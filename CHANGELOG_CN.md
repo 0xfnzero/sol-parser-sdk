@@ -1,0 +1,254 @@
+# 版本记录
+
+以下保留各版本发布时的说明，不代表当前行为。当前用法见 [README](README_CN.md) 与 [文档索引](docs/README.md)。
+
+## v0.7.19 — Pump.fun 包装指令规则与 gRPC 执行上下文
+
+新增显式启用的离线规则分析与 Shred 指令还原，通过 `third_program` 标识第三方来源。解析热路径不调用 RPC；无法匹配的指令保留原始事件，不推断实际成交金额。修复按 mint 识别创建后买入的上下文，保留 Pump.fun IDL 版本化方法名，并提供已签名主网交易回放。
+
+[第三方 Pump.fun 包装指令：离线规则、热路径边界与真实交易回放](docs/wrapped-pumpfun.md)
+
+## v0.7.18 — Shred 元数据透传与顺序范围
+
+保留并验证 `tx_index`、接收时间从解析入口传到原始指令回调。明确 Entries 消息内序号与 Yellowstone 节点 index 的区别：本地序号不是全 slot 索引；跨消息去重使用交易签名。此版本完善文档和回归保护，不改变现有字段或编号规则。
+
+
+## v0.7.18 — RawInstruction 协议过滤与 DEX 枚举
+
+修复原始指令绕过 DEX 订阅范围的问题。按单条指令引用的官方程序识别 DEX，使用 `RawInstructionDexType` 枚举；JSON 字符串保持不变。未知 router 不推断池子地址、买卖方向或方法版本。
+
+
+## v0.7.18 — Pump 执行事件与最新回放示例
+
+修复官方 Anchor CPI TradeEvent 前缀识别，保留历史编码兼容。RPC/gRPC 的实际 `sol_amount`、`quote_amount`、`token_amount` 只从执行事件合并；预算和最小输出保留在指令参数字段。如果日志及事件 CPI 均缺失，实际金额字段为 0（表示无执行数据，不代表已确认零成交）。非 SOL 报价金额不能当作 SOL。
+
+在本仓库运行 `cargo run --offline --example pump_execution_replay`，离线回放 2026-10-19 重新抓取的真实交易。示例输出完整日志、无日志、截断日志三种结果；命令末尾追加最新签名可在线验证。通过 `SOLANA_RPC_URL` 选择 RPC，支持 transaction v1。
+
+新 Delta 卖出样本：`4ARos3Yq1SMNE3izDpy9YdKrRgMmD7UCDxvnVrBRaGCJHiifPHSmQWc4DPfjUaEUcxS7puGmEN64K7EZdeXLJaj2`，slot 458542546。日期样本文件还包含 Rapid 创建后买入、BuyV3 和 PumpSwap 买入的完整签名及 slot。旧的五种双跳组合仅作为回归样本，未冒充本次新抓取交易。
+
+## v0.7.18 — Shred 原始指令透传
+
+默认 Shred 入口将未适配的第三方程序（包括 Rapid/Delta）作为 `RawInstruction` 返回，不再推断买卖方向、金额或内部 buy 版本。System、Token、ATA、ComputeBudget 等基础程序默认不透传；已支持的官方 DEX 指令继续正常解析，官方 Pump/PumpSwap 多跳仍返回 `PumpRouteIntent`。
+
+事件包含 `program_id`、`instruction_index`、`accounts`、`account_indices`、`instruction_data` 和交易 metadata。账户保留原顺序与重复项；未解析 ALT 地址为 null/None，原始索引仍保留。使用缓存 loaded-addresses/resolver 补齐，热路径不请求 RPC。data 是完整原始字节，不要求已知布局。
+
+运行 `cargo run --example raw_instruction_filter` 对比同一组已签名交易的 PumpFun、Raydium CPMM 与全量原始指令订阅；输出包含 `dexes`。
+
+原始事件保留调用方传入的 `metadata.tx_index` 和 `metadata.grpc_recv_us`（streamer 对应 `metadata.recv_us`）。默认 Entries 客户端的交易序号仅在单条接收消息内递增，下一条消息从 0 重新计数，不等于已确认的整个 slot 交易序号。`instruction_index` 表示交易内外层指令顺序；接收时间是本地微秒时间戳，不保证链上执行顺序。独立回放 API 可能默认填 0，调用时应传入上游已有的序号与接收时间。
+
+无过滤器时返回未知第三方指令。宽泛交易/Swap 订阅（如 `PumpFunTrade`、`RaydiumCpmmSwap`）也返回关联该 DEX 的原始指令；买/卖方向订阅不推测方向。显式 `RawInstruction` 仅在未限制协议时返回全部外层指令，streamer 的协议限制始终生效；显式排除 `RawInstruction` 优先。`dex_type` 使用公开枚举 `RawInstructionDexType`（Go 为命名字符串类型与常量）；JSON 仍为 `"pumpfun"`、`"raydium_cpmm"` 等原有字符串。`dexes` 数组包含各关联 DEX 的 `{ dex_type, program_id, pool }`，只识别本条指令直接调用或账户中引用的 DEX 程序，不借用同笔其他指令的账户；多 DEX 包装保留所有关联。未知或未解析 ALT 中的程序不能匹配 DEX 订阅。`pool` 当前为 null：未知包装布局无法确定池子账户。program 引用不证明执行了 CPI，原始回调不是成交。
+
+已有 wrapper 适配函数仅作为显式调用的兼容接口保留，不参与默认 Shred 解码。以下已发布版本的历史说明描述旧行为。
+
+## v0.7.15 — Pump 路由事件完善
+
+路由意图新增 `is_buy` 和 `ix_name`，沿用交易事件字段名和官方 IDL 方法名。RapidBuy 为买入意图，方法为 `buy_exact_quote_in_v2`；BuyPumpDelta 仅确定买入方向；多跳方向与未知方法保持为空。币种仍从 `hops[].base_mint` / `quote_mint` 获取。这些信息不代表已成交，过滤器也不会将路由意图转换为交易事件。
+
+Streamer 现在通过 `DexEvent::PumpRouteIntentEvent` 转发完整路由字段并支持过滤。旧 JSON 缺少新字段时保持未知；Rust 结构体字面量需补齐新字段，穷举 streamer 事件的代码需处理新变体。
+
+## v0.7.14 — Pump routes and offline replay
+
+Adds native Pump route-intent parsing for official multi-hop instructions and the exact RapidBuy/BuyPumpDelta wrapper layouts captured in reported transactions. Adds locally cached ALT resolution and rejects unresolved account identities by default, with explicit best-effort compatibility APIs where supported. Route intents expose instruction constraints and hop identities; confirmed execution amounts require execution metadata.
+
+Includes the latest complete implementation, signed transaction fixtures, native offline-bank regression examples and reproducible local hot-path benchmarks. Unknown wrapper layouts are not inferred from embedded bytes. Local tests do not measure production network latency.
+
+## v0.7.13 — Pump depth-2 compatibility
+
+Adds signed Pump depth-2 create-event replay coverage, including ALT-loaded accounts and executed logs. Existing event layouts and public parsing interfaces remain unchanged.
+
+Validation includes official Pump SDK 4.1.0 instruction comparisons, signed local LiteSVM simulations and SDK regressions. Local simulation state/config is synthetic; no funded transactions were broadcast and production latency was not measured.
+
+## v0.7.12 — PumpFun migration event CPI 修复
+
+修复从 event CPI 指令解析 PumpFun migration 事件，包含 migrate_v2 与已迁移交易的离线主网样本回归；保留 0.7.11 的签名交易、ALT、顺序流和生命周期修复。配套 solana-streamer-sdk 3.0.10 锁定本版本。
+
+## v0.7.11 — Signed transaction and hot-path hardening
+
+Hardens signed transaction sanitization, loaded-address boundaries, ordered stream filtering and parser lifecycle. Aligns CLMM and DEX instruction/event layouts, nested CPI route attribution and liquidity/reward accounting. Adds independently signed wire fixtures, ALT failure cases and offline bank regressions.
+
+Validation includes local CPU benchmarks and offline signed-bank scenarios. Measured hot paths use cached inputs without RPC. Benchmarks do not establish production network or transaction-landing latency. No funded mainnet transactions were broadcast.
+
+#### v0.7.10
+
+- 按实际指令 discriminator 和事件 mint 匹配 PumpFun create/create_v2 账户，支持 CPI，并拒绝猜测有歧义的匹配。
+- 停止从 create_v2 的任意尾部账户推断 quote mint、vault、token program，保留权威解码字段。
+- 恢复历史 CreateEvent 布局，并通过保存的真实主网成功、失败交易验证。
+
+#### v0.7.9
+
+- 按独立账户布局及 boost vault authority 匹配，修复 PumpSwap `boost_buy_and_burn` 的池金库和 token program 回填。
+- 保留严格的池、交易方向、用户与唯一性匹配，以及普通交易按真实账户数量处理 ALT 的逻辑。
+- 修复 Ed25519、secp256k1 和 secp256r1 预编译指令导致的日志指令索引偏移。
+- 新增 boost 买入及含预编译指令卖出的离线主网回放样本，覆盖 RPC 与 Yellowstone 两种解析路径。
+
+#### v0.7.8
+
+- Updates CPMM creator-fee collection accounts, share PDA and AmmConfig share-rate decoding.
+- Fixes failed-transaction event suppression and instruction/account preservation.
+- Adds RPC capture/replay examples and 13 mainnet transactions with 17 independently checked operations.
+- Run `cargo run --example rpc_corpus_validate -- --list` to view real signatures; run without arguments for offline validation.
+
+#### v0.7.7
+
+- 新增可选的指令级路由分析，保留 CPI 位置、实际转账、SOL/WSOL 生命周期证据和未知程序信息。
+- 跟踪已验证的 StonkFun 内外盘池和迁移线索，避免将普通 CPMM 池误判为 StonkFun。
+- 新增带 slot/write-version 的 gRPC 原始账户快照及缓存采集示例，服务于无 RPC 的交易热路径。
+
+#### v0.7.6
+
+- 以事件自身池地址锚定 Raydium CLMM/CPMM、Orca Whirlpool、Meteora DLMM、Raydium AMM 的账户回填，避免多跳路由把兄弟 swap 的 vault/config 填错。
+- 在 CPMM/CLMM/Whirlpool/DLMM/AMM swap 事件上暴露指令账户字段（config、vault、mint、observation、tick array / bitmap extension 等）。
+- 收紧 account filler 与 merger 使用的 invoke 匹配辅助逻辑。
+
+#### v0.7.5
+
+- 根据相同池的真实 swap/swap2 指令补全 Meteora DAMM v2 的 mint、vault、payer、token program 等全部账户，并正确处理可选 referral 账户。
+- 避免从其他池或同池多次 swap 的不确定指令中错误填充账户。
+- 使用 solana-streamer issue #82 的两笔真实主网交易验证默认及 zero-copy 解析路径。
+
+#### v0.7.4
+
+- 新增首选订阅名称 `Protocol::StonkFun` 与 `Protocol::LaunchLab`；旧的 `Protocol::RaydiumLaunchlab` 继续兼容。
+- 根据 StonkFun 官方 LaunchLab platform config 识别 standard 与 reward 两种池。
+- 新增可选 RPC/Yellowstone 路由分析，保留 CPI 位置、mint 流向、指令限制、实成交量及未知程序，并补充迁移池来源。详见 [StonkFun 路由分析与账户订阅](docs/ROUTE_ANALYSIS.md)。
+- 完整解析当前 LaunchLab trade event，包括储备量、全部手续费、池状态与新增的三个尾部交易账户。
+- 支持当前 18 账户 LaunchLab 交易指令布局，并在日志事件与指令事件合并时保留新增账户。
+- 新增真实主网 StonkFun reward 池交易回归测试，交易签名为 `4Pb4vgRq6rAFi5NmMZMsfBvuwVVsvBqhySfPS3naMksujvEiGtPjxRLape7V82ZVQvxt7P8YKPCL6RSWTreMUFrY`。
+- 新增真实主网 StonkFun 毕业后 CPMM swap 回归测试，交易签名为 `3jiXX1AXnQfve1FCHwqUUXoM2BpS2jZEDNB7S6UXLdHGQa3VmBoWNVw9A2gTLbvEZeSU697s9XKgKDqxaR92Qqcz`。
+
+运行受环境变量保护的真实主网解析回归：
+
+```bash
+RUN_MAINNET_TESTS=1 cargo test --test current_mainnet_transactions current_stonkfun_reward_trade_preserves_platform_quote_accounts_and_fees -- --nocapture
+RUN_MAINNET_TESTS=1 cargo test --test current_mainnet_transactions current_stonkfun_graduated_cpmm_swap_parses_from_mainnet -- --nocapture
+```
+
+#### v0.7.3
+
+- 将内置 PumpFun、PumpSwap 与 Pump Fees IDL 同步到 `pump-public-docs` 当前官方定义。
+- 在 instruction、log、account、RPC、gRPC 与 ShredStream 解析链路中补齐 creator fee、holder reward、quote、cashback、buyback 和池配置字段。
+- 修复 outer instruction 与 event-CPI 合并时 PumpFun holder reward 数值丢失，并保持多语言事件 schema 一致。
+- 拒绝已知 PumpSwap trade 与 CreatePool 字段的截断尾部，同时继续兼容完整历史布局和未来追加字段。
+
+#### v0.7.2
+
+- 将 vendored Meteora DAMM v2 IDL 同步到 **0.2.4**，DBC IDL 同步到 **0.2.1**。
+- 新增 DAMM v2 Position Delegate 与 config 事件解析：`EvtUpdateDelegatePermission`、`EvtWithdrawDeadLiquidityReward`、`EvtCreateConfig`、`EvtCreateDynamicConfig`（含 0.2.4 的 `permission` 字段）。
+- 打通日志、优化匹配器、inner instruction 路径，以及 `EventType` / `DexEvent` 过滤。
+- 通过 `Message.config` 识别 Yellowstone V1 消息，并完整输出 priority fee、compute-unit limit、loaded-accounts data-size limit、heap size 四项交易配置；按 Solana 规范忽略 V1 中的 ComputeBudget 指令。
+- Yellowstone V1 接入要求 `yellowstone-grpc-proto >= 12.6.0`，且服务端 Yellowstone geyser plugin 必须 `>= 15.1.1`；更旧的服务端会在传输前把 V1 静默降级成 V0 并丢弃 `Message.config`。
+- 使用纯安全、可移植的 `base58-turbo` 路径加速 RPC inner instruction 的 Base58 解码；在保存的主网 corpus 上，端到端 RPC 解析延迟按指令载荷大小降低 17.7% 至 80% 以上。
+- 在 RPC 解析链路中借用日志与余额 metadata，避免重复克隆；最终跨协议 corpus 中 PumpFun、PumpSwap、Raydium CPMM、Meteora/Orca 交易解析耗时为 7.40-11.80 us。
+- 新增 PumpFun、PumpSwap、Raydium CPMM、Meteora DLMM/Orca 离线 RPC fixture、精确事件回归测试及统一跨协议 benchmark。
+
+#### v0.7.1
+
+- 修复当前 Meteora DAMM v2 `EvtSwap2` 的 180 字节布局、三种 SwapMode、transfer fee、reserve 字段，以及主网 fee 布局升级前后的语义。
+- 增加当前统一的 `EvtLiquidityChange` discriminator，并根据 `change_type` 在日志、优化匹配器和 inner instruction 路径中精确路由为 AddLiquidity 或 RemoveLiquidity。
+- 增加可复现的 DAMM v2 Swap 与 AddLiquidity 主网 RPC 回归测试。
+
+#### v0.7.0
+
+- 将公开 Solana 类型升级到 Solana 4，完整覆盖 Legacy、V0 和 V1 交易消息。
+- 在生产 ShredStream 和 RPC 交易解码路径使用 `wincode 0.5.5`。同一份 21,000 字节 Entry 可复现基准中，解码延迟从旧 bincode 基线的 39.005 us/op 降到 8.956 us/op，降低 77.0%，速度提升 4.36 倍。
+- 删除未使用的直接依赖并对齐 Agave 依赖族。normal 依赖图从 658 个 package/version 项降到 533 个，重复 crate 名从 111 个降到 28 个。
+- Solana 4 client 依赖栈要求最低 Rust 版本为 1.91。
+- 为 Meteora DLMM 增加用户 token 账户上下文，并通过 Serde 默认值保持旧数据兼容。
+
+#### v0.6.6
+
+- 为 PumpFun 交易事件增加交易完成后的 `token_balance`，单位为 mint 原始精度。
+- 增加交易完成后以 lamports 为单位的 `sol_balance`，直接从交易 metadata 填充，无需额外 RPC 请求。
+- 在捕获的 Yellowstone 基准 fixture 上，将 PumpFun 端到端解析延迟从 6.7349 us 降至 4.4293 us，降低 34.23%。
+- 增加可复现的 Criterion 基准、Yellowstone 原始交易 fixture 和实时余额 delta 校验。
+
+#### v0.6.4
+
+- 为当前 Meteora DLMM swap 事件增加 `token_x_mint` 和 `token_y_mint` 上下文。
+- 按事件池精确匹配 mint 账户，防止多段 DLMM 路由复用其他池的账户。
+- 增加 2026-08-14 采集的主网 RPC 示例，覆盖直接 `swap` 和 CPI `swap2` 解析。
+- 兼容反序列化尚未包含新 mint 字段的旧版 JSON。
+
+#### v0.6.3
+
+- 输出当前 LaunchLab 的 quote mint 和 global configuration 上下文，包括 USD1 池。
+- 增加可选的交易费、优先费、compute budget 和 SWQoS tip 解析，覆盖 sol-trade-sdk 支持的全部服务商。
+- 返回每笔已识别 tip 的服务商和收款地址；未启用交易成本解析时不分配内存，开销可忽略。
+- 增加 2026-08-13 采集的 LaunchLab USD1 和交易成本主网交易 fixture，便于后续复用验证。
+
+#### v0.6.2
+
+- 支持当前 Meteora DLMM Anchor event-CPI 前缀布局，同时保留 legacy 后缀格式兼容。
+- 按当前官方来源对齐 Meteora DLMM、Raydium CPMM/AMM V4 和 Orca Whirlpool 的事件与账户布局。
+- 使用 occurrence-aware 日志/指令去重和 stack-aware CPI 合并，保留同一交易中的重复 swap 与流动性事件。
+- 加入 2026-08-13 采集的可复用主网交易 fixture，覆盖 Meteora DLMM、PumpFun、PumpSwap、Raydium 和 Orca。
+
+#### v0.6.1
+
+- 在日志和 CPI/inner-instruction 路径中完整解析当前 PumpSwap Buy/Sell 事件尾部：cashback、buyback 费用、带符号 virtual quote reserves、boost 标记和 base supply。
+- 默认和 zero-copy feature 统一使用经过校验的 PumpSwap trade decoder，同时保持历史事件布局兼容。
+- 对截断尾部、非法 UTF-8、非法 Borsh bool 和字符串边界溢出直接拒绝，不再输出部分解析的事件。
+- 对 buyback 和 boost 升级新增字段提供默认值，保持旧版序列化 PumpSwap 事件兼容。
+
+#### v0.5.15
+
+- 修复 Pump.fun `create_v2` 在 16 账户和 19 账户布局下的 quote mint 判断。
+- 只有存在 19 账户 quote-pool 尾部账户时才读取追加的 quote mint；16 账户 `create_v2` 保持 SOL sentinel。
+- 填充账户时按 create/create_v2 discriminator 选择对应指令，避免后续 buy/sell 指令覆盖 create 的 quote 字段。
+
+#### v0.5.13
+
+- gRPC 和 ShredStream 的 Pump.fun create/trade 输出会保留真实 WSOL quote mint（`So11111111111111111111111111111111111111112`）。
+- 只有 legacy 或缺失 Pump.fun quote mint 字段时，才使用 Solscan SOL sentinel（`So11111111111111111111111111111111111111111`）。
+- 增加合并覆盖：占位 SOL quote mint 可以被后续 log 或 instruction/account 上下文中的真实 WSOL quote mint 替换。
+
+#### v0.5.11
+
+- 解析 PumpSwap `create_pool` 指令参数，包括 `index`、注入数量、`coin_creator`、`is_mayhem_mode`、`is_cashback_coin`。
+- 修正 PumpSwap `create_pool` 指令账户映射，按 IDL 填充 `pool`、`creator`、`base_mint`、`quote_mint`、LP/用户 token account。
+- instruction 路径的 CreatePool 数据与 log 路径合并时，会保留 `is_cashback_coin`。
+- 明确字段来源：PumpSwap log `CreatePoolEvent` IDL 不包含 `is_cashback_coin`；ShredStream/外层指令解析可从 instruction data 读取该字段，账户订阅可从 `Pool` account 读取权威字段。
+
+#### v0.5.10
+
+- PumpSwap `CreatePoolEvent` 与链上 IDL 对齐：事件暴露 `is_mayhem_mode`，但不暴露 `is_cashback_coin`。
+- PumpSwap `is_cashback_coin` 保留在 `AccountPumpSwapPool` 账户事件中，因为该字段存储在链上 `Pool` account。
+- 修复 PumpSwap CreatePool log payload 长度检查，包含最后的 `is_mayhem_mode` 字节。
+- 文档明确 ShredStream CreatePool 事件无法恢复 `is_cashback_coin`，因为 Shred entry 不包含账户 body。
+
+#### v0.5.9
+
+- 实现真正的 Yellowstone gRPC `stop()`：会通知、abort 并等待当前订阅任务结束。
+- 串行化 gRPC 订阅生命周期，避免并发 stop / re-subscribe 遗留旧的重连循环。
+- 每次订阅使用独立 stop signal，避免新订阅误重置旧任务的停止状态。
+- 流错误日志改为 `Grpc Stream error`，便于和 ShredStream 日志区分。
+- 修复 warmup 测试对全局测试执行顺序的依赖。
+
+#### v0.5.8
+
+- ShredStream 示例增加可配置事件过滤 preset，包括 Pump.fun trade、create-trade、buy、sell、buy-exact-sol-in。
+- 明确 Pump.fun `ix_name` 使用 IDL 原始 instruction name：`buy`、`buy_v2`、`buy_exact_sol_in`、`buy_exact_quote_in_v2`、`sell`、`sell_v2`。
+- Pump.fun 过滤大类与 IDL 语义保持一致：`PumpFunBuy` 覆盖所有 buy 指令，`PumpFunSell` 覆盖所有 sell 指令，`PumpFunTrade` 覆盖所有 buy 和 sell 指令。
+- 只订阅 `PumpFunTrade` 时，ShredStream 热路径统一输出 `DexEvent::PumpFunTrade`。
+
+#### v0.5.5
+
+- 对齐 Rust、Node.js、Python、Go 的 ShredStream 静态账户解析语义。
+- V0 ALT-loaded 指令账户不再整条跳过，热路径用默认 pubkey 占位继续 best-effort 解析。
+- 当 ShredStream 外层 program id 来自 ALT 且不在静态账户表中时，按候选 program id 做 discriminator fallback。
+- 改进 Pump.fun ShredStream create/create_v2、v2 短账户交易和事件类型过滤的跨语言一致性。
+- 更新 Pump.fun、PumpSwap、Pump Fees、Raydium、Orca、Meteora 的多协议路由与账户补全文档。
+
+#### v0.5.4
+
+- Pump.fun `create` 和 `create_v2` 统一投递为 canonical `PumpFunCreate` 事件。
+- `PumpFunCreate` 和 `PumpFunCreateV2` 过滤器按同一个 create-family 订阅处理。
+- canonical create 事件保留 create_v2 账户字段，Bot 不需要同时处理两个事件变体。
+- 修复 gRPC log + instruction 双路径解析导致新 mint 回调重复的问题。
+
+#### v0.5.3
+
+- 保留真实的 Pump.fun v2 `ix_name`，包括 `buy_v2`、`sell_v2` 和 `buy_exact_quote_in_v2`。
+- 改进 ShredStream 的 Pump.fun v2 解析，对 buy、sell、exact-quote 指令支持短账户列表 best-effort 解析。
+- Pump.fun buy-family 过滤保持双向兼容，订阅 `PumpFunBuy` 或 `PumpFunBuyExactSolIn` 都可以匹配兼容的 buy 变体。
+- 保留 ShredStream 对外层指令的 ALT/default-account best-effort 解析，同时明确 CPI/inner-only 仍无法从 Shred Entry 恢复。

@@ -15,6 +15,9 @@ use sol_parser_sdk::DexEvent;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 
+#[path = "support/grpc_config.rs"]
+mod grpc_config;
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let _ = rustls::crypto::ring::default_provider().install_default();
@@ -33,20 +36,19 @@ async fn run_example() -> Result<(), Box<dyn std::error::Error>> {
         connection_timeout_ms: 10000,
         request_timeout_ms: 30000,
         enable_tls: true,
-        // 无序模式：事件解析完立即释放，零延迟
+        // 无序模式：事件解析完立即释放，不等待排序窗口
         order_mode: OrderMode::Unordered,
         ..Default::default()
     };
 
     println!("📋 Configuration:");
-    println!("   Order Mode: {:?} (零延迟，无排序开销)", config.order_mode);
-    println!("   Clock Source: now_micros() (10-50ns, 比 clock_gettime 快 20-100 倍)");
+    println!("   Order Mode: {:?} (不等待排序窗口)", config.order_mode);
+    println!("   Clock Source: now_micros(); measure latency on your deployment");
     println!();
 
-    const GRPC_ENDPOINT: &str = "https://solana-yellowstone-grpc.publicnode.com:443";
     let grpc = YellowstoneGrpc::new_with_config(
-        std::env::var("GRPC_ENDPOINT").unwrap_or_else(|_| GRPC_ENDPOINT.to_string()),
-        std::env::var("GRPC_AUTH_TOKEN").ok(),
+        grpc_config::endpoint()?,
+        grpc_config::auth_token(),
         config,
     )?;
 

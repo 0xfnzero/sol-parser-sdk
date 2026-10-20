@@ -8,6 +8,23 @@ fn deployed_holder_rewards() {
         let tx: EncodedConfirmedTransactionWithStatusMeta =
             serde_json::from_value(c["wire_rpc"].clone()).unwrap();
         let parsed = parse_rpc_transaction_with_cost(&tx, None).unwrap();
+        // Verify versioned instruction names against wire evidence, independently
+        // of the shorter names in emitted program logs.
+        let wire = tx.transaction.transaction.decode().unwrap();
+        for want in c["expected"].as_array().unwrap() {
+            let discriminator: Option<[u8; 8]> = match want["ix_name"].as_str() {
+                Some("buy_exact_quote_in_v3") => Some([225, 247, 80, 30, 213, 179, 132, 136]),
+                Some("sell_v3") => Some([28, 146, 222, 119, 38, 196, 105, 213]),
+                _ => None,
+            };
+            if let Some(discriminator) = discriminator {
+                assert!(wire.message.instructions().iter().any(|ix| {
+                    wire.message.static_account_keys()[ix.program_id_index as usize]
+                        == sol_parser_sdk::instr::program_ids::PUMPFUN_PROGRAM_ID
+                        && ix.data.starts_with(&discriminator)
+                }));
+            }
+        }
         let actual: Vec<_> = parsed
             .events
             .iter()

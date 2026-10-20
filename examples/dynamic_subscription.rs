@@ -4,6 +4,9 @@ use sol_parser_sdk::grpc::{
 };
 use sol_parser_sdk::DexEvent;
 
+#[path = "support/grpc_config.rs"]
+mod grpc_config;
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let _ = rustls::crypto::ring::default_provider().install_default();
@@ -26,19 +29,12 @@ async fn run_dynamic_subscription_example() -> Result<(), Box<dyn std::error::Er
         ..Default::default()
     };
 
-    const GRPC_ENDPOINT_DEFAULT: &str = "https://solana-yellowstone-grpc.publicnode.com:443";
-    const GRPC_AUTH_TOKEN_DEFAULT: &str =
-        "cd1c3642f88c86f9f8e7f15831faf9f067b997c6ac2b72c81d115e8d071af77a";
-    let grpc_endpoint = std::env::var("GRPC_ENDPOINT")
-        .or_else(|_| std::env::var("GRPC_URL"))
-        .unwrap_or_else(|_| GRPC_ENDPOINT_DEFAULT.to_string());
-    let grpc_token = std::env::var("GRPC_AUTH_TOKEN")
-        .or_else(|_| std::env::var("GRPC_TOKEN"))
-        .unwrap_or_else(|_| GRPC_AUTH_TOKEN_DEFAULT.to_string());
-    let grpc = YellowstoneGrpc::new_with_config(grpc_endpoint.clone(), Some(grpc_token), config)?;
+    let grpc_endpoint = grpc_config::endpoint()?;
+    let grpc_token = grpc_config::auth_token();
+    let grpc = YellowstoneGrpc::new_with_config(grpc_endpoint.clone(), grpc_token, config)?;
 
     println!("✅ gRPC client created successfully\n");
-    println!("📡 Endpoint: {}\n", grpc_endpoint);
+    println!("Using configured gRPC endpoint");
 
     // ==========================================
     // 阶段 1: 初始订阅 - 仅监控 PumpFun

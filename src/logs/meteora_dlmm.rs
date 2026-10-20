@@ -182,6 +182,7 @@ pub fn parse_swap_from_data(data: &[u8], metadata: EventMetadata) -> Option<DexE
 
     Some(DexEvent::MeteoraDlmmSwap(MeteoraDlmmSwapEvent {
         metadata,
+        event_version: 1,
         token_x_mint: solana_sdk::pubkey::Pubkey::default(),
         token_y_mint: solana_sdk::pubkey::Pubkey::default(),
         user_token_in: solana_sdk::pubkey::Pubkey::default(),
@@ -590,6 +591,7 @@ fn parse_swap_event(
 
     Some(DexEvent::MeteoraDlmmSwap(MeteoraDlmmSwapEvent {
         metadata,
+        event_version: 1,
         token_x_mint: solana_sdk::pubkey::Pubkey::default(),
         token_y_mint: solana_sdk::pubkey::Pubkey::default(),
         user_token_in: solana_sdk::pubkey::Pubkey::default(),

@@ -7,13 +7,15 @@ pub mod core;
 pub mod cpmm_creator_fee;
 pub mod instr; // 指令解析器
 pub mod logs; // 日志解析器
+pub mod stock_prices;
 pub mod stonkfun_registry;
 pub mod transaction_cost;
 pub mod transaction_route;
+pub mod utils;
+// 预热模块
+pub mod warmup;
 pub mod wrapped_pumpfun_parser;
 pub mod wrapped_pumpfun_rpc_analyzer;
-pub mod utils;
-pub mod warmup; // 预热模块
 
 // gRPC 模块 - 支持gRPC订阅和过滤
 pub mod grpc;

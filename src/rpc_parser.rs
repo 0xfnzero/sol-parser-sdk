@@ -207,10 +207,10 @@ fn parse_converted_rpc_transaction(
         }
     }
 
-    let needs_pumpfun = filter.map(EventTypeFilter::includes_pumpfun).unwrap_or(true);
     let log_messages = rpc_log_messages(rpc_tx);
-    let is_created_buy =
-        needs_pumpfun && crate::logs::optimized_matcher::detect_pumpfun_create(log_messages);
+    // Final mint-scoped creation context comes from native instructions, not a
+    // transaction-wide log scan whose result would be overwritten after merging.
+    let is_created_buy = false;
 
     // Parse instructions
     let instr_events =
@@ -270,6 +270,16 @@ fn parse_converted_rpc_transaction(
             None,
             active_program_stack.last().map(|active| &active.pubkey),
         ) {
+            if let Some(active) = active_program_stack.last() {
+                if let Ok(outer_index) = usize::try_from(active.position.0) {
+                    crate::core::common_filler::mark_trade_execution_source(
+                        &mut event,
+                        outer_index,
+                        &grpc_meta,
+                        &grpc_tx_opt,
+                    );
+                }
+            }
             // Fill account fields - use same function as gRPC parsing
             if matches!(&event, DexEvent::RaydiumAmmV4Swap(_)) {
                 let mut scoped = crate::core::invoke_context::InvokeContext::default();
@@ -311,6 +321,11 @@ fn parse_converted_rpc_transaction(
     }
 
     let mut events = merge_log_and_instruction_events(log_events, instr_events);
+    crate::core::common_filler::materialize_trade_execution_sources(
+        &mut events,
+        &grpc_meta,
+        &grpc_tx_opt,
+    );
     crate::core::common_filler::fill_pump_creation_context(&mut events, &grpc_meta, &grpc_tx_opt);
     fill_rpc_event_metadata(&mut events, rpc_tx, &grpc_meta, &grpc_tx_opt);
     Ok(events)

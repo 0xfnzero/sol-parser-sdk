@@ -62,9 +62,9 @@ pub fn parse_instructions_enhanced(
     grpc_us: i64,
     filter: Option<&EventTypeFilter>,
 ) -> Vec<DexEvent> {
-    let needs_pumpfun = filter.map(EventTypeFilter::includes_pumpfun).unwrap_or(true);
-    let is_created_buy =
-        needs_pumpfun && crate::logs::optimized_matcher::detect_pumpfun_create(&meta.log_messages);
+    // Mint-scoped creation context is filled from native instructions below.
+    // Scanning logs here would compute a transaction-wide hint that is overwritten.
+    let is_created_buy = false;
     let mut events = parse_instructions_enhanced_with_created_buy(
         meta,
         transaction,
@@ -76,6 +76,7 @@ pub fn parse_instructions_enhanced(
         filter,
         is_created_buy,
     );
+    crate::core::common_filler::materialize_trade_execution_sources(&mut events, meta, transaction);
     for event in &mut events {
         crate::core::common_filler::fill_token_balances(event, meta, transaction);
     }
@@ -119,31 +120,6 @@ pub(crate) fn parse_instructions_enhanced_with_created_buy(
         (bytes.len() == 32).then_some(bytes)
     };
 
-    // Creation context is available in the message even when logs are absent or
-    // create events are filtered out. Associate it by mint, not transaction-wide.
-    let mut created_mints = Vec::new();
-    if filter.is_none_or(EventTypeFilter::includes_pumpfun) {
-        for ix in &msg.instructions {
-            if get_key(ix.program_id_index as usize).map(|k| read_pubkey_fast(k))
-                != Some(crate::instr::program_ids::PUMPFUN_PROGRAM_ID)
-            {
-                continue;
-            }
-            use crate::instr::pump::discriminators::{CREATE, CREATE_V2};
-            let Some(disc) = ix.data.get(..8) else { continue };
-            if disc != CREATE && disc != CREATE_V2 {
-                continue;
-            }
-            let Some(mint) = ix.accounts.first().and_then(|i| get_key(*i as usize)) else {
-                continue;
-            };
-            let mayhem = disc == CREATE_V2
-                && crate::instr::utils::parse_create_v2_tail_fields(&ix.data[8..])
-                    .is_some_and(|(_, mayhem, _, _, _)| mayhem);
-            created_mints.push((read_pubkey_fast(mint), mayhem));
-        }
-    }
-
     let mut result = Vec::with_capacity(8);
     let mut invokes = crate::core::invoke_context::InvokeContext::default();
     // 步骤 1: 解析所有主指令
@@ -170,19 +146,6 @@ pub(crate) fn parse_instructions_enhanced_with_created_buy(
             is_created_buy,
         ) {
             event = clear_pump_instruction_execution_amounts(event);
-            match &mut event {
-                DexEvent::PumpFunBuy(trade)
-                | DexEvent::PumpFunBuyExactSolIn(trade)
-                | DexEvent::PumpFunTrade(trade)
-                    if trade.is_buy =>
-                {
-                    trade.is_created_buy |=
-                        created_mints.iter().any(|(mint, _)| *mint == trade.mint);
-                    trade.mayhem_mode |=
-                        created_mints.iter().any(|(mint, mayhem)| *mint == trade.mint && *mayhem);
-                }
-                _ => {}
-            }
             result.push(IndexedInstructionEvent {
                 outer_idx: i,
                 inner_idx: None,
@@ -248,8 +211,17 @@ pub(crate) fn parse_instructions_enhanced_with_created_buy(
     }
 
     // 步骤 3: 合并相关事件（instruction + inner instruction）
+    for indexed in &mut result {
+        crate::core::common_filler::mark_trade_execution_source(
+            &mut indexed.event,
+            indexed.outer_idx,
+            meta,
+            transaction,
+        );
+    }
     let mut final_result = merge_instruction_events(result);
     enrich_pumpfun_same_tx_post_merge(&mut final_result);
+    // Resolve creation once after merging, including filtered creates and router CPIs.
     crate::core::common_filler::fill_pump_creation_context(&mut final_result, meta, transaction);
 
     // 步骤 4: 填充账户上下文（invokes 与 fill_data 均使用 Pubkey 键，无堆泄漏）

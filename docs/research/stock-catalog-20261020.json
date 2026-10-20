@@ -1,0 +1,5159 @@
+{
+  "screened_at": "2026-10-19T21:33:32.512469+00:00",
+  "minimum_liquid_side_usd": 500.0,
+  "volume_filter": false,
+  "valuation_note": "Verified USDC/WSOL-side vault reserve; USDC assumed $1, SOL valued by cached USDC quote. Not TVL or an executable order-size guarantee.",
+  "priority_note": "Catalog preference uses matching-slot snapshot-start fees from the trade fee audit plus configured transfer taxes; unknown fees/hooks last. Per-candidate nominal_combined_fee_bps retains fixed-fee-only screening evidence. Not a live or whole-order quote.",
+  "coverage_note": "Bounded chain sample, not exhaustive; snapshots are historical.",
+  "candidates": [
+    {
+      "symbol": "AAPLx",
+      "mint": "XsbEhLAtcf6HdfpFZ5xEMdqW8nfAvcsP5bdudRLJzJp",
+      "decimals": 8,
+      "catalog_source": "https://xstocks.com/products",
+      "official_record": {
+        "slug": "apple-xstock",
+        "name": "Apple xStock",
+        "symbol": "AAPLx",
+        "iconUrl": "https://cdn.prod.website-files.com/655f3efc4be468487052e35a/6ab5589b93cedf3d16c0ef20_AAPLx.png",
+        "addresses": {
+          "ethereum": "0x9d275685dc284c8eb1c79f6aba7a63dc75ec890a",
+          "solana": "XsbEhLAtcf6HdfpFZ5xEMdqW8nfAvcsP5bdudRLJzJp",
+          "ton": "EQDsjAwfKo-6FVZv2EYt-1CaZTY_ZL-pfkSId6jeQchNwmdo",
+          "ink": "0x9d275685dc284c8eb1c79f6aba7a63dc75ec890a",
+          "bsc": "0x9d275685dc284c8eb1c79f6aba7a63dc75ec890a",
+          "tron": "TZ7nsyCuQq1cusCtex6V4qbzWcb3NbibAM",
+          "mantle": "0x9d275685dc284c8eb1c79f6aba7a63dc75ec890a",
+          "xLayer": "0x9d275685dc284c8eb1c79f6aba7a63dc75ec890a",
+          "arbitrum": "0x9d275685dc284c8eb1c79f6aba7a63dc75ec890a",
+          "optimism": "0x9d275685dc284c8eb1c79f6aba7a63dc75ec890a",
+          "monad": "0x9d275685dc284c8eb1c79f6aba7a63dc75ec890a",
+          "arc": null
+        }
+      },
+      "pool": "9JsDnmZonykBmrybuYaZUYxr4DCbZZQTdYQzdFXtDr5F",
+      "quote_mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "program_id": "whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc",
+      "snapshot_slot": 458982226,
+      "observed_transaction_signatures": [],
+      "depth": {
+        "minimum_liquid_side_usd": 500,
+        "probe_usd": 10,
+        "reference_probe_usd": 1,
+        "reports": [
+          {
+            "audit": {
+              "buy_10_usd_impact_bps": 0.01032190583671877,
+              "buy_output": 2906437,
+              "eligible": true,
+              "liquid_side_reserve_usd": 22622.203476,
+              "sell_10_usd_impact_bps": 0.010016055737027685,
+              "sell_output": 9983960
+            },
+            "pool": "9JsDnmZonykBmrybuYaZUYxr4DCbZZQTdYQzdFXtDr5F"
+          }
+        ],
+        "slot": 458982226,
+        "unix_timestamp": 1792445292
+      },
+      "liquid_side_reserve_usd": 22622.203476,
+      "fees": {
+        "base_swap_fee_bps": 8.0,
+        "dynamic_swap_fee": false,
+        "epoch": 1062,
+        "pool": "9JsDnmZonykBmrybuYaZUYxr4DCbZZQTdYQzdFXtDr5F",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458982226,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "XsbEhLAtcf6HdfpFZ5xEMdqW8nfAvcsP5bdudRLJzJp",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": 8.0,
+        "unix_timestamp": 1792445292
+      },
+      "fee_error": null,
+      "nominal_combined_fee_bps": 8.00000000000023,
+      "accepted": true
+    },
+    {
+      "symbol": "ABNB.US",
+      "mint": "ABNB56TteaTZG1S3DY2W8VMncQmHMvNCGaZgAba49CLP",
+      "decimals": 6,
+      "catalog_source": "https://api.backpack.exchange/api/v1/assets",
+      "official_record": {
+        "coingeckoId": null,
+        "displayName": "Airbnb, Inc.",
+        "symbol": "ABNB.US",
+        "tokens": [
+          {
+            "blockchain": "Solana",
+            "contractAddress": "ABNB56TteaTZG1S3DY2W8VMncQmHMvNCGaZgAba49CLP",
+            "depositEnabled": true,
+            "displayName": "Airbnb, Inc.",
+            "maximumWithdrawal": null,
+            "minimumDeposit": "0.003",
+            "minimumWithdrawal": "0.006",
+            "nativeDecimals": 6,
+            "withdrawEnabled": true,
+            "withdrawalFee": "0.003"
+          }
+        ]
+      },
+      "pool": "52PqYh77gmA6AbM5Hs6gHe9mhGBey5CwmD7sDybaYj27",
+      "quote_mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "program_id": "CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK",
+      "snapshot_slot": 458982126,
+      "observed_transaction_signatures": [],
+      "depth": {
+        "minimum_liquid_side_usd": 500,
+        "probe_usd": 10,
+        "reference_probe_usd": 1,
+        "reports": [
+          {
+            "audit": {
+              "buy_10_usd_impact_bps": -0.8868393047190004,
+              "buy_output": 56385,
+              "eligible": true,
+              "liquid_side_reserve_usd": 38081.040138,
+              "sell_10_usd_impact_bps": 0.04623594201169645,
+              "sell_output": 9948924
+            },
+            "pool": "52PqYh77gmA6AbM5Hs6gHe9mhGBey5CwmD7sDybaYj27"
+          }
+        ],
+        "slot": 458982126,
+        "unix_timestamp": 1792445269
+      },
+      "liquid_side_reserve_usd": 38081.040138,
+      "fees": {
+        "base_swap_fee_bps": 25.0,
+        "dynamic_swap_fee": false,
+        "epoch": 1062,
+        "pool": "52PqYh77gmA6AbM5Hs6gHe9mhGBey5CwmD7sDybaYj27",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458982126,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "ABNB56TteaTZG1S3DY2W8VMncQmHMvNCGaZgAba49CLP",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": 25.0,
+        "unix_timestamp": 1792445269
+      },
+      "fee_error": null,
+      "nominal_combined_fee_bps": 24.999999999999467,
+      "accepted": true
+    },
+    {
+      "symbol": "AVGOx",
+      "mint": "XsgSaSvNSqLTtFuyWPBhK9196Xb9Bbdyjj4fH3cPJGo",
+      "decimals": 8,
+      "catalog_source": "https://xstocks.com/products",
+      "official_record": {
+        "slug": "broadcom-xstock",
+        "name": "Broadcom xStock",
+        "symbol": "AVGOx",
+        "iconUrl": "https://cdn.prod.website-files.com/655f3efc4be468487052e35a/6ab558a661dc537a4028709c_AVGOx.png",
+        "addresses": {
+          "ethereum": "0x38bac69cbbd28156796e4163b2b6dcb81e336565",
+          "solana": "XsgSaSvNSqLTtFuyWPBhK9196Xb9Bbdyjj4fH3cPJGo",
+          "ton": "EQDs4k7PSAH3nuXw3bXPEZ7aFatcejkKrf_Mi4Cv3-yLAmuG",
+          "ink": "0x38bac69cbbd28156796e4163b2b6dcb81e336565",
+          "bsc": "0x38bac69cbbd28156796e4163b2b6dcb81e336565",
+          "tron": "TTsPtgroqB964V7dKq1bcur11Py6KCJjjE",
+          "mantle": "0x38bac69cbbd28156796e4163b2b6dcb81e336565",
+          "xLayer": "0x38bac69cbbd28156796e4163b2b6dcb81e336565",
+          "arbitrum": "0x38bac69cbbd28156796e4163b2b6dcb81e336565",
+          "optimism": "0x38bac69cbbd28156796e4163b2b6dcb81e336565",
+          "monad": "0x38bac69cbbd28156796e4163b2b6dcb81e336565",
+          "arc": null
+        }
+      },
+      "pool": "Dprwg5xHQ8jJryfh3okeTDCZK16Gz1wtX47JeZZv3HXZ",
+      "quote_mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "program_id": "LBUZKhRxPF3XUpBCjp4YzTKgLccjZhTSDM9YuVaPwxo",
+      "snapshot_slot": 458982182,
+      "observed_transaction_signatures": [],
+      "depth": {
+        "minimum_liquid_side_usd": 500,
+        "probe_usd": 10,
+        "reference_probe_usd": 1,
+        "reports": [
+          {
+            "audit": {
+              "buy_10_usd_impact_bps": -0.010129249219392733,
+              "buy_output": 2961723,
+              "eligible": true,
+              "liquid_side_reserve_usd": 14766.415369,
+              "sell_10_usd_impact_bps": 2.7988128068712204,
+              "sell_output": 9987154
+            },
+            "pool": "Dprwg5xHQ8jJryfh3okeTDCZK16Gz1wtX47JeZZv3HXZ"
+          }
+        ],
+        "slot": 458982182,
+        "unix_timestamp": 1792445282
+      },
+      "liquid_side_reserve_usd": 14766.415369,
+      "fees": {
+        "base_swap_fee_bps": 5.0,
+        "dynamic_swap_fee": true,
+        "epoch": 1062,
+        "pool": "Dprwg5xHQ8jJryfh3okeTDCZK16Gz1wtX47JeZZv3HXZ",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458982182,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "XsgSaSvNSqLTtFuyWPBhK9196Xb9Bbdyjj4fH3cPJGo",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": null,
+        "unix_timestamp": 1792445282
+      },
+      "fee_error": null,
+      "nominal_combined_fee_bps": null,
+      "accepted": true
+    },
+    {
+      "symbol": "BABA.US",
+      "mint": "BABANGA4JE7Kkam4nTrALAwAVgsNJUuFJnnkF7S16BZp",
+      "decimals": 6,
+      "catalog_source": "https://api.backpack.exchange/api/v1/assets",
+      "official_record": {
+        "coingeckoId": null,
+        "displayName": "Alibaba Group Holding Limited",
+        "symbol": "BABA.US",
+        "tokens": [
+          {
+            "blockchain": "Solana",
+            "contractAddress": "BABANGA4JE7Kkam4nTrALAwAVgsNJUuFJnnkF7S16BZp",
+            "depositEnabled": true,
+            "displayName": "Alibaba Group Holding Limited",
+            "maximumWithdrawal": null,
+            "minimumDeposit": "0.005",
+            "minimumWithdrawal": "0.01",
+            "nativeDecimals": 6,
+            "withdrawEnabled": true,
+            "withdrawalFee": "0.005"
+          }
+        ]
+      },
+      "pool": "8cdMW3EGziaxzQqgGJx46xnzaxQuVg5acThQxCLiJMrE",
+      "quote_mint": "So11111111111111111111111111111111111111112",
+      "program_id": "CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK",
+      "snapshot_slot": 458982157,
+      "observed_transaction_signatures": [],
+      "depth": {
+        "minimum_liquid_side_usd": 500,
+        "probe_usd": 10,
+        "reference_probe_usd": 1,
+        "reports": [
+          {
+            "audit": {
+              "buy_10_usd_impact_bps": -0.5469262743384995,
+              "buy_output": 91425,
+              "eligible": true,
+              "liquid_side_reserve_usd": 7332.276644017391,
+              "sell_10_usd_impact_bps": 0.06496353236240537,
+              "sell_output": 94821814
+            },
+            "pool": "8cdMW3EGziaxzQqgGJx46xnzaxQuVg5acThQxCLiJMrE"
+          }
+        ],
+        "slot": 458982157,
+        "unix_timestamp": 1792445276
+      },
+      "liquid_side_reserve_usd": 7332.276644017391,
+      "fees": {
+        "base_swap_fee_bps": 15.0,
+        "dynamic_swap_fee": true,
+        "epoch": 1062,
+        "pool": "8cdMW3EGziaxzQqgGJx46xnzaxQuVg5acThQxCLiJMrE",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "So11111111111111111111111111111111111111112",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458982157,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "BABANGA4JE7Kkam4nTrALAwAVgsNJUuFJnnkF7S16BZp",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": null,
+        "unix_timestamp": 1792445276
+      },
+      "fee_error": null,
+      "nominal_combined_fee_bps": null,
+      "accepted": true
+    },
+    {
+      "symbol": "CHWY.US",
+      "mint": "CHWYHz2zfKajomqPV9it26n7vu7AgZZfqGHXCWtGWuJg",
+      "decimals": 6,
+      "catalog_source": "https://api.backpack.exchange/api/v1/assets",
+      "official_record": {
+        "coingeckoId": null,
+        "displayName": "Chewy, Inc.",
+        "symbol": "CHWY.US",
+        "tokens": [
+          {
+            "blockchain": "Solana",
+            "contractAddress": "CHWYHz2zfKajomqPV9it26n7vu7AgZZfqGHXCWtGWuJg",
+            "depositEnabled": true,
+            "displayName": "Chewy, Inc.",
+            "maximumWithdrawal": null,
+            "minimumDeposit": "0.025",
+            "minimumWithdrawal": "0.05",
+            "nativeDecimals": 6,
+            "withdrawEnabled": true,
+            "withdrawalFee": "0.025"
+          }
+        ]
+      },
+      "pool": "GJmMTjiE2dZiAQgENapnBxzsTWNX4KLbiNnjzovwv1KE",
+      "quote_mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "program_id": "CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK",
+      "snapshot_slot": 458982140,
+      "observed_transaction_signatures": [],
+      "depth": {
+        "minimum_liquid_side_usd": 500,
+        "probe_usd": 10,
+        "reference_probe_usd": 1,
+        "reports": [
+          {
+            "audit": {
+              "buy_10_usd_impact_bps": 0.020487604999175346,
+              "buy_output": 488099,
+              "eligible": true,
+              "liquid_side_reserve_usd": 17657.126167,
+              "sell_10_usd_impact_bps": 0.0271356511194476,
+              "sell_output": 9949983
+            },
+            "pool": "GJmMTjiE2dZiAQgENapnBxzsTWNX4KLbiNnjzovwv1KE"
+          }
+        ],
+        "slot": 458982140,
+        "unix_timestamp": 1792445273
+      },
+      "liquid_side_reserve_usd": 17657.126167,
+      "fees": {
+        "base_swap_fee_bps": 25.0,
+        "dynamic_swap_fee": false,
+        "epoch": 1062,
+        "pool": "GJmMTjiE2dZiAQgENapnBxzsTWNX4KLbiNnjzovwv1KE",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458982140,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "CHWYHz2zfKajomqPV9it26n7vu7AgZZfqGHXCWtGWuJg",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": 25.0,
+        "unix_timestamp": 1792445273
+      },
+      "fee_error": null,
+      "nominal_combined_fee_bps": 24.999999999999467,
+      "accepted": true
+    },
+    {
+      "symbol": "COPX.US",
+      "mint": "CzLTZppPdZtTjyq3WGpHLstoc3GLhu7zH5Zg6xUa6Gv5",
+      "decimals": 6,
+      "catalog_source": "https://api.backpack.exchange/api/v1/assets",
+      "official_record": {
+        "coingeckoId": null,
+        "displayName": "Global X Copper Miners ETF",
+        "symbol": "COPX.US",
+        "tokens": [
+          {
+            "blockchain": "Solana",
+            "contractAddress": "CzLTZppPdZtTjyq3WGpHLstoc3GLhu7zH5Zg6xUa6Gv5",
+            "depositEnabled": true,
+            "displayName": "Global X Copper Miners ETF",
+            "maximumWithdrawal": null,
+            "minimumDeposit": "0.007",
+            "minimumWithdrawal": "0.014",
+            "nativeDecimals": 6,
+            "withdrawEnabled": true,
+            "withdrawalFee": "0.007"
+          }
+        ]
+      },
+      "pool": "5vJcDWLBQSh767DzHACeEmfMh7nGCWZc8eb76v6cCFVr",
+      "quote_mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "program_id": "CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK",
+      "snapshot_slot": 458982235,
+      "observed_transaction_signatures": [],
+      "depth": {
+        "minimum_liquid_side_usd": 500,
+        "probe_usd": 10,
+        "reference_probe_usd": 1,
+        "reports": [
+          {
+            "audit": {
+              "buy_10_usd_impact_bps": -0.08000640051131214,
+              "buy_output": 124991,
+              "eligible": true,
+              "liquid_side_reserve_usd": 1194.20325,
+              "sell_10_usd_impact_bps": 0.17206442901929186,
+              "sell_output": 9879850
+            },
+            "pool": "5vJcDWLBQSh767DzHACeEmfMh7nGCWZc8eb76v6cCFVr"
+          }
+        ],
+        "slot": 458982235,
+        "unix_timestamp": 1792445294
+      },
+      "liquid_side_reserve_usd": 1194.20325,
+      "fees": {
+        "base_swap_fee_bps": 60.0,
+        "dynamic_swap_fee": true,
+        "epoch": 1062,
+        "pool": "5vJcDWLBQSh767DzHACeEmfMh7nGCWZc8eb76v6cCFVr",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458982235,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "CzLTZppPdZtTjyq3WGpHLstoc3GLhu7zH5Zg6xUa6Gv5",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": null,
+        "unix_timestamp": 1792445294
+      },
+      "fee_error": null,
+      "nominal_combined_fee_bps": null,
+      "accepted": true
+    },
+    {
+      "symbol": "DJT.US",
+      "mint": "DJTu7vi8norVzdVAffgvb39VP7wjKeTsgaMBJrzfxvoF",
+      "decimals": 6,
+      "catalog_source": "https://api.backpack.exchange/api/v1/assets",
+      "official_record": {
+        "coingeckoId": null,
+        "displayName": "Trump Media & Technology Group Corp.",
+        "symbol": "DJT.US",
+        "tokens": [
+          {
+            "blockchain": "Solana",
+            "contractAddress": "DJTu7vi8norVzdVAffgvb39VP7wjKeTsgaMBJrzfxvoF",
+            "depositEnabled": true,
+            "displayName": "Trump Media & Technology Group Corp.",
+            "maximumWithdrawal": null,
+            "minimumDeposit": "0.08",
+            "minimumWithdrawal": "0.16",
+            "nativeDecimals": 6,
+            "withdrawEnabled": true,
+            "withdrawalFee": "0.08"
+          }
+        ]
+      },
+      "pool": "3bCkqSFZcYs7fthurTzPDRu4r9kQycq1sCUDykBuYnRB",
+      "quote_mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "program_id": "whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc",
+      "snapshot_slot": 458982224,
+      "observed_transaction_signatures": [],
+      "depth": {
+        "minimum_liquid_side_usd": 500,
+        "probe_usd": 10,
+        "reference_probe_usd": 1,
+        "reports": [
+          {
+            "audit": {
+              "buy_10_usd_impact_bps": 0.045119372970026106,
+              "buy_output": 1551433,
+              "eligible": true,
+              "liquid_side_reserve_usd": 4550.50597,
+              "sell_10_usd_impact_bps": 0.020022705747857472,
+              "sell_output": 9988640
+            },
+            "pool": "3bCkqSFZcYs7fthurTzPDRu4r9kQycq1sCUDykBuYnRB"
+          }
+        ],
+        "slot": 458982224,
+        "unix_timestamp": 1792445291
+      },
+      "liquid_side_reserve_usd": 4550.50597,
+      "fees": {
+        "base_swap_fee_bps": 5.0,
+        "dynamic_swap_fee": true,
+        "epoch": 1062,
+        "pool": "3bCkqSFZcYs7fthurTzPDRu4r9kQycq1sCUDykBuYnRB",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458982224,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "DJTu7vi8norVzdVAffgvb39VP7wjKeTsgaMBJrzfxvoF",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": null,
+        "unix_timestamp": 1792445291
+      },
+      "fee_error": null,
+      "nominal_combined_fee_bps": null,
+      "accepted": true
+    },
+    {
+      "symbol": "GLDx",
+      "mint": "Xsv9hRk1z5ystj9MhnA7Lq4vjSsLwzL2nxrwmwtD3re",
+      "decimals": 8,
+      "catalog_source": "https://xstocks.com/products",
+      "official_record": {
+        "slug": "gold-xstock",
+        "name": "Gold xStock",
+        "symbol": "GLDx",
+        "iconUrl": "https://cdn.prod.website-files.com/655f3efc4be468487052e35a/6ab558bbf26aa6db296bd72b_GLDx.png",
+        "addresses": {
+          "ethereum": "0x2380f2673c640fb67e2d6b55b44c62f0e0e69da9",
+          "solana": "Xsv9hRk1z5ystj9MhnA7Lq4vjSsLwzL2nxrwmwtD3re",
+          "ton": "EQC49j6vUmrarJzSOlZfNHYHoNEHX3__0oX1dZLEfE7Vyybe",
+          "ink": "0x2380f2673c640fb67e2d6b55b44c62f0e0e69da9",
+          "bsc": "0x2380f2673c640fb67e2d6b55b44c62f0e0e69da9",
+          "tron": "TQnorYAdiQTAEexqaB53MFpKpnLAdMe4sw",
+          "mantle": "0x2380f2673c640fb67e2d6b55b44c62f0e0e69da9",
+          "xLayer": "0x2380f2673c640fb67e2d6b55b44c62f0e0e69da9",
+          "arbitrum": "0x2380f2673c640fb67e2d6b55b44c62f0e0e69da9",
+          "optimism": "0x2380f2673c640fb67e2d6b55b44c62f0e0e69da9",
+          "monad": "0x2380f2673c640fb67e2d6b55b44c62f0e0e69da9",
+          "arc": null
+        }
+      },
+      "pool": "5tGLudhm9pHtqbtfymvdarbD59AyMyYimXXwbFfzETV9",
+      "quote_mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "program_id": "whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc",
+      "snapshot_slot": 458982206,
+      "observed_transaction_signatures": [],
+      "depth": {
+        "minimum_liquid_side_usd": 500,
+        "probe_usd": 10,
+        "reference_probe_usd": 1,
+        "reports": [
+          {
+            "audit": {
+              "buy_10_usd_impact_bps": 0.011399215733565171,
+              "buy_output": 2631757,
+              "eligible": true,
+              "liquid_side_reserve_usd": 46539.202545,
+              "sell_10_usd_impact_bps": -0.014011279079184646,
+              "sell_output": 9991964
+            },
+            "pool": "5tGLudhm9pHtqbtfymvdarbD59AyMyYimXXwbFfzETV9"
+          }
+        ],
+        "slot": 458982206,
+        "unix_timestamp": 1792445287
+      },
+      "liquid_side_reserve_usd": 46539.202545,
+      "fees": {
+        "base_swap_fee_bps": 4.0,
+        "dynamic_swap_fee": true,
+        "epoch": 1062,
+        "pool": "5tGLudhm9pHtqbtfymvdarbD59AyMyYimXXwbFfzETV9",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458982206,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "Xsv9hRk1z5ystj9MhnA7Lq4vjSsLwzL2nxrwmwtD3re",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": null,
+        "unix_timestamp": 1792445287
+      },
+      "fee_error": null,
+      "nominal_combined_fee_bps": null,
+      "accepted": true
+    },
+    {
+      "symbol": "GMEx",
+      "mint": "Xsf9mBktVB9BSU5kf4nHxPq5hCBJ2j2ui3ecFGxPRGc",
+      "decimals": 8,
+      "catalog_source": "https://xstocks.com/products",
+      "official_record": {
+        "slug": "gamestop-xstock",
+        "name": "Gamestop xStock",
+        "symbol": "GMEx",
+        "iconUrl": "https://cdn.prod.website-files.com/655f3efc4be468487052e35a/6ab558b961dc537a4028764f_GMEx.png",
+        "addresses": {
+          "ethereum": "0xe5f6d3b2405abdfe6f660e63202b25d23763160d",
+          "solana": "Xsf9mBktVB9BSU5kf4nHxPq5hCBJ2j2ui3ecFGxPRGc",
+          "ton": "EQA2ezTnOiUce55zBQ_Yhum4lOCVahIMZRi-yyrR0MNON9vZ",
+          "ink": "0xe5f6d3b2405abdfe6f660e63202b25d23763160d",
+          "bsc": "0xe5f6d3b2405abdfe6f660e63202b25d23763160d",
+          "tron": "TDfWA29BscN2wdhQ6PVWEajxEn8EU9HQ2z",
+          "mantle": "0xe5f6d3b2405abdfe6f660e63202b25d23763160d",
+          "xLayer": "0xe5f6d3b2405abdfe6f660e63202b25d23763160d",
+          "arbitrum": "0xe5f6d3b2405abdfe6f660e63202b25d23763160d",
+          "optimism": "0xe5f6d3b2405abdfe6f660e63202b25d23763160d",
+          "monad": "0xe5f6d3b2405abdfe6f660e63202b25d23763160d",
+          "arc": null
+        }
+      },
+      "pool": "yrNqjGSrZmUdcSNqzEjbrEouvazH9XbpxRCiJEa8AVJ",
+      "quote_mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "program_id": "CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK",
+      "snapshot_slot": 458982233,
+      "observed_transaction_signatures": [],
+      "depth": {
+        "minimum_liquid_side_usd": 500,
+        "probe_usd": 10,
+        "reference_probe_usd": 1,
+        "reports": [
+          {
+            "audit": {
+              "buy_10_usd_impact_bps": 2.4050864953040207,
+              "buy_output": 37686044,
+              "eligible": true,
+              "liquid_side_reserve_usd": 1321.478183,
+              "sell_10_usd_impact_bps": 2.4009291074578165,
+              "sell_output": 9977074
+            },
+            "pool": "yrNqjGSrZmUdcSNqzEjbrEouvazH9XbpxRCiJEa8AVJ"
+          }
+        ],
+        "slot": 458982233,
+        "unix_timestamp": 1792445293
+      },
+      "liquid_side_reserve_usd": 1321.478183,
+      "fees": {
+        "base_swap_fee_bps": 10.0,
+        "dynamic_swap_fee": false,
+        "epoch": 1062,
+        "pool": "yrNqjGSrZmUdcSNqzEjbrEouvazH9XbpxRCiJEa8AVJ",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458982233,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "Xsf9mBktVB9BSU5kf4nHxPq5hCBJ2j2ui3ecFGxPRGc",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": 10.0,
+        "unix_timestamp": 1792445293
+      },
+      "fee_error": null,
+      "nominal_combined_fee_bps": 10.000000000000009,
+      "accepted": true
+    },
+    {
+      "symbol": "GOOGLx",
+      "mint": "XsCPL9dNWBMvFtTmwcCA5v3xWPSMEBCszbQdiLLq6aN",
+      "decimals": 8,
+      "catalog_source": "https://xstocks.com/products",
+      "official_record": {
+        "slug": "alphabet-xstock",
+        "name": "Alphabet xStock",
+        "symbol": "GOOGLx",
+        "iconUrl": "https://cdn.prod.website-files.com/655f3efc4be468487052e35a/6ab558966499374b02ce123e_GOOGLx.png",
+        "addresses": {
+          "ethereum": "0xe92f673ca36c5e2efd2de7628f815f84807e803f",
+          "solana": "XsCPL9dNWBMvFtTmwcCA5v3xWPSMEBCszbQdiLLq6aN",
+          "ton": "EQALwJzXnxFjckNsurCi9O2kVg_0b1KdtjOSfvOedlY37iZc",
+          "ink": "0xe92f673ca36c5e2efd2de7628f815f84807e803f",
+          "bsc": "0xe92f673ca36c5e2efd2de7628f815f84807e803f",
+          "tron": "TX34MBKqsHzvon1JX4mokJ8CLeh5QmBqNd",
+          "mantle": "0xe92f673ca36c5e2efd2de7628f815f84807e803f",
+          "xLayer": "0xe92f673ca36c5e2efd2de7628f815f84807e803f",
+          "arbitrum": "0xe92f673ca36c5e2efd2de7628f815f84807e803f",
+          "optimism": "0xe92f673ca36c5e2efd2de7628f815f84807e803f",
+          "monad": "0xe92f673ca36c5e2efd2de7628f815f84807e803f",
+          "arc": null
+        }
+      },
+      "pool": "B8YAwjGYk6qidWzGBXMAxP7nYfG8g74EZ3Y4gFSsobRw",
+      "quote_mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "program_id": "CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK",
+      "snapshot_slot": 458982209,
+      "observed_transaction_signatures": [],
+      "depth": {
+        "minimum_liquid_side_usd": 500,
+        "probe_usd": 10,
+        "reference_probe_usd": 1,
+        "reports": [
+          {
+            "audit": {
+              "buy_10_usd_impact_bps": -0.020809272611721497,
+              "buy_output": 2883336,
+              "eligible": true,
+              "liquid_side_reserve_usd": 643437.817876,
+              "sell_10_usd_impact_bps": 0.001005022095545982,
+              "sell_output": 9950029
+            },
+            "pool": "B8YAwjGYk6qidWzGBXMAxP7nYfG8g74EZ3Y4gFSsobRw"
+          }
+        ],
+        "slot": 458982209,
+        "unix_timestamp": 1792445288
+      },
+      "liquid_side_reserve_usd": 643437.817876,
+      "fees": {
+        "base_swap_fee_bps": 25.0,
+        "dynamic_swap_fee": false,
+        "epoch": 1062,
+        "pool": "B8YAwjGYk6qidWzGBXMAxP7nYfG8g74EZ3Y4gFSsobRw",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458982209,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "XsCPL9dNWBMvFtTmwcCA5v3xWPSMEBCszbQdiLLq6aN",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": 25.0,
+        "unix_timestamp": 1792445288
+      },
+      "fee_error": null,
+      "nominal_combined_fee_bps": 24.999999999999467,
+      "accepted": true
+    },
+    {
+      "symbol": "HOOD.US",
+      "mint": "HooDYv5RewLRiMLnEVq3VJqdqxhuE6c5eYvqejMC3e9A",
+      "decimals": 6,
+      "catalog_source": "https://api.backpack.exchange/api/v1/assets",
+      "official_record": {
+        "coingeckoId": null,
+        "displayName": "Robinhood Markets, Inc.",
+        "symbol": "HOOD.US",
+        "tokens": [
+          {
+            "blockchain": "Solana",
+            "contractAddress": "HooDYv5RewLRiMLnEVq3VJqdqxhuE6c5eYvqejMC3e9A",
+            "depositEnabled": true,
+            "displayName": "Robinhood Markets, Inc.",
+            "maximumWithdrawal": null,
+            "minimumDeposit": "0.005",
+            "minimumWithdrawal": "0.01",
+            "nativeDecimals": 6,
+            "withdrawEnabled": true,
+            "withdrawalFee": "0.005"
+          }
+        ]
+      },
+      "pool": "97r9NLqYoyGFbQesPduwuTHq4fJjbk8pHVUGawEqfnva",
+      "quote_mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "program_id": "CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK",
+      "snapshot_slot": 458982175,
+      "observed_transaction_signatures": [],
+      "depth": {
+        "minimum_liquid_side_usd": 500,
+        "probe_usd": 10,
+        "reference_probe_usd": 1,
+        "reports": [
+          {
+            "audit": {
+              "buy_10_usd_impact_bps": -0.5815080441951004,
+              "buy_output": 103186,
+              "eligible": true,
+              "liquid_side_reserve_usd": 87836.938335,
+              "sell_10_usd_impact_bps": -0.07538355150993326,
+              "sell_output": 9949195
+            },
+            "pool": "97r9NLqYoyGFbQesPduwuTHq4fJjbk8pHVUGawEqfnva"
+          }
+        ],
+        "slot": 458982175,
+        "unix_timestamp": 1792445280
+      },
+      "liquid_side_reserve_usd": 87836.938335,
+      "fees": {
+        "base_swap_fee_bps": 25.0,
+        "dynamic_swap_fee": false,
+        "epoch": 1062,
+        "pool": "97r9NLqYoyGFbQesPduwuTHq4fJjbk8pHVUGawEqfnva",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458982175,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "HooDYv5RewLRiMLnEVq3VJqdqxhuE6c5eYvqejMC3e9A",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": 25.0,
+        "unix_timestamp": 1792445280
+      },
+      "fee_error": null,
+      "nominal_combined_fee_bps": 24.999999999999467,
+      "accepted": true
+    },
+    {
+      "symbol": "HOODx",
+      "mint": "XsvNBAYkrDRNhA7wPHQfX3ZUXZyZLdnCQDfHZ56bzpg",
+      "decimals": 8,
+      "catalog_source": "https://xstocks.com/products",
+      "official_record": {
+        "slug": "robinhood-xstock",
+        "name": "Robinhood xStock",
+        "symbol": "HOODx",
+        "iconUrl": "https://cdn.prod.website-files.com/655f3efc4be468487052e35a/6ab558e1606fb61b38d65df0_HOODx.png",
+        "addresses": {
+          "ethereum": "0xe1385fdd5ffb10081cd52c56584f25efa9084015",
+          "solana": "XsvNBAYkrDRNhA7wPHQfX3ZUXZyZLdnCQDfHZ56bzpg",
+          "ton": "EQAHz1jK27NO5IdHrht8146-EFz9p4kSZZx2H1xXuNQOYp_r",
+          "ink": "0xe1385fdd5ffb10081cd52c56584f25efa9084015",
+          "bsc": "0xe1385fdd5ffb10081cd52c56584f25efa9084015",
+          "tron": "TUQsUkzfwKegioj2utgYxQ9scPFZ5Aj68M",
+          "mantle": "0xe1385fdd5ffb10081cd52c56584f25efa9084015",
+          "xLayer": "0xe1385fdd5ffb10081cd52c56584f25efa9084015",
+          "arbitrum": "0xe1385fdd5ffb10081cd52c56584f25efa9084015",
+          "optimism": "0xe1385fdd5ffb10081cd52c56584f25efa9084015",
+          "monad": "0xe1385fdd5ffb10081cd52c56584f25efa9084015",
+          "arc": null
+        }
+      },
+      "pool": "DXWbip5LducMAbDSSpLYz9Xik3253EPeAYQufQtx7LXs",
+      "quote_mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "program_id": "CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK",
+      "snapshot_slot": 458982221,
+      "observed_transaction_signatures": [],
+      "depth": {
+        "minimum_liquid_side_usd": 500,
+        "probe_usd": 10,
+        "reference_probe_usd": 1,
+        "reports": [
+          {
+            "audit": {
+              "buy_10_usd_impact_bps": 0.11896814308465231,
+              "buy_output": 10170669,
+              "eligible": true,
+              "liquid_side_reserve_usd": 71502.825949,
+              "sell_10_usd_impact_bps": 0.11019328718830934,
+              "sell_output": 9800852
+            },
+            "pool": "DXWbip5LducMAbDSSpLYz9Xik3253EPeAYQufQtx7LXs"
+          }
+        ],
+        "slot": 458982221,
+        "unix_timestamp": 1792445290
+      },
+      "liquid_side_reserve_usd": 71502.825949,
+      "fees": {
+        "base_swap_fee_bps": 100.0,
+        "dynamic_swap_fee": false,
+        "epoch": 1062,
+        "pool": "DXWbip5LducMAbDSSpLYz9Xik3253EPeAYQufQtx7LXs",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458982221,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "XsvNBAYkrDRNhA7wPHQfX3ZUXZyZLdnCQDfHZ56bzpg",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": 100.0,
+        "unix_timestamp": 1792445290
+      },
+      "fee_error": null,
+      "nominal_combined_fee_bps": 100.00000000000009,
+      "accepted": true
+    },
+    {
+      "symbol": "INTC.US",
+      "mint": "iNTCy1qTsUEZQe3DSocLz1ZXXai34Gdw8THQh5rxFaF",
+      "decimals": 6,
+      "catalog_source": "https://api.backpack.exchange/api/v1/assets",
+      "official_record": {
+        "coingeckoId": null,
+        "displayName": "Intel Corporation",
+        "symbol": "INTC.US",
+        "tokens": [
+          {
+            "blockchain": "Solana",
+            "contractAddress": "iNTCy1qTsUEZQe3DSocLz1ZXXai34Gdw8THQh5rxFaF",
+            "depositEnabled": true,
+            "displayName": "Intel Corporation",
+            "maximumWithdrawal": null,
+            "minimumDeposit": "0.006",
+            "minimumWithdrawal": "0.012",
+            "nativeDecimals": 6,
+            "withdrawEnabled": true,
+            "withdrawalFee": "0.006"
+          }
+        ]
+      },
+      "pool": "ESzRTaF7jBZgFTe1xJHGyRYctEneMuwk2XiwqJS9sJD4",
+      "quote_mint": "So11111111111111111111111111111111111111112",
+      "program_id": "CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK",
+      "snapshot_slot": 458982198,
+      "observed_transaction_signatures": [],
+      "depth": {
+        "minimum_liquid_side_usd": 500,
+        "probe_usd": 10,
+        "reference_probe_usd": 1,
+        "reports": [
+          {
+            "audit": {
+              "buy_10_usd_impact_bps": 4.745951982132457,
+              "buy_output": 107409,
+              "eligible": true,
+              "liquid_side_reserve_usd": 791.5246747143995,
+              "sell_10_usd_impact_bps": 4.629027918929829,
+              "sell_output": 94593772
+            },
+            "pool": "ESzRTaF7jBZgFTe1xJHGyRYctEneMuwk2XiwqJS9sJD4"
+          }
+        ],
+        "slot": 458982198,
+        "unix_timestamp": 1792445285
+      },
+      "liquid_side_reserve_usd": 791.5246747143995,
+      "fees": {
+        "base_swap_fee_bps": 25.0,
+        "dynamic_swap_fee": false,
+        "epoch": 1062,
+        "pool": "ESzRTaF7jBZgFTe1xJHGyRYctEneMuwk2XiwqJS9sJD4",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "So11111111111111111111111111111111111111112",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458982198,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "iNTCy1qTsUEZQe3DSocLz1ZXXai34Gdw8THQh5rxFaF",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": 25.0,
+        "unix_timestamp": 1792445285
+      },
+      "fee_error": null,
+      "nominal_combined_fee_bps": 24.999999999999467,
+      "accepted": true
+    },
+    {
+      "symbol": "INTCx",
+      "mint": "XshPgPdXFRWB8tP1j82rebb2Q9rPgGX37RuqzohmArM",
+      "decimals": 8,
+      "catalog_source": "https://xstocks.com/products",
+      "official_record": {
+        "slug": "intel-xstock",
+        "name": "Intel xStock",
+        "symbol": "INTCx",
+        "iconUrl": "https://cdn.prod.website-files.com/655f3efc4be468487052e35a/6ab558c282d9daa1e7e20abb_INTCx.png",
+        "addresses": {
+          "ethereum": "0xf8a80d1cb9cfd70d03d655d9df42339846f3b3c8",
+          "solana": "XshPgPdXFRWB8tP1j82rebb2Q9rPgGX37RuqzohmArM",
+          "ton": "EQBBnSFyNZkNmq7I4E9yWhZDZQurcQhGkFeGBV_UXibFlv4-",
+          "ink": "0xf8a80d1cb9cfd70d03d655d9df42339846f3b3c8",
+          "bsc": "0xf8a80d1cb9cfd70d03d655d9df42339846f3b3c8",
+          "tron": "TMkWtCUBF9zatuda6onxoPeAUvkGiwaCHP",
+          "mantle": "0xf8a80d1cb9cfd70d03d655d9df42339846f3b3c8",
+          "xLayer": "0xf8a80d1cb9cfd70d03d655d9df42339846f3b3c8",
+          "arbitrum": "0xf8a80d1cb9cfd70d03d655d9df42339846f3b3c8",
+          "optimism": "0xf8a80d1cb9cfd70d03d655d9df42339846f3b3c8",
+          "monad": "0xf8a80d1cb9cfd70d03d655d9df42339846f3b3c8",
+          "arc": null
+        }
+      },
+      "pool": "J7riKjqgLoZCES7MRyxHxL7iXybwHKXgfAot8muHKciZ",
+      "quote_mint": "So11111111111111111111111111111111111111112",
+      "program_id": "CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK",
+      "snapshot_slot": 458982188,
+      "observed_transaction_signatures": [],
+      "depth": {
+        "minimum_liquid_side_usd": 500,
+        "probe_usd": 10,
+        "reference_probe_usd": 1,
+        "reports": [
+          {
+            "audit": {
+              "buy_10_usd_impact_bps": 1.235013088148884,
+              "buy_output": 10703018,
+              "eligible": true,
+              "liquid_side_reserve_usd": 2194.2863267253333,
+              "sell_10_usd_impact_bps": 1.2295337786372151,
+              "sell_output": 94349368
+            },
+            "pool": "J7riKjqgLoZCES7MRyxHxL7iXybwHKXgfAot8muHKciZ"
+          }
+        ],
+        "slot": 458982188,
+        "unix_timestamp": 1792445283
+      },
+      "liquid_side_reserve_usd": 2194.2863267253333,
+      "fees": {
+        "base_swap_fee_bps": 40.0,
+        "dynamic_swap_fee": false,
+        "epoch": 1062,
+        "pool": "J7riKjqgLoZCES7MRyxHxL7iXybwHKXgfAot8muHKciZ",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "So11111111111111111111111111111111111111112",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458982188,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "XshPgPdXFRWB8tP1j82rebb2Q9rPgGX37RuqzohmArM",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": 40.0,
+        "unix_timestamp": 1792445283
+      },
+      "fee_error": null,
+      "nominal_combined_fee_bps": 40.000000000000036,
+      "accepted": true
+    },
+    {
+      "symbol": "METAx",
+      "mint": "Xsa62P5mvPszXL1krVUnU5ar38bBSVcWAB6fmPCo5Zu",
+      "decimals": 8,
+      "catalog_source": "https://xstocks.com/products",
+      "official_record": {
+        "slug": "meta-xstock",
+        "name": "Meta xStock",
+        "symbol": "METAx",
+        "iconUrl": "https://cdn.prod.website-files.com/655f3efc4be468487052e35a/6ab558ceb4764fb9c5716579_METAx.png",
+        "addresses": {
+          "ethereum": "0x96702be57cd9777f835117a809c7124fe4ec989a",
+          "solana": "Xsa62P5mvPszXL1krVUnU5ar38bBSVcWAB6fmPCo5Zu",
+          "ton": "EQD3cgQg432BiCSRli-hMswoVuvNnO42FuMdc-AXqd83SfcV",
+          "ink": "0x96702be57cd9777f835117a809c7124fe4ec989a",
+          "bsc": "0x96702be57cd9777f835117a809c7124fe4ec989a",
+          "tron": "TGJaEbWPNmM6NErggxJwWQ5ChRH7KxXF3a",
+          "mantle": "0x96702be57cd9777f835117a809c7124fe4ec989a",
+          "xLayer": "0x96702be57cd9777f835117a809c7124fe4ec989a",
+          "arbitrum": "0x96702be57cd9777f835117a809c7124fe4ec989a",
+          "optimism": "0x96702be57cd9777f835117a809c7124fe4ec989a",
+          "monad": "0x96702be57cd9777f835117a809c7124fe4ec989a",
+          "arc": null
+        }
+      },
+      "pool": "3L7KbPVaAQA4UTecaGQYsm6UCq5F3sZM9zAYkxqYt63j",
+      "quote_mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "program_id": "CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK",
+      "snapshot_slot": 458982154,
+      "observed_transaction_signatures": [],
+      "depth": {
+        "minimum_liquid_side_usd": 500,
+        "probe_usd": 10,
+        "reference_probe_usd": 1,
+        "reports": [
+          {
+            "audit": {
+              "buy_10_usd_impact_bps": -0.035470552346428263,
+              "buy_output": 1409625,
+              "eligible": true,
+              "liquid_side_reserve_usd": 294500.526135,
+              "sell_10_usd_impact_bps": -0.03316596247637804,
+              "sell_output": 9949993
+            },
+            "pool": "3L7KbPVaAQA4UTecaGQYsm6UCq5F3sZM9zAYkxqYt63j"
+          }
+        ],
+        "slot": 458982154,
+        "unix_timestamp": 1792445276
+      },
+      "liquid_side_reserve_usd": 294500.526135,
+      "fees": {
+        "base_swap_fee_bps": 25.0,
+        "dynamic_swap_fee": false,
+        "epoch": 1062,
+        "pool": "3L7KbPVaAQA4UTecaGQYsm6UCq5F3sZM9zAYkxqYt63j",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458982154,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "Xsa62P5mvPszXL1krVUnU5ar38bBSVcWAB6fmPCo5Zu",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": 25.0,
+        "unix_timestamp": 1792445276
+      },
+      "fee_error": null,
+      "nominal_combined_fee_bps": 24.999999999999467,
+      "accepted": true
+    },
+    {
+      "symbol": "MSFTx",
+      "mint": "XspzcW1PRtgf6Wj92HCiZdjzKCyFekVD8P5Ueh3dRMX",
+      "decimals": 8,
+      "catalog_source": "https://xstocks.com/products",
+      "official_record": {
+        "slug": "microsoft-xstock",
+        "name": "Microsoft xStock",
+        "symbol": "MSFTx",
+        "iconUrl": "https://cdn.prod.website-files.com/655f3efc4be468487052e35a/6ab558d108ccb83892f04dd4_MSFTx.png",
+        "addresses": {
+          "ethereum": "0x5621737f42dae558b81269fcb9e9e70c19aa6b35",
+          "solana": "XspzcW1PRtgf6Wj92HCiZdjzKCyFekVD8P5Ueh3dRMX",
+          "ton": "EQDI9JwkYTEHM2TSFPSWFbwznBq07_I4Apy9TBhxsDlZaBvg",
+          "ink": "0x5621737f42dae558b81269fcb9e9e70c19aa6b35",
+          "bsc": "0x5621737f42dae558b81269fcb9e9e70c19aa6b35",
+          "tron": "TDVHfwqTFimf8bAYSkzvQe3vwArRDMdcFh",
+          "mantle": "0x5621737f42dae558b81269fcb9e9e70c19aa6b35",
+          "xLayer": "0x5621737f42dae558b81269fcb9e9e70c19aa6b35",
+          "arbitrum": "0x5621737f42dae558b81269fcb9e9e70c19aa6b35",
+          "optimism": "0x5621737f42dae558b81269fcb9e9e70c19aa6b35",
+          "monad": "0x5621737f42dae558b81269fcb9e9e70c19aa6b35",
+          "arc": null
+        }
+      },
+      "pool": "CLu4kFM4nb67xrdN7vJnMxXXir8Z5hA4HJUzPFccXjsL",
+      "quote_mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "program_id": "CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK",
+      "snapshot_slot": 458982229,
+      "observed_transaction_signatures": [],
+      "depth": {
+        "minimum_liquid_side_usd": 500,
+        "probe_usd": 10,
+        "reference_probe_usd": 1,
+        "reports": [
+          {
+            "audit": {
+              "buy_10_usd_impact_bps": -0.021489894377335617,
+              "buy_output": 1861344,
+              "eligible": true,
+              "liquid_side_reserve_usd": 745426.914608,
+              "sell_10_usd_impact_bps": -0.03618090452350842,
+              "sell_output": 9950036
+            },
+            "pool": "CLu4kFM4nb67xrdN7vJnMxXXir8Z5hA4HJUzPFccXjsL"
+          }
+        ],
+        "slot": 458982229,
+        "unix_timestamp": 1792445292
+      },
+      "liquid_side_reserve_usd": 745426.914608,
+      "fees": {
+        "base_swap_fee_bps": 25.0,
+        "dynamic_swap_fee": false,
+        "epoch": 1062,
+        "pool": "CLu4kFM4nb67xrdN7vJnMxXXir8Z5hA4HJUzPFccXjsL",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458982229,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "XspzcW1PRtgf6Wj92HCiZdjzKCyFekVD8P5Ueh3dRMX",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": 25.0,
+        "unix_timestamp": 1792445292
+      },
+      "fee_error": null,
+      "nominal_combined_fee_bps": 24.999999999999467,
+      "accepted": true
+    },
+    {
+      "symbol": "MSTRx",
+      "mint": "XsP7xzNPvEHS1m6qfanPUGjNmdnmsLKEoNAnHjdxxyZ",
+      "decimals": 8,
+      "catalog_source": "https://xstocks.com/products",
+      "official_record": {
+        "slug": "microstrategy-xstock",
+        "name": "MicroStrategy xStock",
+        "symbol": "MSTRx",
+        "iconUrl": "https://cdn.prod.website-files.com/655f3efc4be468487052e35a/6ab558cf24c352a05e78a8eb_MSTRx.png",
+        "addresses": {
+          "ethereum": "0xae2f842ef90c0d5213259ab82639d5bbf649b08e",
+          "solana": "XsP7xzNPvEHS1m6qfanPUGjNmdnmsLKEoNAnHjdxxyZ",
+          "ton": "EQBbsLYH5sD74gYO4DOoj0QsHaNL81NLD13AdhkmD0Up-46H",
+          "ink": "0xae2f842ef90c0d5213259ab82639d5bbf649b08e",
+          "bsc": "0xae2f842ef90c0d5213259ab82639d5bbf649b08e",
+          "tron": "TYiMPNKE31VcfwaYgU8Wn1RzjLDi932LkV",
+          "mantle": "0xae2f842ef90c0d5213259ab82639d5bbf649b08e",
+          "xLayer": "0xae2f842ef90c0d5213259ab82639d5bbf649b08e",
+          "arbitrum": "0xae2f842ef90c0d5213259ab82639d5bbf649b08e",
+          "optimism": "0xae2f842ef90c0d5213259ab82639d5bbf649b08e",
+          "monad": "0xae2f842ef90c0d5213259ab82639d5bbf649b08e",
+          "arc": null
+        }
+      },
+      "pool": "BCvzjDbADhnT3K35kc5TSeMAafNgu9KZVywUq9zWH2mA",
+      "quote_mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "program_id": "whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc",
+      "snapshot_slot": 458982176,
+      "observed_transaction_signatures": [],
+      "depth": {
+        "minimum_liquid_side_usd": 500,
+        "probe_usd": 10,
+        "reference_probe_usd": 1,
+        "reports": [
+          {
+            "audit": {
+              "buy_10_usd_impact_bps": 14.407847445999655,
+              "buy_output": 7306997,
+              "eligible": true,
+              "liquid_side_reserve_usd": 672.748797,
+              "sell_10_usd_impact_bps": 14.453913759048254,
+              "sell_output": 9974552
+            },
+            "pool": "BCvzjDbADhnT3K35kc5TSeMAafNgu9KZVywUq9zWH2mA"
+          }
+        ],
+        "slot": 458982176,
+        "unix_timestamp": 1792445280
+      },
+      "liquid_side_reserve_usd": 672.748797,
+      "fees": {
+        "base_swap_fee_bps": 4.0,
+        "dynamic_swap_fee": true,
+        "epoch": 1062,
+        "pool": "BCvzjDbADhnT3K35kc5TSeMAafNgu9KZVywUq9zWH2mA",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458982176,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "XsP7xzNPvEHS1m6qfanPUGjNmdnmsLKEoNAnHjdxxyZ",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": null,
+        "unix_timestamp": 1792445280
+      },
+      "fee_error": null,
+      "nominal_combined_fee_bps": null,
+      "accepted": true
+    },
+    {
+      "symbol": "MU.US",
+      "mint": "MUxEsUKSMACyw5fZf68wxf5FLnZVhtU9CwH8uNNGay1",
+      "decimals": 6,
+      "catalog_source": "https://api.backpack.exchange/api/v1/assets",
+      "official_record": {
+        "coingeckoId": null,
+        "displayName": "Micron Technology, Inc.",
+        "symbol": "MU.US",
+        "tokens": [
+          {
+            "blockchain": "Solana",
+            "contractAddress": "MUxEsUKSMACyw5fZf68wxf5FLnZVhtU9CwH8uNNGay1",
+            "depositEnabled": true,
+            "displayName": "Micron Technology, Inc.",
+            "maximumWithdrawal": null,
+            "minimumDeposit": "0.0006",
+            "minimumWithdrawal": "0.0012",
+            "nativeDecimals": 6,
+            "withdrawEnabled": true,
+            "withdrawalFee": "0.0006"
+          }
+        ]
+      },
+      "pool": "13MEx6gjRadJNUdmToaGSzgeWHLH7FzScUQS9Mc5nYF5",
+      "quote_mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "program_id": "LBUZKhRxPF3XUpBCjp4YzTKgLccjZhTSDM9YuVaPwxo",
+      "snapshot_slot": 458982183,
+      "observed_transaction_signatures": [],
+      "depth": {
+        "minimum_liquid_side_usd": 500,
+        "probe_usd": 10,
+        "reference_probe_usd": 1,
+        "reports": [
+          {
+            "audit": {
+              "buy_10_usd_impact_bps": -2.724795640327571,
+              "buy_output": 11013,
+              "eligible": true,
+              "liquid_side_reserve_usd": 1263016.980356,
+              "sell_10_usd_impact_bps": -0.009039203023863962,
+              "sell_output": 9956639
+            },
+            "pool": "13MEx6gjRadJNUdmToaGSzgeWHLH7FzScUQS9Mc5nYF5"
+          }
+        ],
+        "slot": 458982183,
+        "unix_timestamp": 1792445282
+      },
+      "liquid_side_reserve_usd": 1263016.980356,
+      "fees": {
+        "base_swap_fee_bps": 20.0,
+        "dynamic_swap_fee": true,
+        "epoch": 1062,
+        "pool": "13MEx6gjRadJNUdmToaGSzgeWHLH7FzScUQS9Mc5nYF5",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458982183,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "MUxEsUKSMACyw5fZf68wxf5FLnZVhtU9CwH8uNNGay1",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": null,
+        "unix_timestamp": 1792445282
+      },
+      "fee_error": null,
+      "nominal_combined_fee_bps": null,
+      "accepted": true
+    },
+    {
+      "symbol": "NFLX.US",
+      "mint": "NFLX7qV57zuVxCoHy3s1jiGZyALraLNwttbxdvmYJLJ",
+      "decimals": 6,
+      "catalog_source": "https://api.backpack.exchange/api/v1/assets",
+      "official_record": {
+        "coingeckoId": null,
+        "displayName": "Netflix, Inc.",
+        "symbol": "NFLX.US",
+        "tokens": [
+          {
+            "blockchain": "Solana",
+            "contractAddress": "NFLX7qV57zuVxCoHy3s1jiGZyALraLNwttbxdvmYJLJ",
+            "depositEnabled": true,
+            "displayName": "Netflix, Inc.",
+            "maximumWithdrawal": null,
+            "minimumDeposit": "0.008",
+            "minimumWithdrawal": "0.016",
+            "nativeDecimals": 6,
+            "withdrawEnabled": true,
+            "withdrawalFee": "0.008"
+          }
+        ]
+      },
+      "pool": "62sHycti7wLRMT16xA3cSpaiEiJCMBtjkLW2tNXUVmGL",
+      "quote_mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "program_id": "CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK",
+      "snapshot_slot": 458982194,
+      "observed_transaction_signatures": [],
+      "depth": {
+        "minimum_liquid_side_usd": 500,
+        "probe_usd": 10,
+        "reference_probe_usd": 1,
+        "reports": [
+          {
+            "audit": {
+              "buy_10_usd_impact_bps": 2.450637165662961,
+              "buy_output": 142785,
+              "eligible": true,
+              "liquid_side_reserve_usd": 1383.859566,
+              "sell_10_usd_impact_bps": 2.2651785032956617,
+              "sell_output": 9957224
+            },
+            "pool": "62sHycti7wLRMT16xA3cSpaiEiJCMBtjkLW2tNXUVmGL"
+          }
+        ],
+        "slot": 458982194,
+        "unix_timestamp": 1792445284
+      },
+      "liquid_side_reserve_usd": 1383.859566,
+      "fees": {
+        "base_swap_fee_bps": 20.0,
+        "dynamic_swap_fee": true,
+        "epoch": 1062,
+        "pool": "62sHycti7wLRMT16xA3cSpaiEiJCMBtjkLW2tNXUVmGL",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458982194,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "NFLX7qV57zuVxCoHy3s1jiGZyALraLNwttbxdvmYJLJ",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": null,
+        "unix_timestamp": 1792445284
+      },
+      "fee_error": null,
+      "nominal_combined_fee_bps": null,
+      "accepted": true
+    },
+    {
+      "symbol": "NKE.US",
+      "mint": "NKEda5nHhNGgjrE9nDdMvaEmkmJ96qqxzBVZEcKmjSg",
+      "decimals": 6,
+      "catalog_source": "https://api.backpack.exchange/api/v1/assets",
+      "official_record": {
+        "coingeckoId": null,
+        "displayName": "NIKE, Inc.",
+        "symbol": "NKE.US",
+        "tokens": [
+          {
+            "blockchain": "Solana",
+            "contractAddress": "NKEda5nHhNGgjrE9nDdMvaEmkmJ96qqxzBVZEcKmjSg",
+            "depositEnabled": true,
+            "displayName": "NIKE, Inc.",
+            "maximumWithdrawal": null,
+            "minimumDeposit": "0.014",
+            "minimumWithdrawal": "0.028",
+            "nativeDecimals": 6,
+            "withdrawEnabled": true,
+            "withdrawalFee": "0.014"
+          }
+        ]
+      },
+      "pool": "94afGPYHkDyYbSjkbUrkaAdCAbBVyeS4h5hLtmREWYph",
+      "quote_mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "program_id": "whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc",
+      "snapshot_slot": 458982203,
+      "observed_transaction_signatures": [],
+      "depth": {
+        "minimum_liquid_side_usd": 500,
+        "probe_usd": 10,
+        "reference_probe_usd": 1,
+        "reports": [
+          {
+            "audit": {
+              "buy_10_usd_impact_bps": 6.291649603514804,
+              "buy_output": 268441,
+              "eligible": true,
+              "liquid_side_reserve_usd": 927.242032,
+              "sell_10_usd_impact_bps": 5.665850283894658,
+              "sell_output": 9961083
+            },
+            "pool": "94afGPYHkDyYbSjkbUrkaAdCAbBVyeS4h5hLtmREWYph"
+          }
+        ],
+        "slot": 458982203,
+        "unix_timestamp": 1792445286
+      },
+      "liquid_side_reserve_usd": 927.242032,
+      "fees": {
+        "base_swap_fee_bps": 16.0,
+        "dynamic_swap_fee": true,
+        "epoch": 1062,
+        "pool": "94afGPYHkDyYbSjkbUrkaAdCAbBVyeS4h5hLtmREWYph",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458982203,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "NKEda5nHhNGgjrE9nDdMvaEmkmJ96qqxzBVZEcKmjSg",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": null,
+        "unix_timestamp": 1792445286
+      },
+      "fee_error": null,
+      "nominal_combined_fee_bps": null,
+      "accepted": true
+    },
+    {
+      "symbol": "NVDAx",
+      "mint": "Xsc9qvGR1efVDFGLrVsmkzv3qi45LTBjeUKSPmx9qEh",
+      "decimals": 8,
+      "catalog_source": "https://xstocks.com/products",
+      "official_record": {
+        "slug": "nvidia-xstock",
+        "name": "NVIDIA xStock",
+        "symbol": "NVDAx",
+        "iconUrl": "https://cdn.prod.website-files.com/655f3efc4be468487052e35a/6aa0128df63915dbafacef5d_NVDAx.png",
+        "addresses": {
+          "ethereum": "0xc845b2894dbddd03858fd2d643b4ef725fe0849d",
+          "solana": "Xsc9qvGR1efVDFGLrVsmkzv3qi45LTBjeUKSPmx9qEh",
+          "ton": "EQCva-Of7acQdU_piADdlcbzsFtA-xJwZoctz8ZOXBdBoaB8",
+          "ink": "0xc845b2894dbddd03858fd2d643b4ef725fe0849d",
+          "bsc": "0xc845b2894dbddd03858fd2d643b4ef725fe0849d",
+          "tron": "TNMR6r9Z4cL7eWNrNQ4e4sm2XPhhifexZU",
+          "mantle": "0xc845b2894dbddd03858fd2d643b4ef725fe0849d",
+          "xLayer": "0xc845b2894dbddd03858fd2d643b4ef725fe0849d",
+          "arbitrum": "0xc845b2894dbddd03858fd2d643b4ef725fe0849d",
+          "optimism": "0xc845b2894dbddd03858fd2d643b4ef725fe0849d",
+          "monad": "0xc845b2894dbddd03858fd2d643b4ef725fe0849d",
+          "arc": null
+        }
+      },
+      "pool": "6R4r93V5fcMzc13CL2enEepDSYcr4Qx3ptZBDwudTXCo",
+      "quote_mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "program_id": "whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc",
+      "snapshot_slot": 458982168,
+      "observed_transaction_signatures": [],
+      "depth": {
+        "minimum_liquid_side_usd": 500,
+        "probe_usd": 10,
+        "reference_probe_usd": 1,
+        "reports": [
+          {
+            "audit": {
+              "buy_10_usd_impact_bps": 0.008716533957953132,
+              "buy_output": 4588976,
+              "eligible": true,
+              "liquid_side_reserve_usd": 56916.344352,
+              "sell_10_usd_impact_bps": 0.006002436989671622,
+              "sell_output": 9995934
+            },
+            "pool": "6R4r93V5fcMzc13CL2enEepDSYcr4Qx3ptZBDwudTXCo"
+          }
+        ],
+        "slot": 458982168,
+        "unix_timestamp": 1792445279
+      },
+      "liquid_side_reserve_usd": 56916.344352,
+      "fees": {
+        "base_swap_fee_bps": 2.0,
+        "dynamic_swap_fee": true,
+        "epoch": 1062,
+        "pool": "6R4r93V5fcMzc13CL2enEepDSYcr4Qx3ptZBDwudTXCo",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458982168,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "Xsc9qvGR1efVDFGLrVsmkzv3qi45LTBjeUKSPmx9qEh",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": null,
+        "unix_timestamp": 1792445279
+      },
+      "fee_error": null,
+      "nominal_combined_fee_bps": null,
+      "accepted": true
+    },
+    {
+      "symbol": "QQQx",
+      "mint": "Xs8S1uUs1zvS2p7iwtsG3b6fkhpvmwz4GYU3gWAmWHZ",
+      "decimals": 8,
+      "catalog_source": "https://xstocks.com/products",
+      "official_record": {
+        "slug": "nasdaq-xstock",
+        "name": "Nasdaq xStock",
+        "symbol": "QQQx",
+        "iconUrl": "https://cdn.prod.website-files.com/655f3efc4be468487052e35a/6a98659599bcd3762d9a1494_QQQx.png",
+        "addresses": {
+          "ethereum": "0xa753a7395cae905cd615da0b82a53e0560f250af",
+          "solana": "Xs8S1uUs1zvS2p7iwtsG3b6fkhpvmwz4GYU3gWAmWHZ",
+          "ton": "EQCe6utwqROmrO_cOUUvVNYkvyecUjfugtugvhUwlVYSEm7x",
+          "ink": "0xa753a7395cae905cd615da0b82a53e0560f250af",
+          "bsc": "0xa753a7395cae905cd615da0b82a53e0560f250af",
+          "tron": "TVBbuZ4hUisCPSsrR46BCQHDGtsBNAMjVh",
+          "mantle": "0xa753a7395cae905cd615da0b82a53e0560f250af",
+          "xLayer": "0xa753a7395cae905cd615da0b82a53e0560f250af",
+          "arbitrum": "0xa753a7395cae905cd615da0b82a53e0560f250af",
+          "optimism": "0xa753a7395cae905cd615da0b82a53e0560f250af",
+          "monad": "0xa753a7395cae905cd615da0b82a53e0560f250af",
+          "arc": null
+        }
+      },
+      "pool": "3GVB4bXtcrP3MM376mrcJDwfTNThvyorLmVgSTf6kxFt",
+      "quote_mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "program_id": "whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc",
+      "snapshot_slot": 458982181,
+      "observed_transaction_signatures": [],
+      "depth": {
+        "minimum_liquid_side_usd": 500,
+        "probe_usd": 10,
+        "reference_probe_usd": 1,
+        "reports": [
+          {
+            "audit": {
+              "buy_10_usd_impact_bps": 0.5704630137781663,
+              "buy_output": 1384761,
+              "eligible": true,
+              "liquid_side_reserve_usd": 6419.319634,
+              "sell_10_usd_impact_bps": 0.5638137889585337,
+              "sell_output": 9967268
+            },
+            "pool": "3GVB4bXtcrP3MM376mrcJDwfTNThvyorLmVgSTf6kxFt"
+          }
+        ],
+        "slot": 458982181,
+        "unix_timestamp": 1792445281
+      },
+      "liquid_side_reserve_usd": 6419.319634,
+      "fees": {
+        "base_swap_fee_bps": 16.0,
+        "dynamic_swap_fee": true,
+        "epoch": 1062,
+        "pool": "3GVB4bXtcrP3MM376mrcJDwfTNThvyorLmVgSTf6kxFt",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458982181,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "Xs8S1uUs1zvS2p7iwtsG3b6fkhpvmwz4GYU3gWAmWHZ",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": null,
+        "unix_timestamp": 1792445281
+      },
+      "fee_error": null,
+      "nominal_combined_fee_bps": null,
+      "accepted": true
+    },
+    {
+      "symbol": "SPCX.US",
+      "mint": "SPCXxcqXj6e5dJDVNovHN8744zkbhM2bYudU45BimGb",
+      "decimals": 6,
+      "catalog_source": "https://api.backpack.exchange/api/v1/assets",
+      "official_record": {
+        "coingeckoId": null,
+        "displayName": "SpaceX",
+        "symbol": "SPCX.US",
+        "tokens": [
+          {
+            "blockchain": "Solana",
+            "contractAddress": "SPCXxcqXj6e5dJDVNovHN8744zkbhM2bYudU45BimGb",
+            "depositEnabled": true,
+            "displayName": "SpaceX",
+            "maximumWithdrawal": null,
+            "minimumDeposit": "0.004",
+            "minimumWithdrawal": "0.008",
+            "nativeDecimals": 6,
+            "withdrawEnabled": true,
+            "withdrawalFee": "0.004"
+          }
+        ]
+      },
+      "pool": "FcxLv8B82hakWDZJjJWDkk4MRcyUNzcQ3DyNS1VqZYr1",
+      "quote_mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "program_id": "whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc",
+      "snapshot_slot": 458982213,
+      "observed_transaction_signatures": [],
+      "depth": {
+        "minimum_liquid_side_usd": 500,
+        "probe_usd": 10,
+        "reference_probe_usd": 1,
+        "reports": [
+          {
+            "audit": {
+              "buy_10_usd_impact_bps": 0.2979293907345859,
+              "buy_output": 67128,
+              "eligible": true,
+              "liquid_side_reserve_usd": 4755.290532,
+              "sell_10_usd_impact_bps": 0.5231752637135934,
+              "sell_output": 9996127
+            },
+            "pool": "FcxLv8B82hakWDZJjJWDkk4MRcyUNzcQ3DyNS1VqZYr1"
+          }
+        ],
+        "slot": 458982213,
+        "unix_timestamp": 1792445289
+      },
+      "liquid_side_reserve_usd": 4755.290532,
+      "fees": {
+        "base_swap_fee_bps": 1.0,
+        "dynamic_swap_fee": true,
+        "epoch": 1062,
+        "pool": "FcxLv8B82hakWDZJjJWDkk4MRcyUNzcQ3DyNS1VqZYr1",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458982213,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "SPCXxcqXj6e5dJDVNovHN8744zkbhM2bYudU45BimGb",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": null,
+        "unix_timestamp": 1792445289
+      },
+      "fee_error": null,
+      "nominal_combined_fee_bps": null,
+      "accepted": true
+    },
+    {
+      "symbol": "SPCXx",
+      "mint": "Xs3oZwbHvqis4NYcf4YKWmEia2eC84wSiVrcYcTqpH8",
+      "decimals": 8,
+      "catalog_source": "https://xstocks.com/products",
+      "official_record": {
+        "slug": "spacex-xstock",
+        "name": "SpaceX xStock",
+        "symbol": "SPCXx",
+        "iconUrl": "https://cdn.prod.website-files.com/655f3efc4be468487052e35a/6a299151671e5a8f636b0b33_SPCXx.png",
+        "addresses": {
+          "ethereum": "0x68fa48b1c2fe52b3d776e1953e0e782b5044ce28",
+          "solana": "Xs3oZwbHvqis4NYcf4YKWmEia2eC84wSiVrcYcTqpH8",
+          "ton": "EQAAsfl1a-BA8dSSUX2VpLCveFYzDOLrJX9ll89baSbmvl2V",
+          "ink": "0x68fa48b1c2fe52b3d776e1953e0e782b5044ce28",
+          "bsc": "0x68fa48b1c2fe52b3d776e1953e0e782b5044ce28",
+          "tron": null,
+          "mantle": "0x68fa48b1c2fe52b3d776e1953e0e782b5044ce28",
+          "xLayer": "0x68fa48b1c2fe52b3d776e1953e0e782b5044ce28",
+          "arbitrum": "0x68fa48b1c2fe52b3d776e1953e0e782b5044ce28",
+          "optimism": "0x68fa48b1c2fe52b3d776e1953e0e782b5044ce28",
+          "monad": "0x68fa48b1c2fe52b3d776e1953e0e782b5044ce28",
+          "arc": null
+        }
+      },
+      "pool": "DNcGcbmmmvjrmVsT4DTMh2FLrbBchxXd66njTKo6zDAc",
+      "quote_mint": "So11111111111111111111111111111111111111112",
+      "program_id": "CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK",
+      "snapshot_slot": 458982128,
+      "observed_transaction_signatures": [],
+      "depth": {
+        "minimum_liquid_side_usd": 500,
+        "probe_usd": 10,
+        "reference_probe_usd": 1,
+        "reports": [
+          {
+            "audit": {
+              "buy_10_usd_impact_bps": -0.0015091492167051967,
+              "buy_output": 6626251,
+              "eligible": true,
+              "liquid_side_reserve_usd": 938752.7184841172,
+              "sell_10_usd_impact_bps": 0.0011752268591624926,
+              "sell_output": 93598939
+            },
+            "pool": "DNcGcbmmmvjrmVsT4DTMh2FLrbBchxXd66njTKo6zDAc"
+          }
+        ],
+        "slot": 458982128,
+        "unix_timestamp": 1792445270
+      },
+      "liquid_side_reserve_usd": 938752.7184841172,
+      "fees": {
+        "base_swap_fee_bps": 80.0,
+        "dynamic_swap_fee": false,
+        "epoch": 1062,
+        "pool": "DNcGcbmmmvjrmVsT4DTMh2FLrbBchxXd66njTKo6zDAc",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "So11111111111111111111111111111111111111112",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458982128,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "Xs3oZwbHvqis4NYcf4YKWmEia2eC84wSiVrcYcTqpH8",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": 80.0,
+        "unix_timestamp": 1792445270
+      },
+      "fee_error": null,
+      "nominal_combined_fee_bps": 80.00000000000007,
+      "accepted": true
+    },
+    {
+      "symbol": "SPHR.US",
+      "mint": "SPHRp8cZaSQBTp1KMNP4V1X821SXhXWt4Q2yLdyHzju",
+      "decimals": 6,
+      "catalog_source": "https://api.backpack.exchange/api/v1/assets",
+      "official_record": {
+        "coingeckoId": null,
+        "displayName": "Sphere Entertainment Co.",
+        "symbol": "SPHR.US",
+        "tokens": [
+          {
+            "blockchain": "Solana",
+            "contractAddress": "SPHRp8cZaSQBTp1KMNP4V1X821SXhXWt4Q2yLdyHzju",
+            "depositEnabled": true,
+            "displayName": "Sphere Entertainment Co.",
+            "maximumWithdrawal": null,
+            "minimumDeposit": "0.005",
+            "minimumWithdrawal": "0.01",
+            "nativeDecimals": 6,
+            "withdrawEnabled": true,
+            "withdrawalFee": "0.005"
+          }
+        ]
+      },
+      "pool": "7YZVp47ddDLMHCFtYY7nNdMQNfXRi57YQwqxTvGY1SAA",
+      "quote_mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "program_id": "CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK",
+      "snapshot_slot": 458982223,
+      "observed_transaction_signatures": [],
+      "depth": {
+        "minimum_liquid_side_usd": 500,
+        "probe_usd": 10,
+        "reference_probe_usd": 1,
+        "reports": [
+          {
+            "audit": {
+              "buy_10_usd_impact_bps": -0.3151922672839369,
+              "buy_output": 95183,
+              "eligible": true,
+              "liquid_side_reserve_usd": 19050.19177,
+              "sell_10_usd_impact_bps": 0.3428508455971535,
+              "sell_output": 9799844
+            },
+            "pool": "7YZVp47ddDLMHCFtYY7nNdMQNfXRi57YQwqxTvGY1SAA"
+          }
+        ],
+        "slot": 458982223,
+        "unix_timestamp": 1792445291
+      },
+      "liquid_side_reserve_usd": 19050.19177,
+      "fees": {
+        "base_swap_fee_bps": 100.0,
+        "dynamic_swap_fee": true,
+        "epoch": 1062,
+        "pool": "7YZVp47ddDLMHCFtYY7nNdMQNfXRi57YQwqxTvGY1SAA",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458982223,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "SPHRp8cZaSQBTp1KMNP4V1X821SXhXWt4Q2yLdyHzju",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": null,
+        "unix_timestamp": 1792445291
+      },
+      "fee_error": null,
+      "nominal_combined_fee_bps": null,
+      "accepted": true
+    },
+    {
+      "symbol": "SPYx",
+      "mint": "XsoCS1TfEyfFhfvj8EtZ528L3CaKBDBRqRapnBbDF2W",
+      "decimals": 8,
+      "catalog_source": "https://xstocks.com/products",
+      "official_record": {
+        "slug": "sp500-xstock",
+        "name": "SP500 xStock",
+        "symbol": "SPYx",
+        "iconUrl": "https://cdn.prod.website-files.com/655f3efc4be468487052e35a/6a9865b36967fd31d0415ecf_SPYx.png",
+        "addresses": {
+          "ethereum": "0x90a2a4c76b5d8c0bc892a69ea28aa775a8f2dd48",
+          "solana": "XsoCS1TfEyfFhfvj8EtZ528L3CaKBDBRqRapnBbDF2W",
+          "ton": "EQB1fyBAA9qQDP6LEGaF3cbU-Xbr-p6ESBZGnqlHkHIHAJZv",
+          "ink": "0x90a2a4c76b5d8c0bc892a69ea28aa775a8f2dd48",
+          "bsc": "0x90a2a4c76b5d8c0bc892a69ea28aa775a8f2dd48",
+          "tron": "TKN6A3wSWHdZGanW5wBFkeFq2Yw3rhGqNz",
+          "mantle": "0x90a2a4c76b5d8c0bc892a69ea28aa775a8f2dd48",
+          "xLayer": "0x90a2a4c76b5d8c0bc892a69ea28aa775a8f2dd48",
+          "arbitrum": "0x90a2a4c76b5d8c0bc892a69ea28aa775a8f2dd48",
+          "optimism": "0x90a2a4c76b5d8c0bc892a69ea28aa775a8f2dd48",
+          "monad": "0x90a2a4c76b5d8c0bc892a69ea28aa775a8f2dd48",
+          "arc": null
+        }
+      },
+      "pool": "4pCZCVEiYyT4efNdXUdL2tJF8VGMgiMXrZWq6FiNXhRw",
+      "quote_mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "program_id": "CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK",
+      "snapshot_slot": 458982208,
+      "observed_transaction_signatures": [],
+      "depth": {
+        "minimum_liquid_side_usd": 500,
+        "probe_usd": 10,
+        "reference_probe_usd": 1,
+        "reports": [
+          {
+            "audit": {
+              "buy_10_usd_impact_bps": -0.046301655283187415,
+              "buy_output": 1295856,
+              "eligible": true,
+              "liquid_side_reserve_usd": 218517.759731,
+              "sell_10_usd_impact_bps": 0.0010002060424341153,
+              "sell_output": 9997939
+            },
+            "pool": "4pCZCVEiYyT4efNdXUdL2tJF8VGMgiMXrZWq6FiNXhRw"
+          }
+        ],
+        "slot": 458982208,
+        "unix_timestamp": 1792445287
+      },
+      "liquid_side_reserve_usd": 218517.759731,
+      "fees": {
+        "base_swap_fee_bps": 1.0,
+        "dynamic_swap_fee": false,
+        "epoch": 1062,
+        "pool": "4pCZCVEiYyT4efNdXUdL2tJF8VGMgiMXrZWq6FiNXhRw",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458982208,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "XsoCS1TfEyfFhfvj8EtZ528L3CaKBDBRqRapnBbDF2W",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": 1.0,
+        "unix_timestamp": 1792445287
+      },
+      "fee_error": null,
+      "nominal_combined_fee_bps": 0.9999999999998899,
+      "accepted": true
+    },
+    {
+      "symbol": "TSLAx",
+      "mint": "XsDoVfqeBukxuZHWhdvWHBhgEHjGNst4MLodqsJHzoB",
+      "decimals": 8,
+      "catalog_source": "https://xstocks.com/products",
+      "official_record": {
+        "slug": "tesla-xstock",
+        "name": "Tesla xStock",
+        "symbol": "TSLAx",
+        "iconUrl": "https://cdn.prod.website-files.com/655f3efc4be468487052e35a/6ab558f9a5d8bb1d73db841b_TSLAx.png",
+        "addresses": {
+          "ethereum": "0x8ad3c73f833d3f9a523ab01476625f269aeb7cf0",
+          "solana": "XsDoVfqeBukxuZHWhdvWHBhgEHjGNst4MLodqsJHzoB",
+          "ton": "EQB4IwqWZPUczntdry8vSN2tsJKt-9F7iIb7gEFREYYOB563",
+          "ink": "0x8ad3c73f833d3f9a523ab01476625f269aeb7cf0",
+          "bsc": "0x8ad3c73f833d3f9a523ab01476625f269aeb7cf0",
+          "tron": "TTfj39Vm7ATpNJMsfDUWYVzxK8mPPA4yYE",
+          "mantle": "0x8ad3c73f833d3f9a523ab01476625f269aeb7cf0",
+          "xLayer": "0x8ad3c73f833d3f9a523ab01476625f269aeb7cf0",
+          "arbitrum": "0x8ad3c73f833d3f9a523ab01476625f269aeb7cf0",
+          "optimism": "0x8ad3c73f833d3f9a523ab01476625f269aeb7cf0",
+          "monad": "0x8ad3c73f833d3f9a523ab01476625f269aeb7cf0",
+          "arc": null
+        }
+      },
+      "pool": "9p7abUFv31ycgu9kckvnoqMMvBy67dqTDM2m6HP9xokN",
+      "quote_mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "program_id": "whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc",
+      "snapshot_slot": 458982215,
+      "observed_transaction_signatures": [],
+      "depth": {
+        "minimum_liquid_side_usd": 500,
+        "probe_usd": 10,
+        "reference_probe_usd": 1,
+        "reports": [
+          {
+            "audit": {
+              "buy_10_usd_impact_bps": 0.1287318442122487,
+              "buy_output": 2718795,
+              "eligible": true,
+              "liquid_side_reserve_usd": 25615.80877,
+              "sell_10_usd_impact_bps": 0.14906230804467846,
+              "sell_output": 9995671
+            },
+            "pool": "9p7abUFv31ycgu9kckvnoqMMvBy67dqTDM2m6HP9xokN"
+          }
+        ],
+        "slot": 458982215,
+        "unix_timestamp": 1792445289
+      },
+      "liquid_side_reserve_usd": 25615.80877,
+      "fees": {
+        "base_swap_fee_bps": 2.0,
+        "dynamic_swap_fee": true,
+        "epoch": 1062,
+        "pool": "9p7abUFv31ycgu9kckvnoqMMvBy67dqTDM2m6HP9xokN",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458982215,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "XsDoVfqeBukxuZHWhdvWHBhgEHjGNst4MLodqsJHzoB",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": null,
+        "unix_timestamp": 1792445289
+      },
+      "fee_error": null,
+      "nominal_combined_fee_bps": null,
+      "accepted": true
+    },
+    {
+      "symbol": "TSM.US",
+      "mint": "TSM2Hiuf7Z9REcwZFQvsBEekBYCYziWBABfFnj6V6gQ",
+      "decimals": 6,
+      "catalog_source": "https://api.backpack.exchange/api/v1/assets",
+      "official_record": {
+        "coingeckoId": null,
+        "displayName": "Taiwan Semiconductor Manufacturing Company Limited",
+        "symbol": "TSM.US",
+        "tokens": [
+          {
+            "blockchain": "Solana",
+            "contractAddress": "TSM2Hiuf7Z9REcwZFQvsBEekBYCYziWBABfFnj6V6gQ",
+            "depositEnabled": true,
+            "displayName": "Taiwan Semiconductor Manufacturing Company Limited",
+            "maximumWithdrawal": null,
+            "minimumDeposit": "0.0012",
+            "minimumWithdrawal": "0.0024",
+            "nativeDecimals": 6,
+            "withdrawEnabled": true,
+            "withdrawalFee": "0.0012"
+          }
+        ]
+      },
+      "pool": "D1zm9kMhXRQyr3JyAcW9cbj7XvRjQE1pF7MBBKpnbA1n",
+      "quote_mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "program_id": "CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK",
+      "snapshot_slot": 458982192,
+      "observed_transaction_signatures": [],
+      "depth": {
+        "minimum_liquid_side_usd": 500,
+        "probe_usd": 10,
+        "reference_probe_usd": 1,
+        "reports": [
+          {
+            "audit": {
+              "buy_10_usd_impact_bps": -1.268498942916807,
+              "buy_output": 23653,
+              "eligible": true,
+              "liquid_side_reserve_usd": 11924.495772,
+              "sell_10_usd_impact_bps": 0.18998392675717568,
+              "sell_output": 9948021
+            },
+            "pool": "D1zm9kMhXRQyr3JyAcW9cbj7XvRjQE1pF7MBBKpnbA1n"
+          }
+        ],
+        "slot": 458982192,
+        "unix_timestamp": 1792445284
+      },
+      "liquid_side_reserve_usd": 11924.495772,
+      "fees": {
+        "base_swap_fee_bps": 25.0,
+        "dynamic_swap_fee": false,
+        "epoch": 1062,
+        "pool": "D1zm9kMhXRQyr3JyAcW9cbj7XvRjQE1pF7MBBKpnbA1n",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458982192,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "TSM2Hiuf7Z9REcwZFQvsBEekBYCYziWBABfFnj6V6gQ",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": 25.0,
+        "unix_timestamp": 1792445284
+      },
+      "fee_error": null,
+      "nominal_combined_fee_bps": 24.999999999999467,
+      "accepted": true
+    },
+    {
+      "symbol": "TTWO.US",
+      "mint": "TTWofwAge91oFhZs7kpQdyrVRkmevgM88xijGvQFbKo",
+      "decimals": 6,
+      "catalog_source": "https://api.backpack.exchange/api/v1/assets",
+      "official_record": {
+        "coingeckoId": null,
+        "displayName": "Take-Two Interactive Software, Inc.",
+        "symbol": "TTWO.US",
+        "tokens": [
+          {
+            "blockchain": "Solana",
+            "contractAddress": "TTWofwAge91oFhZs7kpQdyrVRkmevgM88xijGvQFbKo",
+            "depositEnabled": true,
+            "displayName": "Take-Two Interactive Software, Inc.",
+            "maximumWithdrawal": null,
+            "minimumDeposit": "0.0025",
+            "minimumWithdrawal": "0.005",
+            "nativeDecimals": 6,
+            "withdrawEnabled": true,
+            "withdrawalFee": "0.0025"
+          }
+        ]
+      },
+      "pool": "F1mbBZYKXGFx5nraY3cK4RgNR5EuShntQ8xDKDD5HY1z",
+      "quote_mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "program_id": "LBUZKhRxPF3XUpBCjp4YzTKgLccjZhTSDM9YuVaPwxo",
+      "snapshot_slot": 458982151,
+      "observed_transaction_signatures": [],
+      "depth": {
+        "minimum_liquid_side_usd": 500,
+        "probe_usd": 10,
+        "reference_probe_usd": 1,
+        "reports": [
+          {
+            "audit": {
+              "buy_10_usd_impact_bps": -1.6460905349791055,
+              "buy_output": 48608,
+              "eligible": true,
+              "liquid_side_reserve_usd": 34218.629079,
+              "sell_10_usd_impact_bps": -0.008007959912958995,
+              "sell_output": 9990068
+            },
+            "pool": "F1mbBZYKXGFx5nraY3cK4RgNR5EuShntQ8xDKDD5HY1z"
+          }
+        ],
+        "slot": 458982151,
+        "unix_timestamp": 1792445275
+      },
+      "liquid_side_reserve_usd": 34218.629079,
+      "fees": {
+        "base_swap_fee_bps": 4.0,
+        "dynamic_swap_fee": true,
+        "epoch": 1062,
+        "pool": "F1mbBZYKXGFx5nraY3cK4RgNR5EuShntQ8xDKDD5HY1z",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458982151,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "TTWofwAge91oFhZs7kpQdyrVRkmevgM88xijGvQFbKo",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": null,
+        "unix_timestamp": 1792445275
+      },
+      "fee_error": null,
+      "nominal_combined_fee_bps": null,
+      "accepted": true
+    },
+    {
+      "symbol": "UVXY.US",
+      "mint": "UVXY4ojmAMTaPwUmrRmcuxWHjMHCbz3BxX2RBMzjYKx",
+      "decimals": 6,
+      "catalog_source": "https://api.backpack.exchange/api/v1/assets",
+      "official_record": {
+        "coingeckoId": null,
+        "displayName": "ProShares Ultra VIX Short-Term Futures ETF",
+        "symbol": "UVXY.US",
+        "tokens": [
+          {
+            "blockchain": "Solana",
+            "contractAddress": "UVXY4ojmAMTaPwUmrRmcuxWHjMHCbz3BxX2RBMzjYKx",
+            "depositEnabled": true,
+            "displayName": "ProShares Ultra VIX Short-Term Futures ETF",
+            "maximumWithdrawal": null,
+            "minimumDeposit": "0.03",
+            "minimumWithdrawal": "0.06",
+            "nativeDecimals": 6,
+            "withdrawEnabled": true,
+            "withdrawalFee": "0.03"
+          }
+        ]
+      },
+      "pool": "ANyCzRPgiCLeJx3nH4SKS1jxtaxMk9qzG5SmJooh55ie",
+      "quote_mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "program_id": "CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK",
+      "snapshot_slot": 458982123,
+      "observed_transaction_signatures": [],
+      "depth": {
+        "minimum_liquid_side_usd": 500,
+        "probe_usd": 10,
+        "reference_probe_usd": 1,
+        "reports": [
+          {
+            "audit": {
+              "buy_10_usd_impact_bps": 0.087305744718158,
+              "buy_output": 572695,
+              "eligible": true,
+              "liquid_side_reserve_usd": 35868.212848,
+              "sell_10_usd_impact_bps": 0.07448242367869007,
+              "sell_output": 9800897
+            },
+            "pool": "ANyCzRPgiCLeJx3nH4SKS1jxtaxMk9qzG5SmJooh55ie"
+          }
+        ],
+        "slot": 458982123,
+        "unix_timestamp": 1792445269
+      },
+      "liquid_side_reserve_usd": 35868.212848,
+      "fees": {
+        "base_swap_fee_bps": 100.0,
+        "dynamic_swap_fee": true,
+        "epoch": 1062,
+        "pool": "ANyCzRPgiCLeJx3nH4SKS1jxtaxMk9qzG5SmJooh55ie",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458982123,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "UVXY4ojmAMTaPwUmrRmcuxWHjMHCbz3BxX2RBMzjYKx",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": null,
+        "unix_timestamp": 1792445269
+      },
+      "fee_error": null,
+      "nominal_combined_fee_bps": null,
+      "accepted": true
+    },
+    {
+      "symbol": "ABNB.US",
+      "mint": "ABNB56TteaTZG1S3DY2W8VMncQmHMvNCGaZgAba49CLP",
+      "decimals": 6,
+      "catalog_source": "https://api.backpack.exchange/api/v1/assets",
+      "official_record": {
+        "coingeckoId": null,
+        "displayName": "Airbnb, Inc.",
+        "symbol": "ABNB.US",
+        "tokens": [
+          {
+            "blockchain": "Solana",
+            "contractAddress": "ABNB56TteaTZG1S3DY2W8VMncQmHMvNCGaZgAba49CLP",
+            "depositEnabled": true,
+            "displayName": "Airbnb, Inc.",
+            "maximumWithdrawal": null,
+            "minimumDeposit": "0.003",
+            "minimumWithdrawal": "0.006",
+            "nativeDecimals": 6,
+            "withdrawEnabled": true,
+            "withdrawalFee": "0.003"
+          }
+        ]
+      },
+      "pool": "GqejCG4yTgEtA4kDtz5MGdxoeyQ9Y8eXdcarsDuQsWhY",
+      "quote_mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "program_id": "LBUZKhRxPF3XUpBCjp4YzTKgLccjZhTSDM9YuVaPwxo",
+      "snapshot_slot": 458982984,
+      "observed_transaction_signatures": [],
+      "depth": {
+        "minimum_liquid_side_usd": 500,
+        "probe_usd": 10,
+        "reference_probe_usd": 1,
+        "reports": [
+          {
+            "audit": {
+              "buy_10_usd_impact_bps": 1.603135019594415,
+              "buy_output": 56131,
+              "eligible": false,
+              "liquid_side_reserve_usd": 396.192557,
+              "sell_10_usd_impact_bps": 6.292649287541474,
+              "sell_output": 9970442
+            },
+            "pool": "GqejCG4yTgEtA4kDtz5MGdxoeyQ9Y8eXdcarsDuQsWhY"
+          }
+        ],
+        "slot": 458982984,
+        "unix_timestamp": 1792445455
+      },
+      "liquid_side_reserve_usd": 396.192557,
+      "fees": {
+        "base_swap_fee_bps": 10.0,
+        "dynamic_swap_fee": true,
+        "epoch": 1062,
+        "pool": "GqejCG4yTgEtA4kDtz5MGdxoeyQ9Y8eXdcarsDuQsWhY",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458982984,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "ABNB56TteaTZG1S3DY2W8VMncQmHMvNCGaZgAba49CLP",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": null,
+        "unix_timestamp": 1792445455
+      },
+      "fee_error": null,
+      "nominal_combined_fee_bps": null,
+      "accepted": false
+    },
+    {
+      "symbol": "SPCXx",
+      "mint": "Xs3oZwbHvqis4NYcf4YKWmEia2eC84wSiVrcYcTqpH8",
+      "decimals": 8,
+      "catalog_source": "https://xstocks.com/products",
+      "official_record": {
+        "slug": "spacex-xstock",
+        "name": "SpaceX xStock",
+        "symbol": "SPCXx",
+        "iconUrl": "https://cdn.prod.website-files.com/655f3efc4be468487052e35a/6a299151671e5a8f636b0b33_SPCXx.png",
+        "addresses": {
+          "ethereum": "0x68fa48b1c2fe52b3d776e1953e0e782b5044ce28",
+          "solana": "Xs3oZwbHvqis4NYcf4YKWmEia2eC84wSiVrcYcTqpH8",
+          "ton": "EQAAsfl1a-BA8dSSUX2VpLCveFYzDOLrJX9ll89baSbmvl2V",
+          "ink": "0x68fa48b1c2fe52b3d776e1953e0e782b5044ce28",
+          "bsc": "0x68fa48b1c2fe52b3d776e1953e0e782b5044ce28",
+          "tron": null,
+          "mantle": "0x68fa48b1c2fe52b3d776e1953e0e782b5044ce28",
+          "xLayer": "0x68fa48b1c2fe52b3d776e1953e0e782b5044ce28",
+          "arbitrum": "0x68fa48b1c2fe52b3d776e1953e0e782b5044ce28",
+          "optimism": "0x68fa48b1c2fe52b3d776e1953e0e782b5044ce28",
+          "monad": "0x68fa48b1c2fe52b3d776e1953e0e782b5044ce28",
+          "arc": null
+        }
+      },
+      "pool": "AHNN6JmvaGG6XUoSg7sEr38gRYDB2jTbUvqXVuqaRHpq",
+      "quote_mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "program_id": "CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK",
+      "snapshot_slot": 458982131,
+      "observed_transaction_signatures": [],
+      "depth": {
+        "minimum_liquid_side_usd": 500,
+        "probe_usd": 10,
+        "reference_probe_usd": 1,
+        "reports": [
+          {
+            "audit": {
+              "buy_10_usd_impact_bps": -0.002985734162130882,
+              "buy_output": 6698522,
+              "eligible": true,
+              "liquid_side_reserve_usd": 398690.273796,
+              "sell_10_usd_impact_bps": 0.004064784535628974,
+              "sell_output": 9840616
+            },
+            "pool": "AHNN6JmvaGG6XUoSg7sEr38gRYDB2jTbUvqXVuqaRHpq"
+          }
+        ],
+        "slot": 458982131,
+        "unix_timestamp": 1792445271
+      },
+      "liquid_side_reserve_usd": 398690.273796,
+      "fees": {
+        "base_swap_fee_bps": 80.0,
+        "dynamic_swap_fee": false,
+        "epoch": 1062,
+        "pool": "AHNN6JmvaGG6XUoSg7sEr38gRYDB2jTbUvqXVuqaRHpq",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458982131,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "Xs3oZwbHvqis4NYcf4YKWmEia2eC84wSiVrcYcTqpH8",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": 80.0,
+        "unix_timestamp": 1792445271
+      },
+      "fee_error": null,
+      "nominal_combined_fee_bps": 80.00000000000007,
+      "accepted": true
+    },
+    {
+      "symbol": "SPYx",
+      "mint": "XsoCS1TfEyfFhfvj8EtZ528L3CaKBDBRqRapnBbDF2W",
+      "decimals": 8,
+      "catalog_source": "https://xstocks.com/products",
+      "official_record": {
+        "slug": "sp500-xstock",
+        "name": "SP500 xStock",
+        "symbol": "SPYx",
+        "iconUrl": "https://cdn.prod.website-files.com/655f3efc4be468487052e35a/6a9865b36967fd31d0415ecf_SPYx.png",
+        "addresses": {
+          "ethereum": "0x90a2a4c76b5d8c0bc892a69ea28aa775a8f2dd48",
+          "solana": "XsoCS1TfEyfFhfvj8EtZ528L3CaKBDBRqRapnBbDF2W",
+          "ton": "EQB1fyBAA9qQDP6LEGaF3cbU-Xbr-p6ESBZGnqlHkHIHAJZv",
+          "ink": "0x90a2a4c76b5d8c0bc892a69ea28aa775a8f2dd48",
+          "bsc": "0x90a2a4c76b5d8c0bc892a69ea28aa775a8f2dd48",
+          "tron": "TKN6A3wSWHdZGanW5wBFkeFq2Yw3rhGqNz",
+          "mantle": "0x90a2a4c76b5d8c0bc892a69ea28aa775a8f2dd48",
+          "xLayer": "0x90a2a4c76b5d8c0bc892a69ea28aa775a8f2dd48",
+          "arbitrum": "0x90a2a4c76b5d8c0bc892a69ea28aa775a8f2dd48",
+          "optimism": "0x90a2a4c76b5d8c0bc892a69ea28aa775a8f2dd48",
+          "monad": "0x90a2a4c76b5d8c0bc892a69ea28aa775a8f2dd48",
+          "arc": null
+        }
+      },
+      "pool": "BS9uyGV6XmNnPkM4f3xgxCdQEaFv7RSKs6fwrpvYHxfL",
+      "quote_mint": "So11111111111111111111111111111111111111112",
+      "program_id": "CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK",
+      "snapshot_slot": 458982133,
+      "observed_transaction_signatures": [],
+      "depth": {
+        "minimum_liquid_side_usd": 500,
+        "probe_usd": 10,
+        "reference_probe_usd": 1,
+        "reports": [
+          {
+            "audit": {
+              "buy_10_usd_impact_bps": -0.023335952146208427,
+              "buy_output": 1285573,
+              "eligible": true,
+              "liquid_side_reserve_usd": 823412.3166649161,
+              "sell_10_usd_impact_bps": -0.038039840815073944,
+              "sell_output": 94637980
+            },
+            "pool": "BS9uyGV6XmNnPkM4f3xgxCdQEaFv7RSKs6fwrpvYHxfL"
+          }
+        ],
+        "slot": 458982133,
+        "unix_timestamp": 1792445271
+      },
+      "liquid_side_reserve_usd": 823412.3166649161,
+      "fees": {
+        "base_swap_fee_bps": 25.0,
+        "dynamic_swap_fee": false,
+        "epoch": 1062,
+        "pool": "BS9uyGV6XmNnPkM4f3xgxCdQEaFv7RSKs6fwrpvYHxfL",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "So11111111111111111111111111111111111111112",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458982133,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "XsoCS1TfEyfFhfvj8EtZ528L3CaKBDBRqRapnBbDF2W",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": 25.0,
+        "unix_timestamp": 1792445271
+      },
+      "fee_error": null,
+      "nominal_combined_fee_bps": 24.999999999999467,
+      "accepted": true
+    },
+    {
+      "symbol": "ABNB.US",
+      "mint": "ABNB56TteaTZG1S3DY2W8VMncQmHMvNCGaZgAba49CLP",
+      "decimals": 6,
+      "catalog_source": "https://api.backpack.exchange/api/v1/assets",
+      "official_record": {
+        "coingeckoId": null,
+        "displayName": "Airbnb, Inc.",
+        "symbol": "ABNB.US",
+        "tokens": [
+          {
+            "blockchain": "Solana",
+            "contractAddress": "ABNB56TteaTZG1S3DY2W8VMncQmHMvNCGaZgAba49CLP",
+            "depositEnabled": true,
+            "displayName": "Airbnb, Inc.",
+            "maximumWithdrawal": null,
+            "minimumDeposit": "0.003",
+            "minimumWithdrawal": "0.006",
+            "nativeDecimals": 6,
+            "withdrawEnabled": true,
+            "withdrawalFee": "0.003"
+          }
+        ]
+      },
+      "pool": "Bu2A9LUZaMRnf7ZyC1nzREn6dVGVVuPwxz5aFBFkJLTa",
+      "quote_mint": "So11111111111111111111111111111111111111112",
+      "program_id": "LBUZKhRxPF3XUpBCjp4YzTKgLccjZhTSDM9YuVaPwxo",
+      "snapshot_slot": 458982135,
+      "observed_transaction_signatures": [],
+      "depth": {
+        "minimum_liquid_side_usd": 500,
+        "probe_usd": 10,
+        "reference_probe_usd": 1,
+        "reports": [
+          {
+            "audit": {
+              "buy_10_usd_impact_bps": -1.4227280810952259,
+              "buy_output": 56238,
+              "eligible": true,
+              "liquid_side_reserve_usd": 1345.1074480454438,
+              "sell_10_usd_impact_bps": 2.5983423651820825,
+              "sell_output": 94389508
+            },
+            "pool": "Bu2A9LUZaMRnf7ZyC1nzREn6dVGVVuPwxz5aFBFkJLTa"
+          }
+        ],
+        "slot": 458982135,
+        "unix_timestamp": 1792445272
+      },
+      "liquid_side_reserve_usd": 1345.1074480454438,
+      "fees": {
+        "base_swap_fee_bps": 25.0,
+        "dynamic_swap_fee": true,
+        "epoch": 1062,
+        "pool": "Bu2A9LUZaMRnf7ZyC1nzREn6dVGVVuPwxz5aFBFkJLTa",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "So11111111111111111111111111111111111111112",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458982135,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "ABNB56TteaTZG1S3DY2W8VMncQmHMvNCGaZgAba49CLP",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": null,
+        "unix_timestamp": 1792445272
+      },
+      "fee_error": null,
+      "nominal_combined_fee_bps": null,
+      "accepted": true
+    },
+    {
+      "symbol": "TTWO.US",
+      "mint": "TTWofwAge91oFhZs7kpQdyrVRkmevgM88xijGvQFbKo",
+      "decimals": 6,
+      "catalog_source": "https://api.backpack.exchange/api/v1/assets",
+      "official_record": {
+        "coingeckoId": null,
+        "displayName": "Take-Two Interactive Software, Inc.",
+        "symbol": "TTWO.US",
+        "tokens": [
+          {
+            "blockchain": "Solana",
+            "contractAddress": "TTWofwAge91oFhZs7kpQdyrVRkmevgM88xijGvQFbKo",
+            "depositEnabled": true,
+            "displayName": "Take-Two Interactive Software, Inc.",
+            "maximumWithdrawal": null,
+            "minimumDeposit": "0.0025",
+            "minimumWithdrawal": "0.005",
+            "nativeDecimals": 6,
+            "withdrawEnabled": true,
+            "withdrawalFee": "0.0025"
+          }
+        ]
+      },
+      "pool": "7qZPiJ2Lvwh9DV9gUBH2EwConBE3RUrAvGRjpN8vTjtT",
+      "quote_mint": "So11111111111111111111111111111111111111112",
+      "program_id": "LBUZKhRxPF3XUpBCjp4YzTKgLccjZhTSDM9YuVaPwxo",
+      "snapshot_slot": 458982138,
+      "observed_transaction_signatures": [],
+      "depth": {
+        "minimum_liquid_side_usd": 500,
+        "probe_usd": 10,
+        "reference_probe_usd": 1,
+        "reports": [
+          {
+            "audit": {
+              "buy_10_usd_impact_bps": -1.4477766287490645,
+              "buy_output": 48357,
+              "eligible": true,
+              "liquid_side_reserve_usd": 5287.331398380103,
+              "sell_10_usd_impact_bps": 2.0937594567416173,
+              "sell_output": 94885969
+            },
+            "pool": "7qZPiJ2Lvwh9DV9gUBH2EwConBE3RUrAvGRjpN8vTjtT"
+          }
+        ],
+        "slot": 458982138,
+        "unix_timestamp": 1792445272
+      },
+      "liquid_side_reserve_usd": 5287.331398380103,
+      "fees": {
+        "base_swap_fee_bps": 10.0,
+        "dynamic_swap_fee": true,
+        "epoch": 1062,
+        "pool": "7qZPiJ2Lvwh9DV9gUBH2EwConBE3RUrAvGRjpN8vTjtT",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "So11111111111111111111111111111111111111112",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458982138,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "TTWofwAge91oFhZs7kpQdyrVRkmevgM88xijGvQFbKo",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": null,
+        "unix_timestamp": 1792445272
+      },
+      "fee_error": null,
+      "nominal_combined_fee_bps": null,
+      "accepted": true
+    },
+    {
+      "symbol": "GLDx",
+      "mint": "Xsv9hRk1z5ystj9MhnA7Lq4vjSsLwzL2nxrwmwtD3re",
+      "decimals": 8,
+      "catalog_source": "https://xstocks.com/products",
+      "official_record": {
+        "slug": "gold-xstock",
+        "name": "Gold xStock",
+        "symbol": "GLDx",
+        "iconUrl": "https://cdn.prod.website-files.com/655f3efc4be468487052e35a/6ab558bbf26aa6db296bd72b_GLDx.png",
+        "addresses": {
+          "ethereum": "0x2380f2673c640fb67e2d6b55b44c62f0e0e69da9",
+          "solana": "Xsv9hRk1z5ystj9MhnA7Lq4vjSsLwzL2nxrwmwtD3re",
+          "ton": "EQC49j6vUmrarJzSOlZfNHYHoNEHX3__0oX1dZLEfE7Vyybe",
+          "ink": "0x2380f2673c640fb67e2d6b55b44c62f0e0e69da9",
+          "bsc": "0x2380f2673c640fb67e2d6b55b44c62f0e0e69da9",
+          "tron": "TQnorYAdiQTAEexqaB53MFpKpnLAdMe4sw",
+          "mantle": "0x2380f2673c640fb67e2d6b55b44c62f0e0e69da9",
+          "xLayer": "0x2380f2673c640fb67e2d6b55b44c62f0e0e69da9",
+          "arbitrum": "0x2380f2673c640fb67e2d6b55b44c62f0e0e69da9",
+          "optimism": "0x2380f2673c640fb67e2d6b55b44c62f0e0e69da9",
+          "monad": "0x2380f2673c640fb67e2d6b55b44c62f0e0e69da9",
+          "arc": null
+        }
+      },
+      "pool": "78ReVNMLGRWmjtf2HmBoHUe2pRcsctXTTbxJnbhchyze",
+      "quote_mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "program_id": "CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK",
+      "snapshot_slot": 458982142,
+      "observed_transaction_signatures": [],
+      "depth": {
+        "minimum_liquid_side_usd": 500,
+        "probe_usd": 10,
+        "reference_probe_usd": 1,
+        "reports": [
+          {
+            "audit": {
+              "buy_10_usd_impact_bps": -0.019008154499289276,
+              "buy_output": 2630455,
+              "eligible": true,
+              "liquid_side_reserve_usd": 181207.540091,
+              "sell_10_usd_impact_bps": -0.032064321027203135,
+              "sell_output": 9979972
+            },
+            "pool": "78ReVNMLGRWmjtf2HmBoHUe2pRcsctXTTbxJnbhchyze"
+          }
+        ],
+        "slot": 458982142,
+        "unix_timestamp": 1792445273
+      },
+      "liquid_side_reserve_usd": 181207.540091,
+      "fees": {
+        "base_swap_fee_bps": 10.0,
+        "dynamic_swap_fee": false,
+        "epoch": 1062,
+        "pool": "78ReVNMLGRWmjtf2HmBoHUe2pRcsctXTTbxJnbhchyze",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458982142,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "Xsv9hRk1z5ystj9MhnA7Lq4vjSsLwzL2nxrwmwtD3re",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": 10.0,
+        "unix_timestamp": 1792445273
+      },
+      "fee_error": null,
+      "nominal_combined_fee_bps": 10.000000000000009,
+      "accepted": true
+    },
+    {
+      "pool": "5Ra7fy99EuaZHhNKkT96LZBAXJ7ECW1mkFUCEgKRkJDD",
+      "symbol": "GME.US",
+      "accepted": false,
+      "reason": "preliminary reserve below threshold; no full depth snapshot",
+      "preliminary_liquid_reserve_usd": 0.0
+    },
+    {
+      "symbol": "TSLAx",
+      "mint": "XsDoVfqeBukxuZHWhdvWHBhgEHjGNst4MLodqsJHzoB",
+      "decimals": 8,
+      "catalog_source": "https://xstocks.com/products",
+      "official_record": {
+        "slug": "tesla-xstock",
+        "name": "Tesla xStock",
+        "symbol": "TSLAx",
+        "iconUrl": "https://cdn.prod.website-files.com/655f3efc4be468487052e35a/6ab558f9a5d8bb1d73db841b_TSLAx.png",
+        "addresses": {
+          "ethereum": "0x8ad3c73f833d3f9a523ab01476625f269aeb7cf0",
+          "solana": "XsDoVfqeBukxuZHWhdvWHBhgEHjGNst4MLodqsJHzoB",
+          "ton": "EQB4IwqWZPUczntdry8vSN2tsJKt-9F7iIb7gEFREYYOB563",
+          "ink": "0x8ad3c73f833d3f9a523ab01476625f269aeb7cf0",
+          "bsc": "0x8ad3c73f833d3f9a523ab01476625f269aeb7cf0",
+          "tron": "TTfj39Vm7ATpNJMsfDUWYVzxK8mPPA4yYE",
+          "mantle": "0x8ad3c73f833d3f9a523ab01476625f269aeb7cf0",
+          "xLayer": "0x8ad3c73f833d3f9a523ab01476625f269aeb7cf0",
+          "arbitrum": "0x8ad3c73f833d3f9a523ab01476625f269aeb7cf0",
+          "optimism": "0x8ad3c73f833d3f9a523ab01476625f269aeb7cf0",
+          "monad": "0x8ad3c73f833d3f9a523ab01476625f269aeb7cf0",
+          "arc": null
+        }
+      },
+      "pool": "8aDaBQkTrS6HVMjyc6EZebgdiaXhLYGriDWKWWp1NpFF",
+      "quote_mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "program_id": "CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK",
+      "snapshot_slot": 458982145,
+      "observed_transaction_signatures": [],
+      "depth": {
+        "minimum_liquid_side_usd": 500,
+        "probe_usd": 10,
+        "reference_probe_usd": 1,
+        "reports": [
+          {
+            "audit": {
+              "buy_10_usd_impact_bps": -0.014731445743265681,
+              "buy_output": 2715284,
+              "eligible": true,
+              "liquid_side_reserve_usd": 958920.844059,
+              "sell_10_usd_impact_bps": -0.010020080241091023,
+              "sell_output": 9979970
+            },
+            "pool": "8aDaBQkTrS6HVMjyc6EZebgdiaXhLYGriDWKWWp1NpFF"
+          }
+        ],
+        "slot": 458982145,
+        "unix_timestamp": 1792445274
+      },
+      "liquid_side_reserve_usd": 958920.844059,
+      "fees": {
+        "base_swap_fee_bps": 10.0,
+        "dynamic_swap_fee": false,
+        "epoch": 1062,
+        "pool": "8aDaBQkTrS6HVMjyc6EZebgdiaXhLYGriDWKWWp1NpFF",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458982145,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "XsDoVfqeBukxuZHWhdvWHBhgEHjGNst4MLodqsJHzoB",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": 10.0,
+        "unix_timestamp": 1792445274
+      },
+      "fee_error": null,
+      "nominal_combined_fee_bps": 10.000000000000009,
+      "accepted": true
+    },
+    {
+      "pool": "9bmMb56nV9vtMb9rNYiP1E8Z97VkaYh4RENhiAukuRzi",
+      "symbol": "TSM.US",
+      "accepted": false,
+      "reason": "preliminary reserve below threshold; no full depth snapshot",
+      "preliminary_liquid_reserve_usd": 476.5784585312762
+    },
+    {
+      "symbol": "NKE.US",
+      "mint": "NKEda5nHhNGgjrE9nDdMvaEmkmJ96qqxzBVZEcKmjSg",
+      "decimals": 6,
+      "catalog_source": "https://api.backpack.exchange/api/v1/assets",
+      "official_record": {
+        "coingeckoId": null,
+        "displayName": "NIKE, Inc.",
+        "symbol": "NKE.US",
+        "tokens": [
+          {
+            "blockchain": "Solana",
+            "contractAddress": "NKEda5nHhNGgjrE9nDdMvaEmkmJ96qqxzBVZEcKmjSg",
+            "depositEnabled": true,
+            "displayName": "NIKE, Inc.",
+            "maximumWithdrawal": null,
+            "minimumDeposit": "0.014",
+            "minimumWithdrawal": "0.028",
+            "nativeDecimals": 6,
+            "withdrawEnabled": true,
+            "withdrawalFee": "0.014"
+          }
+        ]
+      },
+      "pool": "4V7CrUiP46jcJpZzPKzRerKS2VxHUt9bjiJPnT7gXFAU",
+      "quote_mint": "So11111111111111111111111111111111111111112",
+      "program_id": "CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK",
+      "snapshot_slot": 458982146,
+      "observed_transaction_signatures": [],
+      "depth": {
+        "minimum_liquid_side_usd": 500,
+        "probe_usd": 10,
+        "reference_probe_usd": 1,
+        "reports": [
+          {
+            "audit": {
+              "buy_10_usd_impact_bps": 0.2634550244640099,
+              "buy_output": 265693,
+              "eligible": true,
+              "liquid_side_reserve_usd": 32058.244540458614,
+              "sell_10_usd_impact_bps": 0.08256359649183587,
+              "sell_output": 94350731
+            },
+            "pool": "4V7CrUiP46jcJpZzPKzRerKS2VxHUt9bjiJPnT7gXFAU"
+          }
+        ],
+        "slot": 458982146,
+        "unix_timestamp": 1792445274
+      },
+      "liquid_side_reserve_usd": 32058.244540458614,
+      "fees": {
+        "base_swap_fee_bps": 40.0,
+        "dynamic_swap_fee": true,
+        "epoch": 1062,
+        "pool": "4V7CrUiP46jcJpZzPKzRerKS2VxHUt9bjiJPnT7gXFAU",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "So11111111111111111111111111111111111111112",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458982146,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "NKEda5nHhNGgjrE9nDdMvaEmkmJ96qqxzBVZEcKmjSg",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": null,
+        "unix_timestamp": 1792445274
+      },
+      "fee_error": null,
+      "nominal_combined_fee_bps": null,
+      "accepted": true
+    },
+    {
+      "symbol": "TTWO.US",
+      "mint": "TTWofwAge91oFhZs7kpQdyrVRkmevgM88xijGvQFbKo",
+      "decimals": 6,
+      "catalog_source": "https://api.backpack.exchange/api/v1/assets",
+      "official_record": {
+        "coingeckoId": null,
+        "displayName": "Take-Two Interactive Software, Inc.",
+        "symbol": "TTWO.US",
+        "tokens": [
+          {
+            "blockchain": "Solana",
+            "contractAddress": "TTWofwAge91oFhZs7kpQdyrVRkmevgM88xijGvQFbKo",
+            "depositEnabled": true,
+            "displayName": "Take-Two Interactive Software, Inc.",
+            "maximumWithdrawal": null,
+            "minimumDeposit": "0.0025",
+            "minimumWithdrawal": "0.005",
+            "nativeDecimals": 6,
+            "withdrawEnabled": true,
+            "withdrawalFee": "0.0025"
+          }
+        ]
+      },
+      "pool": "6PTm7MkUmtsLU7w6dWrMHJAt8PnzoCgcZdKyTKEhUAPL",
+      "quote_mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "program_id": "CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK",
+      "snapshot_slot": 458982149,
+      "observed_transaction_signatures": [],
+      "depth": {
+        "minimum_liquid_side_usd": 500,
+        "probe_usd": 10,
+        "reference_probe_usd": 1,
+        "reports": [
+          {
+            "audit": {
+              "buy_10_usd_impact_bps": -1.2350761630308682,
+              "buy_output": 48586,
+              "eligible": true,
+              "liquid_side_reserve_usd": 341050.376191,
+              "sell_10_usd_impact_bps": -0.0010041531783855362,
+              "sell_output": 9958641
+            },
+            "pool": "6PTm7MkUmtsLU7w6dWrMHJAt8PnzoCgcZdKyTKEhUAPL"
+          }
+        ],
+        "slot": 458982149,
+        "unix_timestamp": 1792445275
+      },
+      "liquid_side_reserve_usd": 341050.376191,
+      "fees": {
+        "base_swap_fee_bps": 20.0,
+        "dynamic_swap_fee": true,
+        "epoch": 1062,
+        "pool": "6PTm7MkUmtsLU7w6dWrMHJAt8PnzoCgcZdKyTKEhUAPL",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458982149,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "TTWofwAge91oFhZs7kpQdyrVRkmevgM88xijGvQFbKo",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": null,
+        "unix_timestamp": 1792445275
+      },
+      "fee_error": null,
+      "nominal_combined_fee_bps": null,
+      "accepted": true
+    },
+    {
+      "symbol": "BABA.US",
+      "mint": "BABANGA4JE7Kkam4nTrALAwAVgsNJUuFJnnkF7S16BZp",
+      "decimals": 6,
+      "catalog_source": "https://api.backpack.exchange/api/v1/assets",
+      "official_record": {
+        "coingeckoId": null,
+        "displayName": "Alibaba Group Holding Limited",
+        "symbol": "BABA.US",
+        "tokens": [
+          {
+            "blockchain": "Solana",
+            "contractAddress": "BABANGA4JE7Kkam4nTrALAwAVgsNJUuFJnnkF7S16BZp",
+            "depositEnabled": true,
+            "displayName": "Alibaba Group Holding Limited",
+            "maximumWithdrawal": null,
+            "minimumDeposit": "0.005",
+            "minimumWithdrawal": "0.01",
+            "nativeDecimals": 6,
+            "withdrawEnabled": true,
+            "withdrawalFee": "0.005"
+          }
+        ]
+      },
+      "pool": "8YU7gLMh4T8RuGepxAuigTqZeGfBn3TDS6tnuj951XbW",
+      "quote_mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "program_id": "whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc",
+      "snapshot_slot": 458982156,
+      "observed_transaction_signatures": [],
+      "depth": {
+        "minimum_liquid_side_usd": 500,
+        "probe_usd": 10,
+        "reference_probe_usd": 1,
+        "reports": [
+          {
+            "audit": {
+              "buy_10_usd_impact_bps": 0.3266550522651457,
+              "buy_output": 91837,
+              "eligible": true,
+              "liquid_side_reserve_usd": 1516.442241,
+              "sell_10_usd_impact_bps": 0.1976453119434396,
+              "sell_output": 9967153
+            },
+            "pool": "8YU7gLMh4T8RuGepxAuigTqZeGfBn3TDS6tnuj951XbW"
+          }
+        ],
+        "slot": 458982156,
+        "unix_timestamp": 1792445276
+      },
+      "liquid_side_reserve_usd": 1516.442241,
+      "fees": {
+        "base_swap_fee_bps": 16.0,
+        "dynamic_swap_fee": false,
+        "epoch": 1062,
+        "pool": "8YU7gLMh4T8RuGepxAuigTqZeGfBn3TDS6tnuj951XbW",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458982156,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "BABANGA4JE7Kkam4nTrALAwAVgsNJUuFJnnkF7S16BZp",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": 16.0,
+        "unix_timestamp": 1792445276
+      },
+      "fee_error": null,
+      "nominal_combined_fee_bps": 16.00000000000046,
+      "accepted": true
+    },
+    {
+      "symbol": "NKE.US",
+      "mint": "NKEda5nHhNGgjrE9nDdMvaEmkmJ96qqxzBVZEcKmjSg",
+      "decimals": 6,
+      "catalog_source": "https://api.backpack.exchange/api/v1/assets",
+      "official_record": {
+        "coingeckoId": null,
+        "displayName": "NIKE, Inc.",
+        "symbol": "NKE.US",
+        "tokens": [
+          {
+            "blockchain": "Solana",
+            "contractAddress": "NKEda5nHhNGgjrE9nDdMvaEmkmJ96qqxzBVZEcKmjSg",
+            "depositEnabled": true,
+            "displayName": "NIKE, Inc.",
+            "maximumWithdrawal": null,
+            "minimumDeposit": "0.014",
+            "minimumWithdrawal": "0.028",
+            "nativeDecimals": 6,
+            "withdrawEnabled": true,
+            "withdrawalFee": "0.014"
+          }
+        ]
+      },
+      "pool": "6kRoMyYBuz4ReLmLyuqiTtSpVB61hAGRrD6xYBrotsBC",
+      "quote_mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "program_id": "CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK",
+      "snapshot_slot": 458982160,
+      "observed_transaction_signatures": [],
+      "depth": {
+        "minimum_liquid_side_usd": 500,
+        "probe_usd": 10,
+        "reference_probe_usd": 1,
+        "reports": [
+          {
+            "audit": {
+              "buy_10_usd_impact_bps": -0.22358859698146105,
+              "buy_output": 268356,
+              "eligible": true,
+              "liquid_side_reserve_usd": 50766.216157,
+              "sell_10_usd_impact_bps": 0.045182401354759705,
+              "sell_output": 9959585
+            },
+            "pool": "6kRoMyYBuz4ReLmLyuqiTtSpVB61hAGRrD6xYBrotsBC"
+          }
+        ],
+        "slot": 458982160,
+        "unix_timestamp": 1792445277
+      },
+      "liquid_side_reserve_usd": 50766.216157,
+      "fees": {
+        "base_swap_fee_bps": 20.0,
+        "dynamic_swap_fee": true,
+        "epoch": 1062,
+        "pool": "6kRoMyYBuz4ReLmLyuqiTtSpVB61hAGRrD6xYBrotsBC",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458982160,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "NKEda5nHhNGgjrE9nDdMvaEmkmJ96qqxzBVZEcKmjSg",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": null,
+        "unix_timestamp": 1792445277
+      },
+      "fee_error": null,
+      "nominal_combined_fee_bps": null,
+      "accepted": true
+    },
+    {
+      "symbol": "TSM.US",
+      "mint": "TSM2Hiuf7Z9REcwZFQvsBEekBYCYziWBABfFnj6V6gQ",
+      "decimals": 6,
+      "catalog_source": "https://api.backpack.exchange/api/v1/assets",
+      "official_record": {
+        "coingeckoId": null,
+        "displayName": "Taiwan Semiconductor Manufacturing Company Limited",
+        "symbol": "TSM.US",
+        "tokens": [
+          {
+            "blockchain": "Solana",
+            "contractAddress": "TSM2Hiuf7Z9REcwZFQvsBEekBYCYziWBABfFnj6V6gQ",
+            "depositEnabled": true,
+            "displayName": "Taiwan Semiconductor Manufacturing Company Limited",
+            "maximumWithdrawal": null,
+            "minimumDeposit": "0.0012",
+            "minimumWithdrawal": "0.0024",
+            "nativeDecimals": 6,
+            "withdrawEnabled": true,
+            "withdrawalFee": "0.0012"
+          }
+        ]
+      },
+      "pool": "G58weZ4Z6gWUbePy4c9XcgMNcwSEyXb2Z99jfEQunAXB",
+      "quote_mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "program_id": "CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK",
+      "snapshot_slot": 458982162,
+      "observed_transaction_signatures": [],
+      "depth": {
+        "minimum_liquid_side_usd": 500,
+        "probe_usd": 10,
+        "reference_probe_usd": 1,
+        "reports": [
+          {
+            "audit": {
+              "buy_10_usd_impact_bps": -2.983802216538489,
+              "buy_output": 23467,
+              "eligible": true,
+              "liquid_side_reserve_usd": 26929.57042,
+              "sell_10_usd_impact_bps": 0.06327964089836158,
+              "sell_output": 9797718
+            },
+            "pool": "G58weZ4Z6gWUbePy4c9XcgMNcwSEyXb2Z99jfEQunAXB"
+          }
+        ],
+        "slot": 458982162,
+        "unix_timestamp": 1792445277
+      },
+      "liquid_side_reserve_usd": 26929.57042,
+      "fees": {
+        "base_swap_fee_bps": 100.0,
+        "dynamic_swap_fee": true,
+        "epoch": 1062,
+        "pool": "G58weZ4Z6gWUbePy4c9XcgMNcwSEyXb2Z99jfEQunAXB",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458982162,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "TSM2Hiuf7Z9REcwZFQvsBEekBYCYziWBABfFnj6V6gQ",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": null,
+        "unix_timestamp": 1792445277
+      },
+      "fee_error": null,
+      "nominal_combined_fee_bps": null,
+      "accepted": true
+    },
+    {
+      "symbol": "ABNB.US",
+      "mint": "ABNB56TteaTZG1S3DY2W8VMncQmHMvNCGaZgAba49CLP",
+      "decimals": 6,
+      "catalog_source": "https://api.backpack.exchange/api/v1/assets",
+      "official_record": {
+        "coingeckoId": null,
+        "displayName": "Airbnb, Inc.",
+        "symbol": "ABNB.US",
+        "tokens": [
+          {
+            "blockchain": "Solana",
+            "contractAddress": "ABNB56TteaTZG1S3DY2W8VMncQmHMvNCGaZgAba49CLP",
+            "depositEnabled": true,
+            "displayName": "Airbnb, Inc.",
+            "maximumWithdrawal": null,
+            "minimumDeposit": "0.003",
+            "minimumWithdrawal": "0.006",
+            "nativeDecimals": 6,
+            "withdrawEnabled": true,
+            "withdrawalFee": "0.003"
+          }
+        ]
+      },
+      "pool": "HdnzKiiGQT4vbhrRnXqAts9ogQBPpekQNbL46JVvW1Fn",
+      "quote_mint": "So11111111111111111111111111111111111111112",
+      "program_id": "CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK",
+      "snapshot_slot": 458982164,
+      "observed_transaction_signatures": [],
+      "depth": {
+        "minimum_liquid_side_usd": 500,
+        "probe_usd": 10,
+        "reference_probe_usd": 1,
+        "reports": [
+          {
+            "audit": {
+              "buy_10_usd_impact_bps": 0.0,
+              "buy_output": 55910,
+              "eligible": true,
+              "liquid_side_reserve_usd": 8165.731194080989,
+              "sell_10_usd_impact_bps": 0.03850893820378509,
+              "sell_output": 93224751
+            },
+            "pool": "HdnzKiiGQT4vbhrRnXqAts9ogQBPpekQNbL46JVvW1Fn"
+          }
+        ],
+        "slot": 458982164,
+        "unix_timestamp": 1792445278
+      },
+      "liquid_side_reserve_usd": 8165.731194080989,
+      "fees": {
+        "base_swap_fee_bps": 100.0,
+        "dynamic_swap_fee": true,
+        "epoch": 1062,
+        "pool": "HdnzKiiGQT4vbhrRnXqAts9ogQBPpekQNbL46JVvW1Fn",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "So11111111111111111111111111111111111111112",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458982164,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "ABNB56TteaTZG1S3DY2W8VMncQmHMvNCGaZgAba49CLP",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": null,
+        "unix_timestamp": 1792445278
+      },
+      "fee_error": null,
+      "nominal_combined_fee_bps": null,
+      "accepted": true
+    },
+    {
+      "pool": "3R6j7hY8SQSwBeP7QYoZSzsZNE6TwcVUpMAjZUCwnEUb",
+      "symbol": "NFLX.US",
+      "accepted": false,
+      "reason": "preliminary reserve below threshold; no full depth snapshot",
+      "preliminary_liquid_reserve_usd": 307.945859
+    },
+    {
+      "symbol": "NFLX.US",
+      "mint": "NFLX7qV57zuVxCoHy3s1jiGZyALraLNwttbxdvmYJLJ",
+      "decimals": 6,
+      "catalog_source": "https://api.backpack.exchange/api/v1/assets",
+      "official_record": {
+        "coingeckoId": null,
+        "displayName": "Netflix, Inc.",
+        "symbol": "NFLX.US",
+        "tokens": [
+          {
+            "blockchain": "Solana",
+            "contractAddress": "NFLX7qV57zuVxCoHy3s1jiGZyALraLNwttbxdvmYJLJ",
+            "depositEnabled": true,
+            "displayName": "Netflix, Inc.",
+            "maximumWithdrawal": null,
+            "minimumDeposit": "0.008",
+            "minimumWithdrawal": "0.016",
+            "nativeDecimals": 6,
+            "withdrawEnabled": true,
+            "withdrawalFee": "0.008"
+          }
+        ]
+      },
+      "pool": "7SkLUhZoyTYYgKLVuK6E1Q1fQykR7wFiLxSiEohVcowu",
+      "quote_mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "program_id": "CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK",
+      "snapshot_slot": 458982165,
+      "observed_transaction_signatures": [],
+      "depth": {
+        "minimum_liquid_side_usd": 500,
+        "probe_usd": 10,
+        "reference_probe_usd": 1,
+        "reports": [
+          {
+            "audit": {
+              "buy_10_usd_impact_bps": 0.4206688634933453,
+              "buy_output": 142624,
+              "eligible": true,
+              "liquid_side_reserve_usd": 2105.270668,
+              "sell_10_usd_impact_bps": 0.8432635404609368,
+              "sell_output": 9948601
+            },
+            "pool": "7SkLUhZoyTYYgKLVuK6E1Q1fQykR7wFiLxSiEohVcowu"
+          }
+        ],
+        "slot": 458982165,
+        "unix_timestamp": 1792445278
+      },
+      "liquid_side_reserve_usd": 2105.270668,
+      "fees": {
+        "base_swap_fee_bps": 25.0,
+        "dynamic_swap_fee": false,
+        "epoch": 1062,
+        "pool": "7SkLUhZoyTYYgKLVuK6E1Q1fQykR7wFiLxSiEohVcowu",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458982165,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "NFLX7qV57zuVxCoHy3s1jiGZyALraLNwttbxdvmYJLJ",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": 25.0,
+        "unix_timestamp": 1792445278
+      },
+      "fee_error": null,
+      "nominal_combined_fee_bps": 24.999999999999467,
+      "accepted": true
+    },
+    {
+      "symbol": "INTCx",
+      "mint": "XshPgPdXFRWB8tP1j82rebb2Q9rPgGX37RuqzohmArM",
+      "decimals": 8,
+      "catalog_source": "https://xstocks.com/products",
+      "official_record": {
+        "slug": "intel-xstock",
+        "name": "Intel xStock",
+        "symbol": "INTCx",
+        "iconUrl": "https://cdn.prod.website-files.com/655f3efc4be468487052e35a/6ab558c282d9daa1e7e20abb_INTCx.png",
+        "addresses": {
+          "ethereum": "0xf8a80d1cb9cfd70d03d655d9df42339846f3b3c8",
+          "solana": "XshPgPdXFRWB8tP1j82rebb2Q9rPgGX37RuqzohmArM",
+          "ton": "EQBBnSFyNZkNmq7I4E9yWhZDZQurcQhGkFeGBV_UXibFlv4-",
+          "ink": "0xf8a80d1cb9cfd70d03d655d9df42339846f3b3c8",
+          "bsc": "0xf8a80d1cb9cfd70d03d655d9df42339846f3b3c8",
+          "tron": "TMkWtCUBF9zatuda6onxoPeAUvkGiwaCHP",
+          "mantle": "0xf8a80d1cb9cfd70d03d655d9df42339846f3b3c8",
+          "xLayer": "0xf8a80d1cb9cfd70d03d655d9df42339846f3b3c8",
+          "arbitrum": "0xf8a80d1cb9cfd70d03d655d9df42339846f3b3c8",
+          "optimism": "0xf8a80d1cb9cfd70d03d655d9df42339846f3b3c8",
+          "monad": "0xf8a80d1cb9cfd70d03d655d9df42339846f3b3c8",
+          "arc": null
+        }
+      },
+      "pool": "6KoZB86BFDk6TZbB4CTBoAA8PPbpmEwSWFjCyfkt1Uw4",
+      "quote_mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "program_id": "CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK",
+      "snapshot_slot": 458982170,
+      "observed_transaction_signatures": [],
+      "depth": {
+        "minimum_liquid_side_usd": 500,
+        "probe_usd": 10,
+        "reference_probe_usd": 1,
+        "reports": [
+          {
+            "audit": {
+              "buy_10_usd_impact_bps": 0.38248123451434246,
+              "buy_output": 10666782,
+              "eligible": true,
+              "liquid_side_reserve_usd": 9972.867333,
+              "sell_10_usd_impact_bps": 0.36527257700869065,
+              "sell_output": 9800542
+            },
+            "pool": "6KoZB86BFDk6TZbB4CTBoAA8PPbpmEwSWFjCyfkt1Uw4"
+          }
+        ],
+        "slot": 458982170,
+        "unix_timestamp": 1792445279
+      },
+      "liquid_side_reserve_usd": 9972.867333,
+      "fees": {
+        "base_swap_fee_bps": 100.0,
+        "dynamic_swap_fee": false,
+        "epoch": 1062,
+        "pool": "6KoZB86BFDk6TZbB4CTBoAA8PPbpmEwSWFjCyfkt1Uw4",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458982170,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "XshPgPdXFRWB8tP1j82rebb2Q9rPgGX37RuqzohmArM",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": 100.0,
+        "unix_timestamp": 1792445279
+      },
+      "fee_error": null,
+      "nominal_combined_fee_bps": 100.00000000000009,
+      "accepted": true
+    },
+    {
+      "symbol": "NFLX.US",
+      "mint": "NFLX7qV57zuVxCoHy3s1jiGZyALraLNwttbxdvmYJLJ",
+      "decimals": 6,
+      "catalog_source": "https://api.backpack.exchange/api/v1/assets",
+      "official_record": {
+        "coingeckoId": null,
+        "displayName": "Netflix, Inc.",
+        "symbol": "NFLX.US",
+        "tokens": [
+          {
+            "blockchain": "Solana",
+            "contractAddress": "NFLX7qV57zuVxCoHy3s1jiGZyALraLNwttbxdvmYJLJ",
+            "depositEnabled": true,
+            "displayName": "Netflix, Inc.",
+            "maximumWithdrawal": null,
+            "minimumDeposit": "0.008",
+            "minimumWithdrawal": "0.016",
+            "nativeDecimals": 6,
+            "withdrawEnabled": true,
+            "withdrawalFee": "0.008"
+          }
+        ]
+      },
+      "pool": "E3mugzPiMhKGrDcfcz5ojo7HJBbYA6UMaJvSzbabPLAM",
+      "quote_mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "program_id": "CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK",
+      "snapshot_slot": 458982172,
+      "observed_transaction_signatures": [],
+      "depth": {
+        "minimum_liquid_side_usd": 500,
+        "probe_usd": 10,
+        "reference_probe_usd": 1,
+        "reports": [
+          {
+            "audit": {
+              "buy_10_usd_impact_bps": -0.4929577464785062,
+              "buy_output": 142007,
+              "eligible": true,
+              "liquid_side_reserve_usd": 28488.864058,
+              "sell_10_usd_impact_bps": 0.036733157082746715,
+              "sell_output": 9800374
+            },
+            "pool": "E3mugzPiMhKGrDcfcz5ojo7HJBbYA6UMaJvSzbabPLAM"
+          }
+        ],
+        "slot": 458982172,
+        "unix_timestamp": 1792445280
+      },
+      "liquid_side_reserve_usd": 28488.864058,
+      "fees": {
+        "base_swap_fee_bps": 100.0,
+        "dynamic_swap_fee": true,
+        "epoch": 1062,
+        "pool": "E3mugzPiMhKGrDcfcz5ojo7HJBbYA6UMaJvSzbabPLAM",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458982172,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "NFLX7qV57zuVxCoHy3s1jiGZyALraLNwttbxdvmYJLJ",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": null,
+        "unix_timestamp": 1792445280
+      },
+      "fee_error": null,
+      "nominal_combined_fee_bps": null,
+      "accepted": true
+    },
+    {
+      "pool": "Bo3TAJ1qSQjc9unYBsvJH9XMs8x8G6onzbknk9eTbxvv",
+      "symbol": "GME.US",
+      "accepted": false,
+      "reason": "preliminary reserve below threshold; no full depth snapshot",
+      "preliminary_liquid_reserve_usd": 0.0
+    },
+    {
+      "symbol": "NFLX.US",
+      "mint": "NFLX7qV57zuVxCoHy3s1jiGZyALraLNwttbxdvmYJLJ",
+      "decimals": 6,
+      "catalog_source": "https://api.backpack.exchange/api/v1/assets",
+      "official_record": {
+        "coingeckoId": null,
+        "displayName": "Netflix, Inc.",
+        "symbol": "NFLX.US",
+        "tokens": [
+          {
+            "blockchain": "Solana",
+            "contractAddress": "NFLX7qV57zuVxCoHy3s1jiGZyALraLNwttbxdvmYJLJ",
+            "depositEnabled": true,
+            "displayName": "Netflix, Inc.",
+            "maximumWithdrawal": null,
+            "minimumDeposit": "0.008",
+            "minimumWithdrawal": "0.016",
+            "nativeDecimals": 6,
+            "withdrawEnabled": true,
+            "withdrawalFee": "0.008"
+          }
+        ]
+      },
+      "pool": "4BRhq3WHdyM1itQuXgL8ua8KMXdXzhi8fcL9MUp9BZUc",
+      "quote_mint": "So11111111111111111111111111111111111111112",
+      "program_id": "CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK",
+      "snapshot_slot": 458982179,
+      "observed_transaction_signatures": [],
+      "depth": {
+        "minimum_liquid_side_usd": 500,
+        "probe_usd": 10,
+        "reference_probe_usd": 1,
+        "reports": [
+          {
+            "audit": {
+              "buy_10_usd_impact_bps": 0.4222675768883466,
+              "buy_output": 142084,
+              "eligible": true,
+              "liquid_side_reserve_usd": 6564.571698468862,
+              "sell_10_usd_impact_bps": 0.20530326980572333,
+              "sell_output": 94638537
+            },
+            "pool": "4BRhq3WHdyM1itQuXgL8ua8KMXdXzhi8fcL9MUp9BZUc"
+          }
+        ],
+        "slot": 458982179,
+        "unix_timestamp": 1792445281
+      },
+      "liquid_side_reserve_usd": 6564.571698468862,
+      "fees": {
+        "base_swap_fee_bps": 25.0,
+        "dynamic_swap_fee": true,
+        "epoch": 1062,
+        "pool": "4BRhq3WHdyM1itQuXgL8ua8KMXdXzhi8fcL9MUp9BZUc",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "So11111111111111111111111111111111111111112",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458982179,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "NFLX7qV57zuVxCoHy3s1jiGZyALraLNwttbxdvmYJLJ",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": null,
+        "unix_timestamp": 1792445281
+      },
+      "fee_error": null,
+      "nominal_combined_fee_bps": null,
+      "accepted": true
+    },
+    {
+      "pool": "Dbgoyn9PHeDTHQ1qxYA8yCKLNMdp8b3QUdFniNgHtqg6",
+      "symbol": "ABNB.US",
+      "accepted": false,
+      "reason": "preliminary reserve below threshold; no full depth snapshot",
+      "preliminary_liquid_reserve_usd": 204.72991334433266
+    },
+    {
+      "pool": "5B2egsXDewp7f132hs8A98zanisKV62nsdbyhZb9vS8y",
+      "symbol": "NVDA.US",
+      "accepted": false,
+      "reason": "preliminary reserve below threshold; no full depth snapshot",
+      "preliminary_liquid_reserve_usd": 69.899201
+    },
+    {
+      "symbol": "MSTRx",
+      "mint": "XsP7xzNPvEHS1m6qfanPUGjNmdnmsLKEoNAnHjdxxyZ",
+      "decimals": 8,
+      "catalog_source": "https://xstocks.com/products",
+      "official_record": {
+        "slug": "microstrategy-xstock",
+        "name": "MicroStrategy xStock",
+        "symbol": "MSTRx",
+        "iconUrl": "https://cdn.prod.website-files.com/655f3efc4be468487052e35a/6ab558cf24c352a05e78a8eb_MSTRx.png",
+        "addresses": {
+          "ethereum": "0xae2f842ef90c0d5213259ab82639d5bbf649b08e",
+          "solana": "XsP7xzNPvEHS1m6qfanPUGjNmdnmsLKEoNAnHjdxxyZ",
+          "ton": "EQBbsLYH5sD74gYO4DOoj0QsHaNL81NLD13AdhkmD0Up-46H",
+          "ink": "0xae2f842ef90c0d5213259ab82639d5bbf649b08e",
+          "bsc": "0xae2f842ef90c0d5213259ab82639d5bbf649b08e",
+          "tron": "TYiMPNKE31VcfwaYgU8Wn1RzjLDi932LkV",
+          "mantle": "0xae2f842ef90c0d5213259ab82639d5bbf649b08e",
+          "xLayer": "0xae2f842ef90c0d5213259ab82639d5bbf649b08e",
+          "arbitrum": "0xae2f842ef90c0d5213259ab82639d5bbf649b08e",
+          "optimism": "0xae2f842ef90c0d5213259ab82639d5bbf649b08e",
+          "monad": "0xae2f842ef90c0d5213259ab82639d5bbf649b08e",
+          "arc": null
+        }
+      },
+      "pool": "2ngTuP7xA581dqX9uJkGRqxmKuehY3k4SDfPebeoRG2J",
+      "quote_mint": "So11111111111111111111111111111111111111112",
+      "program_id": "CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK",
+      "snapshot_slot": 458982185,
+      "observed_transaction_signatures": [],
+      "depth": {
+        "minimum_liquid_side_usd": 500,
+        "probe_usd": 10,
+        "reference_probe_usd": 1,
+        "reports": [
+          {
+            "audit": {
+              "buy_10_usd_impact_bps": 0.016506530395865582,
+              "buy_output": 7269838,
+              "eligible": true,
+              "liquid_side_reserve_usd": 286638.22422900744,
+              "sell_10_usd_impact_bps": 0.011516395490573927,
+              "sell_output": 94647561
+            },
+            "pool": "2ngTuP7xA581dqX9uJkGRqxmKuehY3k4SDfPebeoRG2J"
+          }
+        ],
+        "slot": 458982185,
+        "unix_timestamp": 1792445282
+      },
+      "liquid_side_reserve_usd": 286638.22422900744,
+      "fees": {
+        "base_swap_fee_bps": 25.0,
+        "dynamic_swap_fee": false,
+        "epoch": 1062,
+        "pool": "2ngTuP7xA581dqX9uJkGRqxmKuehY3k4SDfPebeoRG2J",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "So11111111111111111111111111111111111111112",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458982185,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "XsP7xzNPvEHS1m6qfanPUGjNmdnmsLKEoNAnHjdxxyZ",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": 25.0,
+        "unix_timestamp": 1792445282
+      },
+      "fee_error": null,
+      "nominal_combined_fee_bps": 24.999999999999467,
+      "accepted": true
+    },
+    {
+      "symbol": "TSM.US",
+      "mint": "TSM2Hiuf7Z9REcwZFQvsBEekBYCYziWBABfFnj6V6gQ",
+      "decimals": 6,
+      "catalog_source": "https://api.backpack.exchange/api/v1/assets",
+      "official_record": {
+        "coingeckoId": null,
+        "displayName": "Taiwan Semiconductor Manufacturing Company Limited",
+        "symbol": "TSM.US",
+        "tokens": [
+          {
+            "blockchain": "Solana",
+            "contractAddress": "TSM2Hiuf7Z9REcwZFQvsBEekBYCYziWBABfFnj6V6gQ",
+            "depositEnabled": true,
+            "displayName": "Taiwan Semiconductor Manufacturing Company Limited",
+            "maximumWithdrawal": null,
+            "minimumDeposit": "0.0012",
+            "minimumWithdrawal": "0.0024",
+            "nativeDecimals": 6,
+            "withdrawEnabled": true,
+            "withdrawalFee": "0.0012"
+          }
+        ]
+      },
+      "pool": "5FPucPvtgnAgQzGzZBfF7Simw5B3qMbuvTcLkioJ3qhC",
+      "quote_mint": "So11111111111111111111111111111111111111112",
+      "program_id": "CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK",
+      "snapshot_slot": 458982189,
+      "observed_transaction_signatures": [],
+      "depth": {
+        "minimum_liquid_side_usd": 500,
+        "probe_usd": 10,
+        "reference_probe_usd": 1,
+        "reports": [
+          {
+            "audit": {
+              "buy_10_usd_impact_bps": 0.0,
+              "buy_output": 23170,
+              "eligible": true,
+              "liquid_side_reserve_usd": 3949.3372429698447,
+              "sell_10_usd_impact_bps": 0.6665978685604923,
+              "sell_output": 93213406
+            },
+            "pool": "5FPucPvtgnAgQzGzZBfF7Simw5B3qMbuvTcLkioJ3qhC"
+          }
+        ],
+        "slot": 458982189,
+        "unix_timestamp": 1792445283
+      },
+      "liquid_side_reserve_usd": 3949.3372429698447,
+      "fees": {
+        "base_swap_fee_bps": 100.0,
+        "dynamic_swap_fee": true,
+        "epoch": 1062,
+        "pool": "5FPucPvtgnAgQzGzZBfF7Simw5B3qMbuvTcLkioJ3qhC",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "So11111111111111111111111111111111111111112",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458982189,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "TSM2Hiuf7Z9REcwZFQvsBEekBYCYziWBABfFnj6V6gQ",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": null,
+        "unix_timestamp": 1792445283
+      },
+      "fee_error": null,
+      "nominal_combined_fee_bps": null,
+      "accepted": true
+    },
+    {
+      "pool": "5QgXfdEtmJhEMhLbNDdrP2KLcEMb9Tosf4fUTccddixR",
+      "symbol": "NFLX.US",
+      "accepted": false,
+      "reason": "preliminary reserve below threshold; no full depth snapshot",
+      "preliminary_liquid_reserve_usd": 486.008503
+    },
+    {
+      "symbol": "SPYx",
+      "mint": "XsoCS1TfEyfFhfvj8EtZ528L3CaKBDBRqRapnBbDF2W",
+      "decimals": 8,
+      "catalog_source": "https://xstocks.com/products",
+      "official_record": {
+        "slug": "sp500-xstock",
+        "name": "SP500 xStock",
+        "symbol": "SPYx",
+        "iconUrl": "https://cdn.prod.website-files.com/655f3efc4be468487052e35a/6a9865b36967fd31d0415ecf_SPYx.png",
+        "addresses": {
+          "ethereum": "0x90a2a4c76b5d8c0bc892a69ea28aa775a8f2dd48",
+          "solana": "XsoCS1TfEyfFhfvj8EtZ528L3CaKBDBRqRapnBbDF2W",
+          "ton": "EQB1fyBAA9qQDP6LEGaF3cbU-Xbr-p6ESBZGnqlHkHIHAJZv",
+          "ink": "0x90a2a4c76b5d8c0bc892a69ea28aa775a8f2dd48",
+          "bsc": "0x90a2a4c76b5d8c0bc892a69ea28aa775a8f2dd48",
+          "tron": "TKN6A3wSWHdZGanW5wBFkeFq2Yw3rhGqNz",
+          "mantle": "0x90a2a4c76b5d8c0bc892a69ea28aa775a8f2dd48",
+          "xLayer": "0x90a2a4c76b5d8c0bc892a69ea28aa775a8f2dd48",
+          "arbitrum": "0x90a2a4c76b5d8c0bc892a69ea28aa775a8f2dd48",
+          "optimism": "0x90a2a4c76b5d8c0bc892a69ea28aa775a8f2dd48",
+          "monad": "0x90a2a4c76b5d8c0bc892a69ea28aa775a8f2dd48",
+          "arc": null
+        }
+      },
+      "pool": "gef4pD5g6GJSjX7hfXKUfhCVpE89BzX9TXnXJNW6kSt",
+      "quote_mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "program_id": "whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc",
+      "snapshot_slot": 458982196,
+      "observed_transaction_signatures": [],
+      "depth": {
+        "minimum_liquid_side_usd": 500,
+        "probe_usd": 10,
+        "reference_probe_usd": 1,
+        "reports": [
+          {
+            "audit": {
+              "buy_10_usd_impact_bps": 1.381471305529347,
+              "buy_output": 1295541,
+              "eligible": true,
+              "liquid_side_reserve_usd": 5374.531232,
+              "sell_10_usd_impact_bps": 1.2643122851341282,
+              "sell_output": 9996266
+            },
+            "pool": "gef4pD5g6GJSjX7hfXKUfhCVpE89BzX9TXnXJNW6kSt"
+          }
+        ],
+        "slot": 458982196,
+        "unix_timestamp": 1792445285
+      },
+      "liquid_side_reserve_usd": 5374.531232,
+      "fees": {
+        "base_swap_fee_bps": 1.0,
+        "dynamic_swap_fee": true,
+        "epoch": 1062,
+        "pool": "gef4pD5g6GJSjX7hfXKUfhCVpE89BzX9TXnXJNW6kSt",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458982196,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "XsoCS1TfEyfFhfvj8EtZ528L3CaKBDBRqRapnBbDF2W",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": null,
+        "unix_timestamp": 1792445285
+      },
+      "fee_error": null,
+      "nominal_combined_fee_bps": null,
+      "accepted": true
+    },
+    {
+      "symbol": "TTWO.US",
+      "mint": "TTWofwAge91oFhZs7kpQdyrVRkmevgM88xijGvQFbKo",
+      "decimals": 6,
+      "catalog_source": "https://api.backpack.exchange/api/v1/assets",
+      "official_record": {
+        "coingeckoId": null,
+        "displayName": "Take-Two Interactive Software, Inc.",
+        "symbol": "TTWO.US",
+        "tokens": [
+          {
+            "blockchain": "Solana",
+            "contractAddress": "TTWofwAge91oFhZs7kpQdyrVRkmevgM88xijGvQFbKo",
+            "depositEnabled": true,
+            "displayName": "Take-Two Interactive Software, Inc.",
+            "maximumWithdrawal": null,
+            "minimumDeposit": "0.0025",
+            "minimumWithdrawal": "0.005",
+            "nativeDecimals": 6,
+            "withdrawEnabled": true,
+            "withdrawalFee": "0.0025"
+          }
+        ]
+      },
+      "pool": "DirR9nP5jk7fYifaYArCwZuq6pBqGWjhKgESiTuQByTf",
+      "quote_mint": "So11111111111111111111111111111111111111112",
+      "program_id": "CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK",
+      "snapshot_slot": 458982201,
+      "observed_transaction_signatures": [],
+      "depth": {
+        "minimum_liquid_side_usd": 500,
+        "probe_usd": 10,
+        "reference_probe_usd": 1,
+        "reports": [
+          {
+            "audit": {
+              "buy_10_usd_impact_bps": -0.6211180124227056,
+              "buy_output": 48303,
+              "eligible": true,
+              "liquid_side_reserve_usd": 40703.049271315125,
+              "sell_10_usd_impact_bps": -0.585025644750381,
+              "sell_output": 94736432
+            },
+            "pool": "DirR9nP5jk7fYifaYArCwZuq6pBqGWjhKgESiTuQByTf"
+          }
+        ],
+        "slot": 458982201,
+        "unix_timestamp": 1792445286
+      },
+      "liquid_side_reserve_usd": 40703.049271315125,
+      "fees": {
+        "base_swap_fee_bps": 20.0,
+        "dynamic_swap_fee": false,
+        "epoch": 1062,
+        "pool": "DirR9nP5jk7fYifaYArCwZuq6pBqGWjhKgESiTuQByTf",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "So11111111111111111111111111111111111111112",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458982201,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "TTWofwAge91oFhZs7kpQdyrVRkmevgM88xijGvQFbKo",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": 20.0,
+        "unix_timestamp": 1792445286
+      },
+      "fee_error": null,
+      "nominal_combined_fee_bps": 20.000000000000018,
+      "accepted": true
+    },
+    {
+      "pool": "HQVUahL1Mu3TMTUFhoHBhX8syFVd2WyjQv1SMze14mhq",
+      "symbol": "GME.US",
+      "accepted": false,
+      "reason": "preliminary reserve below threshold; no full depth snapshot",
+      "preliminary_liquid_reserve_usd": 0.0
+    },
+    {
+      "symbol": "CHWY.US",
+      "mint": "CHWYHz2zfKajomqPV9it26n7vu7AgZZfqGHXCWtGWuJg",
+      "decimals": 6,
+      "catalog_source": "https://api.backpack.exchange/api/v1/assets",
+      "official_record": {
+        "coingeckoId": null,
+        "displayName": "Chewy, Inc.",
+        "symbol": "CHWY.US",
+        "tokens": [
+          {
+            "blockchain": "Solana",
+            "contractAddress": "CHWYHz2zfKajomqPV9it26n7vu7AgZZfqGHXCWtGWuJg",
+            "depositEnabled": true,
+            "displayName": "Chewy, Inc.",
+            "maximumWithdrawal": null,
+            "minimumDeposit": "0.025",
+            "minimumWithdrawal": "0.05",
+            "nativeDecimals": 6,
+            "withdrawEnabled": true,
+            "withdrawalFee": "0.025"
+          }
+        ]
+      },
+      "pool": "6E12HKuZkyQoMwhTtN4WFs95uMEoW2zXJMFSE4jNcjHE",
+      "quote_mint": "So11111111111111111111111111111111111111112",
+      "program_id": "LBUZKhRxPF3XUpBCjp4YzTKgLccjZhTSDM9YuVaPwxo",
+      "snapshot_slot": 458982211,
+      "observed_transaction_signatures": [],
+      "depth": {
+        "minimum_liquid_side_usd": 500,
+        "probe_usd": 10,
+        "reference_probe_usd": 1,
+        "reports": [
+          {
+            "audit": {
+              "buy_10_usd_impact_bps": -0.020784835383924616,
+              "buy_output": 481121,
+              "eligible": true,
+              "liquid_side_reserve_usd": 2135.105018790187,
+              "sell_10_usd_impact_bps": -0.19092366607242894,
+              "sell_output": 93704159
+            },
+            "pool": "6E12HKuZkyQoMwhTtN4WFs95uMEoW2zXJMFSE4jNcjHE"
+          }
+        ],
+        "slot": 458982211,
+        "unix_timestamp": 1792445288
+      },
+      "liquid_side_reserve_usd": 2135.105018790187,
+      "fees": {
+        "base_swap_fee_bps": 50.0,
+        "dynamic_swap_fee": true,
+        "epoch": 1062,
+        "pool": "6E12HKuZkyQoMwhTtN4WFs95uMEoW2zXJMFSE4jNcjHE",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "So11111111111111111111111111111111111111112",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458982211,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "CHWYHz2zfKajomqPV9it26n7vu7AgZZfqGHXCWtGWuJg",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": null,
+        "unix_timestamp": 1792445288
+      },
+      "fee_error": null,
+      "nominal_combined_fee_bps": null,
+      "accepted": true
+    },
+    {
+      "pool": "9J6VcB1d9Dod87Cu4dfKd7Bo86uqJJE7EBmh9XzDrYoQ",
+      "symbol": "RACE.US",
+      "accepted": false,
+      "reason": "preliminary reserve below threshold; no full depth snapshot",
+      "preliminary_liquid_reserve_usd": 367.705202
+    },
+    {
+      "symbol": "NVDAx",
+      "mint": "Xsc9qvGR1efVDFGLrVsmkzv3qi45LTBjeUKSPmx9qEh",
+      "decimals": 8,
+      "catalog_source": "https://xstocks.com/products",
+      "official_record": {
+        "slug": "nvidia-xstock",
+        "name": "NVIDIA xStock",
+        "symbol": "NVDAx",
+        "iconUrl": "https://cdn.prod.website-files.com/655f3efc4be468487052e35a/6aa0128df63915dbafacef5d_NVDAx.png",
+        "addresses": {
+          "ethereum": "0xc845b2894dbddd03858fd2d643b4ef725fe0849d",
+          "solana": "Xsc9qvGR1efVDFGLrVsmkzv3qi45LTBjeUKSPmx9qEh",
+          "ton": "EQCva-Of7acQdU_piADdlcbzsFtA-xJwZoctz8ZOXBdBoaB8",
+          "ink": "0xc845b2894dbddd03858fd2d643b4ef725fe0849d",
+          "bsc": "0xc845b2894dbddd03858fd2d643b4ef725fe0849d",
+          "tron": "TNMR6r9Z4cL7eWNrNQ4e4sm2XPhhifexZU",
+          "mantle": "0xc845b2894dbddd03858fd2d643b4ef725fe0849d",
+          "xLayer": "0xc845b2894dbddd03858fd2d643b4ef725fe0849d",
+          "arbitrum": "0xc845b2894dbddd03858fd2d643b4ef725fe0849d",
+          "optimism": "0xc845b2894dbddd03858fd2d643b4ef725fe0849d",
+          "monad": "0xc845b2894dbddd03858fd2d643b4ef725fe0849d",
+          "arc": null
+        }
+      },
+      "pool": "49iMatQtoyabsYAQc8GafVq6aeBFVDxSRH44oiatyyw6",
+      "quote_mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "program_id": "CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK",
+      "snapshot_slot": 458982217,
+      "observed_transaction_signatures": [],
+      "depth": {
+        "minimum_liquid_side_usd": 500,
+        "probe_usd": 10,
+        "reference_probe_usd": 1,
+        "reports": [
+          {
+            "audit": {
+              "buy_10_usd_impact_bps": -0.015258988634858639,
+              "buy_output": 4587467,
+              "eligible": true,
+              "liquid_side_reserve_usd": 1298141.268097,
+              "sell_10_usd_impact_bps": -0.003006018047813086,
+              "sell_output": 9979983
+            },
+            "pool": "49iMatQtoyabsYAQc8GafVq6aeBFVDxSRH44oiatyyw6"
+          }
+        ],
+        "slot": 458982217,
+        "unix_timestamp": 1792445289
+      },
+      "liquid_side_reserve_usd": 1298141.268097,
+      "fees": {
+        "base_swap_fee_bps": 10.0,
+        "dynamic_swap_fee": false,
+        "epoch": 1062,
+        "pool": "49iMatQtoyabsYAQc8GafVq6aeBFVDxSRH44oiatyyw6",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458982217,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "Xsc9qvGR1efVDFGLrVsmkzv3qi45LTBjeUKSPmx9qEh",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": 10.0,
+        "unix_timestamp": 1792445289
+      },
+      "fee_error": null,
+      "nominal_combined_fee_bps": 10.000000000000009,
+      "accepted": true
+    },
+    {
+      "symbol": "MSFTx",
+      "mint": "XspzcW1PRtgf6Wj92HCiZdjzKCyFekVD8P5Ueh3dRMX",
+      "decimals": 8,
+      "catalog_source": "https://xstocks.com/products",
+      "official_record": {
+        "slug": "microsoft-xstock",
+        "name": "Microsoft xStock",
+        "symbol": "MSFTx",
+        "iconUrl": "https://cdn.prod.website-files.com/655f3efc4be468487052e35a/6ab558d108ccb83892f04dd4_MSFTx.png",
+        "addresses": {
+          "ethereum": "0x5621737f42dae558b81269fcb9e9e70c19aa6b35",
+          "solana": "XspzcW1PRtgf6Wj92HCiZdjzKCyFekVD8P5Ueh3dRMX",
+          "ton": "EQDI9JwkYTEHM2TSFPSWFbwznBq07_I4Apy9TBhxsDlZaBvg",
+          "ink": "0x5621737f42dae558b81269fcb9e9e70c19aa6b35",
+          "bsc": "0x5621737f42dae558b81269fcb9e9e70c19aa6b35",
+          "tron": "TDVHfwqTFimf8bAYSkzvQe3vwArRDMdcFh",
+          "mantle": "0x5621737f42dae558b81269fcb9e9e70c19aa6b35",
+          "xLayer": "0x5621737f42dae558b81269fcb9e9e70c19aa6b35",
+          "arbitrum": "0x5621737f42dae558b81269fcb9e9e70c19aa6b35",
+          "optimism": "0x5621737f42dae558b81269fcb9e9e70c19aa6b35",
+          "monad": "0x5621737f42dae558b81269fcb9e9e70c19aa6b35",
+          "arc": null
+        }
+      },
+      "pool": "HrkeM8zFLiLp7ShhZKkM3b6Tvt8Aq2AKFcCvxRnfwKaq",
+      "quote_mint": "So11111111111111111111111111111111111111112",
+      "program_id": "CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK",
+      "snapshot_slot": 458982220,
+      "observed_transaction_signatures": [],
+      "depth": {
+        "minimum_liquid_side_usd": 500,
+        "probe_usd": 10,
+        "reference_probe_usd": 1,
+        "reports": [
+          {
+            "audit": {
+              "buy_10_usd_impact_bps": 0.0,
+              "buy_output": 1852930,
+              "eligible": true,
+              "liquid_side_reserve_usd": 32880.6169504643,
+              "sell_10_usd_impact_bps": -0.00422617294271177,
+              "sell_output": 94648320
+            },
+            "pool": "HrkeM8zFLiLp7ShhZKkM3b6Tvt8Aq2AKFcCvxRnfwKaq"
+          }
+        ],
+        "slot": 458982220,
+        "unix_timestamp": 1792445290
+      },
+      "liquid_side_reserve_usd": 32880.6169504643,
+      "fees": {
+        "base_swap_fee_bps": 25.0,
+        "dynamic_swap_fee": false,
+        "epoch": 1062,
+        "pool": "HrkeM8zFLiLp7ShhZKkM3b6Tvt8Aq2AKFcCvxRnfwKaq",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "So11111111111111111111111111111111111111112",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458982220,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "XspzcW1PRtgf6Wj92HCiZdjzKCyFekVD8P5Ueh3dRMX",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": 25.0,
+        "unix_timestamp": 1792445290
+      },
+      "fee_error": null,
+      "nominal_combined_fee_bps": 24.999999999999467,
+      "accepted": true
+    },
+    {
+      "pool": "97dsAVDg9dE5DwrZcBtfa9z6RNtXZKVkPCuwRMqDF84G",
+      "symbol": "GME.US",
+      "accepted": false,
+      "reason": "preliminary reserve below threshold; no full depth snapshot",
+      "preliminary_liquid_reserve_usd": 0.0
+    },
+    {
+      "pool": "9NnBCfSu43iJpW17eVYBstfV9TiQMSmnARThbHAWNRDJ",
+      "symbol": "ABNB.US",
+      "accepted": false,
+      "reason": "preliminary reserve below threshold; no full depth snapshot",
+      "preliminary_liquid_reserve_usd": 0.32303653857087217
+    },
+    {
+      "symbol": "SPCX.US",
+      "mint": "SPCXxcqXj6e5dJDVNovHN8744zkbhM2bYudU45BimGb",
+      "decimals": 6,
+      "catalog_source": "https://api.backpack.exchange/api/v1/assets",
+      "official_record": {
+        "coingeckoId": null,
+        "displayName": "SpaceX",
+        "symbol": "SPCX.US",
+        "tokens": [
+          {
+            "blockchain": "Solana",
+            "contractAddress": "SPCXxcqXj6e5dJDVNovHN8744zkbhM2bYudU45BimGb",
+            "depositEnabled": true,
+            "displayName": "SpaceX",
+            "maximumWithdrawal": null,
+            "minimumDeposit": "0.004",
+            "minimumWithdrawal": "0.008",
+            "nativeDecimals": 6,
+            "withdrawEnabled": true,
+            "withdrawalFee": "0.004"
+          }
+        ]
+      },
+      "pool": "4XhCWxdmoRrUX4Kde4RQ2bmWWgNLur5DQJn9Jzt8pN3e",
+      "quote_mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "program_id": "whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc",
+      "snapshot_slot": 458982227,
+      "observed_transaction_signatures": [],
+      "depth": {
+        "minimum_liquid_side_usd": 500,
+        "probe_usd": 10,
+        "reference_probe_usd": 1,
+        "reports": [
+          {
+            "audit": {
+              "eligible": false,
+              "error": "Missing cached account: 9ZP4xUa9kgtBAczoFwPo43uvr7nATZrtaWdoepJqxoVC"
+            },
+            "pool": "4XhCWxdmoRrUX4Kde4RQ2bmWWgNLur5DQJn9Jzt8pN3e"
+          }
+        ],
+        "slot": 458982227,
+        "unix_timestamp": 1792445292
+      },
+      "liquid_side_reserve_usd": null,
+      "fees": {
+        "base_swap_fee_bps": 2.0,
+        "dynamic_swap_fee": true,
+        "epoch": 1062,
+        "pool": "4XhCWxdmoRrUX4Kde4RQ2bmWWgNLur5DQJn9Jzt8pN3e",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458982227,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "SPCXxcqXj6e5dJDVNovHN8744zkbhM2bYudU45BimGb",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": null,
+        "unix_timestamp": 1792445292
+      },
+      "fee_error": null,
+      "nominal_combined_fee_bps": null,
+      "accepted": false
+    },
+    {
+      "symbol": "BABA.US",
+      "mint": "BABANGA4JE7Kkam4nTrALAwAVgsNJUuFJnnkF7S16BZp",
+      "decimals": 6,
+      "catalog_source": "https://api.backpack.exchange/api/v1/assets",
+      "official_record": {
+        "coingeckoId": null,
+        "displayName": "Alibaba Group Holding Limited",
+        "symbol": "BABA.US",
+        "tokens": [
+          {
+            "blockchain": "Solana",
+            "contractAddress": "BABANGA4JE7Kkam4nTrALAwAVgsNJUuFJnnkF7S16BZp",
+            "depositEnabled": true,
+            "displayName": "Alibaba Group Holding Limited",
+            "maximumWithdrawal": null,
+            "minimumDeposit": "0.005",
+            "minimumWithdrawal": "0.01",
+            "nativeDecimals": 6,
+            "withdrawEnabled": true,
+            "withdrawalFee": "0.005"
+          }
+        ]
+      },
+      "pool": "56eGajrdCczGK6m8faSimtMJLVBjfarSDVPvoMhYooRi",
+      "quote_mint": "So11111111111111111111111111111111111111112",
+      "program_id": "LBUZKhRxPF3XUpBCjp4YzTKgLccjZhTSDM9YuVaPwxo",
+      "snapshot_slot": 458982231,
+      "observed_transaction_signatures": [],
+      "depth": {
+        "minimum_liquid_side_usd": 500,
+        "probe_usd": 10,
+        "reference_probe_usd": 1,
+        "reports": [
+          {
+            "audit": {
+              "buy_10_usd_impact_bps": -0.21927420239098439,
+              "buy_output": 91212,
+              "eligible": true,
+              "liquid_side_reserve_usd": 1852.1497381368954,
+              "sell_10_usd_impact_bps": -2.2195292633164776,
+              "sell_output": 94076856
+            },
+            "pool": "56eGajrdCczGK6m8faSimtMJLVBjfarSDVPvoMhYooRi"
+          }
+        ],
+        "slot": 458982231,
+        "unix_timestamp": 1792445293
+      },
+      "liquid_side_reserve_usd": 1852.1497381368954,
+      "fees": {
+        "base_swap_fee_bps": 15.0,
+        "dynamic_swap_fee": true,
+        "epoch": 1062,
+        "pool": "56eGajrdCczGK6m8faSimtMJLVBjfarSDVPvoMhYooRi",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "So11111111111111111111111111111111111111112",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458982231,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "BABANGA4JE7Kkam4nTrALAwAVgsNJUuFJnnkF7S16BZp",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": null,
+        "unix_timestamp": 1792445293
+      },
+      "fee_error": null,
+      "nominal_combined_fee_bps": null,
+      "accepted": true
+    },
+    {
+      "pool": "3CDMEBSE5EveuXkZM3SpXqzpMc9yuQET8DgKLLArAN2x",
+      "symbol": "GME.US",
+      "accepted": false,
+      "reason": "preliminary reserve below threshold; no full depth snapshot",
+      "preliminary_liquid_reserve_usd": 0.0
+    },
+    {
+      "symbol": "DJT.US",
+      "mint": "DJTu7vi8norVzdVAffgvb39VP7wjKeTsgaMBJrzfxvoF",
+      "decimals": 6,
+      "catalog_source": "https://api.backpack.exchange/api/v1/assets",
+      "official_record": {
+        "coingeckoId": null,
+        "displayName": "Trump Media & Technology Group Corp.",
+        "symbol": "DJT.US",
+        "tokens": [
+          {
+            "blockchain": "Solana",
+            "contractAddress": "DJTu7vi8norVzdVAffgvb39VP7wjKeTsgaMBJrzfxvoF",
+            "depositEnabled": true,
+            "displayName": "Trump Media & Technology Group Corp.",
+            "maximumWithdrawal": null,
+            "minimumDeposit": "0.08",
+            "minimumWithdrawal": "0.16",
+            "nativeDecimals": 6,
+            "withdrawEnabled": true,
+            "withdrawalFee": "0.08"
+          }
+        ]
+      },
+      "pool": "7gkB2D1SqhUYgKrSpDU5cma4tK9efijHouYituABdJcG",
+      "quote_mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "program_id": "whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc",
+      "snapshot_slot": 458982238,
+      "observed_transaction_signatures": [],
+      "depth": {
+        "minimum_liquid_side_usd": 500,
+        "probe_usd": 10,
+        "reference_probe_usd": 1,
+        "reports": [
+          {
+            "audit": {
+              "buy_10_usd_impact_bps": 0.0,
+              "buy_output": 1545350,
+              "eligible": true,
+              "liquid_side_reserve_usd": 51156.35932,
+              "sell_10_usd_impact_bps": -0.008048257351678245,
+              "sell_output": 9940048
+            },
+            "pool": "7gkB2D1SqhUYgKrSpDU5cma4tK9efijHouYituABdJcG"
+          }
+        ],
+        "slot": 458982238,
+        "unix_timestamp": 1792445294
+      },
+      "liquid_side_reserve_usd": 51156.35932,
+      "fees": {
+        "base_swap_fee_bps": 30.0,
+        "dynamic_swap_fee": true,
+        "epoch": 1062,
+        "pool": "7gkB2D1SqhUYgKrSpDU5cma4tK9efijHouYituABdJcG",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458982238,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "DJTu7vi8norVzdVAffgvb39VP7wjKeTsgaMBJrzfxvoF",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": null,
+        "unix_timestamp": 1792445294
+      },
+      "fee_error": null,
+      "nominal_combined_fee_bps": null,
+      "accepted": true
+    },
+    {
+      "symbol": "HIMS.US",
+      "mint": "HiMSSzzwkZkrXJ4PGVJRdtfLaANeAztjjcgk5Dxe7Lwx",
+      "decimals": 6,
+      "catalog_source": "https://api.backpack.exchange/api/v1/assets",
+      "official_record": {
+        "coingeckoId": null,
+        "displayName": "Hims & Hers Health, Inc.",
+        "symbol": "HIMS.US",
+        "tokens": [
+          {
+            "blockchain": "Solana",
+            "contractAddress": "HiMSSzzwkZkrXJ4PGVJRdtfLaANeAztjjcgk5Dxe7Lwx",
+            "depositEnabled": true,
+            "displayName": "Hims & Hers Health, Inc.",
+            "maximumWithdrawal": null,
+            "minimumDeposit": "0.018",
+            "minimumWithdrawal": "0.036",
+            "nativeDecimals": 6,
+            "withdrawEnabled": true,
+            "withdrawalFee": "0.018"
+          }
+        ]
+      },
+      "pool": "7iqWWNjubSTjmWXk9eYJViDLZjBN2KjrYt5Z9j8n8exQ",
+      "quote_mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "program_id": "whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc",
+      "snapshot_slot": 458985825,
+      "observed_transaction_signatures": [
+        "2GXMXByCrh7SCPy5TVLtr3MTZ3Tu2AJFRVZRn4XB9Yv5aPqwoWrK6b1H93kNzHUyucyZifivM4gsBewty2j5L4Do",
+        "5U46vKBbdNaNpH9rGHd1SKosEqAEo4h4NeBLBisW15WLdyThzd5SjC2iBNZjZBgEiBVDQ9GyMprZhUqbgn4RwFGT",
+        "5ihD9ehX1FVWo4YrWAM2Dr1xZcwDpigDkaN8UhsXBnyeZWoHUZVWu7PVuvkCaSXowjXMEXWrETrRWd5JGFa8ZM69",
+        "5pb8NRN6TSkv8WjCsVwZSkDu1fKQgpFbyvXBfiGMZhQHvSmE34VizkVEoft5B8dxfWWq9Wyf5vYTp5ydxBsChP8k"
+      ],
+      "depth": {
+        "minimum_liquid_side_usd": 500,
+        "probe_usd": 10,
+        "reference_probe_usd": 1,
+        "reports": [
+          {
+            "audit": {
+              "buy_10_usd_impact_bps": -0.05644774350166415,
+              "buy_output": 354312,
+              "eligible": true,
+              "liquid_side_reserve_usd": 66820.358359,
+              "sell_10_usd_impact_bps": -0.18913899502814857,
+              "sell_output": 9939968
+            },
+            "pool": "7iqWWNjubSTjmWXk9eYJViDLZjBN2KjrYt5Z9j8n8exQ"
+          }
+        ],
+        "slot": 458985825,
+        "unix_timestamp": 1792446073
+      },
+      "liquid_side_reserve_usd": 66820.358359,
+      "fees": {
+        "base_swap_fee_bps": 30.0,
+        "dynamic_swap_fee": true,
+        "epoch": 1062,
+        "pool": "7iqWWNjubSTjmWXk9eYJViDLZjBN2KjrYt5Z9j8n8exQ",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458985825,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "HiMSSzzwkZkrXJ4PGVJRdtfLaANeAztjjcgk5Dxe7Lwx",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": null,
+        "unix_timestamp": 1792446073
+      },
+      "fee_error": null,
+      "nominal_combined_fee_bps": null,
+      "accepted": true
+    },
+    {
+      "symbol": "AAPLx",
+      "mint": "XsbEhLAtcf6HdfpFZ5xEMdqW8nfAvcsP5bdudRLJzJp",
+      "decimals": 8,
+      "catalog_source": "https://xstocks.com/products",
+      "official_record": {
+        "slug": "apple-xstock",
+        "name": "Apple xStock",
+        "symbol": "AAPLx",
+        "iconUrl": "https://cdn.prod.website-files.com/655f3efc4be468487052e35a/6ab5589b93cedf3d16c0ef20_AAPLx.png",
+        "addresses": {
+          "ethereum": "0x9d275685dc284c8eb1c79f6aba7a63dc75ec890a",
+          "solana": "XsbEhLAtcf6HdfpFZ5xEMdqW8nfAvcsP5bdudRLJzJp",
+          "ton": "EQDsjAwfKo-6FVZv2EYt-1CaZTY_ZL-pfkSId6jeQchNwmdo",
+          "ink": "0x9d275685dc284c8eb1c79f6aba7a63dc75ec890a",
+          "bsc": "0x9d275685dc284c8eb1c79f6aba7a63dc75ec890a",
+          "tron": "TZ7nsyCuQq1cusCtex6V4qbzWcb3NbibAM",
+          "mantle": "0x9d275685dc284c8eb1c79f6aba7a63dc75ec890a",
+          "xLayer": "0x9d275685dc284c8eb1c79f6aba7a63dc75ec890a",
+          "arbitrum": "0x9d275685dc284c8eb1c79f6aba7a63dc75ec890a",
+          "optimism": "0x9d275685dc284c8eb1c79f6aba7a63dc75ec890a",
+          "monad": "0x9d275685dc284c8eb1c79f6aba7a63dc75ec890a",
+          "arc": null
+        }
+      },
+      "pool": "CKwJZwm7oj3nu4653N1EpDrqXbXAYXoPFiPeEnLouF8y",
+      "quote_mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "program_id": "CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK",
+      "snapshot_slot": 458985832,
+      "observed_transaction_signatures": [
+        "2pb5nzCjYWzzjCgqjdBTmEDA32nJLngTEVSmkqM9G19X9uHUz8g4tuA7DocPcgDxJCJL4hMVW1reNVqZT9LvCL7S",
+        "3E7GWmYbySjPM1k1U78CSjtU1sKQijrhnrd9mTWqDqHqNWaGgTHiJe2t8judJTny1mh9jyMLyLHV9u2KoF1FsHtF",
+        "4i3EyzqW8q3wPu33okh6trtnpfmFVrzH8u43CtWg88Sj4MXDKQ7mEhm1QfJRGK22ZiAMtseARjUFXZU1fyQdJ2f4"
+      ],
+      "depth": {
+        "minimum_liquid_side_usd": 500,
+        "probe_usd": 10,
+        "reference_probe_usd": 1,
+        "reports": [
+          {
+            "audit": {
+              "buy_10_usd_impact_bps": 0.01380100333348011,
+              "buy_output": 2898336,
+              "eligible": true,
+              "liquid_side_reserve_usd": 181789.737601,
+              "sell_10_usd_impact_bps": 0.013065287239877321,
+              "sell_output": 9950017
+            },
+            "pool": "CKwJZwm7oj3nu4653N1EpDrqXbXAYXoPFiPeEnLouF8y"
+          }
+        ],
+        "slot": 458985832,
+        "unix_timestamp": 1792446075
+      },
+      "liquid_side_reserve_usd": 181789.737601,
+      "fees": {
+        "base_swap_fee_bps": 25.0,
+        "dynamic_swap_fee": false,
+        "epoch": 1062,
+        "pool": "CKwJZwm7oj3nu4653N1EpDrqXbXAYXoPFiPeEnLouF8y",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458985832,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "XsbEhLAtcf6HdfpFZ5xEMdqW8nfAvcsP5bdudRLJzJp",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": 25.0,
+        "unix_timestamp": 1792446075
+      },
+      "fee_error": null,
+      "nominal_combined_fee_bps": 24.999999999999467,
+      "accepted": true
+    },
+    {
+      "symbol": "AMD.US",
+      "mint": "AMD8XwJXgQ9WV45Wyj9yFLejxzf2J6VM1PJY8bJEjeES",
+      "decimals": 6,
+      "catalog_source": "https://api.backpack.exchange/api/v1/assets",
+      "official_record": {
+        "coingeckoId": null,
+        "displayName": "Advanced Micro Devices, Inc.",
+        "symbol": "AMD.US",
+        "tokens": [
+          {
+            "blockchain": "Solana",
+            "contractAddress": "AMD8XwJXgQ9WV45Wyj9yFLejxzf2J6VM1PJY8bJEjeES",
+            "depositEnabled": true,
+            "displayName": "Advanced Micro Devices, Inc.",
+            "maximumWithdrawal": null,
+            "minimumDeposit": "0.001",
+            "minimumWithdrawal": "0.002",
+            "nativeDecimals": 6,
+            "withdrawEnabled": true,
+            "withdrawalFee": "0.001"
+          }
+        ]
+      },
+      "pool": "ASvFi45yphKhx6ej9gJEDvTedXcXjhKjkhm3hRERuU2",
+      "quote_mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "program_id": "CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK",
+      "snapshot_slot": 458985834,
+      "observed_transaction_signatures": [
+        "3JfGZmmfxsZhiEVw4MEfab1xKjjezztLToif7NVxwbEHAKRESFRsS5CuAEvAgU4K4wLCny96VjBDLwxoScicaNXG"
+      ],
+      "depth": {
+        "minimum_liquid_side_usd": 500,
+        "probe_usd": 10,
+        "reference_probe_usd": 1,
+        "reports": [
+          {
+            "audit": {
+              "buy_10_usd_impact_bps": -3.243243243242766,
+              "buy_output": 18506,
+              "eligible": true,
+              "liquid_side_reserve_usd": 17797.898972,
+              "sell_10_usd_impact_bps": 0.029156160394894215,
+              "sell_output": 9946411
+            },
+            "pool": "ASvFi45yphKhx6ej9gJEDvTedXcXjhKjkhm3hRERuU2"
+          }
+        ],
+        "slot": 458985834,
+        "unix_timestamp": 1792446075
+      },
+      "liquid_side_reserve_usd": 17797.898972,
+      "fees": {
+        "base_swap_fee_bps": 25.0,
+        "dynamic_swap_fee": true,
+        "epoch": 1062,
+        "pool": "ASvFi45yphKhx6ej9gJEDvTedXcXjhKjkhm3hRERuU2",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458985834,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "AMD8XwJXgQ9WV45Wyj9yFLejxzf2J6VM1PJY8bJEjeES",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": null,
+        "unix_timestamp": 1792446075
+      },
+      "fee_error": null,
+      "nominal_combined_fee_bps": null,
+      "accepted": true
+    },
+    {
+      "symbol": "ABNB.US",
+      "mint": "ABNB56TteaTZG1S3DY2W8VMncQmHMvNCGaZgAba49CLP",
+      "decimals": 6,
+      "catalog_source": "https://api.backpack.exchange/api/v1/assets",
+      "official_record": {
+        "coingeckoId": null,
+        "displayName": "Airbnb, Inc.",
+        "symbol": "ABNB.US",
+        "tokens": [
+          {
+            "blockchain": "Solana",
+            "contractAddress": "ABNB56TteaTZG1S3DY2W8VMncQmHMvNCGaZgAba49CLP",
+            "depositEnabled": true,
+            "displayName": "Airbnb, Inc.",
+            "maximumWithdrawal": null,
+            "minimumDeposit": "0.003",
+            "minimumWithdrawal": "0.006",
+            "nativeDecimals": 6,
+            "withdrawEnabled": true,
+            "withdrawalFee": "0.003"
+          }
+        ]
+      },
+      "pool": "CB8XEbWETgadadx9t9GhxJbRbYvDE5U1KqS4ycZtwKmK",
+      "quote_mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "program_id": "CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK",
+      "snapshot_slot": 458985835,
+      "observed_transaction_signatures": [
+        "3nqWEho7zCNcv5ez3TdjWei64E7dWUH6tq8v82ESnLcQi48ShkenfpMhvtksL6HpeoDNsPtXM1XTEVijB9W5qQ57",
+        "3yhTT6S3qEz5QcKiydwtdBcJb8HuvFSZC8doW64XHA5xq8dNn79Cb3xntxK9aAi9qQwxknYfZizTJixbjPJ1QwCt",
+        "54a7uY3hHkZUQR3XTDJSRpsAw8EmZ1HxVR3NHY3dARuLA2Aiuw3a2eLTK8hYb2VAoaaoTbfMTbPpcvMdjPsgs7Q1",
+        "qcEPbYZrzrpRWXGvaursp3PcZ4LbTanvR9QVsYbkcEgJJyganakW7YZn1Pv48zCT6sZQuJP98CvS71TSJytxD94"
+      ],
+      "depth": {
+        "minimum_liquid_side_usd": 500,
+        "probe_usd": 10,
+        "reference_probe_usd": 1,
+        "reports": [
+          {
+            "audit": {
+              "buy_10_usd_impact_bps": -1.2587664089203088,
+              "buy_output": 55617,
+              "eligible": true,
+              "liquid_side_reserve_usd": 33887.699192,
+              "sell_10_usd_impact_bps": 0.2132774934082704,
+              "sell_output": 9799231
+            },
+            "pool": "CB8XEbWETgadadx9t9GhxJbRbYvDE5U1KqS4ycZtwKmK"
+          }
+        ],
+        "slot": 458985835,
+        "unix_timestamp": 1792446075
+      },
+      "liquid_side_reserve_usd": 33887.699192,
+      "fees": {
+        "base_swap_fee_bps": 100.0,
+        "dynamic_swap_fee": true,
+        "epoch": 1062,
+        "pool": "CB8XEbWETgadadx9t9GhxJbRbYvDE5U1KqS4ycZtwKmK",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458985835,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "ABNB56TteaTZG1S3DY2W8VMncQmHMvNCGaZgAba49CLP",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": null,
+        "unix_timestamp": 1792446075
+      },
+      "fee_error": null,
+      "nominal_combined_fee_bps": null,
+      "accepted": true
+    },
+    {
+      "symbol": "RACE.US",
+      "mint": "RACEyWiM2ztEZcJx2AHXU2eWjhxU57x3vXn92b39dLD",
+      "decimals": 6,
+      "catalog_source": "https://api.backpack.exchange/api/v1/assets",
+      "official_record": {
+        "coingeckoId": null,
+        "displayName": "Ferrari N.V.",
+        "symbol": "RACE.US",
+        "tokens": [
+          {
+            "blockchain": "Solana",
+            "contractAddress": "RACEyWiM2ztEZcJx2AHXU2eWjhxU57x3vXn92b39dLD",
+            "depositEnabled": true,
+            "displayName": "Ferrari N.V.",
+            "maximumWithdrawal": null,
+            "minimumDeposit": "0.0013",
+            "minimumWithdrawal": "0.0026",
+            "nativeDecimals": 6,
+            "withdrawEnabled": true,
+            "withdrawalFee": "0.0013"
+          }
+        ]
+      },
+      "pool": "95rgf1NY3NMz8vQaPX8X5XmX3njjKEcVtduPHcq75vCV",
+      "quote_mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "program_id": "CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK",
+      "snapshot_slot": 458985838,
+      "observed_transaction_signatures": [
+        "4n2tDsg8LbMqwaoHzsYA7DW4F1VGe81xy1kvdKSw87DjxaQRogBbhLEe8kn1ctJcZgsJUxjm8ZxYXxJSjQ8vTPQz"
+      ],
+      "depth": {
+        "minimum_liquid_side_usd": 500,
+        "probe_usd": 10,
+        "reference_probe_usd": 1,
+        "reports": [
+          {
+            "audit": {
+              "buy_10_usd_impact_bps": 0.3946329913184776,
+              "buy_output": 25339,
+              "eligible": true,
+              "liquid_side_reserve_usd": 2271.857252,
+              "sell_10_usd_impact_bps": 2.0305751187266186,
+              "sell_output": 9955748
+            },
+            "pool": "95rgf1NY3NMz8vQaPX8X5XmX3njjKEcVtduPHcq75vCV"
+          }
+        ],
+        "slot": 458985838,
+        "unix_timestamp": 1792446076
+      },
+      "liquid_side_reserve_usd": 2271.857252,
+      "fees": {
+        "base_swap_fee_bps": 20.0,
+        "dynamic_swap_fee": false,
+        "epoch": 1062,
+        "pool": "95rgf1NY3NMz8vQaPX8X5XmX3njjKEcVtduPHcq75vCV",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458985838,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "RACEyWiM2ztEZcJx2AHXU2eWjhxU57x3vXn92b39dLD",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": 20.0,
+        "unix_timestamp": 1792446076
+      },
+      "fee_error": null,
+      "nominal_combined_fee_bps": 20.000000000000018,
+      "accepted": true
+    },
+    {
+      "symbol": "MSFTx",
+      "mint": "XspzcW1PRtgf6Wj92HCiZdjzKCyFekVD8P5Ueh3dRMX",
+      "decimals": 8,
+      "catalog_source": "https://xstocks.com/products",
+      "official_record": {
+        "slug": "microsoft-xstock",
+        "name": "Microsoft xStock",
+        "symbol": "MSFTx",
+        "iconUrl": "https://cdn.prod.website-files.com/655f3efc4be468487052e35a/6ab558d108ccb83892f04dd4_MSFTx.png",
+        "addresses": {
+          "ethereum": "0x5621737f42dae558b81269fcb9e9e70c19aa6b35",
+          "solana": "XspzcW1PRtgf6Wj92HCiZdjzKCyFekVD8P5Ueh3dRMX",
+          "ton": "EQDI9JwkYTEHM2TSFPSWFbwznBq07_I4Apy9TBhxsDlZaBvg",
+          "ink": "0x5621737f42dae558b81269fcb9e9e70c19aa6b35",
+          "bsc": "0x5621737f42dae558b81269fcb9e9e70c19aa6b35",
+          "tron": "TDVHfwqTFimf8bAYSkzvQe3vwArRDMdcFh",
+          "mantle": "0x5621737f42dae558b81269fcb9e9e70c19aa6b35",
+          "xLayer": "0x5621737f42dae558b81269fcb9e9e70c19aa6b35",
+          "arbitrum": "0x5621737f42dae558b81269fcb9e9e70c19aa6b35",
+          "optimism": "0x5621737f42dae558b81269fcb9e9e70c19aa6b35",
+          "monad": "0x5621737f42dae558b81269fcb9e9e70c19aa6b35",
+          "arc": null
+        }
+      },
+      "pool": "D6bRhQUcR9B7bPbbqgxpE17MjyUjBtr8hHQCcJoHrrv1",
+      "quote_mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "program_id": "CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK",
+      "snapshot_slot": 458985845,
+      "observed_transaction_signatures": [
+        "Eq1TEf4hVPggWM38zphYRAVNHoyVBeUrRPvLgtBnJjtC1X5CHBz49iS42k2JoQWJthSJXYAnveGQdFMriCKCvAB"
+      ],
+      "depth": {
+        "minimum_liquid_side_usd": 500,
+        "probe_usd": 10,
+        "reference_probe_usd": 1,
+        "reports": [
+          {
+            "audit": {
+              "buy_10_usd_impact_bps": -0.02146579157757955,
+              "buy_output": 1863434,
+              "eligible": true,
+              "liquid_side_reserve_usd": 214465.450326,
+              "sell_10_usd_impact_bps": -0.01002013044315575,
+              "sell_output": 9979920
+            },
+            "pool": "D6bRhQUcR9B7bPbbqgxpE17MjyUjBtr8hHQCcJoHrrv1"
+          }
+        ],
+        "slot": 458985845,
+        "unix_timestamp": 1792446078
+      },
+      "liquid_side_reserve_usd": 214465.450326,
+      "fees": {
+        "base_swap_fee_bps": 10.0,
+        "dynamic_swap_fee": false,
+        "epoch": 1062,
+        "pool": "D6bRhQUcR9B7bPbbqgxpE17MjyUjBtr8hHQCcJoHrrv1",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458985845,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "XspzcW1PRtgf6Wj92HCiZdjzKCyFekVD8P5Ueh3dRMX",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": 10.0,
+        "unix_timestamp": 1792446078
+      },
+      "fee_error": null,
+      "nominal_combined_fee_bps": 10.000000000000009,
+      "accepted": true
+    },
+    {
+      "symbol": "RDDT.US",
+      "mint": "RDDTGbhHwVXfyCvQMXzzowKjf5qrYBZAnehoXW83ooh",
+      "decimals": 6,
+      "catalog_source": "https://api.backpack.exchange/api/v1/assets",
+      "official_record": {
+        "coingeckoId": null,
+        "displayName": "Reddit, Inc.",
+        "symbol": "RDDT.US",
+        "tokens": [
+          {
+            "blockchain": "Solana",
+            "contractAddress": "RDDTGbhHwVXfyCvQMXzzowKjf5qrYBZAnehoXW83ooh",
+            "depositEnabled": true,
+            "displayName": "Reddit, Inc.",
+            "maximumWithdrawal": null,
+            "minimumDeposit": "0.004",
+            "minimumWithdrawal": "0.008",
+            "nativeDecimals": 6,
+            "withdrawEnabled": true,
+            "withdrawalFee": "0.004"
+          }
+        ]
+      },
+      "pool": "6jYPqgpYqPoTFX9eGVHndxe4B6cxPzu1N3zLMuYJ8Bqe",
+      "quote_mint": "So11111111111111111111111111111111111111112",
+      "program_id": "CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK",
+      "snapshot_slot": 458985848,
+      "observed_transaction_signatures": [
+        "pkprGXuCa5YsephQ37FYNHik5ZoeVxoTV7HKGWrcSKXv6tC3d1oHikwMqjzVqrzDMch2cKoGzPrHQGftf7b6LHF"
+      ],
+      "depth": {
+        "minimum_liquid_side_usd": 500,
+        "probe_usd": 10,
+        "reference_probe_usd": 1,
+        "reports": [
+          {
+            "audit": {
+              "buy_10_usd_impact_bps": 0.6271558482284778,
+              "buy_output": 63776,
+              "eligible": true,
+              "liquid_side_reserve_usd": 4299.036784058495,
+              "sell_10_usd_impact_bps": 1.1167115980270648,
+              "sell_output": 94830369
+            },
+            "pool": "6jYPqgpYqPoTFX9eGVHndxe4B6cxPzu1N3zLMuYJ8Bqe"
+          }
+        ],
+        "slot": 458985848,
+        "unix_timestamp": 1792446078
+      },
+      "liquid_side_reserve_usd": 4299.036784058495,
+      "fees": {
+        "base_swap_fee_bps": 20.0,
+        "dynamic_swap_fee": true,
+        "epoch": 1062,
+        "pool": "6jYPqgpYqPoTFX9eGVHndxe4B6cxPzu1N3zLMuYJ8Bqe",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "So11111111111111111111111111111111111111112",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458985848,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "RDDTGbhHwVXfyCvQMXzzowKjf5qrYBZAnehoXW83ooh",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": null,
+        "unix_timestamp": 1792446078
+      },
+      "fee_error": null,
+      "nominal_combined_fee_bps": null,
+      "accepted": true
+    },
+    {
+      "symbol": "RDDT.US",
+      "mint": "RDDTGbhHwVXfyCvQMXzzowKjf5qrYBZAnehoXW83ooh",
+      "decimals": 6,
+      "catalog_source": "https://api.backpack.exchange/api/v1/assets",
+      "official_record": {
+        "coingeckoId": null,
+        "displayName": "Reddit, Inc.",
+        "symbol": "RDDT.US",
+        "tokens": [
+          {
+            "blockchain": "Solana",
+            "contractAddress": "RDDTGbhHwVXfyCvQMXzzowKjf5qrYBZAnehoXW83ooh",
+            "depositEnabled": true,
+            "displayName": "Reddit, Inc.",
+            "maximumWithdrawal": null,
+            "minimumDeposit": "0.004",
+            "minimumWithdrawal": "0.008",
+            "nativeDecimals": 6,
+            "withdrawEnabled": true,
+            "withdrawalFee": "0.004"
+          }
+        ]
+      },
+      "pool": "9A6inBGN9nXd8TUMGoFRgCQGUAjVs9QYtumZhDzbLH5s",
+      "quote_mint": "So11111111111111111111111111111111111111112",
+      "program_id": "LBUZKhRxPF3XUpBCjp4YzTKgLccjZhTSDM9YuVaPwxo",
+      "snapshot_slot": 458985854,
+      "observed_transaction_signatures": [
+        "pkprGXuCa5YsephQ37FYNHik5ZoeVxoTV7HKGWrcSKXv6tC3d1oHikwMqjzVqrzDMch2cKoGzPrHQGftf7b6LHF"
+      ],
+      "depth": {
+        "minimum_liquid_side_usd": 500,
+        "probe_usd": 10,
+        "reference_probe_usd": 1,
+        "reports": [
+          {
+            "audit": {
+              "buy_10_usd_impact_bps": 138.3479899497486,
+              "buy_output": 62799,
+              "eligible": false,
+              "liquid_side_reserve_usd": 29.24455008012627,
+              "sell_10_usd_impact_bps": 138.5807832072916,
+              "sell_output": 93262824
+            },
+            "pool": "9A6inBGN9nXd8TUMGoFRgCQGUAjVs9QYtumZhDzbLH5s"
+          }
+        ],
+        "slot": 458985854,
+        "unix_timestamp": 1792446079
+      },
+      "liquid_side_reserve_usd": 29.24455008012627,
+      "fees": {
+        "base_swap_fee_bps": 20.0,
+        "dynamic_swap_fee": true,
+        "epoch": 1062,
+        "pool": "9A6inBGN9nXd8TUMGoFRgCQGUAjVs9QYtumZhDzbLH5s",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "So11111111111111111111111111111111111111112",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458985854,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "RDDTGbhHwVXfyCvQMXzzowKjf5qrYBZAnehoXW83ooh",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": null,
+        "unix_timestamp": 1792446079
+      },
+      "fee_error": null,
+      "nominal_combined_fee_bps": null,
+      "accepted": false
+    },
+    {
+      "symbol": "RDDT.US",
+      "mint": "RDDTGbhHwVXfyCvQMXzzowKjf5qrYBZAnehoXW83ooh",
+      "decimals": 6,
+      "catalog_source": "https://api.backpack.exchange/api/v1/assets",
+      "official_record": {
+        "coingeckoId": null,
+        "displayName": "Reddit, Inc.",
+        "symbol": "RDDT.US",
+        "tokens": [
+          {
+            "blockchain": "Solana",
+            "contractAddress": "RDDTGbhHwVXfyCvQMXzzowKjf5qrYBZAnehoXW83ooh",
+            "depositEnabled": true,
+            "displayName": "Reddit, Inc.",
+            "maximumWithdrawal": null,
+            "minimumDeposit": "0.004",
+            "minimumWithdrawal": "0.008",
+            "nativeDecimals": 6,
+            "withdrawEnabled": true,
+            "withdrawalFee": "0.004"
+          }
+        ]
+      },
+      "pool": "7r3igmqpnJwLS372AFDtAAAvPadCCmb5NRDPwBGaPGPu",
+      "quote_mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "program_id": "CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK",
+      "snapshot_slot": 458985856,
+      "observed_transaction_signatures": [
+        "pkprGXuCa5YsephQ37FYNHik5ZoeVxoTV7HKGWrcSKXv6tC3d1oHikwMqjzVqrzDMch2cKoGzPrHQGftf7b6LHF"
+      ],
+      "depth": {
+        "minimum_liquid_side_usd": 500,
+        "probe_usd": 10,
+        "reference_probe_usd": 1,
+        "reports": [
+          {
+            "audit": {
+              "buy_10_usd_impact_bps": 0.0,
+              "buy_output": 63970,
+              "eligible": true,
+              "liquid_side_reserve_usd": 27298.094559,
+              "sell_10_usd_impact_bps": 0.02010100756288935,
+              "sell_output": 9949730
+            },
+            "pool": "7r3igmqpnJwLS372AFDtAAAvPadCCmb5NRDPwBGaPGPu"
+          }
+        ],
+        "slot": 458985856,
+        "unix_timestamp": 1792446080
+      },
+      "liquid_side_reserve_usd": 27298.094559,
+      "fees": {
+        "base_swap_fee_bps": 25.0,
+        "dynamic_swap_fee": true,
+        "epoch": 1062,
+        "pool": "7r3igmqpnJwLS372AFDtAAAvPadCCmb5NRDPwBGaPGPu",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458985856,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "RDDTGbhHwVXfyCvQMXzzowKjf5qrYBZAnehoXW83ooh",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": null,
+        "unix_timestamp": 1792446080
+      },
+      "fee_error": null,
+      "nominal_combined_fee_bps": null,
+      "accepted": true
+    }
+  ],
+  "additional_discovery": "stock-discovery-20261020.json"
+}

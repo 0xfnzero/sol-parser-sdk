@@ -95,6 +95,46 @@ fn real_rpc_and_yellowstone_parallel_sequential_paths_agree() {
         let tx = serde_json::from_str(&corpus::fixture(name)).unwrap();
         let rpc = sol_parser_sdk::parse_rpc_transaction(&tx, None).unwrap();
         let (meta, transaction) = sol_parser_sdk::convert_rpc_to_grpc(&tx).unwrap();
+        let direct = sol_parser_sdk::grpc::instruction_parser::parse_instructions_enhanced(
+            &meta,
+            &Some(transaction.clone()),
+            solana_sdk::signature::Signature::try_from(transaction.signatures[0].as_slice()).unwrap(),
+            tx.slot,
+            0,
+            tx.block_time.map(|seconds| seconds * 1_000_000),
+            0,
+            None,
+        );
+        // Verify raw provenance independently against original message keys and
+        // instruction bytes, before comparing the parser frontends.
+        let message = transaction.message.as_ref().unwrap();
+        let keys: Vec<_> = message
+            .account_keys
+            .iter()
+            .chain(&meta.loaded_writable_addresses)
+            .chain(&meta.loaded_readonly_addresses)
+            .map(|k| solana_sdk::pubkey::Pubkey::try_from(k.as_slice()).unwrap())
+            .collect();
+        for event in rpc.iter().chain(&direct) {
+            if let Some(status) = event.trade_parse_status() {
+                assert_eq!(
+                    status == sol_parser_sdk::core::events::TradeParseStatus::ExecutionConfirmed,
+                    meta.err.is_none(),
+                    "{name}: failed instructions must not be marked executed"
+                );
+            }
+            if let Some(source) = event.third_program() {
+                let ix = &message.instructions[source.instruction_index];
+                assert_eq!(source.program_id, keys[ix.program_id_index as usize], "{name}");
+                assert_eq!(source.account_indices, ix.accounts, "{name}");
+                assert_eq!(source.instruction_data, ix.data, "{name}");
+                assert_eq!(
+                    source.accounts,
+                    ix.accounts.iter().map(|i| Some(keys[*i as usize])).collect::<Vec<_>>(),
+                    "{name}"
+                );
+            }
+        }
         let update = SubscribeUpdateTransaction {
             slot: tx.slot,
             transaction: Some(SubscribeUpdateTransactionInfo {

@@ -135,7 +135,7 @@ fn main() {
     let cases = cases_from_env().unwrap_or_else(default_cases);
     let mut failed = false;
 
-    println!("RPC: {rpc_url}");
+    println!("Using configured RPC endpoint");
     println!("Cases: {}\n", cases.len());
 
     for case in cases {

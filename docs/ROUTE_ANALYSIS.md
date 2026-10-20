@@ -1,4 +1,8 @@
-# StonkFun route analysis and account subscriptions
+# Transaction route analysis and account subscriptions
+
+For runnable commands start with the [example index](../examples/README.md).
+[Cross-DEX stock replay](cross-dex-stock-routes.md) demonstrates conversion legs;
+this guide defines execution evidence and Stonk migration attribution.
 
 Route inspection is opt-in. Historical transaction evidence describes what executed; trading requires fresh validated account snapshots. A shared LaunchLab program ID or stock quote mint alone does not establish StonkFun pool identity.
 
@@ -63,17 +67,21 @@ automatic history backfill and rollback handling, transfer-hook adapters and
 market-wide sampling. The SDK exposes positions and transfers for topology
 analysis; it does not claim its flat leg list is a reconstructed serial route.
 
-## Re-run
+## Rust regression tests and offline replay
 
 ```sh
-python3 scripts/capture_stonkfun.py --limit 50 --output /tmp/stonkfun-corpus
-cargo run --example analyze_stonkfun_corpus -- /tmp/stonkfun-corpus
+cargo run --example stock_route_replay
 cargo test --lib --tests
 cargo test --no-default-features --features parse-zero-copy --lib --test stonkfun_routes
 ```
 
-The capture tool reads `RPC_URL` optionally, excludes endpoint credentials from
-the manifest, and never submits transactions. RPC/Yellowstone parity, graduated
+These commands use bundled captures and Rust tests; Python is not required.
+For an existing corpus, run `cargo run --example analyze_stonkfun_corpus -- DIRECTORY`.
+For new signatures, use the Rust `rpc_discover_replay` example described in the
+[example index](../examples/README.md). The historical `scripts/capture_stonkfun.py`
+collector is an optional research tool, not a test runner. It reads `RPC_URL`,
+excludes endpoint credentials from the manifest, and never submits transactions.
+RPC/Yellowstone parity, graduated
 attribution, failed execution, complex paths and migration mapping have fixture
 regressions. See [trade route API](https://github.com/0xfnzero/sol-trade-sdk/blob/main/docs/STONKFUN_ROUTES.md)
 for the newly supported explicit funding routes and their quote requirements.

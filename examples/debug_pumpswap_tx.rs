@@ -17,7 +17,7 @@ fn main() {
     let rpc_url = std::env::var("SOLANA_RPC_URL")
         .unwrap_or_else(|_| "https://solana-rpc.publicnode.com".to_string());
 
-    println!("RPC: {}\n", rpc_url);
+    println!("Using configured RPC endpoint");
     let client = RpcClient::new(rpc_url);
 
     let signature = Signature::from_str(tx_sig).unwrap();

@@ -614,7 +614,7 @@ fn swap(
             if exact_in { first } else { second },
             if exact_in { second } else { first },
         )
-    } else if ix.program == RAYDIUM_LAUNCHLAB_PROGRAM_ID && ix.accounts.len() >= 18 {
+    } else if ix.program == RAYDIUM_LAUNCHLAB_PROGRAM_ID && ix.accounts.len() >= 15 {
         use crate::instr::raydium_launchlab::discriminators::*;
         let (buy, exact_in) = if disc == Some(&BUY_EXACT_IN[..]) {
             (true, true)
@@ -638,34 +638,49 @@ fn swap(
             u64_at(ix.data, 8)?,
             u64_at(ix.data, 16)?,
         )
-    } else if ix.program == PUMPFUN_PROGRAM_ID && ix.accounts.len() == 17 {
+    } else if ix.program == PUMPFUN_PROGRAM_ID {
         use crate::instr::pump::discriminators::*;
-        let buy = disc != Some(&SELL_V3[..]);
-        let exact = disc != Some(&BUY_V3[..]);
-        if ![BUY_V3, BUY_EXACT_QUOTE_IN_V3, SELL_V3].iter().any(|d| disc == Some(&d[..])) {
+        let v2 = [BUY_V2, BUY_EXACT_QUOTE_IN_V2, SELL_V2].iter().any(|d| disc == Some(&d[..]));
+        let v3 = [BUY_V3, BUY_EXACT_QUOTE_IN_V3, SELL_V3].iter().any(|d| disc == Some(&d[..]));
+        let buy = disc != Some(&SELL_V3[..]) && disc != Some(&SELL_V2[..]);
+        let exact = disc != Some(&BUY_V3[..]) && disc != Some(&BUY_V2[..]);
+        if !(v2 || v3)
+            || ix.accounts.len()
+                < if v2 {
+                    if buy {
+                        27
+                    } else {
+                        26
+                    }
+                } else {
+                    17
+                }
+        {
             return None;
         }
+        let (pool_index, user_index, base_account, quote_account) =
+            if v2 { (10, 13, 14, 15) } else { (5, 8, 9, 10) };
         let quote = a(2);
         let source = if buy {
             if quote == ROUTE_WSOL {
-                a(8)
+                a(user_index)
             } else {
-                a(10)
+                a(quote_account)
             }
         } else {
-            a(9)
+            a(base_account)
         };
         let dest = if buy {
-            a(9)
+            a(base_account)
         } else if quote == ROUTE_WSOL {
-            a(8)
+            a(user_index)
         } else {
-            a(10)
+            a(quote_account)
         };
         (
             SwapProtocol::PumpFun,
-            a(5),
-            a(8),
+            a(pool_index),
+            a(user_index),
             source,
             dest,
             exact,
@@ -739,13 +754,15 @@ fn swap(
         return None;
     };
     let explicit_pair = match protocol {
-        SwapProtocol::PumpFun => {
-            Some(if exact_in && disc == Some(&crate::instr::pump::discriminators::SELL_V3[..]) {
+        SwapProtocol::PumpFun => Some(
+            if disc == Some(&crate::instr::pump::discriminators::SELL_V3[..])
+                || disc == Some(&crate::instr::pump::discriminators::SELL_V2[..])
+            {
                 (a(1), a(2))
             } else {
                 (a(2), a(1))
-            })
-        }
+            },
+        ),
         SwapProtocol::LaunchLab => Some(if input == a(6) { (a(10), a(9)) } else { (a(9), a(10)) }),
         SwapProtocol::RaydiumCpmm => Some((a(10), a(11))),
         SwapProtocol::RaydiumClmm if disc == swap_v2 && ix.accounts.len() >= 13 => {
@@ -998,6 +1015,46 @@ mod review_regressions {
     use yellowstone_grpc_proto::prelude::{
         CompiledInstruction, InnerInstruction, InnerInstructions, Message,
     };
+
+    #[test]
+    fn idl_minimum_launchlab_and_pump_v2_accounts() {
+        use crate::instr::{program_ids::*, pump::discriminators as pump};
+        let keys: Vec<_> = (0..30).map(|_| Pubkey::new_unique()).collect();
+        for (program, disc, count, input, output) in [
+            (
+                RAYDIUM_LAUNCHLAB_PROGRAM_ID,
+                crate::instr::raydium_launchlab::discriminators::BUY_EXACT_IN,
+                15,
+                6,
+                5,
+            ),
+            (PUMPFUN_PROGRAM_ID, pump::BUY_V2, 27, 15, 14),
+            (PUMPFUN_PROGRAM_ID, pump::BUY_EXACT_QUOTE_IN_V2, 27, 15, 14),
+            (PUMPFUN_PROGRAM_ID, pump::SELL_V2, 26, 14, 15),
+        ] {
+            let mut data = disc.to_vec();
+            data.extend_from_slice(&100u64.to_le_bytes());
+            data.extend_from_slice(&20u64.to_le_bytes());
+            let accounts: Vec<u8> = (0..count).collect();
+            let mut ix = Invocation {
+                position: InstructionPosition {
+                    outer_index: 0,
+                    inner_index: None,
+                    stack_height: Some(1),
+                },
+                program,
+                program_resolved: true,
+                accounts: &accounts,
+                data: &data,
+            };
+            let leg = swap(&ix, &keys, &HashMap::new(), &[]).unwrap();
+            assert_eq!(leg.input_account, keys[input]);
+            assert_eq!(leg.output_account, keys[output]);
+            assert!(leg.input_mint.is_some() && leg.output_mint.is_some());
+            ix.accounts = &accounts[..accounts.len() - 1];
+            assert!(swap(&ix, &keys, &HashMap::new(), &[]).is_none());
+        }
+    }
 
     fn cpmm_with_output(program: Pubkey, fee: Option<u64>) -> (Transaction, TransactionStatusMeta) {
         let mut keys: Vec<_> = (0..13).map(|_| Pubkey::new_unique()).collect();

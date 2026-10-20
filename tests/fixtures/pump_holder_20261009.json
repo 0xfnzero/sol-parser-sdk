@@ -340,7 +340,7 @@
           "fee": "9382717",
           "creator_fee": "2962963",
           "buyback_fee": "4691358",
-          "ix_name": "buy_exact_quote_in",
+          "ix_name": "buy_exact_quote_in_v3",
           "holder_rewards": "2962963",
           "holder_rewards_bps": "30"
         }
@@ -642,7 +642,7 @@
           "fee": "4767332",
           "creator_fee": "1505474",
           "buyback_fee": "2383666",
-          "ix_name": "sell",
+          "ix_name": "sell_v3",
           "holder_rewards": "1505474",
           "holder_rewards_bps": "30"
         }
@@ -1014,7 +1014,7 @@
           "fee": "802935527",
           "creator_fee": "253558588",
           "buyback_fee": "401467763",
-          "ix_name": "buy_exact_quote_in",
+          "ix_name": "buy_exact_quote_in_v3",
           "holder_rewards": "253558588",
           "holder_rewards_bps": "30"
         }

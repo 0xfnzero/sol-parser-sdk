@@ -32,6 +32,27 @@ fn captured_mainnet_matches_official_idl_and_wire() {
             serde_json::from_value(case["encoded"].clone()).unwrap();
         let rpc = sol_parser_sdk::parse_rpc_transaction(&tx, None).unwrap();
         let (meta, transaction) = sol_parser_sdk::convert_rpc_to_grpc(&tx).unwrap();
+        let message = transaction.message.as_ref().unwrap();
+        let keys: Vec<_> = message
+            .account_keys
+            .iter()
+            .chain(&meta.loaded_writable_addresses)
+            .chain(&meta.loaded_readonly_addresses)
+            .map(|key| Pubkey::try_from(key.as_slice()).unwrap())
+            .collect();
+        let pump_program = sol_parser_sdk::instr::program_ids::PUMPFUN_PROGRAM_ID;
+        let pump_instructions: Vec<_> = message
+            .instructions
+            .iter()
+            .map(|ix| (ix.program_id_index, &ix.accounts, &ix.data))
+            .chain(meta.inner_instructions.iter().flat_map(|group| {
+                group.instructions.iter().map(|ix| (ix.program_id_index, &ix.accounts, &ix.data))
+            }))
+            .filter(|(program, _, _)| keys[*program as usize] == pump_program)
+            .map(|(_, accounts, data)| {
+                (accounts.iter().map(|i| keys[*i as usize]).collect::<Vec<_>>(), data.clone())
+            })
+            .collect();
         let update = yellowstone_grpc_proto::prelude::SubscribeUpdateTransaction {
             slot: tx.slot,
             transaction: Some(yellowstone_grpc_proto::prelude::SubscribeUpdateTransactionInfo {
@@ -88,7 +109,21 @@ fn captured_mainnet_matches_official_idl_and_wire() {
                         continue;
                     }
                     let got = &matches[0][field];
-                    if field == "quote_mint" && value == "11111111111111111111111111111111" {
+                    if field == "ix_name" && expected["name"] == "TradeEvent" && got != value {
+                        // Captured IDL events use a shorter name. A versioned SDK
+                        // name must be corroborated by the actual native instruction.
+                        let name = got.as_str().unwrap();
+                        let base = name.strip_suffix("_v2").or_else(|| name.strip_suffix("_v3"));
+                        assert_eq!(base, value.as_str());
+                        let hash = solana_sha256_hasher::hashv(&[b"global:", name.as_bytes()]);
+                        let mint: Pubkey = d["mint"].as_str().unwrap().parse().unwrap();
+                        let user: Pubkey = d["user"].as_str().unwrap().parse().unwrap();
+                        assert!(pump_instructions
+                            .iter()
+                            .any(|(accounts, data)| data.starts_with(&hash.as_ref()[..8])
+                                && accounts.contains(&mint)
+                                && accounts.contains(&user)));
+                    } else if field == "quote_mint" && value == "11111111111111111111111111111111" {
                         assert!([
                             "11111111111111111111111111111111",
                             "So11111111111111111111111111111111111111111",

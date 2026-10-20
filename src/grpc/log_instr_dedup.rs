@@ -22,6 +22,75 @@ use solana_sdk::pubkey::Pubkey;
 
 use crate::core::events::DexEvent;
 
+#[cfg(test)]
+mod wrapper_source_tests {
+    use super::*;
+    use crate::core::events::{PumpFunTradeEvent, RawInstructionPayload};
+
+    #[test]
+    fn cpmm_partial_logs_keep_outer_instruction_identity() {
+        let pool = Pubkey::new_unique();
+        let make = |index, amount| {
+            DexEvent::RaydiumCpmmSwap(crate::core::events::RaydiumCpmmSwapEvent {
+                pool_id: pool,
+                input_amount: amount,
+                base_input: true,
+                third_program: Some(RawInstructionPayload {
+                    instruction_index: index,
+                    ..Default::default()
+                }),
+                ..Default::default()
+            })
+        };
+        let events =
+            dedupe_log_instruction_events(vec![make(4, 200)], vec![make(2, 0), make(4, 0)]);
+        assert_eq!(events.len(), 2);
+        let mut pairs: Vec<_> = events
+            .into_iter()
+            .map(|event| {
+                let DexEvent::RaydiumCpmmSwap(e) = event else { panic!() };
+                (e.third_program.unwrap().instruction_index, e.input_amount)
+            })
+            .collect();
+        pairs.sort();
+        assert_eq!(pairs, vec![(2, 0), (4, 200)]);
+    }
+
+    #[test]
+    fn partial_logs_never_join_identical_trades_from_different_wrappers() {
+        let mint = Pubkey::new_unique();
+        let user = Pubkey::new_unique();
+        let make = |index, amount| {
+            DexEvent::PumpFunTrade(PumpFunTradeEvent {
+                mint,
+                user,
+                is_buy: true,
+                ix_name: "buy_v2".into(),
+                token_amount: amount,
+                third_program: Some(RawInstructionPayload {
+                    instruction_index: index,
+                    ..Default::default()
+                }),
+                ..Default::default()
+            })
+        };
+        // Only the second wrapper has a log. Its input context must not be
+        // paired with the first wrapper's identical mint/user/direction.
+        let events =
+            dedupe_log_instruction_events(vec![make(4, 200)], vec![make(2, 0), make(4, 0)]);
+        assert_eq!(events.len(), 2);
+        let mut sources = events
+            .into_iter()
+            .map(|e| {
+                let DexEvent::PumpFunTrade(t) = e else { panic!() };
+                (t.third_program.unwrap().instruction_index, t.token_amount)
+            })
+            .collect::<Vec<_>>();
+        sources.sort();
+        assert_eq!(sources, vec![(2, 0), (4, 200)]);
+    }
+}
+
 #[derive(Clone, Hash, PartialEq, Eq)]
 enum LogInstrDedupKey {
     PumpFunTrade {
@@ -33,8 +102,18 @@ enum LogInstrDedupKey {
         /// 同签、同 `(mint,user,is_buy,ix_lane)` 下第几条（log 路与 ix 路各自从 0 计数）。
         lane_occurrence: u16,
     },
-    PumpFunComplete { mint: Pubkey, curve: Pubkey, user: Pubkey },
-    PumpFunPostCompleteBuy { mint: Pubkey, curve: Pubkey, user: Pubkey, base_out: u64, quote_in: u64 },
+    PumpFunComplete {
+        mint: Pubkey,
+        curve: Pubkey,
+        user: Pubkey,
+    },
+    PumpFunPostCompleteBuy {
+        mint: Pubkey,
+        curve: Pubkey,
+        user: Pubkey,
+        base_out: u64,
+        quote_in: u64,
+    },
     PumpFunCreate {
         mint: Pubkey,
     },
@@ -87,7 +166,11 @@ enum LogInstrDedupKey {
         user: Pubkey,
     },
     // Requested liquidity may be zero when base_flag resolves it from a budget.
-    RaydiumClmmLiquidity { position: Pubkey, decrease: bool, occurrence: u16 },
+    RaydiumClmmLiquidity {
+        position: Pubkey,
+        decrease: bool,
+        occurrence: u16,
+    },
     /// `sender` 可能仅 ix 填全，不参与键以免与 log 配对失败。
     RaydiumClmmSwap {
         pool: Pubkey,
@@ -115,7 +198,9 @@ enum LogInstrDedupKey {
         whirlpool: Pubkey,
         occurrence: u16,
     },
-    MeteoraPoolsPoolCreated { pool: Pubkey },
+    MeteoraPoolsPoolCreated {
+        pool: Pubkey,
+    },
     MeteoraDlmmSwap {
         pool: Pubkey,
         from: Pubkey,
@@ -156,7 +241,10 @@ enum OccurrenceBase {
 }
 
 #[inline]
-fn next_occurrence(base: OccurrenceBase, counts: &mut HashMap<OccurrenceBase, u16>) -> u16 {
+fn next_occurrence(
+    base: (OccurrenceBase, Option<usize>),
+    counts: &mut HashMap<(OccurrenceBase, Option<usize>), u16>,
+) -> u16 {
     let entry = counts.entry(base).or_insert(0);
     let occurrence = *entry;
     *entry = occurrence.saturating_add(1);
@@ -182,8 +270,18 @@ fn pumpfun_trade_key_with_occ(
 fn log_instr_dedup_key(ev: &DexEvent) -> Option<LogInstrDedupKey> {
     use DexEvent::*;
     match ev {
-        PumpFunComplete(e) => Some(LogInstrDedupKey::PumpFunComplete { mint:e.mint,curve:e.bonding_curve,user:e.user }),
-        PumpFunPostCompleteBuy(e) => Some(LogInstrDedupKey::PumpFunPostCompleteBuy {mint:e.mint,curve:e.bonding_curve,user:e.user,base_out:e.base_out,quote_in:e.quote_in}),
+        PumpFunComplete(e) => Some(LogInstrDedupKey::PumpFunComplete {
+            mint: e.mint,
+            curve: e.bonding_curve,
+            user: e.user,
+        }),
+        PumpFunPostCompleteBuy(e) => Some(LogInstrDedupKey::PumpFunPostCompleteBuy {
+            mint: e.mint,
+            curve: e.bonding_curve,
+            user: e.user,
+            base_out: e.base_out,
+            quote_in: e.quote_in,
+        }),
         PumpFunCreate(c) => Some(LogInstrDedupKey::PumpFunCreate { mint: c.mint }),
         PumpFunCreateV2(c) => Some(LogInstrDedupKey::PumpFunCreate { mint: c.mint }),
         PumpFunMigrate(m) => {
@@ -229,7 +327,9 @@ fn log_instr_dedup_key(ev: &DexEvent) -> Option<LogInstrDedupKey> {
         RaydiumClmmSwap(_) => None,
         RaydiumCpmmSwap(_) | RaydiumAmmV4Swap(_) => None,
         OrcaWhirlpoolSwap(_) => None,
-        MeteoraPoolsPoolCreated(e) if e.pool != Pubkey::default() => Some(LogInstrDedupKey::MeteoraPoolsPoolCreated { pool: e.pool }),
+        MeteoraPoolsPoolCreated(e) if e.pool != Pubkey::default() => {
+            Some(LogInstrDedupKey::MeteoraPoolsPoolCreated { pool: e.pool })
+        }
         MeteoraDammV2Swap(_) => None,
         MeteoraDlmmSwap(_) => None,
         // 无稳定链上指纹或其它路径：不去重
@@ -240,11 +340,13 @@ fn log_instr_dedup_key(ev: &DexEvent) -> Option<LogInstrDedupKey> {
 #[inline]
 fn next_dedup_key(
     ev: &DexEvent,
-    occurrence_counts: &mut HashMap<OccurrenceBase, u16>,
-) -> Option<LogInstrDedupKey> {
-    let occurrence =
-        occurrence_base(ev).map(|base| next_occurrence(base, occurrence_counts)).unwrap_or(0);
-    dedup_key_with_occurrence(ev, occurrence)
+    occurrence_counts: &mut HashMap<(OccurrenceBase, Option<usize>), u16>,
+) -> Option<(LogInstrDedupKey, Option<usize>)> {
+    let source = ev.third_program().map(|p| p.instruction_index);
+    let occurrence = occurrence_base(ev)
+        .map(|base| next_occurrence((base, source), occurrence_counts))
+        .unwrap_or(0);
+    dedup_key_with_occurrence(ev, occurrence).map(|key| (key, source))
 }
 
 #[inline]
@@ -283,8 +385,18 @@ fn occurrence_base(ev: &DexEvent) -> Option<OccurrenceBase> {
             };
             Some(OccurrenceBase::RaydiumAmmV4 { pool: s.amm, base_out, amount })
         }
-        RaydiumClmmIncreaseLiquidity(e) if e.personal_position != Pubkey::default() => Some(OccurrenceBase::RaydiumClmmLiquidity { position: e.personal_position, decrease: false }),
-        RaydiumClmmDecreaseLiquidity(e) if e.personal_position != Pubkey::default() => Some(OccurrenceBase::RaydiumClmmLiquidity { position: e.personal_position, decrease: true }),
+        RaydiumClmmIncreaseLiquidity(e) if e.personal_position != Pubkey::default() => {
+            Some(OccurrenceBase::RaydiumClmmLiquidity {
+                position: e.personal_position,
+                decrease: false,
+            })
+        }
+        RaydiumClmmDecreaseLiquidity(e) if e.personal_position != Pubkey::default() => {
+            Some(OccurrenceBase::RaydiumClmmLiquidity {
+                position: e.personal_position,
+                decrease: true,
+            })
+        }
         OrcaWhirlpoolLiquidityIncreased(e) => Some(OccurrenceBase::OrcaWhirlpoolLiquidity {
             whirlpool: e.whirlpool,
             position: e.position,
@@ -354,8 +466,20 @@ fn dedup_key_with_occurrence(ev: &DexEvent, occurrence: u16) -> Option<LogInstrD
                 occurrence,
             })
         }
-        RaydiumClmmIncreaseLiquidity(e) if e.personal_position != Pubkey::default() => Some(LogInstrDedupKey::RaydiumClmmLiquidity { position: e.personal_position, decrease: false, occurrence }),
-        RaydiumClmmDecreaseLiquidity(e) if e.personal_position != Pubkey::default() => Some(LogInstrDedupKey::RaydiumClmmLiquidity { position: e.personal_position, decrease: true, occurrence }),
+        RaydiumClmmIncreaseLiquidity(e) if e.personal_position != Pubkey::default() => {
+            Some(LogInstrDedupKey::RaydiumClmmLiquidity {
+                position: e.personal_position,
+                decrease: false,
+                occurrence,
+            })
+        }
+        RaydiumClmmDecreaseLiquidity(e) if e.personal_position != Pubkey::default() => {
+            Some(LogInstrDedupKey::RaydiumClmmLiquidity {
+                position: e.personal_position,
+                decrease: true,
+                occurrence,
+            })
+        }
         OrcaWhirlpoolLiquidityIncreased(e) => Some(LogInstrDedupKey::OrcaWhirlpoolLiquidity {
             whirlpool: e.whirlpool,
             position: e.position,
@@ -401,7 +525,9 @@ pub(crate) fn dedupe_log_instruction_events(
         let instr_event = instr_events.into_iter().next().expect("length checked");
         let same_key = dedup_key_with_occurrence(&log_event, 0)
             .zip(dedup_key_with_occurrence(&instr_event, 0))
-            .is_some_and(|(log_key, instr_key)| log_key == instr_key);
+            .is_some_and(|(log_key, instr_key)| log_key == instr_key)
+            && log_event.third_program().map(|p| p.instruction_index)
+                == instr_event.third_program().map(|p| p.instruction_index);
         let mut out = Vec::with_capacity(if same_key { 1 } else { 2 });
         if same_key {
             crate::core::merger::merge_grpc_instruction_into_log(&mut log_event, instr_event);
@@ -416,8 +542,8 @@ pub(crate) fn dedupe_log_instruction_events(
 
     let cap = log_events.len().saturating_add(instr_events.len());
     let mut out: Vec<DexEvent> = Vec::with_capacity(cap);
-    let mut idx_by_key: HashMap<LogInstrDedupKey, usize> = HashMap::new();
-    let mut log_occurrences: HashMap<OccurrenceBase, u16> = HashMap::new();
+    let mut idx_by_key: HashMap<(LogInstrDedupKey, Option<usize>), usize> = HashMap::new();
+    let mut log_occurrences: HashMap<(OccurrenceBase, Option<usize>), u16> = HashMap::new();
 
     for e in log_events {
         if let Some(k) = next_dedup_key(&e, &mut log_occurrences) {
@@ -428,77 +554,23 @@ pub(crate) fn dedupe_log_instruction_events(
         }
     }
 
-    let mut ix_occurrences: HashMap<OccurrenceBase, u16> = HashMap::new();
-    // A missing invocation makes ordinal pairing ambiguous in these lanes.
-    // Preserve both sources instead of attaching another trade's accounts/limits.
-    if log_occurrences.keys().any(|key| {
-        matches!(
-            key,
-            OccurrenceBase::PumpFun { .. }
-                | OccurrenceBase::PumpSwap { .. }
-                | OccurrenceBase::RaydiumCpmm { .. }
-                | OccurrenceBase::RaydiumAmmV4 { .. }
-                | OccurrenceBase::OrcaWhirlpoolLiquidity { .. }
-                | OccurrenceBase::RaydiumClmmLiquidity { .. }
-        )
-    }) {
+    let mut ix_occurrences: HashMap<(OccurrenceBase, Option<usize>), u16> = HashMap::new();
+    // Missing invocations make ordinal pairing ambiguous in every occurrence lane.
+    // Preserve both sources rather than attach another trade's accounts or limits.
+    if !log_occurrences.is_empty() {
         for event in &instr_events {
             if let Some(base) = occurrence_base(event) {
-                if matches!(
-                    base,
-                    OccurrenceBase::PumpFun { .. }
-                        | OccurrenceBase::PumpSwap { .. }
-                        | OccurrenceBase::RaydiumCpmm { .. }
-                        | OccurrenceBase::RaydiumAmmV4 { .. }
-                        | OccurrenceBase::OrcaWhirlpoolLiquidity { .. }
-                        | OccurrenceBase::RaydiumClmmLiquidity { .. }
-                ) {
-                    next_occurrence(base, &mut ix_occurrences);
-                }
+                next_occurrence(
+                    (base, event.third_program().map(|p| p.instruction_index)),
+                    &mut ix_occurrences,
+                );
             }
         }
-        idx_by_key.retain(|key, _| {
-            let base = match key {
-                LogInstrDedupKey::PumpFunTrade { mint, user, is_buy, ix_lane, .. } => {
-                    OccurrenceBase::PumpFun {
-                        mint: *mint,
-                        user: *user,
-                        is_buy: *is_buy,
-                        lane: *ix_lane,
-                    }
-                }
-                LogInstrDedupKey::PumpSwapBuy { pool, user, .. } => {
-                    OccurrenceBase::PumpSwap { pool: *pool, user: *user, buy: true }
-                }
-                LogInstrDedupKey::PumpSwapSell { pool, user, .. } => {
-                    OccurrenceBase::PumpSwap { pool: *pool, user: *user, buy: false }
-                }
-                LogInstrDedupKey::RaydiumCpmmSwap { pool, base_input, .. } => {
-                    OccurrenceBase::RaydiumCpmm { pool: *pool, base_input: *base_input }
-                }
-                LogInstrDedupKey::RaydiumAmmV4Swap {
-                    pool, base_out, instruction_amount, ..
-                } => OccurrenceBase::RaydiumAmmV4 {
-                    pool: *pool,
-                    base_out: *base_out,
-                    amount: *instruction_amount,
-                },
-                LogInstrDedupKey::RaydiumClmmLiquidity { position, decrease, .. } => OccurrenceBase::RaydiumClmmLiquidity { position: *position, decrease: *decrease },
-                LogInstrDedupKey::OrcaWhirlpoolLiquidity {
-                    whirlpool,
-                    position,
-                    liquidity,
-                    decrease,
-                    ..
-                } => OccurrenceBase::OrcaWhirlpoolLiquidity {
-                    whirlpool: *whirlpool,
-                    position: *position,
-                    liquidity: *liquidity,
-                    decrease: *decrease,
-                },
-                _ => return true,
-            };
-            log_occurrences.get(&base) == ix_occurrences.get(&base)
+        idx_by_key.retain(|(_, source), idx| {
+            occurrence_base(&out[*idx]).is_none_or(|base| {
+                log_occurrences.get(&(base.clone(), *source))
+                    == ix_occurrences.get(&(base, *source))
+            })
         });
         for count in ix_occurrences.values_mut() {
             *count = 0;
@@ -631,6 +703,67 @@ mod tests {
             vec![clmm_swap(pool, true, 0), clmm_swap(pool, false, 0)],
         );
         assert_eq!(merged.len(), 2);
+    }
+
+    #[test]
+    fn all_swap_occurrence_lanes_require_complete_pairing() {
+        use crate::core::events::*;
+        let pool = Pubkey::new_unique();
+        let families = [
+            clmm_swap(pool, false, 222),
+            DexEvent::OrcaWhirlpoolSwap(OrcaWhirlpoolSwapEvent {
+                whirlpool: pool,
+                ..Default::default()
+            }),
+            DexEvent::MeteoraDlmmSwap(MeteoraDlmmSwapEvent { pool, ..Default::default() }),
+            launchlab_trade(pool, Pubkey::new_unique(), 222, Pubkey::default()),
+        ];
+        for mut event in families {
+            for wrapped in [false, true] {
+                if wrapped {
+                    *event.trade_source_mut().unwrap().0 = Some(RawInstructionPayload {
+                        program_id: Pubkey::new_unique(),
+                        instruction_index: 2,
+                        ..Default::default()
+                    });
+                }
+                for (logs, instructions) in [(1, 2), (2, 1), (2, 2)] {
+                    let output = dedupe_log_instruction_events(
+                        vec![event.clone(); logs],
+                        vec![event.clone(); instructions],
+                    );
+                    let expected = if logs == instructions { logs } else { logs + instructions };
+                    assert_eq!(output.len(), expected, "{event:?}, wrapped={wrapped}");
+                    if logs != instructions {
+                        for preserved in &output[..logs] {
+                            assert_eq!(
+                                serde_json::to_value(preserved).unwrap(),
+                                serde_json::to_value(&event).unwrap(),
+                            );
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn missing_first_clmm_log_does_not_acquire_first_instruction_amount() {
+        let pool = Pubkey::new_unique();
+        let mut first = clmm_swap(pool, true, 0);
+        let mut second = first.clone();
+        if let DexEvent::RaydiumClmmSwap(e) = &mut first {
+            e.amount = 111;
+        }
+        if let DexEvent::RaydiumClmmSwap(e) = &mut second {
+            e.amount = 222;
+        }
+        let output =
+            dedupe_log_instruction_events(vec![clmm_swap(pool, false, 222)], vec![first, second]);
+        assert_eq!(output.len(), 3);
+        let DexEvent::RaydiumClmmSwap(log) = &output[0] else { unreachable!() };
+        assert_eq!(log.amount_0, 222);
+        assert_eq!(log.amount, 0);
     }
 
     fn launchlab_trade(pool: Pubkey, user: Pubkey, amount_in: u64, quote_mint: Pubkey) -> DexEvent {
@@ -1218,16 +1351,10 @@ fn whirlpool_liquidity_occurrences_and_missing_logs() {
 #[test]
 fn clmm_liquidity_occurrences_keep_executed_amounts_and_unpaired_sources() {
     use solana_transaction_status::EncodedConfirmedTransactionWithStatusMeta;
-    let f: serde_json::Value = serde_json::from_str(include_str!(
-        "../../tests/fixtures/clmm_liquidity_20261008.json"
-    ))
-    .unwrap();
-    let c = f["cases"]
-        .as_array()
-        .unwrap()
-        .iter()
-        .find(|c| c["name"] == "increase_base0")
-        .unwrap();
+    let f: serde_json::Value =
+        serde_json::from_str(include_str!("../../tests/fixtures/clmm_liquidity_20261008.json"))
+            .unwrap();
+    let c = f["cases"].as_array().unwrap().iter().find(|c| c["name"] == "increase_base0").unwrap();
     let tx: EncodedConfirmedTransactionWithStatusMeta =
         serde_json::from_value(c["wire_rpc"].clone()).unwrap();
     let parsed = crate::parse_rpc_transaction_with_cost(&tx, None).unwrap();

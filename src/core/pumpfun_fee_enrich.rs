@@ -259,6 +259,14 @@ pub fn enrich_pumpfun_trades_from_create_instructions(events: &mut [DexEvent]) {
 
 /// 合并调用：fee 回填 + Create→Trade 标志（gRPC / Shred 在 `merge` 之后调用一次即可）。
 pub fn enrich_pumpfun_same_tx_post_merge(events: &mut [DexEvent]) {
+    // All four enrichments target or read a create event. Ordinary swaps need
+    // neither the repeated passes nor the mint-to-fee/quote map allocations.
+    if !events
+        .iter()
+        .any(|event| matches!(event, DexEvent::PumpFunCreate(_) | DexEvent::PumpFunCreateV2(_)))
+    {
+        return;
+    }
     enrich_create_v2_from_create_events(events);
     enrich_create_observed_fee_recipient(events);
     enrich_create_quote_mint_from_trades(events);

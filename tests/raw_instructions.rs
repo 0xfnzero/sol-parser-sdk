@@ -1,7 +1,7 @@
 use base64::{engine::general_purpose::STANDARD, Engine};
 use serde_json::Value;
 use sol_parser_sdk::{
-    core::events::DexEvent,
+    core::events::{DexEvent, PumpFunParseStatus},
     grpc::{EventType, EventTypeFilter},
     shredstream::parse_transaction_dex_events_with_loaded_addresses,
 };
@@ -65,16 +65,22 @@ fn signed_wires_preserve_every_account_and_byte_without_execution_metadata() {
         if let Some(count) = f["raw_instruction_count"].as_u64() {
             let default = parse(&tx, &f, None);
             assert_eq!(
-                default.iter().filter(|e| matches!(e, DexEvent::RawInstruction(_))).count(),
+                default
+                    .iter()
+                    .filter(|e| matches!(
+                        e,
+                        DexEvent::RawInstruction(_) | DexEvent::PumpFunTrade(_)
+                    ))
+                    .count(),
                 count as usize
             );
-            assert!(!default.iter().any(|e| matches!(
-                e,
-                DexEvent::PumpFunTrade(_)
-                    | DexEvent::PumpFunBuy(_)
-                    | DexEvent::PumpFunSell(_)
-                    | DexEvent::PumpFunBuyExactSolIn(_)
-            )));
+            for e in &default {
+                if let DexEvent::PumpFunTrade(t) = e {
+                    assert_eq!(t.parse_status, PumpFunParseStatus::Unresolved);
+                    assert_eq!((t.sol_amount, t.token_amount), (0, 0));
+                    assert!(t.ix_name.is_empty());
+                }
+            }
         }
         if f["signature"].as_str().unwrap().starts_with("3nMX")
             || f["signature"].as_str().unwrap().starts_with("2r4u")
@@ -84,11 +90,19 @@ fn signed_wires_preserve_every_account_and_byte_without_execution_metadata() {
                 default.len(),
                 if f["signature"].as_str().unwrap().starts_with("3nMX") { 2 } else { 3 }
             );
-            assert!(default.iter().all(|e| matches!(e, DexEvent::RawInstruction(_))));
+            assert!(default
+                .iter()
+                .all(|e| matches!(e, DexEvent::RawInstruction(_) | DexEvent::PumpFunTrade(_))));
             let selected =
                 parse(&tx, &f, Some(&EventTypeFilter::include_only(vec![EventType::PumpFunTrade])));
             assert!(!selected.is_empty());
-            assert!(selected.iter().all(|e| matches!(e, DexEvent::RawInstruction(raw) if raw.dexes.iter().any(|d| d.dex_type == sol_parser_sdk::core::events::RawInstructionDexType::PumpFun))));
+            assert!(selected.iter().all(|e| matches!(e, DexEvent::PumpFunTrade(t) if t.parse_status == PumpFunParseStatus::Unresolved && t.third_program.is_some())));
+            for direction in
+                [EventType::PumpFunBuy, EventType::PumpFunSell, EventType::PumpFunBuyExactSolIn]
+            {
+                assert!(parse(&tx, &f, Some(&EventTypeFilter::include_only(vec![direction])))
+                    .is_empty());
+            }
         }
     }
 }
@@ -117,7 +131,7 @@ fn unknown_programs_changed_layouts_and_unresolved_accounts_stay_raw() {
         1,
         2,
         3,
-        None,
+        Some(&EventTypeFilter::include_only(vec![EventType::RawInstruction])),
         &mut events,
     );
     let [DexEvent::RawInstruction(raw)] = &events[..] else { panic!() };
@@ -181,6 +195,17 @@ fn raw_dex_subscriptions_are_instruction_local_and_never_infer_pool_layout() {
             Some(&filter),
             &mut events,
         );
+        if name == "pumpfun" {
+            let [DexEvent::PumpFunTrade(t)] = &events[..] else { panic!("{events:?}") };
+            assert_eq!(t.parse_status, PumpFunParseStatus::Unresolved);
+            let raw = t.third_program.as_ref().unwrap();
+            assert_eq!(raw.instruction_index, 0);
+            assert_eq!(raw.accounts, vec![Some(program), Some(program)]);
+            assert!(filter.should_include_dex_event(&events[0]));
+            assert!(!EventTypeFilter::include_only(vec![EventType::PumpFunSell])
+                .should_include_dex_event(&events[0]));
+            continue;
+        }
         let [DexEvent::RawInstruction(raw)] = &events[..] else { panic!("{name}: {events:?}") };
         assert_eq!(raw.instruction_index, 0);
         assert_eq!(raw.dexes.len(), 1);
@@ -229,4 +254,71 @@ fn raw_multi_dex_and_alt_boundaries() {
         &[],
         &EventTypeFilter::include_only(vec![EventType::RawInstruction])
     ));
+}
+
+#[test]
+fn unresolved_candidates_preserve_missing_keys_and_respect_exclusion() {
+    use sol_parser_sdk::core::events::PumpFunParseStatus;
+    use solana_sdk::{
+        instruction::{AccountMeta, Instruction},
+        message::Message,
+        signature::Signature,
+    };
+    let wrapper = Pubkey::new_unique();
+    let pump = sol_parser_sdk::grpc::program_ids::PUMPFUN_PROGRAM;
+    let mut message = Message::new(
+        &[Instruction {
+            program_id: wrapper,
+            accounts: vec![AccountMeta::new_readonly(pump, false)],
+            data: vec![7, 9, 11],
+        }],
+        Some(&Pubkey::new_unique()),
+    );
+    message.instructions[0].accounts.push(255);
+    let tx = VersionedTransaction {
+        signatures: vec![Signature::default()],
+        message: VersionedMessage::Legacy(message),
+    };
+    let parse = |filter: Option<&EventTypeFilter>| {
+        let mut out = vec![];
+        sol_parser_sdk::shredstream::parse_transaction_dex_events_with_filter(
+            &tx,
+            tx.signatures[0],
+            12,
+            34,
+            56,
+            filter,
+            &mut out,
+        );
+        out
+    };
+    let events = parse(None);
+    let [DexEvent::PumpFunTrade(t)] = &events[..] else { panic!("{events:?}") };
+    assert_eq!(t.parse_status, PumpFunParseStatus::Unresolved);
+    assert_eq!((t.metadata.slot, t.metadata.tx_index, t.metadata.grpc_recv_us), (12, 34, 56));
+    let raw = t.third_program.as_ref().unwrap();
+    assert_eq!(raw.accounts, vec![Some(pump), None]);
+    assert_eq!(raw.instruction_data, vec![7, 9, 11]);
+    let json = serde_json::to_value(t).unwrap();
+    assert!(json["third_program"].get("metadata").is_none());
+    assert!(json["third_program"].get("dexes").is_none());
+    assert_eq!(
+        serde_json::from_value::<sol_parser_sdk::core::events::PumpFunTradeEvent>(json)
+            .unwrap()
+            .third_program
+            .as_ref(),
+        Some(raw)
+    );
+    for filter in [
+        EventTypeFilter::include_only(vec![EventType::PumpFunBuy]),
+        EventTypeFilter::include_only(vec![EventType::PumpFunSell]),
+        EventTypeFilter::include_only(vec![EventType::RaydiumCpmmSwap]),
+        EventTypeFilter::exclude_types(vec![EventType::PumpFunTrade]),
+        EventTypeFilter {
+            include_only: Some(vec![EventType::PumpFunTrade]),
+            exclude_types: Some(vec![EventType::PumpFunTrade]),
+        },
+    ] {
+        assert!(parse(Some(&filter)).is_empty(), "{filter:?}");
+    }
 }

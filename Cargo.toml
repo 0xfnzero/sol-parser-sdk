@@ -1,6 +1,6 @@
 [package]
 name = "sol-parser-sdk"
-version = "0.7.19"
+version = "0.8.0"
 edition = "2021"
 rust-version = "1.91"
 authors = ["William <byteblock6@gmail.com>", "sgxiang <sgxiang@gmail.com>", "wei <1415121722@qq.com>"]
@@ -86,6 +86,7 @@ solana-transaction-error = { version = "=3.3.2", features = ["wincode"] }
 solana-entry = { version = "=4.2.2", features = ["agave-unstable-api"] }
 borsh = { version = "1.5.3", features = ["derive"] }
 serde = { version = "1.0.215", features = ["derive"] }
+serde_json = "1.0.134"
 serde-big-array = "0.5.1"
 futures = "0.3.31"
 base64 = "0.22.1"
@@ -124,7 +125,6 @@ solana-account = "=4.3.2"
 solana-clock = "=3.1.1"
 solana-keypair = "=3.1.2"
 criterion = { version = "0.7.0", features = ["html_reports"] }
-serde_json = "1.0.134"
 [profile.release]
 opt-level = 3
 lto = "thin"          # Thin LTO: 快速编译 + 良好优化（2-3分钟 vs 6分钟）

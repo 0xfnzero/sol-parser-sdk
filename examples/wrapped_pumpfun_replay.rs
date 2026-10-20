@@ -51,10 +51,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let wrapped: Vec<_> = shred
             .iter()
             .filter_map(|e| {
-                let DexEvent::RawInstruction(raw) = e else { return None };
+                let DexEvent::PumpFunTrade(candidate) = e else { return None };
+                let raw =
+                    candidate.third_program.as_ref()?.with_metadata(candidate.metadata.clone());
                 rules
                     .iter()
-                    .find_map(|rule| parse_wrapped_pumpfun_instruction(raw, rule, Some(&filter)))
+                    .find_map(|rule| parse_wrapped_pumpfun_instruction(&raw, rule, Some(&filter)))
             })
             .collect();
         let update = SubscribeUpdateTransaction {
@@ -73,9 +75,27 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             None,
             Some(&filter),
         );
+        // Candidate instructions and executed trades have different cardinality:
+        // one outer instruction can invoke zero, one, or several Pump trades.
+        let candidates = shred
+            .iter()
+            .filter(|e| {
+                matches!(e, DexEvent::PumpFunTrade(t)
+            if t.parse_status == sol_parser_sdk::core::events::PumpFunParseStatus::Unresolved)
+            })
+            .count();
+        let grpc_wrapped = grpc
+            .iter()
+            .filter(|e| {
+                matches!(e, DexEvent::PumpFunTrade(t)
+            if t.third_program.is_some())
+            })
+            .count();
         println!(
             "{}",
             serde_json::json!({"signature": signed.signatures[0].to_string(),
+            "counts": {"shred_candidates": candidates, "grpc_wrapped_trades": grpc_wrapped,
+                "opt_in_decoded": wrapped.len()},
             "grpc": grpc, "shred": shred, "opt_in_wrapped": wrapped})
         );
     }

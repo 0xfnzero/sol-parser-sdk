@@ -127,6 +127,8 @@ fn parse_swap_base_in_v2_instruction(
     let amm = get_account(accounts, 1)?;
     let metadata = create_metadata_simple(signature, slot, tx_index, block_time_us, amm);
     Some(DexEvent::RaydiumAmmV4Swap(RaydiumAmmV4SwapEvent {
+        third_program: None,
+        parse_status: Default::default(),
         metadata,
         ix_name: "swap_base_in_v2".into(),
         instruction_amount_in: amount_in,
@@ -170,6 +172,8 @@ fn parse_swap_base_out_v2_instruction(
     let amm = get_account(accounts, 1)?;
     let metadata = create_metadata_simple(signature, slot, tx_index, block_time_us, amm);
     Some(DexEvent::RaydiumAmmV4Swap(RaydiumAmmV4SwapEvent {
+        third_program: None,
+        parse_status: Default::default(),
         metadata,
         ix_name: "swap_base_out_v2".into(),
         instruction_amount_in: 0,
@@ -220,6 +224,8 @@ fn parse_swap_base_in_instruction(
 
     let shift = usize::from(accounts.len() == 17);
     Some(DexEvent::RaydiumAmmV4Swap(RaydiumAmmV4SwapEvent {
+        third_program: None,
+        parse_status: Default::default(),
         metadata,
         ix_name: "swap_base_in".into(),
         instruction_amount_in: amount_in,
@@ -270,6 +276,8 @@ fn parse_swap_base_out_instruction(
 
     let shift = usize::from(accounts.len() == 17);
     Some(DexEvent::RaydiumAmmV4Swap(RaydiumAmmV4SwapEvent {
+        third_program: None,
+        parse_status: Default::default(),
         metadata,
         ix_name: "swap_base_out".into(),
         instruction_amount_in: 0,

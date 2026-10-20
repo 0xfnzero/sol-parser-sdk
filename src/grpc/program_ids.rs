@@ -18,20 +18,18 @@ pub const METEORA_DAMM_V2_PROGRAM_ID: &str = "cpamdpZCGKUy5JxQXB4dcpGPiikHawvSWA
 pub const METEORA_DLMM_PROGRAM_ID: &str = "LBUZKhRxPF3XUpBCjp4YzTKgLccjZhTSDM9YuVaPwxo";
 pub const METEORA_DBC_PROGRAM_ID: &str = "dbcij3LWUppWqq96dh6gJWwBifmcGfLSB5D4DuSMaqN";
 
-// Program IDs (Pubkey format for matching)
-pub const PUMPFUN_PROGRAM: Pubkey = pubkey!("6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P");
-pub const PUMPSWAP_PROGRAM: Pubkey = pubkey!("pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA");
-pub const PUMPSWAP_FEES_PROGRAM: Pubkey = pubkey!("pfeeUxB6jkeY1Hxd7CsFCAjcbHA9rWtchMGdZ6VojVZ");
-pub const RAYDIUM_LAUNCHLAB_PROGRAM: Pubkey =
-    pubkey!("LanMV9sAd7wArD4vJFi2qDdfnVhFxYSUg6eADduJ3uj");
-pub const RAYDIUM_CPMM_PROGRAM: Pubkey = pubkey!("CPMMoo8L3F4NbTegBCKVNunggL7H1ZpdTHKxQB5qKP1C");
-pub const RAYDIUM_CLMM_PROGRAM: Pubkey = pubkey!("CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK");
-pub const RAYDIUM_AMM_V4_PROGRAM: Pubkey = pubkey!("675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8");
-pub const ORCA_WHIRLPOOL_PROGRAM: Pubkey = pubkey!("whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc");
-pub const METEORA_POOLS_PROGRAM: Pubkey = pubkey!("Eo7WjKq67rjJQSZxS6z3YkapzY3eMj6Xy8X5EQVn5UaB");
-pub const METEORA_DAMM_V2_PROGRAM: Pubkey = pubkey!("cpamdpZCGKUy5JxQXB4dcpGPiikHawvSWAd6mEn1sGG");
-pub const METEORA_DLMM_PROGRAM: Pubkey = pubkey!("LBUZKhRxPF3XUpBCjp4YzTKgLccjZhTSDM9YuVaPwxo");
-pub const METEORA_DBC_PROGRAM: Pubkey = pubkey!("dbcij3LWUppWqq96dh6gJWwBifmcGfLSB5D4DuSMaqN");
+// Compatibility names reuse the canonical instruction-level Pubkey constants.
+pub use crate::instr::program_ids::{
+    METEORA_DAMM_V2_PROGRAM_ID as METEORA_DAMM_V2_PROGRAM,
+    METEORA_DBC_PROGRAM_ID as METEORA_DBC_PROGRAM, METEORA_DLMM_PROGRAM_ID as METEORA_DLMM_PROGRAM,
+    METEORA_POOLS_PROGRAM_ID as METEORA_POOLS_PROGRAM,
+    ORCA_WHIRLPOOL_PROGRAM_ID as ORCA_WHIRLPOOL_PROGRAM, PUMPFUN_PROGRAM_ID as PUMPFUN_PROGRAM,
+    PUMPSWAP_PROGRAM_ID as PUMPSWAP_PROGRAM, PUMP_FEES_PROGRAM_ID as PUMPSWAP_FEES_PROGRAM,
+    RAYDIUM_AMM_V4_PROGRAM_ID as RAYDIUM_AMM_V4_PROGRAM,
+    RAYDIUM_CLMM_PROGRAM_ID as RAYDIUM_CLMM_PROGRAM,
+    RAYDIUM_CPMM_PROGRAM_ID as RAYDIUM_CPMM_PROGRAM,
+    RAYDIUM_LAUNCHLAB_PROGRAM_ID as RAYDIUM_LAUNCHLAB_PROGRAM,
+};
 
 /// Precompiles are not invoked through the BPF loader and emit no
 /// `Program … invoke [1]` log line, so log-derived outer indices must skip them.

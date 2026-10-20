@@ -100,6 +100,8 @@ pub fn parse_trade_from_data(data: &[u8], metadata: EventMetadata) -> Option<Dex
     };
 
     Some(DexEvent::RaydiumLaunchlabTrade(RaydiumLaunchlabTradeEvent {
+        third_program: None,
+        parse_status: Default::default(),
         metadata,
         pool_state,
         user: Pubkey::default(),

@@ -11,6 +11,9 @@ use std::{
     time::{Duration, Instant},
 };
 
+#[path = "support/grpc_config.rs"]
+mod grpc_config;
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     if std::env::args().any(|arg| arg == "--help" || arg == "-h") {
@@ -41,10 +44,8 @@ Unchanged accounts may emit no updates; this is an incremental stream, not a sta
     keys.sort();
     keys.dedup();
     let grpc = YellowstoneGrpc::new_with_config(
-        std::env::var("GRPC_URL")
-            .or_else(|_| std::env::var("GRPC_ENDPOINT"))
-            .unwrap_or_else(|_| "https://solana-yellowstone-grpc.publicnode.com:443".into()),
-        std::env::var("GRPC_TOKEN").or_else(|_| std::env::var("GRPC_AUTH_TOKEN")).ok(),
+        grpc_config::endpoint()?,
+        grpc_config::auth_token(),
         ClientConfig::default(),
     )?;
     let queue = grpc

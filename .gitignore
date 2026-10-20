@@ -33,3 +33,7 @@ deploy.sh
 .serena/
 .claude/
 .specify/
+
+# Optional research collectors; SDK tests are written in Rust.
+__pycache__/
+*.py[cod]

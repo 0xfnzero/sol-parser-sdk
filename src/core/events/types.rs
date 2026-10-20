@@ -154,6 +154,13 @@ pub struct BaseMintParam {
 #[cfg_attr(feature = "parse-borsh", derive(BorshDeserialize))]
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct RaydiumLaunchlabTradeEvent {
+    /// Original outer router instruction, absent for direct protocol calls.
+    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub third_program: Option<super::RawInstructionPayload>,
+    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
+    #[serde(default)]
+    pub parse_status: super::TradeParseStatus,
     #[cfg_attr(feature = "parse-borsh", borsh(skip))]
     pub metadata: EventMetadata,
 
@@ -313,10 +320,14 @@ impl RaydiumLaunchlabMigrateAmmEvent {
 /// - INSTRUCTION: 来自指令解析，用于补充事件缺失的上下文信息
 #[derive(Debug, Clone, Serialize, Deserialize, Default, BorshDeserialize)]
 pub struct PumpFunTradeEvent {
-    /// Present only for explicitly enabled Shred wrapper-rule reconstruction.
+    /// Original outer wrapper instruction; present for unresolved Shred
+    /// candidates as well as confirmed gRPC CPI trades. See parse_status.
     #[borsh(skip)]
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub third_program: Option<crate::wrapped_pumpfun_parser::ThirdProgram>,
+    pub third_program: Option<super::RawInstructionPayload>,
+    #[borsh(skip)]
+    #[serde(default)]
+    pub parse_status: super::PumpFunParseStatus,
     #[borsh(skip)]
     #[serde(default)]
     pub creator_fee_unclaimed: u64,
@@ -781,6 +792,11 @@ pub struct PumpFunCreateV2TokenEvent {
 /// Produced by: buy, sell, buy_exact_sol_in instructions
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct PumpSwapTradeEvent {
+    /// Original outer router instruction, absent for direct protocol calls.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub third_program: Option<super::RawInstructionPayload>,
+    #[serde(default)]
+    pub parse_status: super::TradeParseStatus,
     pub metadata: EventMetadata,
     // === IDL TradeEvent fields ===
     pub mint: Pubkey,
@@ -810,6 +826,13 @@ pub struct PumpSwapTradeEvent {
 /// PumpSwap Buy Event
 #[derive(Debug, Clone, Serialize, Deserialize, Default, BorshDeserialize)]
 pub struct PumpSwapBuyEvent {
+    /// Original outer router instruction, absent for direct protocol calls.
+    #[borsh(skip)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub third_program: Option<super::RawInstructionPayload>,
+    #[borsh(skip)]
+    #[serde(default)]
+    pub parse_status: super::TradeParseStatus,
     #[borsh(skip)]
     #[serde(default)]
     pub creator_fee_unclaimed: u64,
@@ -899,6 +922,13 @@ pub struct PumpSwapBuyEvent {
 /// PumpSwap Sell Event
 #[derive(Debug, Clone, Serialize, Deserialize, Default, BorshDeserialize)]
 pub struct PumpSwapSellEvent {
+    /// Original outer router instruction, absent for direct protocol calls.
+    #[borsh(skip)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub third_program: Option<super::RawInstructionPayload>,
+    #[borsh(skip)]
+    #[serde(default)]
+    pub parse_status: super::TradeParseStatus,
     #[borsh(skip)]
     #[serde(default)]
     pub creator_fee_unclaimed: u64,
@@ -1138,6 +1168,13 @@ pub struct PumpSwapWithdrawEvent {
 #[cfg_attr(feature = "parse-borsh", derive(BorshDeserialize))]
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct RaydiumCpmmSwapEvent {
+    /// Original outer router instruction, absent for direct protocol calls.
+    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub third_program: Option<super::RawInstructionPayload>,
+    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
+    #[serde(default)]
+    pub parse_status: super::TradeParseStatus,
     #[cfg_attr(feature = "parse-borsh", borsh(skip))]
     pub metadata: EventMetadata,
 
@@ -1279,6 +1316,13 @@ pub struct RaydiumCpmmWithdrawEvent {
 #[cfg_attr(feature = "parse-borsh", derive(BorshDeserialize))]
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct RaydiumClmmSwapEvent {
+    /// Original outer router instruction, absent for direct protocol calls.
+    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub third_program: Option<super::RawInstructionPayload>,
+    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
+    #[serde(default)]
+    pub parse_status: super::TradeParseStatus,
     #[cfg_attr(feature = "parse-borsh", borsh(skip))]
     pub metadata: EventMetadata,
 
@@ -1654,6 +1698,13 @@ pub struct RaydiumAmmWithdrawPnlEvent {
 #[cfg_attr(feature = "parse-borsh", derive(BorshDeserialize))]
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct RaydiumAmmV4SwapEvent {
+    /// Original outer router instruction, absent for direct protocol calls.
+    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub third_program: Option<super::RawInstructionPayload>,
+    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
+    #[serde(default)]
+    pub parse_status: super::TradeParseStatus,
     #[cfg_attr(feature = "parse-borsh", borsh(skip))]
     pub metadata: EventMetadata,
 
@@ -2636,6 +2687,13 @@ pub struct NonceAccountEvent {
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[cfg_attr(feature = "parse-borsh", derive(BorshDeserialize))]
 pub struct OrcaWhirlpoolSwapEvent {
+    /// Original outer router instruction, absent for direct protocol calls.
+    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub third_program: Option<super::RawInstructionPayload>,
+    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
+    #[serde(default)]
+    pub parse_status: super::TradeParseStatus,
     #[cfg_attr(feature = "parse-borsh", borsh(skip))]
     pub metadata: EventMetadata,
 
@@ -2774,6 +2832,11 @@ pub struct OrcaWhirlpoolPoolInitializedEvent {
 /// Meteora Pools Swap Event
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct MeteoraPoolsSwapEvent {
+    /// Original outer router instruction, absent for direct protocol calls.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub third_program: Option<super::RawInstructionPayload>,
+    #[serde(default)]
+    pub parse_status: super::TradeParseStatus,
     pub metadata: EventMetadata,
     pub in_amount: u64,
     pub out_amount: u64,
@@ -3116,6 +3179,13 @@ pub struct MeteoraPoolsSetPoolFeesEvent {
 #[cfg_attr(feature = "parse-borsh", derive(BorshDeserialize))]
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct MeteoraDammV2SwapEvent {
+    /// Original outer router instruction, absent for direct protocol calls.
+    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub third_program: Option<super::RawInstructionPayload>,
+    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
+    #[serde(default)]
+    pub parse_status: super::TradeParseStatus,
     #[cfg_attr(feature = "parse-borsh", borsh(skip))]
     pub metadata: EventMetadata,
 
@@ -3462,6 +3532,11 @@ pub struct MeteoraDammV2CreateDynamicConfigEvent {
 /// Meteora DBC Swap Event (IDL `EvtSwap`)
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct MeteoraDbcSwapEvent {
+    /// Original outer router instruction, absent for direct protocol calls.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub third_program: Option<super::RawInstructionPayload>,
+    #[serde(default)]
+    pub parse_status: super::TradeParseStatus,
     #[serde(default)]
     pub event_version: u8,
     #[serde(default)]
@@ -3526,6 +3601,13 @@ pub struct MeteoraDbcCurveCompleteEvent {
 #[cfg_attr(feature = "parse-borsh", derive(BorshDeserialize))]
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct MeteoraDlmmSwapEvent {
+    /// Original outer router instruction, absent for direct protocol calls.
+    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub third_program: Option<super::RawInstructionPayload>,
+    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
+    #[serde(default)]
+    pub parse_status: super::TradeParseStatus,
     #[cfg_attr(feature = "parse-borsh", borsh(skip))]
     pub metadata: EventMetadata,
 

@@ -4,6 +4,83 @@ use solana_sdk::pubkey::Pubkey;
 use std::collections::HashMap;
 use yellowstone_grpc_proto::prelude::{Transaction, TransactionStatusMeta};
 
+/// Attach provenance while the exact invocation position is still available.
+/// Never join by mint/user: repeated trades and nested routers can share both.
+pub(crate) fn fill_trade_execution_source(
+    event: &mut DexEvent,
+    outer_index: usize,
+    meta: &TransactionStatusMeta,
+    transaction: &Option<Transaction>,
+) {
+    set_trade_execution_source(event, outer_index, meta, transaction, true);
+}
+
+/// Keep only invocation identity until log/instruction reconciliation is complete.
+pub(crate) fn mark_trade_execution_source(
+    event: &mut DexEvent,
+    outer_index: usize,
+    meta: &TransactionStatusMeta,
+    transaction: &Option<Transaction>,
+) {
+    set_trade_execution_source(event, outer_index, meta, transaction, false);
+}
+
+pub(crate) fn materialize_trade_execution_sources(
+    events: &mut [DexEvent],
+    meta: &TransactionStatusMeta,
+    transaction: &Option<Transaction>,
+) {
+    for event in events {
+        if let Some(source) = event.third_program() {
+            let index = source.instruction_index;
+            fill_trade_execution_source(event, index, meta, transaction);
+        }
+    }
+}
+
+fn set_trade_execution_source(
+    event: &mut DexEvent,
+    outer_index: usize,
+    meta: &TransactionStatusMeta,
+    transaction: &Option<Transaction>,
+    materialize: bool,
+) {
+    let Some((source, status, native_program)) = event.trade_source_mut() else { return };
+    if meta.err.is_some() {
+        return;
+    }
+    *status = TradeParseStatus::ExecutionConfirmed;
+    let Some(message) = transaction.as_ref().and_then(|tx| tx.message.as_ref()) else { return };
+    let get = |index: usize| {
+        let static_len = message.account_keys.len();
+        let writable_len = meta.loaded_writable_addresses.len();
+        let bytes = if index < static_len {
+            message.account_keys.get(index)
+        } else if index - static_len < writable_len {
+            meta.loaded_writable_addresses.get(index - static_len)
+        } else {
+            meta.loaded_readonly_addresses.get(index - static_len - writable_len)
+        }?;
+        Pubkey::try_from(bytes.as_slice()).ok()
+    };
+    let Some(ix) = message.instructions.get(outer_index) else { return };
+    let Some(program_id) = get(ix.program_id_index as usize) else { return };
+    if program_id == native_program {
+        return;
+    }
+    *source = Some(RawInstructionPayload {
+        program_id,
+        instruction_index: outer_index,
+        accounts: if materialize {
+            ix.accounts.iter().map(|i| get(*i as usize)).collect()
+        } else {
+            Vec::new()
+        },
+        account_indices: if materialize { ix.accounts.clone() } else { Vec::new() },
+        instruction_data: if materialize { ix.data.clone() } else { Vec::new() },
+    });
+}
+
 /// Creation context comes from real instructions, including router CPIs, and is
 /// scoped to the traded mint. Logs can be missing, truncated, or mention another
 /// mint created in the same transaction. No network/account fetch is performed.

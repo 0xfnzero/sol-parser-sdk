@@ -52,9 +52,9 @@ pub(crate) fn parse_transaction_core(
     };
     let slot = tx.slot;
     let idx = info.index;
-    let needs_pumpfun = filter.map(EventTypeFilter::includes_pumpfun).unwrap_or(true);
-    let is_created_buy =
-        needs_pumpfun && crate::logs::optimized_matcher::detect_pumpfun_create(&meta.log_messages);
+    // Mint-scoped creation context is filled from native instructions below.
+    // Scanning logs here would compute a transaction-wide hint that is overwritten.
+    let is_created_buy = false;
 
     let (log_events, instr_events) = rayon::join(
         || {
@@ -88,6 +88,11 @@ pub(crate) fn parse_transaction_core(
 
     let mut events =
         crate::grpc::log_instr_dedup::dedupe_log_instruction_events(log_events, instr_events);
+    crate::core::common_filler::materialize_trade_execution_sources(
+        &mut events,
+        meta,
+        &info.transaction,
+    );
     crate::core::common_filler::fill_pump_creation_context(&mut events, meta, &info.transaction);
     crate::grpc::transaction_meta::fill_recent_blockhash(&mut events, &info.transaction);
     for event in &mut events {
@@ -139,9 +144,9 @@ fn parse_transaction_core_sequential(
     };
     let slot = tx.slot;
     let idx = info.index;
-    let needs_pumpfun = filter.map(EventTypeFilter::includes_pumpfun).unwrap_or(true);
-    let is_created_buy =
-        needs_pumpfun && crate::logs::optimized_matcher::detect_pumpfun_create(&meta.log_messages);
+    // Mint-scoped creation context is filled from native instructions below.
+    // Scanning logs here would compute a transaction-wide hint that is overwritten.
+    let is_created_buy = false;
 
     let log_events = parse_logs(
         meta,
@@ -169,6 +174,11 @@ fn parse_transaction_core_sequential(
 
     let mut events =
         crate::grpc::log_instr_dedup::dedupe_log_instruction_events(log_events, instr_events);
+    crate::core::common_filler::materialize_trade_execution_sources(
+        &mut events,
+        meta,
+        &info.transaction,
+    );
     crate::core::common_filler::fill_pump_creation_context(&mut events, meta, &info.transaction);
     crate::grpc::transaction_meta::fill_recent_blockhash(&mut events, &info.transaction);
     for event in &mut events {
@@ -215,6 +225,16 @@ fn parse_logs(
                 None,
                 current_program,
             ) {
+                if let Some(active) = active_program_stack.last() {
+                    if let Ok(outer_index) = usize::try_from(active.position.0) {
+                        crate::core::common_filler::mark_trade_execution_source(
+                            &mut e,
+                            outer_index,
+                            meta,
+                            transaction,
+                        );
+                    }
+                }
                 if matches!(&e, DexEvent::RaydiumAmmV4Swap(_)) {
                     let mut scoped = crate::core::invoke_context::InvokeContext::default();
                     if let Some(active) = active_program_stack.last() {

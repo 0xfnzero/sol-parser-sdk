@@ -36,12 +36,19 @@ pub fn merge_events(base: &mut DexEvent, inner: DexEvent) {
 #[inline(always)]
 pub fn try_merge_events(
     base: &mut DexEvent,
-    inner: DexEvent,
+    mut inner: DexEvent,
     unmerged: &mut Option<DexEvent>,
 ) -> bool {
     if pump_trade_identity_conflicts(base, &inner) {
         *unmerged = Some(inner);
         return false;
+    }
+    if wrapper_sources_conflict(base, &inner) {
+        *unmerged = Some(inner);
+        return false;
+    }
+    if std::mem::discriminant(base) == std::mem::discriminant(&inner) {
+        reconcile_trade_source(base, &mut inner);
     }
     use DexEvent::*;
 
@@ -380,6 +387,12 @@ fn put_i64_if_nonzero(to: &mut i64, from: i64) {
 /// 则不再用其覆盖金额与储备，避免把前一段已合并好的数据清空。
 #[inline(always)]
 fn merge_pumpfun_trade(base: &mut PumpFunTradeEvent, inner: PumpFunTradeEvent) {
+    if base.third_program.is_none() {
+        base.third_program = inner.third_program.clone();
+    }
+    if inner.parse_status == PumpFunParseStatus::ExecutionConfirmed {
+        base.parse_status = inner.parse_status;
+    }
     let leg = inner.sol_amount != 0 || inner.token_amount != 0;
 
     put_pk_if_set(&mut base.mint, inner.mint);
@@ -684,6 +697,12 @@ fn fill_str_if_empty(to: &mut String, from: &str) {
 /// 仅用 `ix` 补齐默认的账户类字段；`is_created_buy` 若仅 ix 侧为 true 则置位（创建首买标记）。
 #[inline]
 fn merge_pumpfun_trade_log_preferred(log: &mut PumpFunTradeEvent, ix: PumpFunTradeEvent) {
+    if log.third_program.is_none() {
+        log.third_program = ix.third_program.clone();
+    }
+    if ix.parse_status == PumpFunParseStatus::ExecutionConfirmed {
+        log.parse_status = ix.parse_status;
+    }
     fill_pk(&mut log.global, ix.global);
     fill_pk(&mut log.bonding_curve, ix.bonding_curve);
     fill_pk(&mut log.bonding_curve_v2, ix.bonding_curve_v2);
@@ -1293,7 +1312,39 @@ fn merge_orca_swap_context(log: &mut OrcaWhirlpoolSwapEvent, ix: OrcaWhirlpoolSw
     fill_pk(&mut log.oracle, ix.oracle);
 }
 
-pub fn merge_grpc_instruction_into_log(log: &mut DexEvent, ix: DexEvent) {
+fn wrapper_sources_conflict(a: &DexEvent, b: &DexEvent) -> bool {
+    a.third_program().zip(b.third_program()).is_some_and(|(a, b)| {
+        a.instruction_index != b.instruction_index || a.program_id != b.program_id
+    })
+}
+
+fn reconcile_trade_source(a: &mut DexEvent, b: &mut DexEvent) {
+    let Some((a_source, a_status, a_program)) = a.trade_source_mut() else { return };
+    let Some((b_source, b_status, b_program)) = b.trade_source_mut() else { return };
+    if a_program != b_program {
+        return;
+    }
+    if a_source.is_none() {
+        *a_source = b_source.clone();
+    }
+    if b_source.is_none() {
+        *b_source = a_source.clone();
+    }
+    if *a_status == TradeParseStatus::ExecutionConfirmed
+        || *b_status == TradeParseStatus::ExecutionConfirmed
+    {
+        *a_status = TradeParseStatus::ExecutionConfirmed;
+        *b_status = TradeParseStatus::ExecutionConfirmed;
+    }
+}
+
+pub fn merge_grpc_instruction_into_log(log: &mut DexEvent, mut ix: DexEvent) {
+    if wrapper_sources_conflict(log, &ix) {
+        return;
+    }
+    if std::mem::discriminant(log) == std::mem::discriminant(&ix) {
+        reconcile_trade_source(log, &mut ix);
+    }
     use DexEvent::*;
     match log {
         PumpFunTrade(l) => {

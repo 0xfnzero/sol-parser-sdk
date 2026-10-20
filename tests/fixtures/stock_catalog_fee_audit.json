@@ -1,0 +1,599 @@
+{
+  "source": "sol-trade-sdk/docs/research/bridge-defaults-20261020-expanded-scan.json",
+  "candidate_results": [
+    {
+      "pool": "ANyCzRPgiCLeJx3nH4SKS1jxtaxMk9qzG5SmJooh55ie",
+      "fees": {
+        "slot": 458982123,
+        "unix_timestamp": 1792445269,
+        "base_fee_bps": 100,
+        "snapshot_start_fee_bps": 100
+      }
+    },
+    {
+      "pool": "52PqYh77gmA6AbM5Hs6gHe9mhGBey5CwmD7sDybaYj27",
+      "fees": {
+        "slot": 458982126,
+        "unix_timestamp": 1792445269,
+        "base_fee_bps": 25,
+        "snapshot_start_fee_bps": 25
+      }
+    },
+    {
+      "pool": "GqejCG4yTgEtA4kDtz5MGdxoeyQ9Y8eXdcarsDuQsWhY",
+      "fees": {
+        "slot": 458978732,
+        "unix_timestamp": 1792444529,
+        "base_fee_bps": 10,
+        "snapshot_start_fee_bps": 10
+      }
+    },
+    {
+      "pool": "DNcGcbmmmvjrmVsT4DTMh2FLrbBchxXd66njTKo6zDAc",
+      "fees": {
+        "slot": 458982128,
+        "unix_timestamp": 1792445270,
+        "base_fee_bps": 80,
+        "snapshot_start_fee_bps": 80
+      }
+    },
+    {
+      "pool": "AHNN6JmvaGG6XUoSg7sEr38gRYDB2jTbUvqXVuqaRHpq",
+      "fees": {
+        "slot": 458982131,
+        "unix_timestamp": 1792445271,
+        "base_fee_bps": 80,
+        "snapshot_start_fee_bps": 80
+      }
+    },
+    {
+      "pool": "BS9uyGV6XmNnPkM4f3xgxCdQEaFv7RSKs6fwrpvYHxfL",
+      "fees": {
+        "slot": 458982133,
+        "unix_timestamp": 1792445271,
+        "base_fee_bps": 25,
+        "snapshot_start_fee_bps": 25
+      }
+    },
+    {
+      "pool": "Bu2A9LUZaMRnf7ZyC1nzREn6dVGVVuPwxz5aFBFkJLTa",
+      "fees": {
+        "slot": 458982135,
+        "unix_timestamp": 1792445272,
+        "base_fee_bps": 25,
+        "snapshot_start_fee_bps": 25.00917
+      }
+    },
+    {
+      "pool": "7qZPiJ2Lvwh9DV9gUBH2EwConBE3RUrAvGRjpN8vTjtT",
+      "fees": {
+        "slot": 458982138,
+        "unix_timestamp": 1792445272,
+        "base_fee_bps": 10,
+        "snapshot_start_fee_bps": 10.00042
+      }
+    },
+    {
+      "pool": "GJmMTjiE2dZiAQgENapnBxzsTWNX4KLbiNnjzovwv1KE",
+      "fees": {
+        "slot": 458982140,
+        "unix_timestamp": 1792445273,
+        "base_fee_bps": 25,
+        "snapshot_start_fee_bps": 25
+      }
+    },
+    {
+      "pool": "78ReVNMLGRWmjtf2HmBoHUe2pRcsctXTTbxJnbhchyze",
+      "fees": {
+        "slot": 458982142,
+        "unix_timestamp": 1792445273,
+        "base_fee_bps": 10,
+        "snapshot_start_fee_bps": 10
+      }
+    },
+    {
+      "pool": "8aDaBQkTrS6HVMjyc6EZebgdiaXhLYGriDWKWWp1NpFF",
+      "fees": {
+        "slot": 458982145,
+        "unix_timestamp": 1792445274,
+        "base_fee_bps": 10,
+        "snapshot_start_fee_bps": 10
+      }
+    },
+    {
+      "pool": "4V7CrUiP46jcJpZzPKzRerKS2VxHUt9bjiJPnT7gXFAU",
+      "fees": {
+        "slot": 458982146,
+        "unix_timestamp": 1792445274,
+        "base_fee_bps": 40,
+        "snapshot_start_fee_bps": 40
+      }
+    },
+    {
+      "pool": "6PTm7MkUmtsLU7w6dWrMHJAt8PnzoCgcZdKyTKEhUAPL",
+      "fees": {
+        "slot": 458982149,
+        "unix_timestamp": 1792445275,
+        "base_fee_bps": 20,
+        "snapshot_start_fee_bps": 20
+      }
+    },
+    {
+      "pool": "F1mbBZYKXGFx5nraY3cK4RgNR5EuShntQ8xDKDD5HY1z",
+      "fees": {
+        "slot": 458982151,
+        "unix_timestamp": 1792445275,
+        "base_fee_bps": 4,
+        "snapshot_start_fee_bps": 4
+      }
+    },
+    {
+      "pool": "3L7KbPVaAQA4UTecaGQYsm6UCq5F3sZM9zAYkxqYt63j",
+      "fees": {
+        "slot": 458982154,
+        "unix_timestamp": 1792445276,
+        "base_fee_bps": 25,
+        "snapshot_start_fee_bps": 25
+      }
+    },
+    {
+      "pool": "8YU7gLMh4T8RuGepxAuigTqZeGfBn3TDS6tnuj951XbW",
+      "fees": {
+        "slot": 458982156,
+        "unix_timestamp": 1792445276,
+        "base_fee_bps": 16,
+        "snapshot_start_fee_bps": 16
+      }
+    },
+    {
+      "pool": "8cdMW3EGziaxzQqgGJx46xnzaxQuVg5acThQxCLiJMrE",
+      "fees": {
+        "slot": 458982157,
+        "unix_timestamp": 1792445276,
+        "base_fee_bps": 15,
+        "snapshot_start_fee_bps": 15
+      }
+    },
+    {
+      "pool": "6kRoMyYBuz4ReLmLyuqiTtSpVB61hAGRrD6xYBrotsBC",
+      "fees": {
+        "slot": 458982160,
+        "unix_timestamp": 1792445277,
+        "base_fee_bps": 20,
+        "snapshot_start_fee_bps": 20.04
+      }
+    },
+    {
+      "pool": "G58weZ4Z6gWUbePy4c9XcgMNcwSEyXb2Z99jfEQunAXB",
+      "fees": {
+        "slot": 458982162,
+        "unix_timestamp": 1792445277,
+        "base_fee_bps": 100,
+        "snapshot_start_fee_bps": 100
+      }
+    },
+    {
+      "pool": "HdnzKiiGQT4vbhrRnXqAts9ogQBPpekQNbL46JVvW1Fn",
+      "fees": {
+        "slot": 458982164,
+        "unix_timestamp": 1792445278,
+        "base_fee_bps": 100,
+        "snapshot_start_fee_bps": 100
+      }
+    },
+    {
+      "pool": "7SkLUhZoyTYYgKLVuK6E1Q1fQykR7wFiLxSiEohVcowu",
+      "fees": {
+        "slot": 458982165,
+        "unix_timestamp": 1792445278,
+        "base_fee_bps": 25,
+        "snapshot_start_fee_bps": 25
+      }
+    },
+    {
+      "pool": "6R4r93V5fcMzc13CL2enEepDSYcr4Qx3ptZBDwudTXCo",
+      "fees": {
+        "slot": 458982168,
+        "unix_timestamp": 1792445279,
+        "base_fee_bps": 2,
+        "snapshot_start_fee_bps": 2.01
+      }
+    },
+    {
+      "pool": "6KoZB86BFDk6TZbB4CTBoAA8PPbpmEwSWFjCyfkt1Uw4",
+      "fees": {
+        "slot": 458982170,
+        "unix_timestamp": 1792445279,
+        "base_fee_bps": 100,
+        "snapshot_start_fee_bps": 100
+      }
+    },
+    {
+      "pool": "E3mugzPiMhKGrDcfcz5ojo7HJBbYA6UMaJvSzbabPLAM",
+      "fees": {
+        "slot": 458982172,
+        "unix_timestamp": 1792445280,
+        "base_fee_bps": 100,
+        "snapshot_start_fee_bps": 100
+      }
+    },
+    {
+      "pool": "97r9NLqYoyGFbQesPduwuTHq4fJjbk8pHVUGawEqfnva",
+      "fees": {
+        "slot": 458982175,
+        "unix_timestamp": 1792445280,
+        "base_fee_bps": 25,
+        "snapshot_start_fee_bps": 25
+      }
+    },
+    {
+      "pool": "BCvzjDbADhnT3K35kc5TSeMAafNgu9KZVywUq9zWH2mA",
+      "fees": {
+        "slot": 458982176,
+        "unix_timestamp": 1792445280,
+        "base_fee_bps": 4,
+        "snapshot_start_fee_bps": 4
+      }
+    },
+    {
+      "pool": "4BRhq3WHdyM1itQuXgL8ua8KMXdXzhi8fcL9MUp9BZUc",
+      "fees": {
+        "slot": 458982179,
+        "unix_timestamp": 1792445281,
+        "base_fee_bps": 25,
+        "snapshot_start_fee_bps": 25
+      }
+    },
+    {
+      "pool": "3GVB4bXtcrP3MM376mrcJDwfTNThvyorLmVgSTf6kxFt",
+      "fees": {
+        "slot": 458982181,
+        "unix_timestamp": 1792445281,
+        "base_fee_bps": 16,
+        "snapshot_start_fee_bps": 16
+      }
+    },
+    {
+      "pool": "Dprwg5xHQ8jJryfh3okeTDCZK16Gz1wtX47JeZZv3HXZ",
+      "fees": {
+        "slot": 458982182,
+        "unix_timestamp": 1792445282,
+        "base_fee_bps": 5,
+        "snapshot_start_fee_bps": 5
+      }
+    },
+    {
+      "pool": "13MEx6gjRadJNUdmToaGSzgeWHLH7FzScUQS9Mc5nYF5",
+      "fees": {
+        "slot": 458982183,
+        "unix_timestamp": 1792445282,
+        "base_fee_bps": 20,
+        "snapshot_start_fee_bps": 20
+      }
+    },
+    {
+      "pool": "2ngTuP7xA581dqX9uJkGRqxmKuehY3k4SDfPebeoRG2J",
+      "fees": {
+        "slot": 458982185,
+        "unix_timestamp": 1792445282,
+        "base_fee_bps": 25,
+        "snapshot_start_fee_bps": 25
+      }
+    },
+    {
+      "pool": "J7riKjqgLoZCES7MRyxHxL7iXybwHKXgfAot8muHKciZ",
+      "fees": {
+        "slot": 458982188,
+        "unix_timestamp": 1792445283,
+        "base_fee_bps": 40,
+        "snapshot_start_fee_bps": 40
+      }
+    },
+    {
+      "pool": "5FPucPvtgnAgQzGzZBfF7Simw5B3qMbuvTcLkioJ3qhC",
+      "fees": {
+        "slot": 458982189,
+        "unix_timestamp": 1792445283,
+        "base_fee_bps": 100,
+        "snapshot_start_fee_bps": 100
+      }
+    },
+    {
+      "pool": "D1zm9kMhXRQyr3JyAcW9cbj7XvRjQE1pF7MBBKpnbA1n",
+      "fees": {
+        "slot": 458982192,
+        "unix_timestamp": 1792445284,
+        "base_fee_bps": 25,
+        "snapshot_start_fee_bps": 25
+      }
+    },
+    {
+      "pool": "62sHycti7wLRMT16xA3cSpaiEiJCMBtjkLW2tNXUVmGL",
+      "fees": {
+        "slot": 458982194,
+        "unix_timestamp": 1792445284,
+        "base_fee_bps": 20,
+        "snapshot_start_fee_bps": 20
+      }
+    },
+    {
+      "pool": "gef4pD5g6GJSjX7hfXKUfhCVpE89BzX9TXnXJNW6kSt",
+      "fees": {
+        "slot": 458982196,
+        "unix_timestamp": 1792445285,
+        "base_fee_bps": 1,
+        "snapshot_start_fee_bps": 1
+      }
+    },
+    {
+      "pool": "ESzRTaF7jBZgFTe1xJHGyRYctEneMuwk2XiwqJS9sJD4",
+      "fees": {
+        "slot": 458982198,
+        "unix_timestamp": 1792445285,
+        "base_fee_bps": 25,
+        "snapshot_start_fee_bps": 25
+      }
+    },
+    {
+      "pool": "DirR9nP5jk7fYifaYArCwZuq6pBqGWjhKgESiTuQByTf",
+      "fees": {
+        "slot": 458982201,
+        "unix_timestamp": 1792445286,
+        "base_fee_bps": 20,
+        "snapshot_start_fee_bps": 20
+      }
+    },
+    {
+      "pool": "94afGPYHkDyYbSjkbUrkaAdCAbBVyeS4h5hLtmREWYph",
+      "fees": {
+        "slot": 458982203,
+        "unix_timestamp": 1792445286,
+        "base_fee_bps": 16,
+        "snapshot_start_fee_bps": 16
+      }
+    },
+    {
+      "pool": "5tGLudhm9pHtqbtfymvdarbD59AyMyYimXXwbFfzETV9",
+      "fees": {
+        "slot": 458982206,
+        "unix_timestamp": 1792445287,
+        "base_fee_bps": 4,
+        "snapshot_start_fee_bps": 4.01
+      }
+    },
+    {
+      "pool": "4pCZCVEiYyT4efNdXUdL2tJF8VGMgiMXrZWq6FiNXhRw",
+      "fees": {
+        "slot": 458982208,
+        "unix_timestamp": 1792445287,
+        "base_fee_bps": 1,
+        "snapshot_start_fee_bps": 1
+      }
+    },
+    {
+      "pool": "B8YAwjGYk6qidWzGBXMAxP7nYfG8g74EZ3Y4gFSsobRw",
+      "fees": {
+        "slot": 458982209,
+        "unix_timestamp": 1792445288,
+        "base_fee_bps": 25,
+        "snapshot_start_fee_bps": 25
+      }
+    },
+    {
+      "pool": "6E12HKuZkyQoMwhTtN4WFs95uMEoW2zXJMFSE4jNcjHE",
+      "fees": {
+        "slot": 458982211,
+        "unix_timestamp": 1792445288,
+        "base_fee_bps": 50,
+        "snapshot_start_fee_bps": 50
+      }
+    },
+    {
+      "pool": "FcxLv8B82hakWDZJjJWDkk4MRcyUNzcQ3DyNS1VqZYr1",
+      "fees": {
+        "slot": 458982213,
+        "unix_timestamp": 1792445289,
+        "base_fee_bps": 1,
+        "snapshot_start_fee_bps": 1.41
+      }
+    },
+    {
+      "pool": "9p7abUFv31ycgu9kckvnoqMMvBy67dqTDM2m6HP9xokN",
+      "fees": {
+        "slot": 458982215,
+        "unix_timestamp": 1792445289,
+        "base_fee_bps": 2,
+        "snapshot_start_fee_bps": 2.05
+      }
+    },
+    {
+      "pool": "49iMatQtoyabsYAQc8GafVq6aeBFVDxSRH44oiatyyw6",
+      "fees": {
+        "slot": 458982217,
+        "unix_timestamp": 1792445289,
+        "base_fee_bps": 10,
+        "snapshot_start_fee_bps": 10
+      }
+    },
+    {
+      "pool": "HrkeM8zFLiLp7ShhZKkM3b6Tvt8Aq2AKFcCvxRnfwKaq",
+      "fees": {
+        "slot": 458982220,
+        "unix_timestamp": 1792445290,
+        "base_fee_bps": 25,
+        "snapshot_start_fee_bps": 25
+      }
+    },
+    {
+      "pool": "DXWbip5LducMAbDSSpLYz9Xik3253EPeAYQufQtx7LXs",
+      "fees": {
+        "slot": 458982221,
+        "unix_timestamp": 1792445290,
+        "base_fee_bps": 100,
+        "snapshot_start_fee_bps": 100
+      }
+    },
+    {
+      "pool": "7YZVp47ddDLMHCFtYY7nNdMQNfXRi57YQwqxTvGY1SAA",
+      "fees": {
+        "slot": 458982223,
+        "unix_timestamp": 1792445291,
+        "base_fee_bps": 100,
+        "snapshot_start_fee_bps": 100
+      }
+    },
+    {
+      "pool": "3bCkqSFZcYs7fthurTzPDRu4r9kQycq1sCUDykBuYnRB",
+      "fees": {
+        "slot": 458982224,
+        "unix_timestamp": 1792445291,
+        "base_fee_bps": 5,
+        "snapshot_start_fee_bps": 5.63
+      }
+    },
+    {
+      "pool": "9JsDnmZonykBmrybuYaZUYxr4DCbZZQTdYQzdFXtDr5F",
+      "fees": {
+        "slot": 458982226,
+        "unix_timestamp": 1792445292,
+        "base_fee_bps": 8,
+        "snapshot_start_fee_bps": 8
+      }
+    },
+    {
+      "pool": "4XhCWxdmoRrUX4Kde4RQ2bmWWgNLur5DQJn9Jzt8pN3e",
+      "fees": {
+        "slot": 458982227,
+        "unix_timestamp": 1792445292,
+        "base_fee_bps": 2,
+        "snapshot_start_fee_bps": 2.33
+      }
+    },
+    {
+      "pool": "CLu4kFM4nb67xrdN7vJnMxXXir8Z5hA4HJUzPFccXjsL",
+      "fees": {
+        "slot": 458982229,
+        "unix_timestamp": 1792445292,
+        "base_fee_bps": 25,
+        "snapshot_start_fee_bps": 25
+      }
+    },
+    {
+      "pool": "56eGajrdCczGK6m8faSimtMJLVBjfarSDVPvoMhYooRi",
+      "fees": {
+        "slot": 458982231,
+        "unix_timestamp": 1792445293,
+        "base_fee_bps": 15,
+        "snapshot_start_fee_bps": 15
+      }
+    },
+    {
+      "pool": "yrNqjGSrZmUdcSNqzEjbrEouvazH9XbpxRCiJEa8AVJ",
+      "fees": {
+        "slot": 458982233,
+        "unix_timestamp": 1792445293,
+        "base_fee_bps": 10,
+        "snapshot_start_fee_bps": 10
+      }
+    },
+    {
+      "pool": "5vJcDWLBQSh767DzHACeEmfMh7nGCWZc8eb76v6cCFVr",
+      "fees": {
+        "slot": 458982235,
+        "unix_timestamp": 1792445294,
+        "base_fee_bps": 60,
+        "snapshot_start_fee_bps": 60
+      }
+    },
+    {
+      "pool": "7gkB2D1SqhUYgKrSpDU5cma4tK9efijHouYituABdJcG",
+      "fees": {
+        "slot": 458982238,
+        "unix_timestamp": 1792445294,
+        "base_fee_bps": 30,
+        "snapshot_start_fee_bps": 30
+      }
+    },
+    {
+      "pool": "7iqWWNjubSTjmWXk9eYJViDLZjBN2KjrYt5Z9j8n8exQ",
+      "fees": {
+        "slot": 458985825,
+        "unix_timestamp": 1792446073,
+        "base_fee_bps": 30,
+        "snapshot_start_fee_bps": 30
+      }
+    },
+    {
+      "pool": "CKwJZwm7oj3nu4653N1EpDrqXbXAYXoPFiPeEnLouF8y",
+      "fees": {
+        "slot": 458985832,
+        "unix_timestamp": 1792446075,
+        "base_fee_bps": 25,
+        "snapshot_start_fee_bps": 25
+      }
+    },
+    {
+      "pool": "ASvFi45yphKhx6ej9gJEDvTedXcXjhKjkhm3hRERuU2",
+      "fees": {
+        "slot": 458985834,
+        "unix_timestamp": 1792446075,
+        "base_fee_bps": 25,
+        "snapshot_start_fee_bps": 25
+      }
+    },
+    {
+      "pool": "CB8XEbWETgadadx9t9GhxJbRbYvDE5U1KqS4ycZtwKmK",
+      "fees": {
+        "slot": 458985835,
+        "unix_timestamp": 1792446075,
+        "base_fee_bps": 100,
+        "snapshot_start_fee_bps": 100.01
+      }
+    },
+    {
+      "pool": "95rgf1NY3NMz8vQaPX8X5XmX3njjKEcVtduPHcq75vCV",
+      "fees": {
+        "slot": 458985838,
+        "unix_timestamp": 1792446076,
+        "base_fee_bps": 20,
+        "snapshot_start_fee_bps": 20
+      }
+    },
+    {
+      "pool": "D6bRhQUcR9B7bPbbqgxpE17MjyUjBtr8hHQCcJoHrrv1",
+      "fees": {
+        "slot": 458985845,
+        "unix_timestamp": 1792446078,
+        "base_fee_bps": 10,
+        "snapshot_start_fee_bps": 10
+      }
+    },
+    {
+      "pool": "6jYPqgpYqPoTFX9eGVHndxe4B6cxPzu1N3zLMuYJ8Bqe",
+      "fees": {
+        "slot": 458985848,
+        "unix_timestamp": 1792446078,
+        "base_fee_bps": 20,
+        "snapshot_start_fee_bps": 20.18
+      }
+    },
+    {
+      "pool": "9A6inBGN9nXd8TUMGoFRgCQGUAjVs9QYtumZhDzbLH5s",
+      "fees": {
+        "slot": 458985854,
+        "unix_timestamp": 1792446079,
+        "base_fee_bps": 20,
+        "snapshot_start_fee_bps": 20.08
+      }
+    },
+    {
+      "pool": "7r3igmqpnJwLS372AFDtAAAvPadCCmb5NRDPwBGaPGPu",
+      "fees": {
+        "slot": 458985856,
+        "unix_timestamp": 1792446080,
+        "base_fee_bps": 25,
+        "snapshot_start_fee_bps": 25.06
+      }
+    }
+  ]
+}

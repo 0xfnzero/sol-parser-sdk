@@ -4,12 +4,9 @@ use crate::core::events::{DexEvent, RawInstructionEvent};
 use serde::{Deserialize, Serialize};
 use solana_sdk::pubkey::Pubkey;
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct ThirdProgram {
-    pub program_id: Pubkey,
-    pub instruction_index: usize,
-    pub rule_id: String,
-}
+/// Compatibility name for the raw outer instruction payload. Rule identifiers
+/// belong to the caller's rule registry, not the transaction's provenance.
+pub type ThirdProgram = crate::core::events::RawInstructionPayload;
 
 /// Candidate rules must be reviewed and tested on independent transactions
 /// before the caller opts in. Never install analyzer output automatically.
@@ -124,11 +121,8 @@ pub fn parse_wrapped_pumpfun_instruction(
     trade.sol_amount = 0;
     trade.quote_amount = 0;
     trade.token_amount = 0;
-    trade.third_program = Some(ThirdProgram {
-        program_id: raw.program_id,
-        instruction_index: raw.instruction_index,
-        rule_id: rule.rule_id.clone(),
-    });
+    trade.third_program = Some(raw.into());
+    trade.parse_status = crate::core::events::PumpFunParseStatus::InstructionDecoded;
     let event = DexEvent::PumpFunTrade(trade);
     filter.is_none_or(|f| f.should_include_dex_event(&event)).then_some(event)
 }

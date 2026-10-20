@@ -9,6 +9,9 @@ use sol_parser_sdk::grpc::{
 };
 use sol_parser_sdk::DexEvent;
 
+#[path = "support/grpc_config.rs"]
+mod grpc_config;
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let _ = rustls::crypto::ring::default_provider().install_default();
@@ -23,9 +26,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let config = ClientConfig::default();
     let grpc = YellowstoneGrpc::new_with_config(
-        std::env::var("GRPC_ENDPOINT")
-            .unwrap_or_else(|_| "https://solana-yellowstone-grpc.publicnode.com:443".to_string()),
-        std::env::var("GRPC_AUTH_TOKEN").ok(),
+        grpc_config::endpoint()?,
+        grpc_config::auth_token(),
         config,
     )?;
 

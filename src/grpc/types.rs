@@ -510,7 +510,19 @@ impl EventTypeFilter {
                 && self.should_include(EventType::PumpSwapTrade))
     }
 
+    pub(crate) fn includes_unresolved_pumpfun(&self) -> bool {
+        !self.exclude_types.as_ref().is_some_and(|types| types.contains(&EventType::PumpFunTrade))
+            && self.should_include(EventType::PumpFunTrade)
+    }
+
     pub fn should_include_dex_event(&self, event: &crate::core::events::DexEvent) -> bool {
+        if let crate::core::events::DexEvent::PumpFunTrade(t) = event {
+            if t.parse_status == crate::core::events::PumpFunParseStatus::Unresolved {
+                // Unknown direction must not turn the default is_buy=false into
+                // a sell classification. Explicit family exclusion wins.
+                return self.includes_unresolved_pumpfun();
+            }
+        }
         if let crate::core::events::DexEvent::RawInstruction(raw) = event {
             return crate::core::events::raw_instruction_matches_filter(&raw.dexes, self);
         }

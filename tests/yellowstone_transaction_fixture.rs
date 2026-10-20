@@ -23,7 +23,7 @@ fn pumpfun_filter() -> EventTypeFilter {
 }
 
 #[test]
-fn low_latency_create_detection_marks_an_earlier_trade() {
+fn unscoped_truncated_create_log_does_not_mark_an_earlier_trade() {
     let mut transaction = fixture();
     let logs = &mut transaction
         .transaction
@@ -53,7 +53,7 @@ fn low_latency_create_detection_marks_an_earlier_trade() {
         _ => None,
     });
 
-    assert!(trade.expect("PumpFun trade").is_created_buy);
+    assert!(!trade.expect("PumpFun trade").is_created_buy);
 }
 
 fn remap_v0_index_for_v1(
@@ -224,12 +224,13 @@ fn malformed_signature_is_rejected_without_panicking() {
 #[test]
 fn normalized_v1_fixture_preserves_dex_events_and_exposes_config() {
     let mut transaction = fixture();
-    let baseline = parse_subscribe_update_transaction_low_latency(
+    let mut baseline = parse_subscribe_update_transaction_low_latency(
         &transaction,
         0,
         None,
         Some(&pumpfun_filter()),
     );
+    validate_source_indices(&baseline, &transaction);
     convert_normalized_fixture_to_v1(&mut transaction);
     let encoded = transaction.encode_to_vec();
     let transaction = SubscribeUpdateTransaction::decode(encoded.as_slice())
@@ -251,14 +252,54 @@ fn normalized_v1_fixture_preserves_dex_events_and_exposes_config() {
     assert_eq!(cost.loaded_accounts_data_size_limit, Some(1_048_576));
     assert_eq!(cost.heap_size, Some(65_536));
 
-    let v1_events = parse_subscribe_update_transaction_low_latency(
+    let mut v1_events = parse_subscribe_update_transaction_low_latency(
         &transaction,
         0,
         None,
         Some(&pumpfun_filter()),
     );
+    validate_source_indices(&v1_events, &transaction);
+    // V1 reorders message keys, so raw indices legitimately differ. Resolved
+    // addresses, instruction bytes and every trade field must still agree.
+    for event in baseline.iter_mut().chain(&mut v1_events) {
+        match event {
+            DexEvent::PumpFunTrade(trade)
+            | DexEvent::PumpFunBuy(trade)
+            | DexEvent::PumpFunSell(trade)
+            | DexEvent::PumpFunBuyExactSolIn(trade) => {
+                if let Some(source) = &mut trade.third_program {
+                    source.account_indices.clear();
+                }
+            }
+            _ => {}
+        }
+    }
     assert_eq!(
         serde_json::to_value(v1_events).expect("serialize V1 events"),
         serde_json::to_value(baseline).expect("serialize baseline events")
     );
+}
+
+fn validate_source_indices(events: &[DexEvent], update: &SubscribeUpdateTransaction) {
+    let info = update.transaction.as_ref().unwrap();
+    let message = info.transaction.as_ref().unwrap().message.as_ref().unwrap();
+    let meta = info.meta.as_ref().unwrap();
+    let keys: Vec<_> = message
+        .account_keys
+        .iter()
+        .chain(&meta.loaded_writable_addresses)
+        .chain(&meta.loaded_readonly_addresses)
+        .map(|key| solana_sdk::pubkey::Pubkey::try_from(key.as_slice()).unwrap())
+        .collect();
+    assert!(events.iter().any(|event| event.third_program().is_some()));
+    for source in events.iter().filter_map(DexEvent::third_program) {
+        let ix = &message.instructions[source.instruction_index];
+        assert_eq!(source.account_indices, ix.accounts);
+        assert_eq!(source.program_id, keys[ix.program_id_index as usize]);
+        assert_eq!(source.instruction_data, ix.data);
+        assert_eq!(
+            source.accounts,
+            ix.accounts.iter().map(|i| Some(keys[*i as usize])).collect::<Vec<_>>()
+        );
+    }
 }

@@ -63,7 +63,16 @@ fn reported_and_independent_transactions_match_real_cpi_or_stay_raw() {
         assert!(!grpc.is_empty());
         for e in grpc {
             let DexEvent::PumpFunTrade(t) = e else { panic!("unexpected Pump subscription event") };
-            assert!(t.third_program.is_none(), "gRPC must use actual CPI, not wrapper rules");
+            let source = t.third_program.as_ref().expect("gRPC wrapper provenance");
+            let outer = &message.instructions[source.instruction_index];
+            assert_eq!(source.program_id, keys[outer.program_id_index as usize]);
+            assert_eq!(source.instruction_data, outer.data);
+            assert_eq!(source.account_indices, outer.accounts);
+            assert_eq!(
+                source.accounts,
+                outer.accounts.iter().map(|i| Some(keys[*i as usize])).collect::<Vec<_>>()
+            );
+            assert_eq!(t.parse_status, PumpFunParseStatus::ExecutionConfirmed);
             assert_eq!((t.metadata.tx_index, t.metadata.grpc_recv_us), (77, 123456));
         }
         assert!(sol_parser_sdk::grpc::parse_subscribe_update_transaction_low_latency(
@@ -93,7 +102,12 @@ fn reported_and_independent_transactions_match_real_cpi_or_stay_raw() {
         )
         .unwrap();
         for event in events {
-            let DexEvent::RawInstruction(raw) = event else { continue };
+            let DexEvent::PumpFunTrade(candidate) = event else { continue };
+            assert_eq!(candidate.parse_status, PumpFunParseStatus::Unresolved);
+            assert_eq!((candidate.sol_amount, candidate.token_amount), (0, 0));
+            let raw = Box::new(
+                candidate.third_program.as_ref().unwrap().with_metadata(candidate.metadata.clone()),
+            );
             let Some((rule, (data, accounts))) =
                 rules.iter().find_map(|rule| restore_instruction(&raw, rule).map(|v| (rule, v)))
             else {
@@ -122,6 +136,7 @@ fn reported_and_independent_transactions_match_real_cpi_or_stay_raw() {
                 panic!()
             };
             assert_eq!(trade.ix_name, "buy_exact_quote_in_v2");
+            assert_eq!(trade.parse_status, PumpFunParseStatus::InstructionDecoded);
             assert_eq!(
                 trade.spendable_quote_in,
                 u64::from_le_bytes(data[8..16].try_into().unwrap())

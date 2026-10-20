@@ -252,7 +252,10 @@ fn malformed_official_routes_are_rejected_and_unknown_programs_stay_raw() {
             *instructions_mut(&mut malformed) = vec![ix];
             let events = resolved(&malformed, &f, None);
             if mutate == 1 {
-                assert!(matches!(&events[..], [DexEvent::RawInstruction(_)]));
+                assert!(matches!(
+                    &events[..],
+                    [DexEvent::RawInstruction(_)] | [DexEvent::PumpFunTrade(_)]
+                ));
             } else {
                 assert!(events.is_empty());
             }

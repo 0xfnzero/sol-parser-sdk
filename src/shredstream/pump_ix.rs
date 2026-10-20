@@ -684,12 +684,38 @@ fn parse_transaction_pump_events_with_filter(
             } else {
                 Vec::new()
             };
-            if (explicit_raw || unknown)
-                && filter
-                    .is_none_or(|f| crate::core::events::raw_instruction_matches_filter(&dexes, f))
-            {
-                events.push(DexEvent::RawInstruction(Box::new(
-                    crate::core::events::RawInstructionEvent {
+            if explicit_raw || unknown {
+                let pump_candidate = unknown
+                    && dexes
+                        .iter()
+                        .any(|d| d.dex_type == crate::core::events::RawInstructionDexType::PumpFun);
+                let emit_candidate = pump_candidate
+                    && !explicit_raw
+                    && filter.is_none_or(EventTypeFilter::includes_unresolved_pumpfun);
+                let emit_raw = !emit_candidate
+                    && if pump_candidate && !explicit_raw {
+                        // Keep other DEX subscriptions without reintroducing an
+                        // excluded Pump candidate through the raw-event API.
+                        dexes
+                            .iter()
+                            .filter(|d| {
+                                d.dex_type != crate::core::events::RawInstructionDexType::PumpFun
+                            })
+                            .any(|d| {
+                                filter.is_none_or(|f| {
+                                    crate::core::events::raw_instruction_matches_filter(
+                                        std::slice::from_ref(d),
+                                        f,
+                                    )
+                                })
+                            })
+                    } else {
+                        filter.is_none_or(|f| {
+                            crate::core::events::raw_instruction_matches_filter(&dexes, f)
+                        })
+                    };
+                if emit_candidate || emit_raw {
+                    let raw = crate::core::events::RawInstructionEvent {
                         metadata: EventMetadata {
                             signature,
                             slot,
@@ -710,8 +736,27 @@ fn parse_transaction_pump_events_with_filter(
                             .collect(),
                         account_indices: ix.accounts.clone(),
                         instruction_data: ix.data.clone(),
-                    },
-                )));
+                    };
+                    // Move buffers into the callback once, after filtering.
+                    if emit_candidate {
+                        events.push(DexEvent::PumpFunTrade(
+                            crate::core::events::PumpFunTradeEvent {
+                                metadata: raw.metadata,
+                                third_program: Some(crate::core::events::RawInstructionPayload {
+                                    program_id: raw.program_id,
+                                    instruction_index: raw.instruction_index,
+                                    accounts: raw.accounts,
+                                    account_indices: raw.account_indices,
+                                    instruction_data: raw.instruction_data,
+                                }),
+                                parse_status: crate::core::events::PumpFunParseStatus::Unresolved,
+                                ..Default::default()
+                            },
+                        ));
+                    } else {
+                        events.push(DexEvent::RawInstruction(Box::new(raw)));
+                    }
+                }
             }
             // Third-party payloads are opaque, even when their bytes happen to
             // contain a known Pump discriminator. Do not infer internal CPIs.

@@ -1,7 +1,11 @@
+use sol_parser_sdk::grpc::types::event_type_from_dex_event;
 use sol_parser_sdk::grpc::{
     AccountFilter, ClientConfig, Protocol, TransactionFilter, YellowstoneGrpc,
 };
-use sol_parser_sdk::DexEvent;
+use std::time::Duration;
+
+#[path = "support/grpc_config.rs"]
+mod grpc_config;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -11,13 +15,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let config = ClientConfig { enable_metrics: true, ..Default::default() };
 
-    // publicnode gRPC 需要 token，可从环境变量 GRPC_AUTH_TOKEN 覆盖
-    const GRPC_ENDPOINT: &str = "https://solana-yellowstone-grpc.publicnode.com:443";
-    const GRPC_AUTH_TOKEN: &str =
-        "cd1c3642f88c86f9f8e7f15831faf9f067b997c6ac2b72c81d115e8d071af77a";
+    // Configure the endpoint and optional authentication through the environment.
     let grpc = YellowstoneGrpc::new_with_config(
-        GRPC_ENDPOINT.to_string(),
-        Some(std::env::var("GRPC_AUTH_TOKEN").unwrap_or_else(|_| GRPC_AUTH_TOKEN.to_string())),
+        grpc_config::endpoint()?,
+        grpc_config::auth_token(),
         config,
     )?;
 
@@ -39,45 +40,33 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("🎧 Listening for events... (waiting up to 60 seconds)\n");
 
     let mut event_count = 0;
-    let start = std::time::Instant::now();
+    let deadline = tokio::time::sleep(Duration::from_secs(60));
+    tokio::pin!(deadline);
 
     // 简单循环，打印前 10 个事件
     loop {
         if let Some(event) = queue.pop() {
             event_count += 1;
-            let event_type = match &event {
-                DexEvent::PumpFunCreate(_) => "PumpFunCreate",
-                DexEvent::PumpFunTrade(_) => "PumpFunTrade",
-                DexEvent::PumpFunBuy(_) => "PumpFunBuy",
-                DexEvent::PumpFunSell(_) => "PumpFunSell",
-                DexEvent::PumpFunMigrate(_) => "PumpFunMigrate",
-                _ => "Other",
-            };
+            let event_type = event_type_from_dex_event(&event);
 
-            println!("✅ Event #{}: {} (Queue: {})", event_count, event_type, queue.len());
+            println!("✅ Event #{}: {:?} (Queue: {})", event_count, event_type, queue.len());
 
             if event_count >= 10 {
                 println!("\n🎉 Received {} events! Test successful!", event_count);
                 break;
             }
-        } else {
-            tokio::task::yield_now().await;
         }
 
-        // 60 秒超时
-        if start.elapsed().as_secs() > 60 {
-            if event_count == 0 {
-                println!("⏰ Timeout: No events received in 60 seconds.");
-                println!("   This might indicate:");
-                println!("   - Network connectivity issues");
-                println!("   - gRPC endpoint is down");
-                println!("   - Very low market activity (rare)");
-            } else {
-                println!("\n✅ Received {} events in 60 seconds", event_count);
+        tokio::select! {
+            _ = &mut deadline => {
+                println!("Finished after 60 seconds: {event_count} events received.");
+                break;
             }
-            break;
+            _ = tokio::signal::ctrl_c() => break,
+            _ = tokio::time::sleep(Duration::from_millis(1)) => {}
         }
     }
 
+    grpc.stop().await;
     Ok(())
 }

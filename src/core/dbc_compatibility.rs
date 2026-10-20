@@ -3,7 +3,7 @@ use crate::core::events::{DexEvent, MeteoraDbcSwapEvent};
 use solana_sdk::pubkey::Pubkey;
 use std::collections::{HashMap, HashSet};
 
-type Key = (Pubkey, Pubkey, u8, u64, u64, u128, u64, u64, u64, u64);
+type Key = (Pubkey, Pubkey, u8, u64, u64, u128, u64, u64, u64, u64, Option<(Pubkey, usize)>);
 fn key(e: &MeteoraDbcSwapEvent) -> Key {
     (
         e.pool,
@@ -16,6 +16,7 @@ fn key(e: &MeteoraDbcSwapEvent) -> Key {
         e.protocol_fee,
         e.referral_fee,
         e.current_timestamp,
+        e.third_program.as_ref().map(|source| (source.program_id, source.instruction_index)),
     )
 }
 
@@ -55,6 +56,27 @@ pub(crate) fn prefer_current_dbc_events(mut events: Vec<DexEvent>) -> Vec<DexEve
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn compatibility_events_from_different_wrappers_are_not_paired() {
+        let old = MeteoraDbcSwapEvent {
+            third_program: Some(crate::core::events::RawInstructionPayload {
+                instruction_index: 1,
+                ..Default::default()
+            }),
+            ..Default::default()
+        };
+        let mut current = old.clone();
+        current.event_version = 2;
+        current.third_program.as_mut().unwrap().instruction_index = 2;
+        assert_eq!(
+            prefer_current_dbc_events(vec![
+                DexEvent::MeteoraDbcSwap(old),
+                DexEvent::MeteoraDbcSwap(current)
+            ])
+            .len(),
+            2
+        );
+    }
     #[test]
     fn compatibility_pairs_preserve_repeated_and_incomplete_executions() {
         let old = DexEvent::MeteoraDbcSwap(MeteoraDbcSwapEvent {
