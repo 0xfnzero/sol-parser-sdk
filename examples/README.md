@@ -9,8 +9,8 @@ Start with an offline replay; configure endpoints only when using online tools.
 - `stock_price_replay`: stock execution-price notifications from saved transactions.
 - `stock_token_catalog`: bundled stock identities and historical fee snapshots.
 - `wrapped_trade_replay`: router provenance across DEX event families.
-- `wrapped_pumpfun_replay`: Pump.fun wrapper rules and unresolved cases.
-- `pump_execution_replay`, `cpmm_creator_fee_replay`: protocol-specific execution regressions.
+- `pump_execution_replay`: Shred input replay and gRPC execution replay with full, missing, truncated or missing-create logs; accepts a transaction signature via `SOLANA_RPC_URL`.
+- `cpmm_creator_fee_replay`: CPMM execution and creator-fee regression.
 
 ```sh
 cargo run --example stock_route_replay
@@ -44,6 +44,16 @@ test runners to the Rust workflow. Historical fixture provenance may mention
 another language, but reading those fixtures does not run that language.
 Online subscription examples process bounded batches before checking cancellation.
 
+Wrapped Pump.fun provenance is verified by the single offline unit-test module
+`src/wrapped_pumpfun_rpc_analyzer.rs`:
+
+```sh
+cargo test --offline --lib wrapped_pumpfun_rpc_analyzer
+```
+
+It checks the reported signed transactions through gRPC and outer-only Shred parsing.
+It does not infer wrapper rules or fetch RPC data. See [the callback contract](../docs/wrapped-pumpfun.md).
+
 ## Capture and inspect real transactions: RPC
 
 Use one generic capture/replay entry point for new signatures:
@@ -56,8 +66,6 @@ cargo run --example stock_route_replay -- --fixture /tmp/transaction.json
 
 - `rpc_discover_replay` discovers and verifies wire captures; `rpc_corpus_validate`
   checks saved execution evidence. See each file's usage before fetching.
-- `wrapped_pumpfun_rpc_analyzer` examines third-party wrapper candidates offline
-  or through explicit RPC input; see [wrapper analysis](../docs/wrapped-pumpfun.md).
 - `analyze_stonkfun_corpus` inspects captured Stonk routes; see
   [route analysis](../docs/ROUTE_ANALYSIS.md).
 - Existing `parse_*`, `debug_*` and `test_account_filling` are focused diagnostics,
@@ -83,7 +91,7 @@ fallback. `GRPC_ENDPOINT` / `GRPC_AUTH_TOKEN` take precedence over their aliases
 - Other protocols: `meteora_damm_grpc`, `meteora_damm_new_pool`,
   `raydium_cpmm_new_pool`, `raydium_launchlab_migration`, and the `*_token_price` examples.
 - Filters/state: `dynamic_subscription`, `wallet_trade_filter`,
-  `raw_instruction_filter`, `grpc_raw_cache`, `*_listen`;
+  `grpc_raw_cache`, `*_listen`;
   [account subscription configuration](../docs/ACCOUNT_SUBSCRIPTIONS.md).
 - Shred: `shredstream_example`, `shredstream_pump_snipe`.
   Shred does not expose executed CPI routes or confirmed prices.
@@ -91,10 +99,8 @@ fallback. `GRPC_ENDPOINT` / `GRPC_AUTH_TOKEN` take precedence over their aliases
 ## Specialist tools
 
 - `stock_pool_fees`: decode historical account-snapshot fees; no live quote.
-- `hotpath_latency`, `grpc_latency_slot_compare`: performance/transport diagnostics.
-- `pump_offline_bank`: local bank simulation with its own account/runtime prerequisites.
-- `fixtures/` contains inputs; `support/` and `offline_bank/` contain helpers,
-  not separate example binaries.
+- `grpc_latency_slot_compare`: transport diagnostics.
+- `fixtures/` contains inputs; `support/` contains helpers, not separate example binaries.
 
 ## Naming and contribution rules
 

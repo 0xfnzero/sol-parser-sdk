@@ -358,7 +358,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 **ShredStream Limitations:**
 - The default parser requires resolved instruction keys. Supply cached ALT addresses with `parse_transaction_dex_events_with_loaded_addresses` or `with_address_lookup_resolver`; unresolved instructions are skipped. An explicit `best_effort` API retains provisional legacy behavior.
-- No execution metadata: supported official routes and known wrappers emit explicit route intents, while arbitrary CPI results and confirmed fills require the execution-metadata path.
+- No execution metadata: third-party instructions referencing Pump.fun produce unresolved trade candidates with original input in `third_program`; actual CPI trades and confirmed fills require gRPC/RPC execution metadata.
 - No block_time - always 0
 - tx_index is entry-level, not slot-level
 
@@ -727,103 +727,12 @@ Shared PumpFun create/create_v2 mainnet fixtures, replay instructions and verifi
 - [Latency troubleshooting](docs/troubleshooting-latency.md)
 
 
-### Pump routes in ShredStream (offline, before execution)
+### Wrapped Pump.fun transactions
 
-The DEX shred parser recognizes official `multi_hop_swap` and
-`multi_hop_curve_swap`, plus the captured RapidBuy (`rapidV5DA…`, 41-byte layout)
-and BuyPumpDelta (`J7pourVw…`, 28-byte layout) wrapper versions. It emits
-`DexEvent::PumpRouteIntent`, with the original instruction index, user, input and
-output accounts, route hops and original instruction data. A two-hop route is
-**one route event with two hops**; three separate wrapper calls produce three
-route events. Unknown programs or changed layouts are not guessed by scanning
-for embedded Pump bytes.
+Shred emits unresolved PumpFunTrade candidates with original input in
+`third_program`; gRPC/RPC use actual CPI execution data. The separate
+PumpRouteIntent and RawInstruction events have been removed. See the
+[callback contract and regression commands](docs/wrapped-pumpfun.md).
 
-**These events are intents, not confirmed fills.** They contain no execution
-status, actual fill amounts, reserves or post balances. `amount_in` and
-`min_amount_out` are explicit instruction constraints where decoded; BuyPumpDelta
-chooses its input at runtime, so these fields are `None`. Failed or conditional
-execution cannot be determined from raw shreds. Use execution metadata for fills.
-
-Subscribe with `EventType::PumpRouteIntent`. Broad `PumpFunTrade` subscriptions
-also receive route intents; official `MultiHopSwap` routes can contain both Pump
-families and also match `PumpSwapTrade`. Direction-specific buy/sell and create
-filters do not match route intents. `exclude_types([PumpRouteIntent])` suppresses
-all intents. Consumers must handle the new `DexEvent::PumpRouteIntent` variant
-rather than assuming every callback is a trade variant.
-
-`filter: None` already includes route intents; changing the filter does not
-convert them into `PumpFunTrade`. For RapidBuy and BuyPumpDelta, `is_buy` is
-`Some(true)`, relative to `hops[0].base_mint`; the payment mint is
-`hops[0].quote_mint`. RapidBuy also exposes
-`ix_name = Some("buy_exact_quote_in_v2")` from its validated embedded
-instruction. BuyPumpDelta's expected method is unknown (`None`). Both hints
-are `None` for multi-hop routes. These are pre-execution hints, not proof of
-a successful CPI. Older serialized events deserialize with unknown hints.
-
-```rust,ignore
-if let DexEvent::PumpRouteIntent(intent) = event {
-    println!("buy intent: {:?}, expected method: {:?}",
-        intent.is_buy, intent.ix_name);
-    for hop in &intent.hops {
-        println!("base: {}, quote: {}", hop.base_mint, hop.quote_mint);
-    }
-}
-```
-
-The new optional fields preserve JSON read compatibility, but downstream Rust
-code constructing `PumpRouteIntentEvent` literals must supply the two fields.
-
-ALT addresses must come from a prewarmed, slot-aware local cache. Both SDKs expose
-`shredstream::parse_transaction_dex_events_with_loaded_addresses`: pass all loaded
-writable addresses, then all loaded readonly addresses, in the message lookup
-order. Count/index errors return before appending events. The caller must ensure
-address identity and lookup-table activation at the transaction slot. The default
-parser skips unresolved instruction accounts instead of emitting placeholder
-pubkeys. `parse_transaction_dex_events_best_effort` retains the older provisional
-behavior for direct instructions; route adapters always require resolved keys.
-
-High-level clients accept `with_address_lookup_resolver(|transaction, slot| ...)`,
-returning `LoadedAddresses` from your cache. Cache errors skip the transaction;
-without a resolver, fully static instructions can still parse. Do not perform RPC
-or blocking I/O in this synchronous callback. The SDK parsing path performs no
-RPC, simulation, or transaction submission.
-
-Regression coverage includes the six original signed mainnet transaction wires,
-ALT/filter/error cases, signed static official routes, and malformed/truncated
-instructions. Run `cargo test --test pump_shred_routes`. The tests are offline;
-synthetic signing validates extraction and does not simulate program execution.
-
-### Repeatable offline Pump simulations
-
-Run the native Rust example and tests:
-
-```sh
-cargo run --offline --example pump_offline_bank
-cargo test --offline --test pump_offline_bank --test pump_shred_routes
-```
-
-The example signs and executes 20 route scenarios against frozen deployed programs
-in LiteSVM twice, checks rollback/signature/ALT behavior and validates SDK parsing.
-The integration test reuses the example code. No Python, RPC calls or broadcasts are
-required. See [configuration, snapshot provenance and scope](examples/offline_bank/README.md).
-
-
-## Reproducible local hot-path latency
-
-Run the native Rust example with a configuration file (no RPC):
-
-```sh
-cargo run --release --example hotpath_latency -- examples/hotpath_latency.json
-```
-
-The JSON configuration controls `warmup`, `samples`, and `batch`. Output includes
-p50/p95/p99 nanoseconds per operation and the build profile. Use `--release` for
-performance comparisons and run on an otherwise idle machine. Re-run with the
-same configuration and fixtures before comparing changes.
-
-Six captured signed transactions are decoded and signature-verified before the
-measurement. Strict parsing uses cached loaded addresses and validates expected
-event counts. Two unsigned synthetic cases measure irrelevant-program and
-unknown-discriminator rejection. Output-vector storage is reused. Measurements
-exclude signature verification, fixture loading, network reception, and bank
-execution; they do not establish production ShredStream latency.
+Run `cargo run --offline --example pump_execution_replay` for saved transaction
+replay through both paths, including missing and truncated logs.

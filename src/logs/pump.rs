@@ -33,9 +33,9 @@ pub const MIGRATE_BONDING_CURVE_CREATOR_EVENT: u64 =
 #[inline]
 pub fn normalize_pumpfun_ix_name(ix_name: &str) -> &str {
     match ix_name {
-        "buy_v2" => "buy",
-        "sell_v2" => "sell",
-        "buy_exact_quote_in_v2" => "buy_exact_quote_in",
+        "buy_v2" | "buy_v3" => "buy",
+        "sell_v2" | "sell_v3" => "sell",
+        "buy_exact_quote_in_v2" | "buy_exact_quote_in_v3" => "buy_exact_quote_in",
         other => other,
     }
 }
@@ -693,12 +693,10 @@ fn parse_trade_event_optimized(
 
         // 根据 ix_name 返回不同的事件类型，支持用户过滤特定交易类型
         match ix_kind {
-            "buy" | "buy_v3" => Some(DexEvent::PumpFunBuy(trade_event)),
-            "sell" | "sell_v3" => Some(DexEvent::PumpFunSell(trade_event)),
+            "buy" => Some(DexEvent::PumpFunBuy(trade_event)),
+            "sell" => Some(DexEvent::PumpFunSell(trade_event)),
             "buy_exact_sol_in" => Some(DexEvent::PumpFunBuyExactSolIn(trade_event)),
-            "buy_exact_quote_in" | "buy_exact_quote_in_v3" => {
-                Some(DexEvent::PumpFunBuy(trade_event))
-            }
+            "buy_exact_quote_in" => Some(DexEvent::PumpFunBuy(trade_event)),
             _ => Some(DexEvent::PumpFunTrade(trade_event)), // 兼容旧版本或未知类型
         }
     }
@@ -1021,12 +1019,10 @@ pub fn parse_trade_from_data(
 
         // 根据 ix_name 返回不同的事件类型
         match ix_kind {
-            "buy" | "buy_v3" => Some(DexEvent::PumpFunBuy(trade_event)),
-            "sell" | "sell_v3" => Some(DexEvent::PumpFunSell(trade_event)),
+            "buy" => Some(DexEvent::PumpFunBuy(trade_event)),
+            "sell" => Some(DexEvent::PumpFunSell(trade_event)),
             "buy_exact_sol_in" => Some(DexEvent::PumpFunBuyExactSolIn(trade_event)),
-            "buy_exact_quote_in" | "buy_exact_quote_in_v3" => {
-                Some(DexEvent::PumpFunBuy(trade_event))
-            }
+            "buy_exact_quote_in" => Some(DexEvent::PumpFunBuy(trade_event)),
             _ => Some(DexEvent::PumpFunTrade(trade_event)),
         }
     }

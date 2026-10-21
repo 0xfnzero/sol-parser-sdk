@@ -515,9 +515,8 @@ pub(crate) fn dedupe_log_instruction_events(
     instr_events: Vec<DexEvent>,
 ) -> Vec<DexEvent> {
     if instr_events.is_empty() || (log_events.is_empty() && instr_events.len() == 1) {
-        let mut out = if instr_events.is_empty() { log_events } else { instr_events };
-        crate::core::pumpfun_fee_enrich::enrich_pumpfun_same_tx_post_merge(&mut out);
-        return crate::core::dbc_compatibility::prefer_current_dbc_events(out);
+        let out = if instr_events.is_empty() { log_events } else { instr_events };
+        return finish_merged_events(out);
     }
 
     if log_events.len() == 1 && instr_events.len() == 1 {
@@ -536,8 +535,7 @@ pub(crate) fn dedupe_log_instruction_events(
             out.push(log_event);
             out.push(instr_event);
         }
-        crate::core::pumpfun_fee_enrich::enrich_pumpfun_same_tx_post_merge(&mut out);
-        return crate::core::dbc_compatibility::prefer_current_dbc_events(out);
+        return finish_merged_events(out);
     }
 
     let cap = log_events.len().saturating_add(instr_events.len());
@@ -588,8 +586,35 @@ pub(crate) fn dedupe_log_instruction_events(
             out.push(e);
         }
     }
-    crate::core::pumpfun_fee_enrich::enrich_pumpfun_same_tx_post_merge(&mut out);
-    crate::core::dbc_compatibility::prefer_current_dbc_events(out)
+    finish_merged_events(out)
+}
+
+fn finish_merged_events(mut events: Vec<DexEvent>) -> Vec<DexEvent> {
+    // A create recovered only from instructions is appended after log trades.
+    // In a successful transaction its mint must exist before it can trade.
+    // Move only that create before its first trade; retain all trade/hop order.
+    // No allocation or per-trade search on the ordinary (no-create) hot path.
+    for index in 1..events.len() {
+        let mint = match &events[index] {
+            DexEvent::PumpFunCreate(c) => c.mint,
+            DexEvent::PumpFunCreateV2(c) => c.mint,
+            _ => continue,
+        };
+        if mint == Pubkey::default() {
+            continue;
+        }
+        if let Some(first_trade) = events[..index].iter().position(|event| match event {
+            DexEvent::PumpFunTrade(t)
+            | DexEvent::PumpFunBuy(t)
+            | DexEvent::PumpFunSell(t)
+            | DexEvent::PumpFunBuyExactSolIn(t) => t.mint == mint,
+            _ => false,
+        }) {
+            events[first_trade..=index].rotate_right(1);
+        }
+    }
+    crate::core::pumpfun_fee_enrich::enrich_pumpfun_same_tx_post_merge(&mut events);
+    crate::core::dbc_compatibility::prefer_current_dbc_events(events)
 }
 
 #[cfg(test)]

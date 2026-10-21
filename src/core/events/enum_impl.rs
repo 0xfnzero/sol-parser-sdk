@@ -1,5 +1,4 @@
 use super::types::*;
-use super::PumpRouteIntentEvent;
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use solana_sdk::signature::Signature;
@@ -161,9 +160,6 @@ pub enum DexEvent {
     PumpFunSweepBondingCurveFee(PumpFunSweepBondingCurveFeeEvent),
     PumpFunComplete(PumpFunCompleteEvent),
     PumpSwapSweepPoolFee(PumpSwapSweepPoolFeeEvent),
-    /// Pre-execution route intent; never a confirmed trade.
-    PumpRouteIntent(Box<PumpRouteIntentEvent>),
-    RawInstruction(Box<super::RawInstructionEvent>),
 }
 
 // 静态默认 EventMetadata，用于 Error 事件
@@ -180,8 +176,6 @@ impl DexEvent {
     /// 获取事件的元数据
     pub fn metadata(&self) -> &EventMetadata {
         match self {
-            DexEvent::PumpRouteIntent(e) => &e.metadata,
-            DexEvent::RawInstruction(e) => &e.metadata,
             // PumpFun 事件
             DexEvent::PumpFunCreate(e) => &e.metadata,
             DexEvent::PumpFunCreateV2(e) => &e.metadata,
@@ -335,8 +329,6 @@ impl DexEvent {
     /// Mutable metadata for filling shared fields (e.g. recent_blockhash). Returns None for Error variant.
     pub fn metadata_mut(&mut self) -> Option<&mut EventMetadata> {
         match self {
-            DexEvent::PumpRouteIntent(e) => Some(&mut e.metadata),
-            DexEvent::RawInstruction(e) => Some(&mut e.metadata),
             DexEvent::PumpFunCreate(e) => Some(&mut e.metadata),
             DexEvent::PumpFunCreateV2(e) => Some(&mut e.metadata),
             DexEvent::PumpFunTrade(e) => Some(&mut e.metadata),

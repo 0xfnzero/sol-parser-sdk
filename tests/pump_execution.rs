@@ -5,6 +5,62 @@ use sol_parser_sdk::{
 };
 use yellowstone_grpc_proto::prelude::{SubscribeUpdateTransaction, SubscribeUpdateTransactionInfo};
 
+#[test]
+fn wrapped_creation_precedes_its_trades_with_partial_logs() {
+    use base64::{engine::general_purpose::STANDARD, Engine};
+    let fixture: Value =
+        serde_json::from_str(include_str!("fixtures/pump_execution_20261019.json")).unwrap();
+    let mut checked = 0;
+    for case in fixture["cases"].as_array().unwrap() {
+        let rpc = serde_json::from_value(case["wire_rpc"].clone()).unwrap();
+        let (meta, tx) = sol_parser_sdk::convert_rpc_to_grpc(&rpc).unwrap();
+        let mut update = SubscribeUpdateTransaction {
+            slot: rpc.slot,
+            transaction: Some(SubscribeUpdateTransactionInfo {
+                signature: tx.signatures[0].clone(),
+                transaction: Some(tx),
+                meta: Some(meta),
+                ..Default::default()
+            }),
+        };
+        // Keep invocation logs and trade events; recover missing creates from CPI.
+        update.transaction.as_mut().unwrap().meta.as_mut().unwrap().log_messages.retain(|log| {
+            !log.strip_prefix("Program data: ")
+                .and_then(|s| STANDARD.decode(s).ok())
+                .is_some_and(|data| data.starts_with(&[27, 114, 169, 77, 222, 235, 99, 118]))
+        });
+        let events = sol_parser_sdk::grpc::parse_subscribe_update_transaction_low_latency(
+            &update, 0, None, None,
+        );
+        for (create_index, event) in events.iter().enumerate() {
+            let mint = match event {
+                DexEvent::PumpFunCreate(c) => c.mint,
+                DexEvent::PumpFunCreateV2(c) => c.mint,
+                _ => continue,
+            };
+            for (trade_index, event) in events.iter().enumerate() {
+                match event {
+                    DexEvent::PumpFunTrade(t)
+                    | DexEvent::PumpFunBuy(t)
+                    | DexEvent::PumpFunSell(t)
+                    | DexEvent::PumpFunBuyExactSolIn(t)
+                        if t.mint == mint =>
+                    {
+                        assert!(
+                            create_index < trade_index,
+                            "{}: create={create_index}, trade={trade_index}",
+                            case["name"]
+                        );
+                        checked += 1;
+                    }
+                    _ => {}
+                }
+            }
+        }
+    }
+    assert!(checked > 0);
+}
+
 fn trades(events: &[DexEvent]) -> Vec<Value> {
     events
         .iter()
@@ -50,12 +106,90 @@ fn trades(events: &[DexEvent]) -> Vec<Value> {
 }
 
 #[test]
+fn versioned_cpi_names_keep_filtered_execution_amounts() {
+    use sol_parser_sdk::instr::pump::discriminators;
+    let fixture: Value =
+        serde_json::from_str(include_str!("fixtures/pump_holder_20261009.json")).unwrap();
+    for (name, disc, case_index, old_name, kind) in [
+        ("buy_v3", discriminators::BUY_V3, 0, "buy_exact_quote_in", EventType::PumpFunBuy),
+        (
+            "buy_exact_quote_in_v3",
+            discriminators::BUY_EXACT_QUOTE_IN_V3,
+            0,
+            "buy_exact_quote_in",
+            EventType::PumpFunBuy,
+        ),
+        ("sell_v3", discriminators::SELL_V3, 1, "sell", EventType::PumpFunSell),
+    ] {
+        let rpc = serde_json::from_value(fixture["cases"][case_index]["wire_rpc"].clone()).unwrap();
+        let (mut meta, mut tx) = sol_parser_sdk::convert_rpc_to_grpc(&rpc).unwrap();
+        let message = tx.message.as_mut().unwrap();
+        let ix = message
+            .instructions
+            .iter_mut()
+            .find(|ix| {
+                [discriminators::BUY_EXACT_QUOTE_IN_V3, discriminators::SELL_V3]
+                    .iter()
+                    .any(|d| ix.data.starts_with(d))
+            })
+            .unwrap();
+        ix.data[..8].copy_from_slice(&disc);
+        let mut expected = None;
+        // Explicitly constructed variant of the saved payload: change only the
+        // Borsh method name to exercise versioned CPI names, keep fill bytes.
+        for ix in meta.inner_instructions.iter_mut().flat_map(|g| &mut g.instructions) {
+            if !ix.data.starts_with(&[
+                228, 69, 165, 46, 81, 203, 154, 29, 189, 219, 127, 211, 78, 230, 97, 238,
+            ]) {
+                continue;
+            }
+            expected = Some((
+                u64::from_le_bytes(ix.data[48..56].try_into().unwrap()),
+                u64::from_le_bytes(ix.data[56..64].try_into().unwrap()),
+            ));
+            let mut old = (old_name.len() as u32).to_le_bytes().to_vec();
+            old.extend_from_slice(old_name.as_bytes());
+            let offset = ix.data.windows(old.len()).position(|s| s == old).unwrap();
+            let mut replacement = (name.len() as u32).to_le_bytes().to_vec();
+            replacement.extend_from_slice(name.as_bytes());
+            ix.data.splice(offset..offset + old.len(), replacement);
+        }
+        meta.log_messages.clear();
+        let update = SubscribeUpdateTransaction {
+            slot: rpc.slot,
+            transaction: Some(SubscribeUpdateTransactionInfo {
+                signature: tx.signatures[0].clone(),
+                transaction: Some(tx),
+                meta: Some(meta),
+                ..Default::default()
+            }),
+        };
+        let filter = EventTypeFilter::include_only(vec![kind]);
+        let events = sol_parser_sdk::grpc::parse_subscribe_update_transaction_low_latency(
+            &update,
+            0,
+            None,
+            Some(&filter),
+        );
+        assert_eq!(events.len(), 1, "{name}");
+        let t = match &events[0] {
+            DexEvent::PumpFunBuy(t) | DexEvent::PumpFunSell(t) => t,
+            _ => panic!("{name}"),
+        };
+        assert_eq!((t.sol_amount, t.token_amount), expected.unwrap(), "{name}");
+        assert_ne!(t.token_amount, 0);
+        assert_eq!(t.ix_name, name);
+    }
+}
+
+#[test]
 fn execution_survives_missing_or_truncated_logs() {
     for fixture in [
         include_str!("fixtures/pump_execution_20261019.json"),
         include_str!("fixtures/pump_routes_20261009.json"),
         include_str!("fixtures/pump_execution_original.json"),
         include_str!("fixtures/wrapped_pumpfun_reported.json"),
+        include_str!("fixtures/pump_holder_20261009.json"),
     ] {
         let fixture: Value = serde_json::from_str(fixture).unwrap();
         for c in fixture["cases"].as_array().unwrap() {
@@ -90,6 +224,30 @@ fn execution_survives_missing_or_truncated_logs() {
                 }
                 if mode == 2 {
                     m.log_messages.truncate(m.log_messages.len() / 2);
+                }
+                for kind in [EventType::PumpFunBuy, EventType::PumpFunSell] {
+                    let specific = EventTypeFilter::include_only(vec![kind]);
+                    let expected: Vec<_> = baseline
+                        .iter()
+                        .filter(|v| {
+                            v.get("PumpFunTrade").is_some_and(|t| {
+                                t["is_buy"].as_bool() == Some(kind == EventType::PumpFunBuy)
+                                    && t["ix_name"].as_str().is_some_and(|name| {
+                                        name.starts_with("buy") || name.starts_with("sell")
+                                    })
+                            })
+                        })
+                        .cloned()
+                        .collect();
+                    let actual = trades(
+                        &sol_parser_sdk::grpc::parse_subscribe_update_transaction_low_latency(
+                            &u,
+                            0,
+                            None,
+                            Some(&specific),
+                        ),
+                    );
+                    assert_eq!(actual, expected, "{} {kind:?} mode={mode}", c["name"]);
                 }
                 for events in [
                     sol_parser_sdk::grpc::parse_subscribe_update_transaction(

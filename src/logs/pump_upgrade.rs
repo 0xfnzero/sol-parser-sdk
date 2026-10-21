@@ -114,50 +114,6 @@ pub fn parse(
     None
 }
 
-/// Instruction intent only. Each hop's executed amounts come from its trade events.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct PumpMultiHopIntent {
-    pub user: Pubkey,
-    pub input_account: Pubkey,
-    pub output_account: Pubkey,
-    pub amount_in: u64,
-    pub min_amount_out: u64,
-    pub hops: Vec<PumpMultiHopAccounts>,
-}
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct PumpMultiHopAccounts {
-    pub base_mint: Pubkey,
-    pub quote_mint: Pubkey,
-    pub venue: Pubkey,
-    pub base_vault: Pubkey,
-    pub quote_vault: Pubkey,
-}
-pub fn decode_multi_hop_intent(
-    program: Pubkey,
-    data: &[u8],
-    accounts: &[Pubkey],
-) -> Option<PumpMultiHopIntent> {
-    let (amount_in, min_amount_out) =
-        crate::instr::pump_routes::multi_hop_args(program, data, accounts)?;
-    Some(PumpMultiHopIntent {
-        user: accounts[0],
-        input_account: accounts[1],
-        output_account: accounts[2],
-        amount_in,
-        min_amount_out,
-        hops: accounts[16..]
-            .chunks_exact(5)
-            .map(|h| PumpMultiHopAccounts {
-                base_mint: h[0],
-                quote_mint: h[1],
-                venue: h[2],
-                base_vault: h[3],
-                quote_vault: h[4],
-            })
-            .collect(),
-    })
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;

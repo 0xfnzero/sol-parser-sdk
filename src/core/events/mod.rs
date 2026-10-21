@@ -8,8 +8,6 @@ mod types;
 pub use enum_impl::DexEvent;
 pub use types::*;
 
-mod route_intent;
-pub use route_intent::*;
 mod raw_instruction;
 mod trade_source;
 pub use raw_instruction::*;

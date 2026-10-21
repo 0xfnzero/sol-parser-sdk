@@ -14,8 +14,8 @@ pub mod transaction_route;
 pub mod utils;
 // 预热模块
 pub mod warmup;
-pub mod wrapped_pumpfun_parser;
-pub mod wrapped_pumpfun_rpc_analyzer;
+#[cfg(test)]
+mod wrapped_pumpfun_rpc_analyzer;
 
 // gRPC 模块 - 支持gRPC订阅和过滤
 pub mod grpc;

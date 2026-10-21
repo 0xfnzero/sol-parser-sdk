@@ -402,9 +402,6 @@ pub enum EventType {
     PumpFunPostCompleteBuy,
     PumpFunSweepBondingCurveFee,
     PumpSwapSweepPoolFee,
-    /// Pre-execution route intent, separate from confirmed fills.
-    PumpRouteIntent,
-    RawInstruction,
 }
 
 #[derive(Debug, Clone)]
@@ -428,11 +425,6 @@ impl EventTypeFilter {
     }
 
     pub fn should_include(&self, event_type: EventType) -> bool {
-        if event_type == EventType::RawInstruction
-            && self.exclude_types.as_ref().is_some_and(|types| types.contains(&event_type))
-        {
-            return false;
-        }
         if let Some(ref include_only) = self.include_only {
             // Direct match
             if include_only.contains(&event_type) {
@@ -493,23 +485,6 @@ impl EventTypeFilter {
         true
     }
 
-    /// Broad trade subscriptions include pre-execution route intents. Mixed
-    /// official routes match either family; buy/sell-specific filters do not.
-    /// Explicit route exclusion wins over all family aliases.
-    pub(crate) fn includes_pump_route(&self, kind: crate::core::events::PumpRouteKind) -> bool {
-        if self
-            .exclude_types
-            .as_ref()
-            .is_some_and(|types| types.contains(&EventType::PumpRouteIntent))
-        {
-            return false;
-        }
-        self.include_only.as_ref().is_some_and(|types| types.contains(&EventType::PumpRouteIntent))
-            || self.should_include(EventType::PumpFunTrade)
-            || (kind == crate::core::events::PumpRouteKind::MultiHopSwap
-                && self.should_include(EventType::PumpSwapTrade))
-    }
-
     pub(crate) fn includes_unresolved_pumpfun(&self) -> bool {
         !self.exclude_types.as_ref().is_some_and(|types| types.contains(&EventType::PumpFunTrade))
             && self.should_include(EventType::PumpFunTrade)
@@ -522,12 +497,6 @@ impl EventTypeFilter {
                 // a sell classification. Explicit family exclusion wins.
                 return self.includes_unresolved_pumpfun();
             }
-        }
-        if let crate::core::events::DexEvent::RawInstruction(raw) = event {
-            return crate::core::events::raw_instruction_matches_filter(&raw.dexes, self);
-        }
-        if let crate::core::events::DexEvent::PumpRouteIntent(intent) = event {
-            return self.includes_pump_route(intent.kind);
         }
         let Some(event_type) = event_type_from_dex_event(event) else { return true };
         self.should_include(event_type)
@@ -764,8 +733,6 @@ fn is_pumpfun_create_family(event_type: EventType) -> bool {
 pub fn event_type_from_dex_event(event: &crate::core::events::DexEvent) -> Option<EventType> {
     use crate::core::events::DexEvent;
     match event {
-        DexEvent::PumpRouteIntent(_) => Some(EventType::PumpRouteIntent),
-        DexEvent::RawInstruction(_) => Some(EventType::RawInstruction),
         DexEvent::PumpFunCreate(_) => Some(EventType::PumpFunCreate),
         DexEvent::PumpFunCreateV2(_) => Some(EventType::PumpFunCreateV2),
         DexEvent::PumpFunTrade(_) => Some(EventType::PumpFunTrade),
