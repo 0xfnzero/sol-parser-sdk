@@ -34,7 +34,10 @@ fn signed_cross_dex_routes_preserve_each_protocol_and_rpc_grpc_agree() {
         let grpc = analyze_yellowstone_transaction_routes(&tx, &meta, &[]);
         assert_eq!(serde_json::to_value(&route).unwrap(), serde_json::to_value(grpc).unwrap());
         let catalog = StockTokenCatalog::screened_defaults();
-        assert_eq!(catalog.conversion_legs(&route).count(), 1);
+        // The captured Stonk/Meteora bridge was removed for reserve below $500.
+        // Its raw CPI legs must still parse, but it is no longer a default route.
+        let expected = usize::from(case["name"] != "stonk_meteora");
+        assert_eq!(catalog.conversion_legs(&route).count(), expected);
         for leg in catalog.conversion_legs(&route) {
             assert_ne!(leg.protocol, business);
         }

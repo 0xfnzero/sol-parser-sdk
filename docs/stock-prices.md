@@ -1,4 +1,4 @@
-# Stock and ETF price subscriptions (v0.8.0)
+# Stock and ETF price subscriptions
 
 `stock_prices::StockPriceSubscription` is an explicit opt-in subscription. It
 emits `StockTokenPriceEvent` rather than changing the existing `DexEvent` stream.
@@ -16,7 +16,7 @@ let mut config = StockPriceConfig {
 // Duplicate mints/pools, unsupported DEXes and unsupported quote mints are rejected.
 ```
 
-The catalog contains **34 distinct mints / 63 pools**, covering xStocks and the
+The catalog contains **33 distinct mints / 58 pools**, covering xStocks and the
 Backpack stock/ETF directory. Directory source is not a claim about legal issuer
 or collateral backing. The same stock from different providers remains a
 different mint. ETFs and other listed products retain their original symbols;
@@ -27,6 +27,13 @@ they are not represented as ordinary company shares.
 [Captured evidence](research/stock-catalog-20261020.json) records exact official
 mint identities, mint decimals from chain snapshots, pool owners, slots,
 transaction signatures, bidirectional depth tests and on-chain fee snapshots.
+
+The [2026-10-22 review](research/stock-catalog-20261022.json) is the current
+catalog-generation input. It removes five pools after large-withdrawal history
+and a fresh $500 liquid-side reserve check; see the [exact exclusions](STOCK_BRIDGE_SYNC.md#pool-removals-on-2026-10-22).
+The old account/transaction captures remain historical evidence. In particular,
+the bundled ABNB price replay now yields no default stock-price event for its
+removed pool, while its underlying DEX trade still parses normally.
 
 Admission now requires **at least $500 of verified USDC/WSOL-side pool reserve**,
 with no volume or TVL filter. USDC is valued at $1; WSOL is valued through the
@@ -50,7 +57,8 @@ program samples cover only seconds. This is not a full-day or exhaustive scan.
 Of 33 candidate accounts, eight new pools passed identity, $500 liquid-side
 reserve and bidirectional quote validation: seven Raydium CLMM pools and one
 Orca pool. HIMS.US, AMD.US, RACE.US and RDDT.US add four mints; AAPLx, ABNB.US
-and MSFTx gain alternatives. The combined catalog now has 34 mints / 63 pools.
+and MSFTx gain alternatives. That scan produced 34 mints / 63 pools; the later
+2026-10-22 review reduces the current defaults to 33 mints / 58 pools.
 One additional RDDT.US pool failed admission. Non-stock route legs and invalid
 candidate account positions were rejected rather than admitted by association.
 
@@ -95,7 +103,7 @@ first; deeper reserve breaks ties. Unknown rates follow known rates. Dynamic
 `snapshot_start_swap_fee_bps` is the initial active-bin/tick rate at the recorded
 Clock, not a fixed or whole-order fee. `catalog.preferred_pool(&mint)` returns
 the shared historical preference for that mint. sol-trade-sdk installs all
-63 qualified stock pools, including alternatives, plus its WSOL/USDC bridge.
+58 qualified stock pools, including alternatives, plus its WSOL/USDC bridge.
 All qualified alternatives remain subscribed, so this preference does not hide
 trades. It is an offline catalog preference, not a live routing decision.
 Transfer caps, transaction size, dynamic fees and hook behavior can change actual
@@ -109,7 +117,7 @@ Regenerate both packaged catalogs together after screening; add `--check` to
 verify generated JSON content and byte-for-byte parity between SDK copies without writing:
 
 ```sh
-cargo run --example stock_catalog_sync -- --report docs/research/stock-catalog-20261020.json \
+cargo run --example stock_catalog_sync -- --report docs/research/stock-catalog-20261022.json \
   --fee-audit ../sol-trade-sdk/docs/research/bridge-defaults-20261020-expanded-scan.json \
   --parser-root . --trade-root ../sol-trade-sdk
 ```

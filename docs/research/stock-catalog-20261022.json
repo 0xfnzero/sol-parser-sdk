@@ -1,0 +1,2598 @@
+{
+  "screened_at": "2026-10-21T20:25:24.673Z",
+  "minimum_liquid_side_usd": 500,
+  "volume_filter": false,
+  "valuation_note": "USDC assumed USD 1; WSOL valued at the recorded Orca SOL/USDC sqrt-price. Vault reserve is not executable depth.",
+  "priority_note": "Historical fee preference retained, then the refreshed liquid-side reserve.",
+  "coverage_note": "Rescreen of the 63 previously admitted pools; bidirectional quote and fee evidence remains the 2026-10-20 capture. Withdrawal history is bounded, not a lifetime lock certification.",
+  "previous_screening": "stock-catalog-20261020.json",
+  "sol_usdc_reference": {
+    "pool": "Czfq3xZZDmsdGdUyrNLtRhGc47cXcZtLG4crryfu44zE",
+    "slot": 459763391,
+    "price_usdc": 107.99180912750606,
+    "method": "Whirlpool sqrt_price, adjusted for WSOL 9 / USDC 6 decimals; USDC assumed USD 1"
+  },
+  "history_exclusions": [
+    {
+      "pool": "6E12HKuZkyQoMwhTtN4WFs95uMEoW2zXJMFSE4jNcjHE",
+      "signature": "3cCb5rnKwVuGxDkaQaWTvfcjiwDj7xPF5Fhpr2TDqxYZpTvESpJF5Ere71RzknaiMD6RGciRm8QDX5NCAXjMCGCx",
+      "slot": 459749939,
+      "block_time": 1792611457,
+      "quote_mint": "So11111111111111111111111111111111111111112",
+      "quote_vault": "FfNnESqsw9RgvJZbZ5LHbva83drKhmn416bVmA2RdBVo",
+      "stock_vault": "7PuasyHyxT61E6PEPtGjbDoAia3V85yvaXtRLcvmgTEc",
+      "quote_pre_raw": "569414913",
+      "quote_post_raw": "21601490",
+      "stock_pre_raw": "5438412",
+      "stock_post_raw": "650330",
+      "quote_decrease_pct": 96.2063708717794,
+      "stock_decrease_pct": 88.04191370569204,
+      "reason": "Single successful removal transaction reduced both pool vaults by at least 50%; no matched same-transaction readdition."
+    },
+    {
+      "pool": "52PqYh77gmA6AbM5Hs6gHe9mhGBey5CwmD7sDybaYj27",
+      "signature": "cZf6aKRPwNxPxDGaUdP9YuFia84yy3hWgjgYhv5ueHUgfp8ovmvg4hvaJBGzVeMdiiiaPtYk66ktBCKhHpB4jxn",
+      "slot": 459697520,
+      "block_time": 1792600289,
+      "quote_mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "quote_vault": "3onyQgXZL5NJ9VgcsEBLR1JAMpKweWFC2EfZXA22wLdX",
+      "stock_vault": "CLb6CC5zEF1k3krFaSNPGtmzWJcpZPty2eAs6q1yY47S",
+      "quote_pre_raw": "974332908",
+      "quote_post_raw": "264110681",
+      "stock_pre_raw": "6304021",
+      "stock_post_raw": "2366977",
+      "quote_decrease_pct": 72.8931786218597,
+      "stock_decrease_pct": 62.45290109281045,
+      "reason": "Single successful removal transaction reduced both pool vaults by at least 50%; no matched same-transaction readdition."
+    },
+    {
+      "pool": "52PqYh77gmA6AbM5Hs6gHe9mhGBey5CwmD7sDybaYj27",
+      "signature": "3yfQy7qeWkjqLdqnBoA16dHYqrN4wDFXQ1bSGzGQKs6sDrxMJVcFP7VPzJAs7QiGRXG1cr9fKw7eHFhGZvHRpT28",
+      "slot": 459559801,
+      "block_time": 1792570728,
+      "quote_mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "quote_vault": "3onyQgXZL5NJ9VgcsEBLR1JAMpKweWFC2EfZXA22wLdX",
+      "stock_vault": "CLb6CC5zEF1k3krFaSNPGtmzWJcpZPty2eAs6q1yY47S",
+      "quote_pre_raw": "4949180386",
+      "quote_post_raw": "97667785",
+      "stock_pre_raw": "55746158",
+      "stock_post_raw": "625171",
+      "quote_decrease_pct": 98.02658667935648,
+      "stock_decrease_pct": 98.87853975515226,
+      "reason": "Single successful removal transaction reduced both pool vaults by at least 50%; no matched same-transaction readdition."
+    }
+  ],
+  "candidates": [
+    {
+      "symbol": "ABNB.US",
+      "mint": "ABNB56TteaTZG1S3DY2W8VMncQmHMvNCGaZgAba49CLP",
+      "decimals": 6,
+      "catalog_source": "https://api.backpack.exchange/api/v1/assets",
+      "pool": "52PqYh77gmA6AbM5Hs6gHe9mhGBey5CwmD7sDybaYj27",
+      "quote_mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "program_id": "CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK",
+      "snapshot_slot": 459763395,
+      "liquid_side_reserve_usd": 870.753399,
+      "reserve_snapshot": {
+        "vault": "3onyQgXZL5NJ9VgcsEBLR1JAMpKweWFC2EfZXA22wLdX",
+        "amount_raw": "870753399",
+        "slot": 459763395
+      },
+      "fees": {
+        "base_swap_fee_bps": 25,
+        "dynamic_swap_fee": false,
+        "epoch": 1062,
+        "pool": "52PqYh77gmA6AbM5Hs6gHe9mhGBey5CwmD7sDybaYj27",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458982126,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "ABNB56TteaTZG1S3DY2W8VMncQmHMvNCGaZgAba49CLP",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": 25,
+        "unix_timestamp": 1792445269
+      },
+      "accepted": false,
+      "rejection_reasons": [
+        "historical_pool_withdrawal_at_least_50_percent"
+      ]
+    },
+    {
+      "symbol": "ABNB.US",
+      "mint": "ABNB56TteaTZG1S3DY2W8VMncQmHMvNCGaZgAba49CLP",
+      "decimals": 6,
+      "catalog_source": "https://api.backpack.exchange/api/v1/assets",
+      "pool": "Bu2A9LUZaMRnf7ZyC1nzREn6dVGVVuPwxz5aFBFkJLTa",
+      "quote_mint": "So11111111111111111111111111111111111111112",
+      "program_id": "LBUZKhRxPF3XUpBCjp4YzTKgLccjZhTSDM9YuVaPwxo",
+      "snapshot_slot": 459763395,
+      "liquid_side_reserve_usd": 443.489847748636,
+      "reserve_snapshot": {
+        "vault": "2icck7Awd2st78TVcjg9b7WGaYU2AY6B3nhfA4tvK2iH",
+        "amount_raw": "4106698937",
+        "slot": 459763395
+      },
+      "fees": {
+        "base_swap_fee_bps": 25,
+        "dynamic_swap_fee": true,
+        "epoch": 1062,
+        "pool": "Bu2A9LUZaMRnf7ZyC1nzREn6dVGVVuPwxz5aFBFkJLTa",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "So11111111111111111111111111111111111111112",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458982135,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "ABNB56TteaTZG1S3DY2W8VMncQmHMvNCGaZgAba49CLP",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": null,
+        "unix_timestamp": 1792445272
+      },
+      "accepted": false,
+      "rejection_reasons": [
+        "liquid_side_below_500_usd"
+      ]
+    },
+    {
+      "symbol": "ABNB.US",
+      "mint": "ABNB56TteaTZG1S3DY2W8VMncQmHMvNCGaZgAba49CLP",
+      "decimals": 6,
+      "catalog_source": "https://api.backpack.exchange/api/v1/assets",
+      "pool": "HdnzKiiGQT4vbhrRnXqAts9ogQBPpekQNbL46JVvW1Fn",
+      "quote_mint": "So11111111111111111111111111111111111111112",
+      "program_id": "CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK",
+      "snapshot_slot": 459763395,
+      "liquid_side_reserve_usd": 603.1012201466436,
+      "reserve_snapshot": {
+        "vault": "FB8FnnXL9ek5xo2DQjTMKrXvvVJdUS1fssNKEstRiHWd",
+        "amount_raw": "5584694108",
+        "slot": 459763395
+      },
+      "fees": {
+        "base_swap_fee_bps": 100,
+        "dynamic_swap_fee": true,
+        "epoch": 1062,
+        "pool": "HdnzKiiGQT4vbhrRnXqAts9ogQBPpekQNbL46JVvW1Fn",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "So11111111111111111111111111111111111111112",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458982164,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "ABNB56TteaTZG1S3DY2W8VMncQmHMvNCGaZgAba49CLP",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": null,
+        "unix_timestamp": 1792445278
+      },
+      "accepted": true,
+      "rejection_reasons": []
+    },
+    {
+      "symbol": "ABNB.US",
+      "mint": "ABNB56TteaTZG1S3DY2W8VMncQmHMvNCGaZgAba49CLP",
+      "decimals": 6,
+      "catalog_source": "https://api.backpack.exchange/api/v1/assets",
+      "pool": "CB8XEbWETgadadx9t9GhxJbRbYvDE5U1KqS4ycZtwKmK",
+      "quote_mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "program_id": "CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK",
+      "snapshot_slot": 459763395,
+      "liquid_side_reserve_usd": 38895.605636,
+      "reserve_snapshot": {
+        "vault": "59utE7RDv63dFFGm9L4Guyvbd1HYD6c2vs6VcV4N2tbA",
+        "amount_raw": "38895605636",
+        "slot": 459763395
+      },
+      "fees": {
+        "base_swap_fee_bps": 100,
+        "dynamic_swap_fee": true,
+        "epoch": 1062,
+        "pool": "CB8XEbWETgadadx9t9GhxJbRbYvDE5U1KqS4ycZtwKmK",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458985835,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "ABNB56TteaTZG1S3DY2W8VMncQmHMvNCGaZgAba49CLP",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": null,
+        "unix_timestamp": 1792446075
+      },
+      "accepted": true,
+      "rejection_reasons": []
+    },
+    {
+      "symbol": "AMD.US",
+      "mint": "AMD8XwJXgQ9WV45Wyj9yFLejxzf2J6VM1PJY8bJEjeES",
+      "decimals": 6,
+      "catalog_source": "https://api.backpack.exchange/api/v1/assets",
+      "pool": "ASvFi45yphKhx6ej9gJEDvTedXcXjhKjkhm3hRERuU2",
+      "quote_mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "program_id": "CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK",
+      "snapshot_slot": 459763395,
+      "liquid_side_reserve_usd": 20761.624401,
+      "reserve_snapshot": {
+        "vault": "58myx9bPyFNcpX9RhEpr9w5vHnGqPPoGBwiBCW3zJwih",
+        "amount_raw": "20761624401",
+        "slot": 459763395
+      },
+      "fees": {
+        "base_swap_fee_bps": 25,
+        "dynamic_swap_fee": true,
+        "epoch": 1062,
+        "pool": "ASvFi45yphKhx6ej9gJEDvTedXcXjhKjkhm3hRERuU2",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458985834,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "AMD8XwJXgQ9WV45Wyj9yFLejxzf2J6VM1PJY8bJEjeES",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": null,
+        "unix_timestamp": 1792446075
+      },
+      "accepted": true,
+      "rejection_reasons": []
+    },
+    {
+      "symbol": "BABA.US",
+      "mint": "BABANGA4JE7Kkam4nTrALAwAVgsNJUuFJnnkF7S16BZp",
+      "decimals": 6,
+      "catalog_source": "https://api.backpack.exchange/api/v1/assets",
+      "pool": "8cdMW3EGziaxzQqgGJx46xnzaxQuVg5acThQxCLiJMrE",
+      "quote_mint": "So11111111111111111111111111111111111111112",
+      "program_id": "CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK",
+      "snapshot_slot": 459763395,
+      "liquid_side_reserve_usd": 3166.390134299129,
+      "reserve_snapshot": {
+        "vault": "8JLrpvpBHwKG4mo2GiN94wGEzKHXV4WRxWpeT9y5yTAV",
+        "amount_raw": "29320650889",
+        "slot": 459763395
+      },
+      "fees": {
+        "base_swap_fee_bps": 15,
+        "dynamic_swap_fee": true,
+        "epoch": 1062,
+        "pool": "8cdMW3EGziaxzQqgGJx46xnzaxQuVg5acThQxCLiJMrE",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "So11111111111111111111111111111111111111112",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458982157,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "BABANGA4JE7Kkam4nTrALAwAVgsNJUuFJnnkF7S16BZp",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": null,
+        "unix_timestamp": 1792445276
+      },
+      "accepted": true,
+      "rejection_reasons": []
+    },
+    {
+      "symbol": "BABA.US",
+      "mint": "BABANGA4JE7Kkam4nTrALAwAVgsNJUuFJnnkF7S16BZp",
+      "decimals": 6,
+      "catalog_source": "https://api.backpack.exchange/api/v1/assets",
+      "pool": "56eGajrdCczGK6m8faSimtMJLVBjfarSDVPvoMhYooRi",
+      "quote_mint": "So11111111111111111111111111111111111111112",
+      "program_id": "LBUZKhRxPF3XUpBCjp4YzTKgLccjZhTSDM9YuVaPwxo",
+      "snapshot_slot": 459763395,
+      "liquid_side_reserve_usd": 809.583654995475,
+      "reserve_snapshot": {
+        "vault": "Euj1CkpgxDm5QTxcpkQvdnnWvcnJTnJuRHC9vBoK6Mba",
+        "amount_raw": "7496713515",
+        "slot": 459763395
+      },
+      "fees": {
+        "base_swap_fee_bps": 15,
+        "dynamic_swap_fee": true,
+        "epoch": 1062,
+        "pool": "56eGajrdCczGK6m8faSimtMJLVBjfarSDVPvoMhYooRi",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "So11111111111111111111111111111111111111112",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458982231,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "BABANGA4JE7Kkam4nTrALAwAVgsNJUuFJnnkF7S16BZp",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": null,
+        "unix_timestamp": 1792445293
+      },
+      "accepted": true,
+      "rejection_reasons": []
+    },
+    {
+      "symbol": "BABA.US",
+      "mint": "BABANGA4JE7Kkam4nTrALAwAVgsNJUuFJnnkF7S16BZp",
+      "decimals": 6,
+      "catalog_source": "https://api.backpack.exchange/api/v1/assets",
+      "pool": "8YU7gLMh4T8RuGepxAuigTqZeGfBn3TDS6tnuj951XbW",
+      "quote_mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "program_id": "whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc",
+      "snapshot_slot": 459763395,
+      "liquid_side_reserve_usd": 122.192735,
+      "reserve_snapshot": {
+        "vault": "EVc7ArPvcQ6qT4Ysb3ovwjHmohyEZDLDKUHQp47h1y5a",
+        "amount_raw": "122192735",
+        "slot": 459763395
+      },
+      "fees": {
+        "base_swap_fee_bps": 16,
+        "dynamic_swap_fee": false,
+        "epoch": 1062,
+        "pool": "8YU7gLMh4T8RuGepxAuigTqZeGfBn3TDS6tnuj951XbW",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458982156,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "BABANGA4JE7Kkam4nTrALAwAVgsNJUuFJnnkF7S16BZp",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": 16,
+        "unix_timestamp": 1792445276
+      },
+      "accepted": false,
+      "rejection_reasons": [
+        "liquid_side_below_500_usd"
+      ]
+    },
+    {
+      "symbol": "CHWY.US",
+      "mint": "CHWYHz2zfKajomqPV9it26n7vu7AgZZfqGHXCWtGWuJg",
+      "decimals": 6,
+      "catalog_source": "https://api.backpack.exchange/api/v1/assets",
+      "pool": "GJmMTjiE2dZiAQgENapnBxzsTWNX4KLbiNnjzovwv1KE",
+      "quote_mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "program_id": "CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK",
+      "snapshot_slot": 459763395,
+      "liquid_side_reserve_usd": 1716.069715,
+      "reserve_snapshot": {
+        "vault": "DwgdE3cYvgWM6uk6RkEiQFg1BgY9dEc4BXdmmbe8Q7nS",
+        "amount_raw": "1716069715",
+        "slot": 459763395
+      },
+      "fees": {
+        "base_swap_fee_bps": 25,
+        "dynamic_swap_fee": false,
+        "epoch": 1062,
+        "pool": "GJmMTjiE2dZiAQgENapnBxzsTWNX4KLbiNnjzovwv1KE",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458982140,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "CHWYHz2zfKajomqPV9it26n7vu7AgZZfqGHXCWtGWuJg",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": 25,
+        "unix_timestamp": 1792445273
+      },
+      "accepted": true,
+      "rejection_reasons": []
+    },
+    {
+      "symbol": "CHWY.US",
+      "mint": "CHWYHz2zfKajomqPV9it26n7vu7AgZZfqGHXCWtGWuJg",
+      "decimals": 6,
+      "catalog_source": "https://api.backpack.exchange/api/v1/assets",
+      "pool": "6E12HKuZkyQoMwhTtN4WFs95uMEoW2zXJMFSE4jNcjHE",
+      "quote_mint": "So11111111111111111111111111111111111111112",
+      "program_id": "LBUZKhRxPF3XUpBCjp4YzTKgLccjZhTSDM9YuVaPwxo",
+      "snapshot_slot": 459763395,
+      "liquid_side_reserve_usd": 290.5292729464901,
+      "reserve_snapshot": {
+        "vault": "FfNnESqsw9RgvJZbZ5LHbva83drKhmn416bVmA2RdBVo",
+        "amount_raw": "2690289896",
+        "slot": 459763395
+      },
+      "fees": {
+        "base_swap_fee_bps": 50,
+        "dynamic_swap_fee": true,
+        "epoch": 1062,
+        "pool": "6E12HKuZkyQoMwhTtN4WFs95uMEoW2zXJMFSE4jNcjHE",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "So11111111111111111111111111111111111111112",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458982211,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "CHWYHz2zfKajomqPV9it26n7vu7AgZZfqGHXCWtGWuJg",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": null,
+        "unix_timestamp": 1792445288
+      },
+      "accepted": false,
+      "rejection_reasons": [
+        "historical_pool_withdrawal_at_least_50_percent",
+        "liquid_side_below_500_usd"
+      ]
+    },
+    {
+      "symbol": "COPX.US",
+      "mint": "CzLTZppPdZtTjyq3WGpHLstoc3GLhu7zH5Zg6xUa6Gv5",
+      "decimals": 6,
+      "catalog_source": "https://api.backpack.exchange/api/v1/assets",
+      "pool": "5vJcDWLBQSh767DzHACeEmfMh7nGCWZc8eb76v6cCFVr",
+      "quote_mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "program_id": "CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK",
+      "snapshot_slot": 459763395,
+      "liquid_side_reserve_usd": 488.462418,
+      "reserve_snapshot": {
+        "vault": "CPifwhcnfMV9q8NQmDZfNoTb3TkNQKN3bawbNrbPZdUc",
+        "amount_raw": "488462418",
+        "slot": 459763395
+      },
+      "fees": {
+        "base_swap_fee_bps": 60,
+        "dynamic_swap_fee": true,
+        "epoch": 1062,
+        "pool": "5vJcDWLBQSh767DzHACeEmfMh7nGCWZc8eb76v6cCFVr",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458982235,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "CzLTZppPdZtTjyq3WGpHLstoc3GLhu7zH5Zg6xUa6Gv5",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": null,
+        "unix_timestamp": 1792445294
+      },
+      "accepted": false,
+      "rejection_reasons": [
+        "liquid_side_below_500_usd"
+      ]
+    },
+    {
+      "symbol": "DJT.US",
+      "mint": "DJTu7vi8norVzdVAffgvb39VP7wjKeTsgaMBJrzfxvoF",
+      "decimals": 6,
+      "catalog_source": "https://api.backpack.exchange/api/v1/assets",
+      "pool": "3bCkqSFZcYs7fthurTzPDRu4r9kQycq1sCUDykBuYnRB",
+      "quote_mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "program_id": "whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc",
+      "snapshot_slot": 459763395,
+      "liquid_side_reserve_usd": 2194.971345,
+      "reserve_snapshot": {
+        "vault": "JSrSgJrYw35fNJQqNgUdmWbsYc9TjDXef8HkCPYHtW8",
+        "amount_raw": "2194971345",
+        "slot": 459763395
+      },
+      "fees": {
+        "base_swap_fee_bps": 5,
+        "dynamic_swap_fee": true,
+        "epoch": 1062,
+        "pool": "3bCkqSFZcYs7fthurTzPDRu4r9kQycq1sCUDykBuYnRB",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458982224,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "DJTu7vi8norVzdVAffgvb39VP7wjKeTsgaMBJrzfxvoF",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": null,
+        "unix_timestamp": 1792445291
+      },
+      "accepted": true,
+      "rejection_reasons": []
+    },
+    {
+      "symbol": "DJT.US",
+      "mint": "DJTu7vi8norVzdVAffgvb39VP7wjKeTsgaMBJrzfxvoF",
+      "decimals": 6,
+      "catalog_source": "https://api.backpack.exchange/api/v1/assets",
+      "pool": "7gkB2D1SqhUYgKrSpDU5cma4tK9efijHouYituABdJcG",
+      "quote_mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "program_id": "whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc",
+      "snapshot_slot": 459763395,
+      "liquid_side_reserve_usd": 82422.548054,
+      "reserve_snapshot": {
+        "vault": "5kfxejdMiMQfrVrPKsiRkHjWAcddsTNV3TMCZGUHbDVL",
+        "amount_raw": "82422548054",
+        "slot": 459763395
+      },
+      "fees": {
+        "base_swap_fee_bps": 30,
+        "dynamic_swap_fee": true,
+        "epoch": 1062,
+        "pool": "7gkB2D1SqhUYgKrSpDU5cma4tK9efijHouYituABdJcG",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458982238,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "DJTu7vi8norVzdVAffgvb39VP7wjKeTsgaMBJrzfxvoF",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": null,
+        "unix_timestamp": 1792445294
+      },
+      "accepted": true,
+      "rejection_reasons": []
+    },
+    {
+      "symbol": "HIMS.US",
+      "mint": "HiMSSzzwkZkrXJ4PGVJRdtfLaANeAztjjcgk5Dxe7Lwx",
+      "decimals": 6,
+      "catalog_source": "https://api.backpack.exchange/api/v1/assets",
+      "pool": "7iqWWNjubSTjmWXk9eYJViDLZjBN2KjrYt5Z9j8n8exQ",
+      "quote_mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "program_id": "whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc",
+      "snapshot_slot": 459763395,
+      "liquid_side_reserve_usd": 85093.035285,
+      "reserve_snapshot": {
+        "vault": "8ZD9p1nE3M8QQ5DEMuT1pmak8sEhpr26ChWYuzL65GEj",
+        "amount_raw": "85093035285",
+        "slot": 459763395
+      },
+      "fees": {
+        "base_swap_fee_bps": 30,
+        "dynamic_swap_fee": true,
+        "epoch": 1062,
+        "pool": "7iqWWNjubSTjmWXk9eYJViDLZjBN2KjrYt5Z9j8n8exQ",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458985825,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "HiMSSzzwkZkrXJ4PGVJRdtfLaANeAztjjcgk5Dxe7Lwx",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": null,
+        "unix_timestamp": 1792446073
+      },
+      "accepted": true,
+      "rejection_reasons": []
+    },
+    {
+      "symbol": "HOOD.US",
+      "mint": "HooDYv5RewLRiMLnEVq3VJqdqxhuE6c5eYvqejMC3e9A",
+      "decimals": 6,
+      "catalog_source": "https://api.backpack.exchange/api/v1/assets",
+      "pool": "97r9NLqYoyGFbQesPduwuTHq4fJjbk8pHVUGawEqfnva",
+      "quote_mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "program_id": "CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK",
+      "snapshot_slot": 459763395,
+      "liquid_side_reserve_usd": 107813.633443,
+      "reserve_snapshot": {
+        "vault": "oopdSJ1bKbfhucqcKbWaz6TsgxqCjG66ATTMDeEKNmG",
+        "amount_raw": "107813633443",
+        "slot": 459763395
+      },
+      "fees": {
+        "base_swap_fee_bps": 25,
+        "dynamic_swap_fee": false,
+        "epoch": 1062,
+        "pool": "97r9NLqYoyGFbQesPduwuTHq4fJjbk8pHVUGawEqfnva",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458982175,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "HooDYv5RewLRiMLnEVq3VJqdqxhuE6c5eYvqejMC3e9A",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": 25,
+        "unix_timestamp": 1792445280
+      },
+      "accepted": true,
+      "rejection_reasons": []
+    },
+    {
+      "symbol": "MU.US",
+      "mint": "MUxEsUKSMACyw5fZf68wxf5FLnZVhtU9CwH8uNNGay1",
+      "decimals": 6,
+      "catalog_source": "https://api.backpack.exchange/api/v1/assets",
+      "pool": "13MEx6gjRadJNUdmToaGSzgeWHLH7FzScUQS9Mc5nYF5",
+      "quote_mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "program_id": "LBUZKhRxPF3XUpBCjp4YzTKgLccjZhTSDM9YuVaPwxo",
+      "snapshot_slot": 459763395,
+      "liquid_side_reserve_usd": 1344707.462944,
+      "reserve_snapshot": {
+        "vault": "8woLNBsTJ2Eg14THGoy1qJKap5bD2ENUpct5su49aBHQ",
+        "amount_raw": "1344707462944",
+        "slot": 459763395
+      },
+      "fees": {
+        "base_swap_fee_bps": 20,
+        "dynamic_swap_fee": true,
+        "epoch": 1062,
+        "pool": "13MEx6gjRadJNUdmToaGSzgeWHLH7FzScUQS9Mc5nYF5",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458982183,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "MUxEsUKSMACyw5fZf68wxf5FLnZVhtU9CwH8uNNGay1",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": null,
+        "unix_timestamp": 1792445282
+      },
+      "accepted": true,
+      "rejection_reasons": []
+    },
+    {
+      "symbol": "NFLX.US",
+      "mint": "NFLX7qV57zuVxCoHy3s1jiGZyALraLNwttbxdvmYJLJ",
+      "decimals": 6,
+      "catalog_source": "https://api.backpack.exchange/api/v1/assets",
+      "pool": "62sHycti7wLRMT16xA3cSpaiEiJCMBtjkLW2tNXUVmGL",
+      "quote_mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "program_id": "CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK",
+      "snapshot_slot": 459763395,
+      "liquid_side_reserve_usd": 599.523618,
+      "reserve_snapshot": {
+        "vault": "67sJTD2yowoADUnmckher4LZuUx2B1ywet1cimRuymwd",
+        "amount_raw": "599523618",
+        "slot": 459763395
+      },
+      "fees": {
+        "base_swap_fee_bps": 20,
+        "dynamic_swap_fee": true,
+        "epoch": 1062,
+        "pool": "62sHycti7wLRMT16xA3cSpaiEiJCMBtjkLW2tNXUVmGL",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458982194,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "NFLX7qV57zuVxCoHy3s1jiGZyALraLNwttbxdvmYJLJ",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": null,
+        "unix_timestamp": 1792445284
+      },
+      "accepted": true,
+      "rejection_reasons": []
+    },
+    {
+      "symbol": "NFLX.US",
+      "mint": "NFLX7qV57zuVxCoHy3s1jiGZyALraLNwttbxdvmYJLJ",
+      "decimals": 6,
+      "catalog_source": "https://api.backpack.exchange/api/v1/assets",
+      "pool": "4BRhq3WHdyM1itQuXgL8ua8KMXdXzhi8fcL9MUp9BZUc",
+      "quote_mint": "So11111111111111111111111111111111111111112",
+      "program_id": "CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK",
+      "snapshot_slot": 459763395,
+      "liquid_side_reserve_usd": 8937.21790081316,
+      "reserve_snapshot": {
+        "vault": "ofTRchFrM7MbikdizqSnsmJY5mxScNDoZnNyzFGSKfb",
+        "amount_raw": "82758294106",
+        "slot": 459763395
+      },
+      "fees": {
+        "base_swap_fee_bps": 25,
+        "dynamic_swap_fee": true,
+        "epoch": 1062,
+        "pool": "4BRhq3WHdyM1itQuXgL8ua8KMXdXzhi8fcL9MUp9BZUc",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "So11111111111111111111111111111111111111112",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458982179,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "NFLX7qV57zuVxCoHy3s1jiGZyALraLNwttbxdvmYJLJ",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": null,
+        "unix_timestamp": 1792445281
+      },
+      "accepted": true,
+      "rejection_reasons": []
+    },
+    {
+      "symbol": "NFLX.US",
+      "mint": "NFLX7qV57zuVxCoHy3s1jiGZyALraLNwttbxdvmYJLJ",
+      "decimals": 6,
+      "catalog_source": "https://api.backpack.exchange/api/v1/assets",
+      "pool": "7SkLUhZoyTYYgKLVuK6E1Q1fQykR7wFiLxSiEohVcowu",
+      "quote_mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "program_id": "CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK",
+      "snapshot_slot": 459763395,
+      "liquid_side_reserve_usd": 1187.673095,
+      "reserve_snapshot": {
+        "vault": "31HSnENkBkm8psi67MXSMmSZ3UHXsb2Uugk1V21RXbGs",
+        "amount_raw": "1187673095",
+        "slot": 459763395
+      },
+      "fees": {
+        "base_swap_fee_bps": 25,
+        "dynamic_swap_fee": false,
+        "epoch": 1062,
+        "pool": "7SkLUhZoyTYYgKLVuK6E1Q1fQykR7wFiLxSiEohVcowu",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458982165,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "NFLX7qV57zuVxCoHy3s1jiGZyALraLNwttbxdvmYJLJ",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": 25,
+        "unix_timestamp": 1792445278
+      },
+      "accepted": true,
+      "rejection_reasons": []
+    },
+    {
+      "symbol": "NFLX.US",
+      "mint": "NFLX7qV57zuVxCoHy3s1jiGZyALraLNwttbxdvmYJLJ",
+      "decimals": 6,
+      "catalog_source": "https://api.backpack.exchange/api/v1/assets",
+      "pool": "E3mugzPiMhKGrDcfcz5ojo7HJBbYA6UMaJvSzbabPLAM",
+      "quote_mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "program_id": "CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK",
+      "snapshot_slot": 459763395,
+      "liquid_side_reserve_usd": 80481.623423,
+      "reserve_snapshot": {
+        "vault": "7hzjGaCr61EoxBKt3ryi5r4ZnCaDjc8n8kE111V7kzTC",
+        "amount_raw": "80481623423",
+        "slot": 459763395
+      },
+      "fees": {
+        "base_swap_fee_bps": 100,
+        "dynamic_swap_fee": true,
+        "epoch": 1062,
+        "pool": "E3mugzPiMhKGrDcfcz5ojo7HJBbYA6UMaJvSzbabPLAM",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458982172,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "NFLX7qV57zuVxCoHy3s1jiGZyALraLNwttbxdvmYJLJ",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": null,
+        "unix_timestamp": 1792445280
+      },
+      "accepted": true,
+      "rejection_reasons": []
+    },
+    {
+      "symbol": "NKE.US",
+      "mint": "NKEda5nHhNGgjrE9nDdMvaEmkmJ96qqxzBVZEcKmjSg",
+      "decimals": 6,
+      "catalog_source": "https://api.backpack.exchange/api/v1/assets",
+      "pool": "94afGPYHkDyYbSjkbUrkaAdCAbBVyeS4h5hLtmREWYph",
+      "quote_mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "program_id": "whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc",
+      "snapshot_slot": 459763395,
+      "liquid_side_reserve_usd": 988.062279,
+      "reserve_snapshot": {
+        "vault": "v83EhuSe2jM45NvmrnmeasVnscGoR4bGrHxYKYC8c8N",
+        "amount_raw": "988062279",
+        "slot": 459763395
+      },
+      "fees": {
+        "base_swap_fee_bps": 16,
+        "dynamic_swap_fee": true,
+        "epoch": 1062,
+        "pool": "94afGPYHkDyYbSjkbUrkaAdCAbBVyeS4h5hLtmREWYph",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458982203,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "NKEda5nHhNGgjrE9nDdMvaEmkmJ96qqxzBVZEcKmjSg",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": null,
+        "unix_timestamp": 1792445286
+      },
+      "accepted": true,
+      "rejection_reasons": []
+    },
+    {
+      "symbol": "NKE.US",
+      "mint": "NKEda5nHhNGgjrE9nDdMvaEmkmJ96qqxzBVZEcKmjSg",
+      "decimals": 6,
+      "catalog_source": "https://api.backpack.exchange/api/v1/assets",
+      "pool": "6kRoMyYBuz4ReLmLyuqiTtSpVB61hAGRrD6xYBrotsBC",
+      "quote_mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "program_id": "CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK",
+      "snapshot_slot": 459763395,
+      "liquid_side_reserve_usd": 39286.276822,
+      "reserve_snapshot": {
+        "vault": "5ZbSWZNWLx1GiiUhPP9U6uc8UrMcUL76CJPeAZko3a1S",
+        "amount_raw": "39286276822",
+        "slot": 459763395
+      },
+      "fees": {
+        "base_swap_fee_bps": 20,
+        "dynamic_swap_fee": true,
+        "epoch": 1062,
+        "pool": "6kRoMyYBuz4ReLmLyuqiTtSpVB61hAGRrD6xYBrotsBC",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458982160,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "NKEda5nHhNGgjrE9nDdMvaEmkmJ96qqxzBVZEcKmjSg",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": null,
+        "unix_timestamp": 1792445277
+      },
+      "accepted": true,
+      "rejection_reasons": []
+    },
+    {
+      "symbol": "NKE.US",
+      "mint": "NKEda5nHhNGgjrE9nDdMvaEmkmJ96qqxzBVZEcKmjSg",
+      "decimals": 6,
+      "catalog_source": "https://api.backpack.exchange/api/v1/assets",
+      "pool": "4V7CrUiP46jcJpZzPKzRerKS2VxHUt9bjiJPnT7gXFAU",
+      "quote_mint": "So11111111111111111111111111111111111111112",
+      "program_id": "CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK",
+      "snapshot_slot": 459763395,
+      "liquid_side_reserve_usd": 29301.92764763032,
+      "reserve_snapshot": {
+        "vault": "8aU8EbZjL4HPSx17GisGqWp9GVi9z3r67YvSLZiER7fZ",
+        "amount_raw": "271334723294",
+        "slot": 459763395
+      },
+      "fees": {
+        "base_swap_fee_bps": 40,
+        "dynamic_swap_fee": true,
+        "epoch": 1062,
+        "pool": "4V7CrUiP46jcJpZzPKzRerKS2VxHUt9bjiJPnT7gXFAU",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "So11111111111111111111111111111111111111112",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458982146,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "NKEda5nHhNGgjrE9nDdMvaEmkmJ96qqxzBVZEcKmjSg",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": null,
+        "unix_timestamp": 1792445274
+      },
+      "accepted": true,
+      "rejection_reasons": []
+    },
+    {
+      "symbol": "RACE.US",
+      "mint": "RACEyWiM2ztEZcJx2AHXU2eWjhxU57x3vXn92b39dLD",
+      "decimals": 6,
+      "catalog_source": "https://api.backpack.exchange/api/v1/assets",
+      "pool": "95rgf1NY3NMz8vQaPX8X5XmX3njjKEcVtduPHcq75vCV",
+      "quote_mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "program_id": "CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK",
+      "snapshot_slot": 459763395,
+      "liquid_side_reserve_usd": 2406.518816,
+      "reserve_snapshot": {
+        "vault": "2pPExX72JmwseWogsspkdMsqW8PJALGW7rcF2vekyhQs",
+        "amount_raw": "2406518816",
+        "slot": 459763395
+      },
+      "fees": {
+        "base_swap_fee_bps": 20,
+        "dynamic_swap_fee": false,
+        "epoch": 1062,
+        "pool": "95rgf1NY3NMz8vQaPX8X5XmX3njjKEcVtduPHcq75vCV",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458985838,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "RACEyWiM2ztEZcJx2AHXU2eWjhxU57x3vXn92b39dLD",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": 20,
+        "unix_timestamp": 1792446076
+      },
+      "accepted": true,
+      "rejection_reasons": []
+    },
+    {
+      "symbol": "RDDT.US",
+      "mint": "RDDTGbhHwVXfyCvQMXzzowKjf5qrYBZAnehoXW83ooh",
+      "decimals": 6,
+      "catalog_source": "https://api.backpack.exchange/api/v1/assets",
+      "pool": "6jYPqgpYqPoTFX9eGVHndxe4B6cxPzu1N3zLMuYJ8Bqe",
+      "quote_mint": "So11111111111111111111111111111111111111112",
+      "program_id": "CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK",
+      "snapshot_slot": 459763395,
+      "liquid_side_reserve_usd": 2620.0741420699715,
+      "reserve_snapshot": {
+        "vault": "97ZqToRtLco5tZhZRTJsnncxxJCXuNz1PZ78Ndv92zyX",
+        "amount_raw": "24261785808",
+        "slot": 459763395
+      },
+      "fees": {
+        "base_swap_fee_bps": 20,
+        "dynamic_swap_fee": true,
+        "epoch": 1062,
+        "pool": "6jYPqgpYqPoTFX9eGVHndxe4B6cxPzu1N3zLMuYJ8Bqe",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "So11111111111111111111111111111111111111112",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458985848,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "RDDTGbhHwVXfyCvQMXzzowKjf5qrYBZAnehoXW83ooh",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": null,
+        "unix_timestamp": 1792446078
+      },
+      "accepted": true,
+      "rejection_reasons": []
+    },
+    {
+      "symbol": "RDDT.US",
+      "mint": "RDDTGbhHwVXfyCvQMXzzowKjf5qrYBZAnehoXW83ooh",
+      "decimals": 6,
+      "catalog_source": "https://api.backpack.exchange/api/v1/assets",
+      "pool": "7r3igmqpnJwLS372AFDtAAAvPadCCmb5NRDPwBGaPGPu",
+      "quote_mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "program_id": "CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK",
+      "snapshot_slot": 459763395,
+      "liquid_side_reserve_usd": 9822.318444,
+      "reserve_snapshot": {
+        "vault": "G6r6yv2eqDWepwy3Aa2FdtVdtdjpbvo1yznjYb5CBiE2",
+        "amount_raw": "9822318444",
+        "slot": 459763395
+      },
+      "fees": {
+        "base_swap_fee_bps": 25,
+        "dynamic_swap_fee": true,
+        "epoch": 1062,
+        "pool": "7r3igmqpnJwLS372AFDtAAAvPadCCmb5NRDPwBGaPGPu",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458985856,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "RDDTGbhHwVXfyCvQMXzzowKjf5qrYBZAnehoXW83ooh",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": null,
+        "unix_timestamp": 1792446080
+      },
+      "accepted": true,
+      "rejection_reasons": []
+    },
+    {
+      "symbol": "SPCX.US",
+      "mint": "SPCXxcqXj6e5dJDVNovHN8744zkbhM2bYudU45BimGb",
+      "decimals": 6,
+      "catalog_source": "https://api.backpack.exchange/api/v1/assets",
+      "pool": "FcxLv8B82hakWDZJjJWDkk4MRcyUNzcQ3DyNS1VqZYr1",
+      "quote_mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "program_id": "whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc",
+      "snapshot_slot": 459763395,
+      "liquid_side_reserve_usd": 8523.865263,
+      "reserve_snapshot": {
+        "vault": "GEHpimuBWiAN4XksLRQndvQNsJmYmCqgoXFWb6nGjXLj",
+        "amount_raw": "8523865263",
+        "slot": 459763395
+      },
+      "fees": {
+        "base_swap_fee_bps": 1,
+        "dynamic_swap_fee": true,
+        "epoch": 1062,
+        "pool": "FcxLv8B82hakWDZJjJWDkk4MRcyUNzcQ3DyNS1VqZYr1",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458982213,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "SPCXxcqXj6e5dJDVNovHN8744zkbhM2bYudU45BimGb",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": null,
+        "unix_timestamp": 1792445289
+      },
+      "accepted": true,
+      "rejection_reasons": []
+    },
+    {
+      "symbol": "SPHR.US",
+      "mint": "SPHRp8cZaSQBTp1KMNP4V1X821SXhXWt4Q2yLdyHzju",
+      "decimals": 6,
+      "catalog_source": "https://api.backpack.exchange/api/v1/assets",
+      "pool": "7YZVp47ddDLMHCFtYY7nNdMQNfXRi57YQwqxTvGY1SAA",
+      "quote_mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "program_id": "CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK",
+      "snapshot_slot": 459763395,
+      "liquid_side_reserve_usd": 31071.841851,
+      "reserve_snapshot": {
+        "vault": "5vNfoTjPST4yRmDwdxBU54hKbVZQ9kuGnSTuSofQjxdN",
+        "amount_raw": "31071841851",
+        "slot": 459763395
+      },
+      "fees": {
+        "base_swap_fee_bps": 100,
+        "dynamic_swap_fee": true,
+        "epoch": 1062,
+        "pool": "7YZVp47ddDLMHCFtYY7nNdMQNfXRi57YQwqxTvGY1SAA",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458982223,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "SPHRp8cZaSQBTp1KMNP4V1X821SXhXWt4Q2yLdyHzju",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": null,
+        "unix_timestamp": 1792445291
+      },
+      "accepted": true,
+      "rejection_reasons": []
+    },
+    {
+      "symbol": "TSM.US",
+      "mint": "TSM2Hiuf7Z9REcwZFQvsBEekBYCYziWBABfFnj6V6gQ",
+      "decimals": 6,
+      "catalog_source": "https://api.backpack.exchange/api/v1/assets",
+      "pool": "D1zm9kMhXRQyr3JyAcW9cbj7XvRjQE1pF7MBBKpnbA1n",
+      "quote_mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "program_id": "CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK",
+      "snapshot_slot": 459763395,
+      "liquid_side_reserve_usd": 16686.889016,
+      "reserve_snapshot": {
+        "vault": "8KwxEYKegeYdqGUWNcGPM5uB9cCcQbb9SsuBwy43tRFB",
+        "amount_raw": "16686889016",
+        "slot": 459763395
+      },
+      "fees": {
+        "base_swap_fee_bps": 25,
+        "dynamic_swap_fee": false,
+        "epoch": 1062,
+        "pool": "D1zm9kMhXRQyr3JyAcW9cbj7XvRjQE1pF7MBBKpnbA1n",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458982192,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "TSM2Hiuf7Z9REcwZFQvsBEekBYCYziWBABfFnj6V6gQ",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": 25,
+        "unix_timestamp": 1792445284
+      },
+      "accepted": true,
+      "rejection_reasons": []
+    },
+    {
+      "symbol": "TSM.US",
+      "mint": "TSM2Hiuf7Z9REcwZFQvsBEekBYCYziWBABfFnj6V6gQ",
+      "decimals": 6,
+      "catalog_source": "https://api.backpack.exchange/api/v1/assets",
+      "pool": "G58weZ4Z6gWUbePy4c9XcgMNcwSEyXb2Z99jfEQunAXB",
+      "quote_mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "program_id": "CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK",
+      "snapshot_slot": 459763395,
+      "liquid_side_reserve_usd": 24447.45507,
+      "reserve_snapshot": {
+        "vault": "J4tPdd9cz2qSeQMcLc9vBXdSecCfUFbuCsmA6E2g4B98",
+        "amount_raw": "24447455070",
+        "slot": 459763395
+      },
+      "fees": {
+        "base_swap_fee_bps": 100,
+        "dynamic_swap_fee": true,
+        "epoch": 1062,
+        "pool": "G58weZ4Z6gWUbePy4c9XcgMNcwSEyXb2Z99jfEQunAXB",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458982162,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "TSM2Hiuf7Z9REcwZFQvsBEekBYCYziWBABfFnj6V6gQ",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": null,
+        "unix_timestamp": 1792445277
+      },
+      "accepted": true,
+      "rejection_reasons": []
+    },
+    {
+      "symbol": "TSM.US",
+      "mint": "TSM2Hiuf7Z9REcwZFQvsBEekBYCYziWBABfFnj6V6gQ",
+      "decimals": 6,
+      "catalog_source": "https://api.backpack.exchange/api/v1/assets",
+      "pool": "5FPucPvtgnAgQzGzZBfF7Simw5B3qMbuvTcLkioJ3qhC",
+      "quote_mint": "So11111111111111111111111111111111111111112",
+      "program_id": "CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK",
+      "snapshot_slot": 459763395,
+      "liquid_side_reserve_usd": 2088.7034371711497,
+      "reserve_snapshot": {
+        "vault": "3xuL3XpUmNfmTR2qh6SfcxXdN7n5XAaN5WVW8x7pPJjh",
+        "amount_raw": "19341313513",
+        "slot": 459763395
+      },
+      "fees": {
+        "base_swap_fee_bps": 100,
+        "dynamic_swap_fee": true,
+        "epoch": 1062,
+        "pool": "5FPucPvtgnAgQzGzZBfF7Simw5B3qMbuvTcLkioJ3qhC",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "So11111111111111111111111111111111111111112",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458982189,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "TSM2Hiuf7Z9REcwZFQvsBEekBYCYziWBABfFnj6V6gQ",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": null,
+        "unix_timestamp": 1792445283
+      },
+      "accepted": true,
+      "rejection_reasons": []
+    },
+    {
+      "symbol": "TTWO.US",
+      "mint": "TTWofwAge91oFhZs7kpQdyrVRkmevgM88xijGvQFbKo",
+      "decimals": 6,
+      "catalog_source": "https://api.backpack.exchange/api/v1/assets",
+      "pool": "F1mbBZYKXGFx5nraY3cK4RgNR5EuShntQ8xDKDD5HY1z",
+      "quote_mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "program_id": "LBUZKhRxPF3XUpBCjp4YzTKgLccjZhTSDM9YuVaPwxo",
+      "snapshot_slot": 459763395,
+      "liquid_side_reserve_usd": 117712.414233,
+      "reserve_snapshot": {
+        "vault": "67cYJoMYVdRprMpZWTZCXFxTUFGfN1sZX9q5JiueqLYZ",
+        "amount_raw": "117712414233",
+        "slot": 459763395
+      },
+      "fees": {
+        "base_swap_fee_bps": 4,
+        "dynamic_swap_fee": true,
+        "epoch": 1062,
+        "pool": "F1mbBZYKXGFx5nraY3cK4RgNR5EuShntQ8xDKDD5HY1z",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458982151,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "TTWofwAge91oFhZs7kpQdyrVRkmevgM88xijGvQFbKo",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": null,
+        "unix_timestamp": 1792445275
+      },
+      "accepted": true,
+      "rejection_reasons": []
+    },
+    {
+      "symbol": "TTWO.US",
+      "mint": "TTWofwAge91oFhZs7kpQdyrVRkmevgM88xijGvQFbKo",
+      "decimals": 6,
+      "catalog_source": "https://api.backpack.exchange/api/v1/assets",
+      "pool": "7qZPiJ2Lvwh9DV9gUBH2EwConBE3RUrAvGRjpN8vTjtT",
+      "quote_mint": "So11111111111111111111111111111111111111112",
+      "program_id": "LBUZKhRxPF3XUpBCjp4YzTKgLccjZhTSDM9YuVaPwxo",
+      "snapshot_slot": 459763395,
+      "liquid_side_reserve_usd": 90508.6614551327,
+      "reserve_snapshot": {
+        "vault": "3SGaFr24esDAXhC5GB3iKrD37ZtzQrXjfngkeaz1vRYL",
+        "amount_raw": "838106724819",
+        "slot": 459763395
+      },
+      "fees": {
+        "base_swap_fee_bps": 10,
+        "dynamic_swap_fee": true,
+        "epoch": 1062,
+        "pool": "7qZPiJ2Lvwh9DV9gUBH2EwConBE3RUrAvGRjpN8vTjtT",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "So11111111111111111111111111111111111111112",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458982138,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "TTWofwAge91oFhZs7kpQdyrVRkmevgM88xijGvQFbKo",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": null,
+        "unix_timestamp": 1792445272
+      },
+      "accepted": true,
+      "rejection_reasons": []
+    },
+    {
+      "symbol": "TTWO.US",
+      "mint": "TTWofwAge91oFhZs7kpQdyrVRkmevgM88xijGvQFbKo",
+      "decimals": 6,
+      "catalog_source": "https://api.backpack.exchange/api/v1/assets",
+      "pool": "6PTm7MkUmtsLU7w6dWrMHJAt8PnzoCgcZdKyTKEhUAPL",
+      "quote_mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "program_id": "CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK",
+      "snapshot_slot": 459763395,
+      "liquid_side_reserve_usd": 562014.106314,
+      "reserve_snapshot": {
+        "vault": "GVRHnPUma17ZRMPutqC6d1WhZnQ9R82L29rx5ZwhJ5Ta",
+        "amount_raw": "562014106314",
+        "slot": 459763395
+      },
+      "fees": {
+        "base_swap_fee_bps": 20,
+        "dynamic_swap_fee": true,
+        "epoch": 1062,
+        "pool": "6PTm7MkUmtsLU7w6dWrMHJAt8PnzoCgcZdKyTKEhUAPL",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458982149,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "TTWofwAge91oFhZs7kpQdyrVRkmevgM88xijGvQFbKo",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": null,
+        "unix_timestamp": 1792445275
+      },
+      "accepted": true,
+      "rejection_reasons": []
+    },
+    {
+      "symbol": "TTWO.US",
+      "mint": "TTWofwAge91oFhZs7kpQdyrVRkmevgM88xijGvQFbKo",
+      "decimals": 6,
+      "catalog_source": "https://api.backpack.exchange/api/v1/assets",
+      "pool": "DirR9nP5jk7fYifaYArCwZuq6pBqGWjhKgESiTuQByTf",
+      "quote_mint": "So11111111111111111111111111111111111111112",
+      "program_id": "CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK",
+      "snapshot_slot": 459763395,
+      "liquid_side_reserve_usd": 34322.178561950204,
+      "reserve_snapshot": {
+        "vault": "9MfQfSA2raYr7c63mhuHKLjGAbD8z1Qir8Jo8vZbvKpy",
+        "amount_raw": "317822053721",
+        "slot": 459763395
+      },
+      "fees": {
+        "base_swap_fee_bps": 20,
+        "dynamic_swap_fee": false,
+        "epoch": 1062,
+        "pool": "DirR9nP5jk7fYifaYArCwZuq6pBqGWjhKgESiTuQByTf",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "So11111111111111111111111111111111111111112",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458982201,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "TTWofwAge91oFhZs7kpQdyrVRkmevgM88xijGvQFbKo",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": 20,
+        "unix_timestamp": 1792445286
+      },
+      "accepted": true,
+      "rejection_reasons": []
+    },
+    {
+      "symbol": "UVXY.US",
+      "mint": "UVXY4ojmAMTaPwUmrRmcuxWHjMHCbz3BxX2RBMzjYKx",
+      "decimals": 6,
+      "catalog_source": "https://api.backpack.exchange/api/v1/assets",
+      "pool": "ANyCzRPgiCLeJx3nH4SKS1jxtaxMk9qzG5SmJooh55ie",
+      "quote_mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "program_id": "CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK",
+      "snapshot_slot": 459763395,
+      "liquid_side_reserve_usd": 30709.735547,
+      "reserve_snapshot": {
+        "vault": "8coWzfJ8VAbPFC3zDUgJFHT6Ggg292EwpqGMn9AqR1oo",
+        "amount_raw": "30709735547",
+        "slot": 459763395
+      },
+      "fees": {
+        "base_swap_fee_bps": 100,
+        "dynamic_swap_fee": true,
+        "epoch": 1062,
+        "pool": "ANyCzRPgiCLeJx3nH4SKS1jxtaxMk9qzG5SmJooh55ie",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458982123,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "UVXY4ojmAMTaPwUmrRmcuxWHjMHCbz3BxX2RBMzjYKx",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": null,
+        "unix_timestamp": 1792445269
+      },
+      "accepted": true,
+      "rejection_reasons": []
+    },
+    {
+      "symbol": "SPCXx",
+      "mint": "Xs3oZwbHvqis4NYcf4YKWmEia2eC84wSiVrcYcTqpH8",
+      "decimals": 8,
+      "catalog_source": "https://xstocks.com/products",
+      "pool": "DNcGcbmmmvjrmVsT4DTMh2FLrbBchxXd66njTKo6zDAc",
+      "quote_mint": "So11111111111111111111111111111111111111112",
+      "program_id": "CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK",
+      "snapshot_slot": 459763395,
+      "liquid_side_reserve_usd": 508390.90593236237,
+      "reserve_snapshot": {
+        "vault": "2mE5KoFZ8uabzVQE6Lmj3eaaQJz2A6tZ47dLpa2AC1hc",
+        "amount_raw": "4707680240194",
+        "slot": 459763395
+      },
+      "fees": {
+        "base_swap_fee_bps": 80,
+        "dynamic_swap_fee": false,
+        "epoch": 1062,
+        "pool": "DNcGcbmmmvjrmVsT4DTMh2FLrbBchxXd66njTKo6zDAc",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "So11111111111111111111111111111111111111112",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458982128,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "Xs3oZwbHvqis4NYcf4YKWmEia2eC84wSiVrcYcTqpH8",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": 80,
+        "unix_timestamp": 1792445270
+      },
+      "accepted": true,
+      "rejection_reasons": []
+    },
+    {
+      "symbol": "SPCXx",
+      "mint": "Xs3oZwbHvqis4NYcf4YKWmEia2eC84wSiVrcYcTqpH8",
+      "decimals": 8,
+      "catalog_source": "https://xstocks.com/products",
+      "pool": "AHNN6JmvaGG6XUoSg7sEr38gRYDB2jTbUvqXVuqaRHpq",
+      "quote_mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "program_id": "CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK",
+      "snapshot_slot": 459763395,
+      "liquid_side_reserve_usd": 705525.632751,
+      "reserve_snapshot": {
+        "vault": "AUpEZuNEZfqUXqsoiTymSEwiRXwT67Vvr1bnBqyQSzNv",
+        "amount_raw": "705525632751",
+        "slot": 459763395
+      },
+      "fees": {
+        "base_swap_fee_bps": 80,
+        "dynamic_swap_fee": false,
+        "epoch": 1062,
+        "pool": "AHNN6JmvaGG6XUoSg7sEr38gRYDB2jTbUvqXVuqaRHpq",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458982131,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "Xs3oZwbHvqis4NYcf4YKWmEia2eC84wSiVrcYcTqpH8",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": 80,
+        "unix_timestamp": 1792445271
+      },
+      "accepted": true,
+      "rejection_reasons": []
+    },
+    {
+      "symbol": "QQQx",
+      "mint": "Xs8S1uUs1zvS2p7iwtsG3b6fkhpvmwz4GYU3gWAmWHZ",
+      "decimals": 8,
+      "catalog_source": "https://xstocks.com/products",
+      "pool": "3GVB4bXtcrP3MM376mrcJDwfTNThvyorLmVgSTf6kxFt",
+      "quote_mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "program_id": "whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc",
+      "snapshot_slot": 459763395,
+      "liquid_side_reserve_usd": 7200.384661,
+      "reserve_snapshot": {
+        "vault": "B7EJC3u1F8mrcwF8fdwPrJPUUVSZ59UajN6VH6o95YkS",
+        "amount_raw": "7200384661",
+        "slot": 459763395
+      },
+      "fees": {
+        "base_swap_fee_bps": 16,
+        "dynamic_swap_fee": true,
+        "epoch": 1062,
+        "pool": "3GVB4bXtcrP3MM376mrcJDwfTNThvyorLmVgSTf6kxFt",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458982181,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "Xs8S1uUs1zvS2p7iwtsG3b6fkhpvmwz4GYU3gWAmWHZ",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": null,
+        "unix_timestamp": 1792445281
+      },
+      "accepted": true,
+      "rejection_reasons": []
+    },
+    {
+      "symbol": "GOOGLx",
+      "mint": "XsCPL9dNWBMvFtTmwcCA5v3xWPSMEBCszbQdiLLq6aN",
+      "decimals": 8,
+      "catalog_source": "https://xstocks.com/products",
+      "pool": "B8YAwjGYk6qidWzGBXMAxP7nYfG8g74EZ3Y4gFSsobRw",
+      "quote_mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "program_id": "CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK",
+      "snapshot_slot": 459763395,
+      "liquid_side_reserve_usd": 451164.845228,
+      "reserve_snapshot": {
+        "vault": "7fyQSFJLS9hcmp53VTKnvvQ7Rpt2KcZkhvJyKDRJivYg",
+        "amount_raw": "451164845228",
+        "slot": 459763395
+      },
+      "fees": {
+        "base_swap_fee_bps": 25,
+        "dynamic_swap_fee": false,
+        "epoch": 1062,
+        "pool": "B8YAwjGYk6qidWzGBXMAxP7nYfG8g74EZ3Y4gFSsobRw",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458982209,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "XsCPL9dNWBMvFtTmwcCA5v3xWPSMEBCszbQdiLLq6aN",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": 25,
+        "unix_timestamp": 1792445288
+      },
+      "accepted": true,
+      "rejection_reasons": []
+    },
+    {
+      "symbol": "TSLAx",
+      "mint": "XsDoVfqeBukxuZHWhdvWHBhgEHjGNst4MLodqsJHzoB",
+      "decimals": 8,
+      "catalog_source": "https://xstocks.com/products",
+      "pool": "9p7abUFv31ycgu9kckvnoqMMvBy67dqTDM2m6HP9xokN",
+      "quote_mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "program_id": "whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc",
+      "snapshot_slot": 459763395,
+      "liquid_side_reserve_usd": 35637.187956,
+      "reserve_snapshot": {
+        "vault": "2NfTohqtneNa5bphKGw1MZNKdyAbV4B7mZDwtkxnYPhN",
+        "amount_raw": "35637187956",
+        "slot": 459763395
+      },
+      "fees": {
+        "base_swap_fee_bps": 2,
+        "dynamic_swap_fee": true,
+        "epoch": 1062,
+        "pool": "9p7abUFv31ycgu9kckvnoqMMvBy67dqTDM2m6HP9xokN",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458982215,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "XsDoVfqeBukxuZHWhdvWHBhgEHjGNst4MLodqsJHzoB",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": null,
+        "unix_timestamp": 1792445289
+      },
+      "accepted": true,
+      "rejection_reasons": []
+    },
+    {
+      "symbol": "TSLAx",
+      "mint": "XsDoVfqeBukxuZHWhdvWHBhgEHjGNst4MLodqsJHzoB",
+      "decimals": 8,
+      "catalog_source": "https://xstocks.com/products",
+      "pool": "8aDaBQkTrS6HVMjyc6EZebgdiaXhLYGriDWKWWp1NpFF",
+      "quote_mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "program_id": "CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK",
+      "snapshot_slot": 459763395,
+      "liquid_side_reserve_usd": 1257692.025886,
+      "reserve_snapshot": {
+        "vault": "8JyAULXLSRjxAmzE2MfrgeHhTg8J1DRMqas1gaRn85ot",
+        "amount_raw": "1257692025886",
+        "slot": 459763395
+      },
+      "fees": {
+        "base_swap_fee_bps": 10,
+        "dynamic_swap_fee": false,
+        "epoch": 1062,
+        "pool": "8aDaBQkTrS6HVMjyc6EZebgdiaXhLYGriDWKWWp1NpFF",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458982145,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "XsDoVfqeBukxuZHWhdvWHBhgEHjGNst4MLodqsJHzoB",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": 10,
+        "unix_timestamp": 1792445274
+      },
+      "accepted": true,
+      "rejection_reasons": []
+    },
+    {
+      "symbol": "MSTRx",
+      "mint": "XsP7xzNPvEHS1m6qfanPUGjNmdnmsLKEoNAnHjdxxyZ",
+      "decimals": 8,
+      "catalog_source": "https://xstocks.com/products",
+      "pool": "BCvzjDbADhnT3K35kc5TSeMAafNgu9KZVywUq9zWH2mA",
+      "quote_mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "program_id": "whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc",
+      "snapshot_slot": 459763395,
+      "liquid_side_reserve_usd": 1416.737057,
+      "reserve_snapshot": {
+        "vault": "9QRRSNNVPhSLfRRr28RefUhPFr4HfD1Ken7H1yAmhk8Q",
+        "amount_raw": "1416737057",
+        "slot": 459763395
+      },
+      "fees": {
+        "base_swap_fee_bps": 4,
+        "dynamic_swap_fee": true,
+        "epoch": 1062,
+        "pool": "BCvzjDbADhnT3K35kc5TSeMAafNgu9KZVywUq9zWH2mA",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458982176,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "XsP7xzNPvEHS1m6qfanPUGjNmdnmsLKEoNAnHjdxxyZ",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": null,
+        "unix_timestamp": 1792445280
+      },
+      "accepted": true,
+      "rejection_reasons": []
+    },
+    {
+      "symbol": "MSTRx",
+      "mint": "XsP7xzNPvEHS1m6qfanPUGjNmdnmsLKEoNAnHjdxxyZ",
+      "decimals": 8,
+      "catalog_source": "https://xstocks.com/products",
+      "pool": "2ngTuP7xA581dqX9uJkGRqxmKuehY3k4SDfPebeoRG2J",
+      "quote_mint": "So11111111111111111111111111111111111111112",
+      "program_id": "CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK",
+      "snapshot_slot": 459763395,
+      "liquid_side_reserve_usd": 570089.3540352738,
+      "reserve_snapshot": {
+        "vault": "8bGP3uD7vzGbdWhFxFs8ycQ5gSWUZsRCUGAHD3HxFaBT",
+        "amount_raw": "5279005497187",
+        "slot": 459763395
+      },
+      "fees": {
+        "base_swap_fee_bps": 25,
+        "dynamic_swap_fee": false,
+        "epoch": 1062,
+        "pool": "2ngTuP7xA581dqX9uJkGRqxmKuehY3k4SDfPebeoRG2J",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "So11111111111111111111111111111111111111112",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458982185,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "XsP7xzNPvEHS1m6qfanPUGjNmdnmsLKEoNAnHjdxxyZ",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": 25,
+        "unix_timestamp": 1792445282
+      },
+      "accepted": true,
+      "rejection_reasons": []
+    },
+    {
+      "symbol": "METAx",
+      "mint": "Xsa62P5mvPszXL1krVUnU5ar38bBSVcWAB6fmPCo5Zu",
+      "decimals": 8,
+      "catalog_source": "https://xstocks.com/products",
+      "pool": "3L7KbPVaAQA4UTecaGQYsm6UCq5F3sZM9zAYkxqYt63j",
+      "quote_mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "program_id": "CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK",
+      "snapshot_slot": 459763395,
+      "liquid_side_reserve_usd": 378927.924524,
+      "reserve_snapshot": {
+        "vault": "EbqkNhtHX6oNRzWuArFut7C5WXfiU2fEVEmg8rmHKsmc",
+        "amount_raw": "378927924524",
+        "slot": 459763395
+      },
+      "fees": {
+        "base_swap_fee_bps": 25,
+        "dynamic_swap_fee": false,
+        "epoch": 1062,
+        "pool": "3L7KbPVaAQA4UTecaGQYsm6UCq5F3sZM9zAYkxqYt63j",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458982154,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "Xsa62P5mvPszXL1krVUnU5ar38bBSVcWAB6fmPCo5Zu",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": 25,
+        "unix_timestamp": 1792445276
+      },
+      "accepted": true,
+      "rejection_reasons": []
+    },
+    {
+      "symbol": "AAPLx",
+      "mint": "XsbEhLAtcf6HdfpFZ5xEMdqW8nfAvcsP5bdudRLJzJp",
+      "decimals": 8,
+      "catalog_source": "https://xstocks.com/products",
+      "pool": "9JsDnmZonykBmrybuYaZUYxr4DCbZZQTdYQzdFXtDr5F",
+      "quote_mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "program_id": "whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc",
+      "snapshot_slot": 459763397,
+      "liquid_side_reserve_usd": 18929.304324,
+      "reserve_snapshot": {
+        "vault": "25hzNZ1zEc592AwPWtPB4bFc1NhGf8ewTXJ73KCgaGTo",
+        "amount_raw": "18929304324",
+        "slot": 459763397
+      },
+      "fees": {
+        "base_swap_fee_bps": 8,
+        "dynamic_swap_fee": false,
+        "epoch": 1062,
+        "pool": "9JsDnmZonykBmrybuYaZUYxr4DCbZZQTdYQzdFXtDr5F",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458982226,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "XsbEhLAtcf6HdfpFZ5xEMdqW8nfAvcsP5bdudRLJzJp",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": 8,
+        "unix_timestamp": 1792445292
+      },
+      "accepted": true,
+      "rejection_reasons": []
+    },
+    {
+      "symbol": "AAPLx",
+      "mint": "XsbEhLAtcf6HdfpFZ5xEMdqW8nfAvcsP5bdudRLJzJp",
+      "decimals": 8,
+      "catalog_source": "https://xstocks.com/products",
+      "pool": "CKwJZwm7oj3nu4653N1EpDrqXbXAYXoPFiPeEnLouF8y",
+      "quote_mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "program_id": "CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK",
+      "snapshot_slot": 459763397,
+      "liquid_side_reserve_usd": 188451.054962,
+      "reserve_snapshot": {
+        "vault": "yMw7pT6pqeSNDUvHkv7626eeGEHC7PrRhXa6mAAuiuw",
+        "amount_raw": "188451054962",
+        "slot": 459763397
+      },
+      "fees": {
+        "base_swap_fee_bps": 25,
+        "dynamic_swap_fee": false,
+        "epoch": 1062,
+        "pool": "CKwJZwm7oj3nu4653N1EpDrqXbXAYXoPFiPeEnLouF8y",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458985832,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "XsbEhLAtcf6HdfpFZ5xEMdqW8nfAvcsP5bdudRLJzJp",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": 25,
+        "unix_timestamp": 1792446075
+      },
+      "accepted": true,
+      "rejection_reasons": []
+    },
+    {
+      "symbol": "NVDAx",
+      "mint": "Xsc9qvGR1efVDFGLrVsmkzv3qi45LTBjeUKSPmx9qEh",
+      "decimals": 8,
+      "catalog_source": "https://xstocks.com/products",
+      "pool": "6R4r93V5fcMzc13CL2enEepDSYcr4Qx3ptZBDwudTXCo",
+      "quote_mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "program_id": "whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc",
+      "snapshot_slot": 459763397,
+      "liquid_side_reserve_usd": 94277.302674,
+      "reserve_snapshot": {
+        "vault": "5TSHEwRAgHLTYkchrUNiKUL2RvuZgdh3vExbMptWrHoX",
+        "amount_raw": "94277302674",
+        "slot": 459763397
+      },
+      "fees": {
+        "base_swap_fee_bps": 2,
+        "dynamic_swap_fee": true,
+        "epoch": 1062,
+        "pool": "6R4r93V5fcMzc13CL2enEepDSYcr4Qx3ptZBDwudTXCo",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458982168,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "Xsc9qvGR1efVDFGLrVsmkzv3qi45LTBjeUKSPmx9qEh",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": null,
+        "unix_timestamp": 1792445279
+      },
+      "accepted": true,
+      "rejection_reasons": []
+    },
+    {
+      "symbol": "NVDAx",
+      "mint": "Xsc9qvGR1efVDFGLrVsmkzv3qi45LTBjeUKSPmx9qEh",
+      "decimals": 8,
+      "catalog_source": "https://xstocks.com/products",
+      "pool": "49iMatQtoyabsYAQc8GafVq6aeBFVDxSRH44oiatyyw6",
+      "quote_mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "program_id": "CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK",
+      "snapshot_slot": 459763397,
+      "liquid_side_reserve_usd": 1487445.380047,
+      "reserve_snapshot": {
+        "vault": "4JEtq7NraU9U5URcCKSv6sWRRgDSuSnUjYDqpSJSWohY",
+        "amount_raw": "1487445380047",
+        "slot": 459763397
+      },
+      "fees": {
+        "base_swap_fee_bps": 10,
+        "dynamic_swap_fee": false,
+        "epoch": 1062,
+        "pool": "49iMatQtoyabsYAQc8GafVq6aeBFVDxSRH44oiatyyw6",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458982217,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "Xsc9qvGR1efVDFGLrVsmkzv3qi45LTBjeUKSPmx9qEh",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": 10,
+        "unix_timestamp": 1792445289
+      },
+      "accepted": true,
+      "rejection_reasons": []
+    },
+    {
+      "symbol": "GMEx",
+      "mint": "Xsf9mBktVB9BSU5kf4nHxPq5hCBJ2j2ui3ecFGxPRGc",
+      "decimals": 8,
+      "catalog_source": "https://xstocks.com/products",
+      "pool": "yrNqjGSrZmUdcSNqzEjbrEouvazH9XbpxRCiJEa8AVJ",
+      "quote_mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "program_id": "CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK",
+      "snapshot_slot": 459763397,
+      "liquid_side_reserve_usd": 1224.462928,
+      "reserve_snapshot": {
+        "vault": "2t8XRY1hYGRS1XCN1uYEXA32u39Brfm2MFctK4aAmTEi",
+        "amount_raw": "1224462928",
+        "slot": 459763397
+      },
+      "fees": {
+        "base_swap_fee_bps": 10,
+        "dynamic_swap_fee": false,
+        "epoch": 1062,
+        "pool": "yrNqjGSrZmUdcSNqzEjbrEouvazH9XbpxRCiJEa8AVJ",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458982233,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "Xsf9mBktVB9BSU5kf4nHxPq5hCBJ2j2ui3ecFGxPRGc",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": 10,
+        "unix_timestamp": 1792445293
+      },
+      "accepted": true,
+      "rejection_reasons": []
+    },
+    {
+      "symbol": "AVGOx",
+      "mint": "XsgSaSvNSqLTtFuyWPBhK9196Xb9Bbdyjj4fH3cPJGo",
+      "decimals": 8,
+      "catalog_source": "https://xstocks.com/products",
+      "pool": "Dprwg5xHQ8jJryfh3okeTDCZK16Gz1wtX47JeZZv3HXZ",
+      "quote_mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "program_id": "LBUZKhRxPF3XUpBCjp4YzTKgLccjZhTSDM9YuVaPwxo",
+      "snapshot_slot": 459763397,
+      "liquid_side_reserve_usd": 15329.30334,
+      "reserve_snapshot": {
+        "vault": "8Df5VhM5HzNZuUianfjyedYePJeVRA9dSKttx5absPMg",
+        "amount_raw": "15329303340",
+        "slot": 459763397
+      },
+      "fees": {
+        "base_swap_fee_bps": 5,
+        "dynamic_swap_fee": true,
+        "epoch": 1062,
+        "pool": "Dprwg5xHQ8jJryfh3okeTDCZK16Gz1wtX47JeZZv3HXZ",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458982182,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "XsgSaSvNSqLTtFuyWPBhK9196Xb9Bbdyjj4fH3cPJGo",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": null,
+        "unix_timestamp": 1792445282
+      },
+      "accepted": true,
+      "rejection_reasons": []
+    },
+    {
+      "symbol": "INTCx",
+      "mint": "XshPgPdXFRWB8tP1j82rebb2Q9rPgGX37RuqzohmArM",
+      "decimals": 8,
+      "catalog_source": "https://xstocks.com/products",
+      "pool": "J7riKjqgLoZCES7MRyxHxL7iXybwHKXgfAot8muHKciZ",
+      "quote_mint": "So11111111111111111111111111111111111111112",
+      "program_id": "CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK",
+      "snapshot_slot": 459763397,
+      "liquid_side_reserve_usd": 1267.2456216370804,
+      "reserve_snapshot": {
+        "vault": "C4WsCwhAwqVyEcMot4RCREyh4dSnFJ4NvqGmFUuRXExg",
+        "amount_raw": "11734645728",
+        "slot": 459763397
+      },
+      "fees": {
+        "base_swap_fee_bps": 40,
+        "dynamic_swap_fee": false,
+        "epoch": 1062,
+        "pool": "J7riKjqgLoZCES7MRyxHxL7iXybwHKXgfAot8muHKciZ",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "So11111111111111111111111111111111111111112",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458982188,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "XshPgPdXFRWB8tP1j82rebb2Q9rPgGX37RuqzohmArM",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": 40,
+        "unix_timestamp": 1792445283
+      },
+      "accepted": true,
+      "rejection_reasons": []
+    },
+    {
+      "symbol": "INTCx",
+      "mint": "XshPgPdXFRWB8tP1j82rebb2Q9rPgGX37RuqzohmArM",
+      "decimals": 8,
+      "catalog_source": "https://xstocks.com/products",
+      "pool": "6KoZB86BFDk6TZbB4CTBoAA8PPbpmEwSWFjCyfkt1Uw4",
+      "quote_mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "program_id": "CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK",
+      "snapshot_slot": 459763397,
+      "liquid_side_reserve_usd": 9060.269777,
+      "reserve_snapshot": {
+        "vault": "FamjSiGHT4eHzV3JjcWtqY1PDuk4Z1UrjQBwXcPtnzLN",
+        "amount_raw": "9060269777",
+        "slot": 459763397
+      },
+      "fees": {
+        "base_swap_fee_bps": 100,
+        "dynamic_swap_fee": false,
+        "epoch": 1062,
+        "pool": "6KoZB86BFDk6TZbB4CTBoAA8PPbpmEwSWFjCyfkt1Uw4",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458982170,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "XshPgPdXFRWB8tP1j82rebb2Q9rPgGX37RuqzohmArM",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": 100,
+        "unix_timestamp": 1792445279
+      },
+      "accepted": true,
+      "rejection_reasons": []
+    },
+    {
+      "symbol": "SPYx",
+      "mint": "XsoCS1TfEyfFhfvj8EtZ528L3CaKBDBRqRapnBbDF2W",
+      "decimals": 8,
+      "catalog_source": "https://xstocks.com/products",
+      "pool": "4pCZCVEiYyT4efNdXUdL2tJF8VGMgiMXrZWq6FiNXhRw",
+      "quote_mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "program_id": "CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK",
+      "snapshot_slot": 459763397,
+      "liquid_side_reserve_usd": 297587.154211,
+      "reserve_snapshot": {
+        "vault": "92aTAYGnUCH28J96EFzD8ELa6ZpdzXw4zqEuX1nD6oD7",
+        "amount_raw": "297587154211",
+        "slot": 459763397
+      },
+      "fees": {
+        "base_swap_fee_bps": 1,
+        "dynamic_swap_fee": false,
+        "epoch": 1062,
+        "pool": "4pCZCVEiYyT4efNdXUdL2tJF8VGMgiMXrZWq6FiNXhRw",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458982208,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "XsoCS1TfEyfFhfvj8EtZ528L3CaKBDBRqRapnBbDF2W",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": 1,
+        "unix_timestamp": 1792445287
+      },
+      "accepted": true,
+      "rejection_reasons": []
+    },
+    {
+      "symbol": "SPYx",
+      "mint": "XsoCS1TfEyfFhfvj8EtZ528L3CaKBDBRqRapnBbDF2W",
+      "decimals": 8,
+      "catalog_source": "https://xstocks.com/products",
+      "pool": "gef4pD5g6GJSjX7hfXKUfhCVpE89BzX9TXnXJNW6kSt",
+      "quote_mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "program_id": "whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc",
+      "snapshot_slot": 459763397,
+      "liquid_side_reserve_usd": 5669.347488,
+      "reserve_snapshot": {
+        "vault": "6pYFU9shKFEeaddgLQ5tS6oUNhh1BhMeZomLAx3XZr9N",
+        "amount_raw": "5669347488",
+        "slot": 459763397
+      },
+      "fees": {
+        "base_swap_fee_bps": 1,
+        "dynamic_swap_fee": true,
+        "epoch": 1062,
+        "pool": "gef4pD5g6GJSjX7hfXKUfhCVpE89BzX9TXnXJNW6kSt",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458982196,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "XsoCS1TfEyfFhfvj8EtZ528L3CaKBDBRqRapnBbDF2W",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": null,
+        "unix_timestamp": 1792445285
+      },
+      "accepted": true,
+      "rejection_reasons": []
+    },
+    {
+      "symbol": "SPYx",
+      "mint": "XsoCS1TfEyfFhfvj8EtZ528L3CaKBDBRqRapnBbDF2W",
+      "decimals": 8,
+      "catalog_source": "https://xstocks.com/products",
+      "pool": "BS9uyGV6XmNnPkM4f3xgxCdQEaFv7RSKs6fwrpvYHxfL",
+      "quote_mint": "So11111111111111111111111111111111111111112",
+      "program_id": "CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK",
+      "snapshot_slot": 459763397,
+      "liquid_side_reserve_usd": 747067.3329432075,
+      "reserve_snapshot": {
+        "vault": "DN9GrX1nSLWL97FiQHZbcVhkPahRgX8tqZsCq3pAHcip",
+        "amount_raw": "6917814776685",
+        "slot": 459763397
+      },
+      "fees": {
+        "base_swap_fee_bps": 25,
+        "dynamic_swap_fee": false,
+        "epoch": 1062,
+        "pool": "BS9uyGV6XmNnPkM4f3xgxCdQEaFv7RSKs6fwrpvYHxfL",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "So11111111111111111111111111111111111111112",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458982133,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "XsoCS1TfEyfFhfvj8EtZ528L3CaKBDBRqRapnBbDF2W",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": 25,
+        "unix_timestamp": 1792445271
+      },
+      "accepted": true,
+      "rejection_reasons": []
+    },
+    {
+      "symbol": "MSFTx",
+      "mint": "XspzcW1PRtgf6Wj92HCiZdjzKCyFekVD8P5Ueh3dRMX",
+      "decimals": 8,
+      "catalog_source": "https://xstocks.com/products",
+      "pool": "D6bRhQUcR9B7bPbbqgxpE17MjyUjBtr8hHQCcJoHrrv1",
+      "quote_mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "program_id": "CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK",
+      "snapshot_slot": 459763397,
+      "liquid_side_reserve_usd": 215831.546843,
+      "reserve_snapshot": {
+        "vault": "EcptmyX43M5M6PF7inLbwRuLKNKZnKLfp26G9TMosj4M",
+        "amount_raw": "215831546843",
+        "slot": 459763397
+      },
+      "fees": {
+        "base_swap_fee_bps": 10,
+        "dynamic_swap_fee": false,
+        "epoch": 1062,
+        "pool": "D6bRhQUcR9B7bPbbqgxpE17MjyUjBtr8hHQCcJoHrrv1",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458985845,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "XspzcW1PRtgf6Wj92HCiZdjzKCyFekVD8P5Ueh3dRMX",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": 10,
+        "unix_timestamp": 1792446078
+      },
+      "accepted": true,
+      "rejection_reasons": []
+    },
+    {
+      "symbol": "MSFTx",
+      "mint": "XspzcW1PRtgf6Wj92HCiZdjzKCyFekVD8P5Ueh3dRMX",
+      "decimals": 8,
+      "catalog_source": "https://xstocks.com/products",
+      "pool": "CLu4kFM4nb67xrdN7vJnMxXXir8Z5hA4HJUzPFccXjsL",
+      "quote_mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "program_id": "CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK",
+      "snapshot_slot": 459763397,
+      "liquid_side_reserve_usd": 353303.620108,
+      "reserve_snapshot": {
+        "vault": "A2Skn6UnSuFusfc3aPhBfiMCyYZugdd4ntrMcevo5xvB",
+        "amount_raw": "353303620108",
+        "slot": 459763397
+      },
+      "fees": {
+        "base_swap_fee_bps": 25,
+        "dynamic_swap_fee": false,
+        "epoch": 1062,
+        "pool": "CLu4kFM4nb67xrdN7vJnMxXXir8Z5hA4HJUzPFccXjsL",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458982229,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "XspzcW1PRtgf6Wj92HCiZdjzKCyFekVD8P5Ueh3dRMX",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": 25,
+        "unix_timestamp": 1792445292
+      },
+      "accepted": true,
+      "rejection_reasons": []
+    },
+    {
+      "symbol": "MSFTx",
+      "mint": "XspzcW1PRtgf6Wj92HCiZdjzKCyFekVD8P5Ueh3dRMX",
+      "decimals": 8,
+      "catalog_source": "https://xstocks.com/products",
+      "pool": "HrkeM8zFLiLp7ShhZKkM3b6Tvt8Aq2AKFcCvxRnfwKaq",
+      "quote_mint": "So11111111111111111111111111111111111111112",
+      "program_id": "CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK",
+      "snapshot_slot": 459763397,
+      "liquid_side_reserve_usd": 32666.309229791565,
+      "reserve_snapshot": {
+        "vault": "43wTT8uBR2FRjfq5VXaVHCDJQo54AH9RWzA2AhCp69yj",
+        "amount_raw": "302488767377",
+        "slot": 459763397
+      },
+      "fees": {
+        "base_swap_fee_bps": 25,
+        "dynamic_swap_fee": false,
+        "epoch": 1062,
+        "pool": "HrkeM8zFLiLp7ShhZKkM3b6Tvt8Aq2AKFcCvxRnfwKaq",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "So11111111111111111111111111111111111111112",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458982220,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "XspzcW1PRtgf6Wj92HCiZdjzKCyFekVD8P5Ueh3dRMX",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": 25,
+        "unix_timestamp": 1792445290
+      },
+      "accepted": true,
+      "rejection_reasons": []
+    },
+    {
+      "symbol": "GLDx",
+      "mint": "Xsv9hRk1z5ystj9MhnA7Lq4vjSsLwzL2nxrwmwtD3re",
+      "decimals": 8,
+      "catalog_source": "https://xstocks.com/products",
+      "pool": "5tGLudhm9pHtqbtfymvdarbD59AyMyYimXXwbFfzETV9",
+      "quote_mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "program_id": "whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc",
+      "snapshot_slot": 459763397,
+      "liquid_side_reserve_usd": 57825.834047,
+      "reserve_snapshot": {
+        "vault": "3kEUQ485fdvhxV8oKxpzqHjHWdZV5qVt9FG5tVSWa2KM",
+        "amount_raw": "57825834047",
+        "slot": 459763397
+      },
+      "fees": {
+        "base_swap_fee_bps": 4,
+        "dynamic_swap_fee": true,
+        "epoch": 1062,
+        "pool": "5tGLudhm9pHtqbtfymvdarbD59AyMyYimXXwbFfzETV9",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458982206,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "Xsv9hRk1z5ystj9MhnA7Lq4vjSsLwzL2nxrwmwtD3re",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": null,
+        "unix_timestamp": 1792445287
+      },
+      "accepted": true,
+      "rejection_reasons": []
+    },
+    {
+      "symbol": "GLDx",
+      "mint": "Xsv9hRk1z5ystj9MhnA7Lq4vjSsLwzL2nxrwmwtD3re",
+      "decimals": 8,
+      "catalog_source": "https://xstocks.com/products",
+      "pool": "78ReVNMLGRWmjtf2HmBoHUe2pRcsctXTTbxJnbhchyze",
+      "quote_mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "program_id": "CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK",
+      "snapshot_slot": 459763397,
+      "liquid_side_reserve_usd": 161121.103146,
+      "reserve_snapshot": {
+        "vault": "8BECXqsvkZcWD1MpzYV4p7NXD8xu5ZzquQ52NNGFqUsm",
+        "amount_raw": "161121103146",
+        "slot": 459763397
+      },
+      "fees": {
+        "base_swap_fee_bps": 10,
+        "dynamic_swap_fee": false,
+        "epoch": 1062,
+        "pool": "78ReVNMLGRWmjtf2HmBoHUe2pRcsctXTTbxJnbhchyze",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458982142,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "Xsv9hRk1z5ystj9MhnA7Lq4vjSsLwzL2nxrwmwtD3re",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": 10,
+        "unix_timestamp": 1792445273
+      },
+      "accepted": true,
+      "rejection_reasons": []
+    },
+    {
+      "symbol": "HOODx",
+      "mint": "XsvNBAYkrDRNhA7wPHQfX3ZUXZyZLdnCQDfHZ56bzpg",
+      "decimals": 8,
+      "catalog_source": "https://xstocks.com/products",
+      "pool": "DXWbip5LducMAbDSSpLYz9Xik3253EPeAYQufQtx7LXs",
+      "quote_mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "program_id": "CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK",
+      "snapshot_slot": 459763397,
+      "liquid_side_reserve_usd": 227767.886983,
+      "reserve_snapshot": {
+        "vault": "93QSfpPGq7KS79fgFLu5nQ9ACPjCpf4JLmuu3i8VXymM",
+        "amount_raw": "227767886983",
+        "slot": 459763397
+      },
+      "fees": {
+        "base_swap_fee_bps": 100,
+        "dynamic_swap_fee": false,
+        "epoch": 1062,
+        "pool": "DXWbip5LducMAbDSSpLYz9Xik3253EPeAYQufQtx7LXs",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458982221,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "XsvNBAYkrDRNhA7wPHQfX3ZUXZyZLdnCQDfHZ56bzpg",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": 100,
+        "unix_timestamp": 1792445290
+      },
+      "accepted": true,
+      "rejection_reasons": []
+    },
+    {
+      "symbol": "INTC.US",
+      "mint": "iNTCy1qTsUEZQe3DSocLz1ZXXai34Gdw8THQh5rxFaF",
+      "decimals": 6,
+      "catalog_source": "https://api.backpack.exchange/api/v1/assets",
+      "pool": "ESzRTaF7jBZgFTe1xJHGyRYctEneMuwk2XiwqJS9sJD4",
+      "quote_mint": "So11111111111111111111111111111111111111112",
+      "program_id": "CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK",
+      "snapshot_slot": 459763397,
+      "liquid_side_reserve_usd": 15411.193875597488,
+      "reserve_snapshot": {
+        "vault": "CtuCLvhiMbss5JF9SgfDTrMooEzAFxhECPivNKeUFZNM",
+        "amount_raw": "142707062694",
+        "slot": 459763397
+      },
+      "fees": {
+        "base_swap_fee_bps": 25,
+        "dynamic_swap_fee": false,
+        "epoch": 1062,
+        "pool": "ESzRTaF7jBZgFTe1xJHGyRYctEneMuwk2XiwqJS9sJD4",
+        "quote_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "So11111111111111111111111111111111111111112",
+          "transfer_hook": false
+        },
+        "snapshot_slot": 458982198,
+        "stock_transfer_tax": {
+          "basis_points": 0,
+          "maximum_fee_raw": 0,
+          "mint": "iNTCy1qTsUEZQe3DSocLz1ZXXai34Gdw8THQh5rxFaF",
+          "transfer_hook": false,
+          "transfer_hook_program": null
+        },
+        "swap_fee_bps": 25,
+        "unix_timestamp": 1792445285
+      },
+      "accepted": true,
+      "rejection_reasons": []
+    }
+  ]
+}

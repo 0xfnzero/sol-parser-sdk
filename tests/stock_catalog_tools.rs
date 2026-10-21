@@ -132,12 +132,21 @@ fn packaged_catalog_rebuilds_from_recorded_evidence() {
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
     // The matching audit is stored alongside the parser evidence for standalone CI.
     let catalog = build_catalog(
-        &read_json(root.join("docs/research/stock-catalog-20261020.json")).unwrap(),
+        &read_json(root.join("docs/research/stock-catalog-20261022.json")).unwrap(),
         &read_json(root.join("tests/fixtures/stock_catalog_fee_audit.json")).unwrap(),
     )
     .unwrap();
     verify_catalog(&catalog, &read_json(root.join("src/stock_token_catalog.json")).unwrap())
         .unwrap();
-    assert_eq!(catalog["tokens"].as_array().unwrap().len(), 34);
-    assert_eq!(catalog["pools"].as_array().unwrap().len(), 63);
+    assert_eq!(catalog["tokens"].as_array().unwrap().len(), 33);
+    assert_eq!(catalog["pools"].as_array().unwrap().len(), 58);
+    for excluded in [
+        "52PqYh77gmA6AbM5Hs6gHe9mhGBey5CwmD7sDybaYj27",
+        "Bu2A9LUZaMRnf7ZyC1nzREn6dVGVVuPwxz5aFBFkJLTa",
+        "8YU7gLMh4T8RuGepxAuigTqZeGfBn3TDS6tnuj951XbW",
+        "6E12HKuZkyQoMwhTtN4WFs95uMEoW2zXJMFSE4jNcjHE",
+        "5vJcDWLBQSh767DzHACeEmfMh7nGCWZc8eb76v6cCFVr",
+    ] {
+        assert!(catalog["pools"].as_array().unwrap().iter().all(|p| p["pool"] != excluded));
+    }
 }

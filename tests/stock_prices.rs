@@ -193,12 +193,12 @@ fn default_is_disabled_and_catalog_has_multiple_identity_sources() {
     assert!(StockPriceTracker::new(Default::default()).is_ok());
     assert!(StockPriceConfig::default().catalog.tokens.is_empty());
     let catalog = StockTokenCatalog::screened_defaults();
-    assert_eq!(catalog.tokens.len(), 34);
-    assert_eq!(catalog.pools.len(), 63);
+    assert_eq!(catalog.tokens.len(), 33);
+    assert_eq!(catalog.pools.len(), 58);
     assert!(catalog.tokens.iter().any(|t| t.catalog_source.contains("xstocks")));
     assert!(catalog.tokens.iter().any(|t| t.catalog_source.contains("backpack")));
     assert!(catalog.tokens.iter().any(|t| t.symbol == "SPHR.US"));
-    for symbol in ["BABA.US", "INTCx", "QQQx", "COPX.US", "GMEx", "INTC.US", "SPCX.US"] {
+    for symbol in ["BABA.US", "INTCx", "QQQx", "GMEx", "INTC.US", "SPCX.US"] {
         assert!(catalog.tokens.iter().any(|t| t.symbol == symbol));
     }
     for symbol in ["HIMS.US", "AMD.US", "RACE.US", "RDDT.US"] {
@@ -276,7 +276,10 @@ fn signed_mainnet_stock_prices_match_cpi_transfers_and_rpc_grpc_agree() {
             events.iter().filter_map(|e| tracker.process(e, NOW)).collect::<Vec<_>>()
         };
         let grpc_prices = prices(&grpc);
-        assert_eq!(grpc_prices.len(), 1, "{}", case["name"]);
+        // The historical ABNB pool was removed after a large withdrawal; its
+        // raw trade still parses but must not produce a default stock price.
+        let expected = usize::from(case["pool"] != "52PqYh77gmA6AbM5Hs6gHe9mhGBey5CwmD7sDybaYj27");
+        assert_eq!(grpc_prices.len(), expected, "{}", case["name"]);
         let rpc_prices = prices(&rpc_events);
         assert_eq!(rpc_prices.len(), grpc_prices.len());
         for (price, other) in grpc_prices.iter().zip(&rpc_prices) {
@@ -301,5 +304,5 @@ fn signed_mainnet_stock_prices_match_cpi_transfers_and_rpc_grpc_agree() {
             total += 1;
         }
     }
-    assert_eq!(total, 3);
+    assert_eq!(total, 2);
 }
