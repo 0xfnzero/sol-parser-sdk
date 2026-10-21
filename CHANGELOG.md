@@ -1,5 +1,9 @@
 # Release history
 
+## v0.9.0 — 2026-10-22
+
+Synchronize SDK code, examples, version navigation and AI release rules. Read the [release and migration notes](RELEASE_NOTES.md) for callback removals, V3 defaults and the Go /v9 migration.
+
 These notes preserve behavior at release time, not the current API contract. See the [README](README.md) and [current documentation](docs/README.md) for usage.
 
 ## v0.7.19 — Wrapped Pump.fun rules and gRPC execution context
@@ -260,3 +264,71 @@ RUN_MAINNET_TESTS=1 cargo test --test current_mainnet_transactions current_stonk
 - Improves ShredStream Pump.fun v2 parsing with best-effort short-account handling for buy, sell, and exact-quote instructions.
 - Treats Pump.fun buy-family filters symmetrically, so `PumpFunBuy` and `PumpFunBuyExactSolIn` subscriptions both match the compatible buy variants.
 - Keeps ShredStream ALT/default-account best-effort parsing for outer instructions while preserving the CPI/inner-only limitation.
+
+## Historical README integration notes
+
+## Pump routes in ShredStream (offline, before execution)
+
+The DEX shred parser recognizes official `multi_hop_swap` and
+`multi_hop_curve_swap`, plus the captured RapidBuy (`rapidV5DA…`, 41-byte layout)
+and BuyPumpDelta (`J7pourVw…`, 28-byte layout) wrapper versions. It emits
+`DexEvent::PumpRouteIntent`, with the original instruction index, user, input and
+output accounts, route hops and original instruction data. A two-hop route is
+**one route event with two hops**; three separate wrapper calls produce three
+route events. Unknown programs or changed layouts are not guessed by scanning
+for embedded Pump bytes.
+
+**These events are intents, not confirmed fills.** They contain no execution
+status, actual fill amounts, reserves or post balances. `amount_in` and
+`min_amount_out` are explicit instruction constraints where decoded; BuyPumpDelta
+chooses its input at runtime, so these fields are `None`. Failed or conditional
+execution cannot be determined from raw shreds. Use execution metadata for fills.
+
+Subscribe with `EventType::PumpRouteIntent`. Broad `PumpFunTrade` subscriptions
+also receive route intents; official `MultiHopSwap` routes can contain both Pump
+families and also match `PumpSwapTrade`. Direction-specific buy/sell and create
+filters do not match route intents. `exclude_types([PumpRouteIntent])` suppresses
+all intents. Consumers must handle the new `DexEvent::PumpRouteIntent` variant
+rather than assuming every callback is a trade variant.
+
+`filter: None` already includes route intents; changing the filter does not
+convert them into `PumpFunTrade`. For RapidBuy and BuyPumpDelta, `is_buy` is
+`Some(true)`, relative to `hops[0].base_mint`; the payment mint is
+`hops[0].quote_mint`. RapidBuy also exposes
+`ix_name = Some("buy_exact_quote_in_v2")` from its validated embedded
+instruction. BuyPumpDelta's expected method is unknown (`None`). Both hints
+are `None` for multi-hop routes. These are pre-execution hints, not proof of
+a successful CPI. Older serialized events deserialize with unknown hints.
+
+```rust,ignore
+if let DexEvent::PumpRouteIntent(intent) = event {
+    println!("buy intent: {:?}, expected method: {:?}",
+        intent.is_buy, intent.ix_name);
+    for hop in &intent.hops {
+        println!("base: {}, quote: {}", hop.base_mint, hop.quote_mint);
+    }
+}
+```
+
+The new optional fields preserve JSON read compatibility, but downstream Rust
+code constructing `PumpRouteIntentEvent` literals must supply the two fields.
+
+ALT addresses must come from a prewarmed, slot-aware local cache. Both SDKs expose
+`shredstream::parse_transaction_dex_events_with_loaded_addresses`: pass all loaded
+writable addresses, then all loaded readonly addresses, in the message lookup
+order. Count/index errors return before appending events. The caller must ensure
+address identity and lookup-table activation at the transaction slot. The default
+parser skips unresolved instruction accounts instead of emitting placeholder
+pubkeys. `parse_transaction_dex_events_best_effort` retains the older provisional
+behavior for direct instructions; route adapters always require resolved keys.
+
+High-level clients accept `with_address_lookup_resolver(|transaction, slot| ...)`,
+returning `LoadedAddresses` from your cache. Cache errors skip the transaction;
+without a resolver, fully static instructions can still parse. Do not perform RPC
+or blocking I/O in this synchronous callback. The SDK parsing path performs no
+RPC, simulation, or transaction submission.
+
+Regression coverage includes the six original signed mainnet transaction wires,
+ALT/filter/error cases, signed static official routes, and malformed/truncated
+instructions. Run `cargo test --test pump_shred_routes`. The tests are offline;
+synthetic signing validates extraction and does not simulate program execution.

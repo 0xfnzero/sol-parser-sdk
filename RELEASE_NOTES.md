@@ -1,16 +1,18 @@
-# sol-parser-sdk v0.8.0
+# sol-parser-sdk v0.9.0
 
-Uniform trade provenance, opt-in stock prices, and native-language examples.
+Released 2026-10-22. The Rust, Node.js, Python and Go parser packages use the same family version, 0.9.0. Streamer 5.0.0 and Shred 6.0.0 are separately versioned integrations.
 
-## Changes
+## Changes / 更新
 
-- Supported gRPC trade families carry optional original router instructions and TradeParseStatus. Unknown Pump.fun wrappers on Shred produce unresolved candidates without inventing direction or execution amounts.
-- Opt-in stock prices share the screened multi-issuer catalog with trade SDKs. Catalog admission uses $500 liquid-side reserve and no volume threshold; known lower fees are preferred. Historical catalog data is not live liquidity.
-- Missing conversion/liquidity observations stay unknown. Snapshot validation rejects blank sources and invalid price-impact bounds.
-- Organize examples and documentation; tests use the SDK's own language. Offline captured transactions do not represent fresh mainnet execution or production latency measurements.
+- Remove standalone PumpRouteIntent and RawInstruction callbacks and their obsolete decoding helpers/examples. Wrapped Pump.fun callbacks retain the original outer program, ordered accounts and data in third_program.
+- Preserve the distinction between unresolved Shred candidates, decoded instruction inputs and confirmed execution. The parser hot path performs no RPC and does not infer opaque third-party arguments.
+- Synchronize Pump.fun V3 instruction handling, gRPC execution evidence and create-before-trade ordering. Preserve supplied transaction-position and receive-time metadata.
+- Clean up examples and README navigation; maintain the shared stock catalog and native-language validation.
 
-## Migration
+## Migration / 升级
 
-third_program now contains RawInstructionPayload rather than a rule identifier. It does not contain duplicated metadata/dexes; metadata remains on the event. Check parse_status: Unresolved is only a possible DEX interaction, InstructionDecoded establishes input decoding, and ExecutionConfirmed reflects supplied execution evidence, not necessarily known fill amounts. Do not treat zero defaults as proven zero fills. Rust callers constructing trade structs must initialize the new fields or use ..Default::default().
+Subscribe to PumpFunTrade and inspect third_program and parse_status. Remove matches/filters for the retired PumpRouteIntent and RawInstruction events. Unresolved is only a possible interaction; defaults are not a proven direction or zero fill. ExecutionConfirmed does not guarantee all amounts are available. Unresolved ALT addresses remain unknown.
 
-No RPC is performed by the parsing hot path. Explicit analysis/discovery tools can fetch RPC data outside that path. Wrapper reconstruction remains opt-in and is not proof of future third-party program behavior.
+中文：独立的路由意图和原始指令回调已删除。第三方包装信息保留在交易事件的 third_program 中；Shred 候选与实际成交必须按 parse_status 区分。SDK 不猜测第三方合约参数，热路径不调用 RPC。
+
+Version alignment does not imply identical APIs across languages. Offline fixtures validate captured cases, not current chain state or production latency. See README and docs/wrapped-pumpfun.md for the supported surface.

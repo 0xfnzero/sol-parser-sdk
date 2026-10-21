@@ -74,10 +74,9 @@ Transaction signature: `5curEt85cQhAK6R9pntSJ4fmYCiPEG22NjZyGrnGSbNwAkHJMN25T9Ef
 3. common_filler::fill_data                      // Data filling
 ```
 
-This means:
-- **RPC can parse correctly** ➔ **gRPC can also parse correctly** (for real-time transactions)
-- Both parsers will produce identical results
-- RPC serves as a validation tool for gRPC logic
+RPC replay helps validate gRPC parsing when both inputs contain equivalent
+execution metadata. Missing logs, CPI records or loaded addresses can change
+results; a successful RPC replay does not verify live subscription delivery.
 
 ## How to Verify Parsing Works
 
@@ -103,16 +102,17 @@ This will:
 - Receive and parse real-time transactions
 - Verify gRPC streaming works correctly
 
-### Method 3: Debug Transaction Details
+### Method 3: Preserve Transaction Details and Replay Offline
 
 ```bash
-cargo run --example debug_pump_tx --release
+cargo run --example rpc_transaction_replay -- --fetch <SIGNATURE> /tmp/transaction.json
+cargo run --example rpc_transaction_replay -- --fixture /tmp/transaction.json
 ```
 
-This will:
-- Show detailed transaction structure
-- Display all instructions and logs
-- Help understand parsing process
+The saved JSON retains the original transaction, metadata, instructions and logs.
+Inspect that file when debugging account mapping; replaying it exercises the
+current public parser without another RPC request. Choose a new output filename
+when preserving multiple captures.
 
 ## Common Questions
 

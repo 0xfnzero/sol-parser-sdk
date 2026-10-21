@@ -1,5 +1,9 @@
 # 版本记录
 
+## v0.9.0 — 2026-10-22
+
+同步 SDK、examples、版本导航及 AI 发布规则。请阅读 [发布与迁移说明](RELEASE_NOTES.md)，尤其注意事件精简、V3 默认行为和 Go /v9 模块迁移。
+
 以下保留各版本发布时的说明，不代表当前行为。当前用法见 [README](README_CN.md) 与 [文档索引](docs/README.md)。
 
 ## v0.7.19 — Pump.fun 包装指令规则与 gRPC 执行上下文

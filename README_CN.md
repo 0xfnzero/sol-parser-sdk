@@ -1,107 +1,70 @@
-当前版本：**0.8.0**。本轮同步 SDK、原生语言测试、示例及文档。升级说明见 [RELEASE_NOTES.md](RELEASE_NOTES.md)。
-
 <div align="center">
-    <h1>⚡ Sol Parser SDK</h1>
-    <h3><em>超低延迟的 Solana DEX 事件解析器（SIMD 优化）</em></h3>
+    <h1>Sol Parser SDK — Rust</h1>
+    <p>面向 Solana DEX 的 Rust 事件解析 SDK</p>
+    <a href="https://crates.io/crates/sol-parser-sdk"><img src="https://img.shields.io/crates/v/sol-parser-sdk.svg" alt="sol-parser-sdk"></a>
+    <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT License"></a>
 </div>
 
-[示例索引](examples/README.md) · [文档索引](docs/README.md) · [版本记录](CHANGELOG_CN.md)
-
-v0.8.0包含统一交易来源和可选股票行情订阅，详见
-[包装交易语义](docs/wrapped-pumpfun.md)及[股票行情说明](docs/stock-prices.md)。
-解析热路径不调用 RPC；缺失的执行金额、换算价和实时流动性保持未知。
-
 <p align="center">
-    <strong>高性能 Rust 库，提供微秒级延迟的 Solana DEX 事件解析</strong>
+    <a href="README.md">English</a> · <a href="README_CN.md">中文</a> ·
+    <a href="examples/README.md">示例</a> ·
+    <a href="docs/README.md">文档</a> ·
+    <a href="RELEASE_NOTES.md">发布与迁移</a> ·
+    <a href="#sdk-版本与相关项目">相关 SDK</a>
 </p>
 
-<p align="center">
-    <a href="https://crates.io/crates/sol-parser-sdk">
-        <img src="https://img.shields.io/crates/v/sol-parser-sdk.svg" alt="Crates.io">
-    </a>
-    <a href="https://docs.rs/sol-parser-sdk">
-        <img src="https://docs.rs/sol-parser-sdk/badge.svg" alt="Documentation">
-    </a>
-    <a href="https://github.com/0xfnzero/sol-parser-sdk/blob/main/LICENSE">
-        <img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License">
-    </a>
-</p>
+从 gRPC、ShredStream、RPC 交易及协议账户解析类型化事件，用于索引、监控和交易系统。
 
-<p align="center">
-    <img src="https://img.shields.io/badge/Rust-000000?style=for-the-badge&logo=rust&logoColor=white" alt="Rust">
-    <img src="https://img.shields.io/badge/Solana-9945FF?style=for-the-badge&logo=solana&logoColor=white" alt="Solana">
-    <img src="https://img.shields.io/badge/SIMD-FF6B6B?style=for-the-badge&logo=intel&logoColor=white" alt="SIMD">
-    <img src="https://img.shields.io/badge/gRPC-4285F4?style=for-the-badge&logo=grpc&logoColor=white" alt="gRPC">
-</p>
+当前版本：**0.9.0**。升级前请阅读 [迁移说明](RELEASE_NOTES.md)；历史变更见 [版本记录](CHANGELOG_CN.md)。
 
-<p align="center">
-    <a href="https://github.com/0xfnzero/sol-parser-sdk/blob/main/README_CN.md">中文</a> |
-    <a href="https://github.com/0xfnzero/sol-parser-sdk/blob/main/README.md">English</a> |
-    <a href="https://fnzero.dev/">Website</a> |
-    <a href="https://t.me/fnzero_group">Telegram</a> |
-    <a href="https://discord.gg/vuazbGkqQE">Discord</a>
-</p>
+## 目录
 
----
+- [SDK 版本与相关项目](#sdk-版本与相关项目)
+- [快速开始](#快速开始)
+- [这个 SDK 适合什么场景](#这个-sdk-适合什么场景)
+- [交易来源与解析边界](#交易来源与解析边界)
+- [支持的协议](#支持的协议)
+- [使用文档](#使用文档)
+
+<a id="sdk-版本与相关项目"></a>
 
 ## 📦 SDK 版本与相关项目
 
-解析 SDK 的各语言版本及相关 Rust SDK：
+各仓库版本独立，依赖兼容要求以对应 SDK 的安装说明为准。
 
-| 语言 | 仓库 | 描述 | 版本 |
-|------|------|------|
-| **Rust** | [sol-parser-sdk](https://github.com/0xfnzero/sol-parser-sdk) | 超低延迟，SIMD 优化 | `v0.8.0` |
-| **Node.js** | [sol-parser-sdk-nodejs](https://github.com/0xfnzero/sol-parser-sdk-nodejs) | TypeScript/JavaScript，Node.js 支持 | `v0.6.0` |
-| **Python** | [sol-parser-sdk-python](https://github.com/0xfnzero/sol-parser-sdk-python) | 原生 async/await 支持 | `v0.6.0` |
-| **Go** | [sol-parser-sdk-golang](https://github.com/0xfnzero/sol-parser-sdk-golang) | 并发安全，goroutine 支持 | `v0.6.0` |
-| **Rust** | [sol-shred-sdk](https://github.com/0xfnzero/sol-shred-sdk) | Solana 原始 shred 解码与 ShredStream DEX 事件解析 | `v5.0.0` |
-| **Rust** | [sol-trade-sdk](https://github.com/0xfnzero/sol-trade-sdk) | Solana DEX 交易构建与交易执行 | `v8.0.0` |
+| 语言 | 仓库 | 用途 | 版本 |
+|----------|------------|-------------|---------|
+| Rust | [sol-parser-sdk](https://github.com/0xfnzero/sol-parser-sdk) | DEX 交易与账户事件解析 | `v0.9.0` |
+| Node.js | [sol-parser-sdk-nodejs](https://github.com/0xfnzero/sol-parser-sdk-nodejs) | DEX 交易与账户事件解析 | `v0.9.0` |
+| Python | [sol-parser-sdk-python](https://github.com/0xfnzero/sol-parser-sdk-python) | DEX 交易与账户事件解析 | `v0.9.0` |
+| Go | [sol-parser-sdk-golang](https://github.com/0xfnzero/sol-parser-sdk-golang) | DEX 交易与账户事件解析 | `v0.9.0` |
+| Rust | [sol-trade-sdk](https://github.com/0xfnzero/sol-trade-sdk) | 交易构建、签名与多通道提交 | `v9.0.0` |
+| Node.js | [sol-trade-sdk-nodejs](https://github.com/0xfnzero/sol-trade-sdk-nodejs) | 交易构建、签名与多通道提交 | `v9.0.0` |
+| Python | [sol-trade-sdk-python](https://github.com/0xfnzero/sol-trade-sdk-python) | 交易构建、签名与多通道提交 | `v9.0.0` |
+| Go | [sol-trade-sdk-golang](https://github.com/0xfnzero/sol-trade-sdk-golang) | 交易构建、签名与多通道提交 | `v9.0.0` |
+| Rust | [sol-shred-sdk](https://github.com/0xfnzero/sol-shred-sdk) | 原始 Shred 解码与 ShredStream 指令事件 | `v6.0.0` |
+| Rust | [solana-streamer](https://github.com/0xfnzero/solana-streamer) | gRPC / ShredStream 订阅与事件流封装 | `v5.0.0` |
+| Rust | [sol-trade-router-sdk](https://github.com/0xfnzero/sol-trade-router-sdk) | 链上多跳 Router 与客户端 SDK | `v0.3.0` |
 
-## 这个 SDK 适合什么场景
-
-`sol-parser-sdk` 是 Solana DEX 事件的底层 Rust 解析核心，适合交易机器人、跟单管道、狙击机器人、索引服务和流处理系统，从 Yellowstone gRPC 交易、Jito ShredStream entry、RPC 交易 payload 或账户订阅中快速解析出强类型事件。
-
-| 方向 | 覆盖范围 |
-|------|----------|
-| 解析输入 | Yellowstone gRPC、ShredStream、RPC 交易、编码交易、协议账户数据 |
-| DEX 协议 | PumpFun、PumpSwap、Pump Fees、LaunchLab（含 StonkFun）、Raydium CPMM、Raydium CLMM、Raydium AMM V4、Meteora DAMM v2、Meteora DLMM、Meteora DBC、Orca Whirlpool |
-| 解析后端 | 默认 Borsh 解析器便于维护，也可为低延迟热路径启用 zero-copy 解析器 |
-| 相关 SDK | 如果需要更高层的事件流封装，请使用 [solana-streamer](https://github.com/0xfnzero/solana-streamer) |
-
----
-
-## 📊 性能亮点
-
-### ⚡ 超低延迟
-- **10-20μs** 解析延迟（Release 模式）
-- **零拷贝** 栈缓冲区解析
-- **SIMD 加速** 模式匹配（memchr）
-- **无锁队列** ArrayQueue 事件传递
-
-### 🎚️ 灵活的顺序模式
-| 模式 | 延迟 | 说明 |
-|------|---------|-------------|
-| **Unordered** | 10-20μs | 立即输出，超低延迟 |
-| **MicroBatch** | 50-200μs | 微批次排序，时间窗口内排序 |
-| **StreamingOrdered** | 0.1-5ms | 流式排序，连续序列立即释放 |
-| **Ordered** | 1-50ms | 缓存 slot 排序，新 slot 或超时触发输出 |
-
-Ordered 保留最后输出的 `(slot, tx_index)` 水位。新 slot 刷新会关闭旧 slot；超时刷新后，同 slot 中更高索引的交易仍可继续输出。已关闭 slot 或水位之前/等于水位的迟到数据会被丢弃，并记录 `Ordered continuity break` 警告。同一交易内事件保持解析顺序；此模式不保证上游数据完整。
-
-### 🚀 优化特性
-- ✅ **零堆分配** 热路径无堆分配
-- ✅ **SIMD 模式匹配** 所有协议检测 SIMD 加速
-- ✅ **静态预编译查找器** 字符串搜索零开销
-- ✅ **激进内联** 关键函数强制内联
-- ✅ **事件类型过滤** 精准解析目标事件
-- ✅ **条件 Create 检测** 仅在需要时检测
-- ✅ **多种顺序模式** 延迟与顺序的灵活平衡
-
----
+<a id="快速开始"></a>
 
 ## 🔥 快速开始
 
 ### 安装
+
+```toml
+# 在 Cargo.toml 中添加
+sol-parser-sdk = "0.9.0"
+```
+
+或使用零拷贝解析器（最高性能）：
+
+```toml
+sol-parser-sdk = { version = "0.9.0", default-features = false, features = ["parse-zero-copy"] }
+```
+
+
+### 从源码使用
 
 克隆仓库：
 
@@ -121,18 +84,6 @@ sol-parser-sdk = { path = "../sol-parser-sdk" }
 sol-parser-sdk = { path = "../sol-parser-sdk", default-features = false, features = ["parse-zero-copy"] }
 ```
 
-### 使用 crates.io
-
-```toml
-# 在 Cargo.toml 中添加
-sol-parser-sdk = "0.8.0"
-```
-
-或使用零拷贝解析器（最高性能）：
-
-```toml
-sol-parser-sdk = { version = "0.8.0", default-features = false, features = ["parse-zero-copy"] }
-```
 
 ### 性能测试
 
@@ -163,42 +114,40 @@ cargo run --example pumpswap_ordered --release
 | 描述 | 运行命令 | 源码 |
 |------|----------|------|
 | **PumpFun** | | |
-| PumpFun 事件解析 + 性能指标 | `cargo run --example pumpfun_with_metrics --release` | [examples/pumpfun_with_metrics.rs](https://github.com/0xfnzero/sol-parser-sdk/blob/main/examples/pumpfun_with_metrics.rs) | `v0.8.0` |
-| PumpFun 交易类型过滤 | `cargo run --example pumpfun_trade_filter --release` | [examples/pumpfun_trade_filter.rs](https://github.com/0xfnzero/sol-parser-sdk/blob/main/examples/pumpfun_trade_filter.rs) | `v0.8.0` |
-| PumpFun 有序模式交易过滤 | `cargo run --example pumpfun_trade_filter_ordered --release` | [examples/pumpfun_trade_filter_ordered.rs](https://github.com/0xfnzero/sol-parser-sdk/blob/main/examples/pumpfun_trade_filter_ordered.rs) | `v0.8.0` |
-| PumpFun 快速连接测试 | `cargo run --example pumpfun_quick_test --release` | [examples/pumpfun_quick_test.rs](https://github.com/0xfnzero/sol-parser-sdk/blob/main/examples/pumpfun_quick_test.rs) | `v0.8.0` |
-| 按签名解析 PumpFun 交易 | `TX_SIGNATURE=<sig> cargo run --example parse_pump_tx --release` | [examples/parse_pump_tx.rs](https://github.com/0xfnzero/sol-parser-sdk/blob/main/examples/parse_pump_tx.rs) | `v0.8.0` |
-| 解析 PumpFun quote_mint 边界案例 | `TX_SIGNATURES=<sig1,sig2> cargo run --example parse_pumpfun_quote_cases --release` | [examples/parse_pumpfun_quote_cases.rs](https://github.com/0xfnzero/sol-parser-sdk/blob/main/examples/parse_pumpfun_quote_cases.rs) | `v0.8.0` |
-| 调试 PumpFun 交易 | `cargo run --example debug_pump_tx --release` | [examples/debug_pump_tx.rs](https://github.com/0xfnzero/sol-parser-sdk/blob/main/examples/debug_pump_tx.rs) | `v0.8.0` |
+| PumpFun 事件解析 + 性能指标 | `cargo run --example pumpfun_with_metrics --release` | [examples/pumpfun_with_metrics.rs](https://github.com/0xfnzero/sol-parser-sdk/blob/main/examples/pumpfun_with_metrics.rs) | `v0.9.0` |
+| PumpFun 交易类型过滤 | `cargo run --example pumpfun_trade_filter --release` | [examples/pumpfun_trade_filter.rs](https://github.com/0xfnzero/sol-parser-sdk/blob/main/examples/pumpfun_trade_filter.rs) | `v0.9.0` |
+| PumpFun 有序模式交易过滤 | `cargo run --example pumpfun_trade_filter_ordered --release` | [examples/pumpfun_trade_filter_ordered.rs](https://github.com/0xfnzero/sol-parser-sdk/blob/main/examples/pumpfun_trade_filter_ordered.rs) | `v0.9.0` |
+| PumpFun 快速连接测试 | `cargo run --example pumpfun_quick_test --release` | [examples/pumpfun_quick_test.rs](https://github.com/0xfnzero/sol-parser-sdk/blob/main/examples/pumpfun_quick_test.rs) | `v0.9.0` |
+| 按签名解析 PumpFun 交易 | `TX_SIGNATURE=<sig> cargo run --example parse_pump_tx --release` | [examples/parse_pump_tx.rs](https://github.com/0xfnzero/sol-parser-sdk/blob/main/examples/parse_pump_tx.rs) | `v0.9.0` |
+| 解析 PumpFun quote_mint 边界案例 | `TX_SIGNATURES=<sig1,sig2> cargo run --example parse_pumpfun_quote_cases --release` | [examples/parse_pumpfun_quote_cases.rs](https://github.com/0xfnzero/sol-parser-sdk/blob/main/examples/parse_pumpfun_quote_cases.rs) | `v0.9.0` |
+| 抓取任意交易并离线回放（保存原始 meta/logs/账户） | `cargo run --example rpc_transaction_replay -- --fetch <SIGNATURE> /tmp/transaction.json` | [examples/rpc_transaction_replay.rs](examples/rpc_transaction_replay.rs) | `v0.9.0` |
 | **PumpSwap** | | |
-| PumpSwap 事件 + 性能统计 | `cargo run --example pumpswap_with_metrics --release` | [examples/pumpswap_with_metrics.rs](https://github.com/0xfnzero/sol-parser-sdk/blob/main/examples/pumpswap_with_metrics.rs) | `v0.8.0` |
-| PumpSwap 超低延迟 | `cargo run --example pumpswap_low_latency --release` | [examples/pumpswap_low_latency.rs](https://github.com/0xfnzero/sol-parser-sdk/blob/main/examples/pumpswap_low_latency.rs) | `v0.8.0` |
-| PumpSwap MicroBatch 有序 | `cargo run --example pumpswap_ordered --release` | [examples/pumpswap_ordered.rs](https://github.com/0xfnzero/sol-parser-sdk/blob/main/examples/pumpswap_ordered.rs) | `v0.8.0` |
-| 按签名解析 PumpSwap 交易 | `TX_SIGNATURE=<sig> cargo run --example parse_pumpswap_tx --release` | [examples/parse_pumpswap_tx.rs](https://github.com/0xfnzero/sol-parser-sdk/blob/main/examples/parse_pumpswap_tx.rs) | `v0.8.0` |
-| 调试 PumpSwap 交易 | `cargo run --example debug_pumpswap_tx --release` | [examples/debug_pumpswap_tx.rs](https://github.com/0xfnzero/sol-parser-sdk/blob/main/examples/debug_pumpswap_tx.rs) | `v0.8.0` |
+| PumpSwap 事件 + 性能统计 | `cargo run --example pumpswap_with_metrics --release` | [examples/pumpswap_with_metrics.rs](https://github.com/0xfnzero/sol-parser-sdk/blob/main/examples/pumpswap_with_metrics.rs) | `v0.9.0` |
+| PumpSwap 超低延迟 | `cargo run --example pumpswap_low_latency --release` | [examples/pumpswap_low_latency.rs](https://github.com/0xfnzero/sol-parser-sdk/blob/main/examples/pumpswap_low_latency.rs) | `v0.9.0` |
+| PumpSwap MicroBatch 有序 | `cargo run --example pumpswap_ordered --release` | [examples/pumpswap_ordered.rs](https://github.com/0xfnzero/sol-parser-sdk/blob/main/examples/pumpswap_ordered.rs) | `v0.9.0` |
+| 按签名解析 PumpSwap 交易 | `TX_SIGNATURE=<sig> cargo run --example parse_pumpswap_tx --release` | [examples/parse_pumpswap_tx.rs](https://github.com/0xfnzero/sol-parser-sdk/blob/main/examples/parse_pumpswap_tx.rs) | `v0.9.0` |
 | **Meteora DAMM** | | |
-| Meteora DAMM V2 事件 | `cargo run --example meteora_damm_grpc --release` | [examples/meteora_damm_grpc.rs](https://github.com/0xfnzero/sol-parser-sdk/blob/main/examples/meteora_damm_grpc.rs) | `v0.8.0` |
-| 按签名解析 Meteora DAMM 交易 | `TX_SIGNATURE=<sig> cargo run --example parse_meteora_damm_tx --release` | [examples/parse_meteora_damm_tx.rs](https://github.com/0xfnzero/sol-parser-sdk/blob/main/examples/parse_meteora_damm_tx.rs) | `v0.8.0` |
+| Meteora DAMM V2 事件 | `cargo run --example meteora_damm_grpc --release` | [examples/meteora_damm_grpc.rs](https://github.com/0xfnzero/sol-parser-sdk/blob/main/examples/meteora_damm_grpc.rs) | `v0.9.0` |
+| 按签名解析 Meteora DAMM 交易 | `TX_SIGNATURE=<sig> cargo run --example parse_meteora_damm_tx --release` | [examples/parse_meteora_damm_tx.rs](https://github.com/0xfnzero/sol-parser-sdk/blob/main/examples/parse_meteora_damm_tx.rs) | `v0.9.0` |
 | **非 Pump DEX dry-run 场景** | | |
-| LaunchLab migration 过滤 | `cargo run --example raydium_launchlab_migration` | [examples/raydium_launchlab_migration.rs](https://github.com/0xfnzero/sol-parser-sdk/blob/main/examples/raydium_launchlab_migration.rs) | `v0.8.0` |
-| Raydium CPMM 新池过滤 | `cargo run --example raydium_cpmm_new_pool` | [examples/raydium_cpmm_new_pool.rs](https://github.com/0xfnzero/sol-parser-sdk/blob/main/examples/raydium_cpmm_new_pool.rs) | `v0.8.0` |
-| Raydium CLMM 价格计算 | `cargo run --example raydium_clmm_token_price` | [examples/raydium_clmm_token_price.rs](https://github.com/0xfnzero/sol-parser-sdk/blob/main/examples/raydium_clmm_token_price.rs) | `v0.8.0` |
-| Orca Whirlpool 价格计算 | `cargo run --example orca_whirlpool_token_price` | [examples/orca_whirlpool_token_price.rs](https://github.com/0xfnzero/sol-parser-sdk/blob/main/examples/orca_whirlpool_token_price.rs) | `v0.8.0` |
-| Meteora DAMM 新池基线 | `cargo run --example meteora_damm_new_pool` | [examples/meteora_damm_new_pool.rs](https://github.com/0xfnzero/sol-parser-sdk/blob/main/examples/meteora_damm_new_pool.rs) | `v0.8.0` |
-| Meteora DBC 价格计算 | `cargo run --example meteora_dbc_token_price` | [examples/meteora_dbc_token_price.rs](https://github.com/0xfnzero/sol-parser-sdk/blob/main/examples/meteora_dbc_token_price.rs) | `v0.8.0` |
-| 钱包交易过滤 | `cargo run --example wallet_trade_filter` | [examples/wallet_trade_filter.rs](https://github.com/0xfnzero/sol-parser-sdk/blob/main/examples/wallet_trade_filter.rs) | `v0.8.0` |
-| gRPC 延迟与 slot 对比配置 | `cargo run --example grpc_latency_slot_compare` | [examples/grpc_latency_slot_compare.rs](https://github.com/0xfnzero/sol-parser-sdk/blob/main/examples/grpc_latency_slot_compare.rs) | `v0.8.0` |
+| LaunchLab migration 过滤 | `cargo run --example raydium_launchlab_migration` | [examples/raydium_launchlab_migration.rs](https://github.com/0xfnzero/sol-parser-sdk/blob/main/examples/raydium_launchlab_migration.rs) | `v0.9.0` |
+| Raydium CPMM 新池过滤 | `cargo run --example raydium_cpmm_new_pool` | [examples/raydium_cpmm_new_pool.rs](https://github.com/0xfnzero/sol-parser-sdk/blob/main/examples/raydium_cpmm_new_pool.rs) | `v0.9.0` |
+| Raydium CLMM 价格计算 | `cargo run --example raydium_clmm_token_price` | [examples/raydium_clmm_token_price.rs](https://github.com/0xfnzero/sol-parser-sdk/blob/main/examples/raydium_clmm_token_price.rs) | `v0.9.0` |
+| Orca Whirlpool 价格计算 | `cargo run --example orca_whirlpool_token_price` | [examples/orca_whirlpool_token_price.rs](https://github.com/0xfnzero/sol-parser-sdk/blob/main/examples/orca_whirlpool_token_price.rs) | `v0.9.0` |
+| Meteora DAMM 新池基线 | `cargo run --example meteora_damm_new_pool` | [examples/meteora_damm_new_pool.rs](https://github.com/0xfnzero/sol-parser-sdk/blob/main/examples/meteora_damm_new_pool.rs) | `v0.9.0` |
+| Meteora DBC 价格计算 | `cargo run --example meteora_dbc_token_price` | [examples/meteora_dbc_token_price.rs](https://github.com/0xfnzero/sol-parser-sdk/blob/main/examples/meteora_dbc_token_price.rs) | `v0.9.0` |
+| 钱包交易过滤 | `cargo run --example wallet_trade_filter` | [examples/wallet_trade_filter.rs](https://github.com/0xfnzero/sol-parser-sdk/blob/main/examples/wallet_trade_filter.rs) | `v0.9.0` |
+| gRPC 延迟与 slot 对比配置 | `cargo run --example grpc_latency_slot_compare` | [examples/grpc_latency_slot_compare.rs](https://github.com/0xfnzero/sol-parser-sdk/blob/main/examples/grpc_latency_slot_compare.rs) | `v0.9.0` |
 | **账户订阅** | | |
-| Token 账户余额变化 | `TOKEN_ACCOUNT=<pubkey> cargo run --example token_balance_listen --release` | [examples/token_balance_listen.rs](https://github.com/0xfnzero/sol-parser-sdk/blob/main/examples/token_balance_listen.rs) | `v0.8.0` |
-| Nonce 账户状态变化 | `NONCE_ACCOUNT=<pubkey> cargo run --example nonce_listen --release` | [examples/nonce_listen.rs](https://github.com/0xfnzero/sol-parser-sdk/blob/main/examples/nonce_listen.rs) | `v0.8.0` |
-| Mint 账户信息 | `MINT_ACCOUNT=<pubkey> cargo run --example token_decimals_listen --release` | [examples/token_decimals_listen.rs](https://github.com/0xfnzero/sol-parser-sdk/blob/main/examples/token_decimals_listen.rs) | `v0.8.0` |
-| PumpSwap 池账户 memcmp 订阅 | `cargo run --example pumpswap_pool_account_listen --release` | [examples/pumpswap_pool_account_listen.rs](https://github.com/0xfnzero/sol-parser-sdk/blob/main/examples/pumpswap_pool_account_listen.rs) | `v0.8.0` |
-| 所有 ATA 订阅 | `cargo run --example mint_all_ata_account_listen --release` | [examples/mint_all_ata_account_listen.rs](https://github.com/0xfnzero/sol-parser-sdk/blob/main/examples/mint_all_ata_account_listen.rs) | `v0.8.0` |
+| Token 账户余额变化 | `TOKEN_ACCOUNT=<pubkey> cargo run --example token_balance_listen --release` | [examples/token_balance_listen.rs](https://github.com/0xfnzero/sol-parser-sdk/blob/main/examples/token_balance_listen.rs) | `v0.9.0` |
+| Nonce 账户状态变化 | `NONCE_ACCOUNT=<pubkey> cargo run --example nonce_listen --release` | [examples/nonce_listen.rs](https://github.com/0xfnzero/sol-parser-sdk/blob/main/examples/nonce_listen.rs) | `v0.9.0` |
+| Mint 账户信息 | `MINT_ACCOUNT=<pubkey> cargo run --example token_decimals_listen --release` | [examples/token_decimals_listen.rs](https://github.com/0xfnzero/sol-parser-sdk/blob/main/examples/token_decimals_listen.rs) | `v0.9.0` |
+| PumpSwap 池账户 memcmp 订阅 | `cargo run --example pumpswap_pool_account_listen --release` | [examples/pumpswap_pool_account_listen.rs](https://github.com/0xfnzero/sol-parser-sdk/blob/main/examples/pumpswap_pool_account_listen.rs) | `v0.9.0` |
+| 所有 ATA 订阅 | `cargo run --example mint_all_ata_account_listen --release` | [examples/mint_all_ata_account_listen.rs](https://github.com/0xfnzero/sol-parser-sdk/blob/main/examples/mint_all_ata_account_listen.rs) | `v0.9.0` |
 | **ShredStream** | | |
-| Jito ShredStream 订阅 | `cargo run --example shredstream_example --release` | [examples/shredstream_example.rs](https://github.com/0xfnzero/sol-parser-sdk/blob/main/examples/shredstream_example.rs) | `v0.8.0` |
+| Jito ShredStream 订阅 | `cargo run --example shredstream_example --release` | [examples/shredstream_example.rs](https://github.com/0xfnzero/sol-parser-sdk/blob/main/examples/shredstream_example.rs) | `v0.9.0` |
 | **工具** | | |
-| 动态更新订阅过滤器 | `cargo run --example dynamic_subscription --release` | [examples/dynamic_subscription.rs](https://github.com/0xfnzero/sol-parser-sdk/blob/main/examples/dynamic_subscription.rs) | `v0.8.0` |
-| 调试 PumpSwap 账户填充 | `cargo run --example test_account_filling --release` | [examples/test_account_filling.rs](https://github.com/0xfnzero/sol-parser-sdk/blob/main/examples/test_account_filling.rs) | `v0.8.0` |
+| 动态更新订阅过滤器 | `cargo run --example dynamic_subscription --release` | [examples/dynamic_subscription.rs](https://github.com/0xfnzero/sol-parser-sdk/blob/main/examples/dynamic_subscription.rs) | `v0.9.0` |
 
 ### 基本用法
 
@@ -215,7 +164,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         "https://solana-yellowstone-grpc.publicnode.com:443".to_string(),
         None,
     )?;
-    
+
     // 或使用自定义配置启用有序模式
     let config = ClientConfig {
         order_mode: OrderMode::MicroBatch,  // 低延迟 + 有序
@@ -332,7 +281,65 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 - 无 block_time - 恒为 0
 - tx_index 是 entry 内索引而非 slot 内索引
 
----
+<a id="这个-sdk-适合什么场景"></a>
+
+## 这个 SDK 适合什么场景
+
+`sol-parser-sdk` 是 Solana DEX 事件的底层 Rust 解析核心，适合交易机器人、跟单管道、狙击机器人、索引服务和流处理系统，从 Yellowstone gRPC 交易、Jito ShredStream entry、RPC 交易 payload 或账户订阅中快速解析出强类型事件。
+
+| 方向 | 覆盖范围 |
+|------|----------|
+| 解析输入 | Yellowstone gRPC、ShredStream、RPC 交易、编码交易、协议账户数据 |
+| DEX 协议 | PumpFun、PumpSwap、Pump Fees、LaunchLab（含 StonkFun）、Raydium CPMM、Raydium CLMM、Raydium AMM V4、Meteora DAMM v2、Meteora DLMM、Meteora DBC、Orca Whirlpool |
+| 解析后端 | 默认 Borsh 解析器便于维护，也可为低延迟热路径启用 zero-copy 解析器 |
+| 相关 SDK | 如果需要更高层的事件流封装，请使用 [solana-streamer](https://github.com/0xfnzero/solana-streamer) |
+
+<a id="交易来源与解析边界"></a>
+
+## 交易来源与解析边界
+
+gRPC/RPC 使用提供的执行元数据和实际 CPI 指令；Shred 只能看到外层指令与本地已解析的账户。未知第三方指令在自身账户中引用 Pump.fun 时，可回调 `PumpFunTrade` 候选，携带 `third_program` 原始输入与 `Unresolved` 状态；这不证明交易已执行，也不确定方向或金额。买入／卖出专用过滤器不会把未知方向当作成交。
+
+解析热路径不调用 RPC。按 `parse_status` 判断证据，缺失字段的默认值不代表实际零成交。账户顺序与原始指令数据保留在 `third_program`；交易序号和接收时间仍在事件元数据中，本地 Shred 序号不等于全 slot 执行顺序。详见 [第三方包装交易](docs/wrapped-pumpfun.md)。
+
+<a id="股票行情订阅"></a>
+
+## 股票行情订阅
+
+可选的股票／ETF 成交价订阅支持用户扩展目录，缺少实时换算价或流动性时保持未知。默认目录按已验证池子的流动侧储备至少 500 美元筛选，不设交易量门槛，同一 mint 优先已知费用更低的池子。历史目录不代表实时可成交深度。
+
+详见 [股票行情](docs/stock-prices.md) 与 [跨 DEX 股票路由](docs/cross-dex-stock-routes.md)；离线回放使用 `cargo run --example stock_route_replay`。
+
+<a id="性能亮点"></a>
+
+## 📊 性能亮点
+
+### ⚡ 超低延迟
+- **10-20μs** 解析延迟（Release 模式）
+- **零拷贝** 栈缓冲区解析
+- **SIMD 加速** 模式匹配（memchr）
+- **无锁队列** ArrayQueue 事件传递
+
+### 🎚️ 灵活的顺序模式
+| 模式 | 延迟 | 说明 |
+|------|---------|-------------|
+| **Unordered** | 10-20μs | 立即输出，超低延迟 |
+| **MicroBatch** | 50-200μs | 微批次排序，时间窗口内排序 |
+| **StreamingOrdered** | 0.1-5ms | 流式排序，连续序列立即释放 |
+| **Ordered** | 1-50ms | 缓存 slot 排序，新 slot 或超时触发输出 |
+
+Ordered 保留最后输出的 `(slot, tx_index)` 水位。新 slot 刷新会关闭旧 slot；超时刷新后，同 slot 中更高索引的交易仍可继续输出。已关闭 slot 或水位之前/等于水位的迟到数据会被丢弃，并记录 `Ordered continuity break` 警告。同一交易内事件保持解析顺序；此模式不保证上游数据完整。
+
+### 🚀 优化特性
+- ✅ **零堆分配** 热路径无堆分配
+- ✅ **SIMD 模式匹配** 所有协议检测 SIMD 加速
+- ✅ **静态预编译查找器** 字符串搜索零开销
+- ✅ **激进内联** 关键函数强制内联
+- ✅ **事件类型过滤** 精准解析目标事件
+- ✅ **条件 Create 检测** 仅在需要时检测
+- ✅ **多种顺序模式** 延迟与顺序的灵活平衡
+
+<a id="支持的协议"></a>
 
 ## 🏗️ 支持的协议
 
@@ -373,7 +380,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 跨语言基线见 [`protocols/canonical.json`](protocols/canonical.json)。通过 `AccountRawSnapshot` 显式订阅原始账户；专用快照覆盖 LaunchLab 池/配置、DLMM 池/bin array/bitmap、Whirlpool 动态数组/adaptive Oracle 和 CLMM bitmap extension。
 
----
+<a id="性能特性"></a>
 
 ## ⚡ 性能特性
 
@@ -425,7 +432,7 @@ if let Some(event) = queue.pop() {
 }
 ```
 
----
+<a id="事件过滤"></a>
 
 ## 🎯 事件过滤
 
@@ -477,7 +484,7 @@ log-only 的 `CreatePoolEvent` payload 因为 IDL 不包含该字段，会保持
 - 降低内存使用
 - 减少网络带宽
 
----
+<a id="高级功能"></a>
 
 ## 🔧 高级功能
 
@@ -562,7 +569,7 @@ let config = ClientConfig {
 let grpc = YellowstoneGrpc::new_with_config(endpoint, token, config)?;
 ```
 
----
+<a id="项目结构"></a>
 
 ## 📁 项目结构
 
@@ -592,7 +599,7 @@ src/
 └── lib.rs
 ```
 
----
+<a id="优化技术"></a>
 
 ## 🚀 优化技术
 
@@ -630,7 +637,7 @@ fn read_u64_le_inline(data: &[u8], offset: usize) -> Option<u64> {
 }
 ```
 
----
+<a id="性能基准"></a>
 
 ## 📊 性能基准
 
@@ -647,19 +654,7 @@ fn read_u64_le_inline(data: &[u8], offset: usize) -> Option<u64> {
 | 协议检测 | 50-100ns | 10-20ns | 3-10x |
 | Create 事件检测 | 150ns | 30ns | 5x |
 
----
-
-## 📄 许可证
-
-MIT License
-
-## 📞 联系方式
-
-- **仓库**: https://github.com/0xfnzero/sol-parser-sdk
-- **Telegram**: https://t.me/fnzero_group
-- **Discord**: https://discord.gg/vuazbGkqQE
-
----
+<a id="性能建议"></a>
 
 ## ⚠️ 性能建议
 
@@ -669,6 +664,8 @@ MIT License
 4. **监控延迟** - 生产环境检查 `grpc_recv_us` 和队列延迟
 5. **调整队列大小** - 根据吞吐量调整 ArrayQueue 容量
 6. **自旋等待策略** - 根据使用场景调整自旋计数（默认：1000）
+
+<a id="开发"></a>
 
 ## 🔬 开发
 
@@ -685,6 +682,8 @@ cargo doc --open
 
 PumpFun create/create_v2 的共享主网样本、重放方法和验证边界见 [验证说明](https://github.com/0xfnzero/sol-parser-sdk-golang/tree/main/validation/pumpfun_create_20261007)。
 
+<a id="使用文档"></a>
+
 ## 使用文档
 
 从 [示例入口](examples/README.md) 和 [文档索引](docs/README.md) 开始。
@@ -698,3 +697,21 @@ PumpFun create/create_v2 的共享主网样本、重放方法和验证边界见 
 - [Pump/PumpSwap 账户布局](docs/PUMP_PUMP_AMM_PARSER_ACCOUNTS.md)
 - [gRPC 与 RPC](docs/grpc-vs-rpc.md)
 - [延迟测量排错](docs/troubleshooting-latency.md)
+
+
+<a id="许可证"></a>
+
+## 📄 许可证
+
+MIT License
+
+<a id="联系方式"></a>
+
+## 📞 联系方式
+
+- **仓库**: https://github.com/0xfnzero/sol-parser-sdk
+- **Telegram**: https://t.me/fnzero_group
+- **Discord**: https://discord.gg/vuazbGkqQE
+
+
+股票池同步：34 种官方股票/ETF、63 个股票池；配置扩展、USDC 起点、缓存选路与使用边界见 [11 SDK 同步说明](docs/STOCK_BRIDGE_SYNC.md)。

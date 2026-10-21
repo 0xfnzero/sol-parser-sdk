@@ -68,9 +68,11 @@ cargo run --example stock_route_replay -- --fixture /tmp/transaction.json
   checks saved execution evidence. See each file's usage before fetching.
 - `analyze_stonkfun_corpus` inspects captured Stonk routes; see
   [route analysis](../docs/ROUTE_ANALYSIS.md).
-- Existing `parse_*`, `debug_*` and `test_account_filling` are focused diagnostics,
-  not automated test-suite entry points. Some have historical signatures and
-  require archival RPC. Prefer saved replays for repeatable verification.
+- Use `rpc_transaction_replay --fetch SIGNATURE OUTPUT.json` to preserve raw
+  metadata, logs and account data, then `--fixture OUTPUT.json` to replay offline.
+  This replaces the separate Pump/PumpSwap debug and account-filling scripts.
+  Protocol-specific `parse_*` examples remain API demonstrations; automated
+  assertions live in tests. Historical signatures may require archival RPC.
 
 ## Online subscriptions
 
