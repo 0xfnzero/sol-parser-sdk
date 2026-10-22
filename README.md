@@ -1,19 +1,38 @@
 <div align="center">
-    <h1>Sol Parser SDK — Rust</h1>
-    <p>Solana DEX event parsing for Rust</p>
-    <a href="https://crates.io/crates/sol-parser-sdk"><img src="https://img.shields.io/crates/v/sol-parser-sdk.svg" alt="sol-parser-sdk"></a>
-    <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT License"></a>
+    <h1>⚡ Sol Parser SDK</h1>
+    <h3><em>Ultra-low latency Solana DEX event parser with SIMD optimization</em></h3>
 </div>
 
 <p align="center">
-    <a href="README.md">English</a> · <a href="README_CN.md">中文</a> ·
-    <a href="examples/README.md">Examples</a> ·
-    <a href="docs/README.md">Documentation</a> ·
-    <a href="RELEASE_NOTES.md">Release and migration</a> ·
-    <a href="#sdk-versions-and-related-sdks">Related SDKs</a>
+    <strong>High-performance Rust library for parsing Solana DEX events with microsecond-level latency</strong>
 </p>
 
-Parse typed events from gRPC, ShredStream, RPC transactions and protocol accounts for indexing, monitoring and trading systems.
+<p align="center">
+    <a href="https://crates.io/crates/sol-parser-sdk">
+        <img src="https://img.shields.io/crates/v/sol-parser-sdk.svg" alt="Crates.io">
+    </a>
+    <a href="https://docs.rs/sol-parser-sdk">
+        <img src="https://docs.rs/sol-parser-sdk/badge.svg" alt="Documentation">
+    </a>
+    <a href="https://github.com/0xfnzero/sol-parser-sdk/blob/main/LICENSE">
+        <img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License">
+    </a>
+</p>
+
+<p align="center">
+    <img src="https://img.shields.io/badge/Rust-000000?style=for-the-badge&logo=rust&logoColor=white" alt="Rust">
+    <img src="https://img.shields.io/badge/Solana-9945FF?style=for-the-badge&logo=solana&logoColor=white" alt="Solana">
+    <img src="https://img.shields.io/badge/SIMD-FF6B6B?style=for-the-badge&logo=intel&logoColor=white" alt="SIMD">
+    <img src="https://img.shields.io/badge/gRPC-4285F4?style=for-the-badge&logo=grpc&logoColor=white" alt="gRPC">
+</p>
+
+<p align="center">
+    <a href="https://github.com/0xfnzero/sol-parser-sdk/blob/main/README_CN.md">中文</a> |
+    <a href="https://github.com/0xfnzero/sol-parser-sdk/blob/main/README.md">English</a> |
+    <a href="https://fnzero.dev/">Website</a> |
+    <a href="https://t.me/fnzero_group">Telegram</a> |
+    <a href="https://discord.gg/vuazbGkqQE">Discord</a>
+</p>
 
 Current version: **0.9.1**. Read the [migration notes](RELEASE_NOTES.md) before upgrading; see the [changelog](CHANGELOG.md) for historical changes.
 

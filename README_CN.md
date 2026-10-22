@@ -1,19 +1,38 @@
 <div align="center">
-    <h1>Sol Parser SDK — Rust</h1>
-    <p>面向 Solana DEX 的 Rust 事件解析 SDK</p>
-    <a href="https://crates.io/crates/sol-parser-sdk"><img src="https://img.shields.io/crates/v/sol-parser-sdk.svg" alt="sol-parser-sdk"></a>
-    <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT License"></a>
+    <h1>⚡ Sol Parser SDK</h1>
+    <h3><em>超低延迟的 Solana DEX 事件解析器（SIMD 优化）</em></h3>
 </div>
 
 <p align="center">
-    <a href="README.md">English</a> · <a href="README_CN.md">中文</a> ·
-    <a href="examples/README.md">示例</a> ·
-    <a href="docs/README.md">文档</a> ·
-    <a href="RELEASE_NOTES.md">发布与迁移</a> ·
-    <a href="#sdk-版本与相关项目">相关 SDK</a>
+    <strong>高性能 Rust 库，提供微秒级延迟的 Solana DEX 事件解析</strong>
 </p>
 
-从 gRPC、ShredStream、RPC 交易及协议账户解析类型化事件，用于索引、监控和交易系统。
+<p align="center">
+    <a href="https://crates.io/crates/sol-parser-sdk">
+        <img src="https://img.shields.io/crates/v/sol-parser-sdk.svg" alt="Crates.io">
+    </a>
+    <a href="https://docs.rs/sol-parser-sdk">
+        <img src="https://docs.rs/sol-parser-sdk/badge.svg" alt="Documentation">
+    </a>
+    <a href="https://github.com/0xfnzero/sol-parser-sdk/blob/main/LICENSE">
+        <img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License">
+    </a>
+</p>
+
+<p align="center">
+    <img src="https://img.shields.io/badge/Rust-000000?style=for-the-badge&logo=rust&logoColor=white" alt="Rust">
+    <img src="https://img.shields.io/badge/Solana-9945FF?style=for-the-badge&logo=solana&logoColor=white" alt="Solana">
+    <img src="https://img.shields.io/badge/SIMD-FF6B6B?style=for-the-badge&logo=intel&logoColor=white" alt="SIMD">
+    <img src="https://img.shields.io/badge/gRPC-4285F4?style=for-the-badge&logo=grpc&logoColor=white" alt="gRPC">
+</p>
+
+<p align="center">
+    <a href="https://github.com/0xfnzero/sol-parser-sdk/blob/main/README_CN.md">中文</a> |
+    <a href="https://github.com/0xfnzero/sol-parser-sdk/blob/main/README.md">English</a> |
+    <a href="https://fnzero.dev/">Website</a> |
+    <a href="https://t.me/fnzero_group">Telegram</a> |
+    <a href="https://discord.gg/vuazbGkqQE">Discord</a>
+</p>
 
 当前版本：**0.9.1**。升级前请阅读 [迁移说明](RELEASE_NOTES.md)；历史变更见 [版本记录](CHANGELOG_CN.md)。
 
