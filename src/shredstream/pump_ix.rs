@@ -667,6 +667,31 @@ fn parse_transaction_pump_events_with_filter(
     };
     for (instruction_index, ix) in transaction.message.instructions().iter().enumerate() {
         if let Some(program) = static_keys.get(ix.program_id_index as usize) {
+            if *program == PUMPSWAP_PROGRAM_ID
+                && ix.data.starts_with(&super::pump_multi_hop::MULTI_HOP_SWAP)
+            {
+                if filter.is_none_or(EventTypeFilter::includes_unresolved_pumpfun) {
+                    super::pump_multi_hop::parse_curve_hops(
+                        &ix.data,
+                        &ix.accounts,
+                        static_keys,
+                        instruction_index,
+                        EventMetadata {
+                            signature,
+                            slot,
+                            tx_index,
+                            grpc_recv_us: recv_us,
+                            ..Default::default()
+                        },
+                        |mut trade| {
+                            trade.is_created_buy =
+                                trade.is_buy && created_mints.contains(&trade.mint);
+                            events.push(DexEvent::PumpFunTrade(trade));
+                        },
+                    );
+                }
+                continue;
+            }
             if is_third_party_program(program) {
                 // Scan indices without allocating. Only subscribed Pump.fun
                 // candidates copy the original outer instruction into a callback.

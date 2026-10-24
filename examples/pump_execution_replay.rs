@@ -29,6 +29,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             .as_array_mut()
             .unwrap()
             .extend(reported["cases"].as_array().unwrap().iter().cloned());
+        let multi_hop: serde_json::Value =
+            serde_json::from_str(include_str!("../tests/fixtures/pump_multi_hop_20261025.json"))?;
+        fixture["cases"]
+            .as_array_mut()
+            .unwrap()
+            .extend(multi_hop["cases"].as_array().unwrap().iter().cloned());
         fixture["cases"]
             .as_array()
             .unwrap()

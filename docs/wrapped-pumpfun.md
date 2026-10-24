@@ -90,3 +90,28 @@ truncated and missing-create logs. Pass a signature and set `SOLANA_RPC_URL` to
 fetch another transaction outside the parsing hot path. The V3 name/remaining-
 account boundary tests are explicitly constructed cases, alongside saved
 transaction replay; they are not additional mainnet captures.
+
+## Official PumpSwap multi-hop
+
+PumpSwap's `multi_hop_swap` can include both AMM and Pump.fun bonding-curve hops.
+Shred parsing emits a `PumpFunTrade` for each curve whose canonical PDA can be
+identified from the documented five-account hop layout. All-AMM routes do not
+produce PumpFun callbacks merely because the fixed accounts contain the Pump program.
+The callback retains `third_program`, mint, quote mint, curve accounts and
+`ix_name = "multi_hop_swap"`. A continuous mint path establishes direction and
+`InstructionDecoded`; unresolved direction remains `Unresolved`. Neither status
+establishes execution. Per-hop executed amounts remain zero on Shred; the raw
+outer data contains the route's input amount and final minimum, not per-hop fills.
+
+gRPC preserves each on-chain TradeEvent's `sol_amount`, `quote_amount` and
+`token_amount`. For a token-quoted curve, `sol_amount = 0` is valid; read
+`quote_mint` and `quote_amount` instead. The official per-hop event name is
+`multi_hop_swap`, even though the internal Pump CPI is `multi_hop_curve_swap`.
+
+中文：官方多跳现在按内盘各跳回调，并保留原始路由输入。Shred 中成交量为零表示尚无执行数据；
+gRPC 的非 SOL 报价交易应读取 `quote_amount`，不能把整个路由花费的 SOL 当作内盘这一跳的 SOL 金额。
+
+`cargo run --offline --example pump_execution_replay` includes the signed report
+`g1fC9wYKdndDZAyMCWkfFAqUNBCzj1brvNb3aAnRjxkrVhaSzsvELXFXz11U3DdmbM2AeFbwcaSgG86BqxApvFZ`.
+It replays transaction inputs and saved execution metadata; it does not test live shred reception.
+See the [official instruction documentation](https://github.com/pump-fun/pump-public-docs/blob/main/docs/instructions/MULTI_HOP_SWAP.md).

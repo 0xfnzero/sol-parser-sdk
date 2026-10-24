@@ -190,6 +190,7 @@ fn execution_survives_missing_or_truncated_logs() {
         include_str!("fixtures/pump_execution_original.json"),
         include_str!("fixtures/wrapped_pumpfun_reported.json"),
         include_str!("fixtures/pump_holder_20261009.json"),
+        include_str!("fixtures/pump_multi_hop_20261025.json"),
     ] {
         let fixture: Value = serde_json::from_str(fixture).unwrap();
         for c in fixture["cases"].as_array().unwrap() {
@@ -321,5 +322,102 @@ fn execution_survives_missing_or_truncated_logs() {
             )
             .is_empty());
         }
+    }
+}
+
+#[test]
+fn official_multi_hop_reports_curve_input_and_preserves_executed_quote_amounts() {
+    use sol_parser_sdk::core::events::TradeParseStatus;
+    let fixture: Value =
+        serde_json::from_str(include_str!("fixtures/pump_multi_hop_20261025.json")).unwrap();
+    let rpc = serde_json::from_value(fixture["cases"][0]["wire_rpc"].clone()).unwrap();
+    let (meta, tx) = sol_parser_sdk::convert_rpc_to_grpc(&rpc).unwrap();
+    let signed = rpc.transaction.transaction.decode().unwrap();
+    signed.verify_and_hash_message().unwrap();
+    assert_eq!(
+        signed.signatures[0].to_string(),
+        fixture["cases"][0]["signature"].as_str().unwrap()
+    );
+    let filter = EventTypeFilter::include_only(vec![EventType::PumpFunTrade]);
+    let mut shred = Vec::new();
+    sol_parser_sdk::shredstream::parse_transaction_dex_events_with_filter(
+        &signed,
+        signed.signatures[0],
+        rpc.slot,
+        77,
+        123456,
+        Some(&filter),
+        &mut shred,
+    );
+    assert_eq!(shred.len(), 1);
+    let DexEvent::PumpFunTrade(input) = &shred[0] else { panic!("missing curve callback") };
+    assert_eq!(input.ix_name, "multi_hop_swap");
+    assert_eq!(input.mint.to_string(), "Aijxkeq5L9iaDYZxfaXUhnHQj4cYeo8um6a3t5vzpump");
+    assert_eq!(input.quote_mint.to_string(), "6Vk3fAQWYEot6JbQb8Nx8j5wZeDnMhzk8FajjHhZpump");
+    assert_eq!(input.parse_status, TradeParseStatus::InstructionDecoded);
+    assert!(input.is_buy && input.is_created_buy);
+    assert_eq!((input.sol_amount, input.token_amount, input.quote_amount), (0, 0, 0));
+    assert_eq!((input.metadata.tx_index, input.metadata.grpc_recv_us), (77, 123456));
+    let source = input.third_program.as_ref().unwrap();
+    assert_eq!(source.instruction_index, 5);
+    assert_eq!(source.account_indices, signed.message.instructions()[5].accounts);
+    assert_eq!(source.instruction_data, signed.message.instructions()[5].data);
+    assert_eq!(source.accounts.len(), 26);
+
+    for mode in ["full", "no_logs", "truncated_logs"] {
+        let mut meta = meta.clone();
+        if mode == "no_logs" {
+            meta.log_messages.clear();
+        }
+        if mode == "truncated_logs" {
+            meta.log_messages.truncate(meta.log_messages.len() / 2);
+        }
+        let update = SubscribeUpdateTransaction {
+            slot: rpc.slot,
+            transaction: Some(SubscribeUpdateTransactionInfo {
+                signature: tx.signatures[0].clone(),
+                transaction: Some(tx.clone()),
+                meta: Some(meta),
+                index: 77,
+                ..Default::default()
+            }),
+        };
+        let grpc = sol_parser_sdk::grpc::parse_subscribe_update_transaction_low_latency(
+            &update,
+            123456,
+            None,
+            Some(&filter),
+        );
+        assert_eq!(grpc.len(), 1, "{mode}");
+        let DexEvent::PumpFunTrade(fill) = &grpc[0] else { panic!("missing execution") };
+        assert_eq!(fill.ix_name, input.ix_name, "{mode}");
+        assert_eq!(fill.mint, input.mint);
+        assert_eq!(fill.quote_mint, input.quote_mint);
+        assert_eq!(fill.user, input.user);
+        assert_eq!(fill.third_program, input.third_program);
+        assert_eq!(fill.parse_status, TradeParseStatus::ExecutionConfirmed);
+        // Independently checked TradeEvent bytes and recipient token balance.
+        // This curve is quoted in the intermediate token, not SOL.
+        assert_eq!(
+            (fill.sol_amount, fill.token_amount, fill.quote_amount),
+            (0, 255_705_136_795_915, 11_728_308_720_756),
+            "{mode}"
+        );
+    }
+    for filter in [
+        EventTypeFilter::include_only(vec![EventType::PumpSwapTrade]),
+        EventTypeFilter::exclude_types(vec![EventType::PumpFunTrade]),
+    ] {
+        let mut events = Vec::new();
+        sol_parser_sdk::shredstream::parse_transaction_dex_events_with_filter(
+            &signed,
+            signed.signatures[0],
+            rpc.slot,
+            0,
+            0,
+            Some(&filter),
+            &mut events,
+        );
+        assert!(events.iter().all(|e| !matches!(e, DexEvent::PumpFunTrade(_))));
     }
 }

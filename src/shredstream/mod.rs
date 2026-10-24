@@ -66,6 +66,7 @@ pub mod client;
 pub mod config;
 pub mod proto;
 pub(crate) mod pump_ix;
+pub(crate) mod pump_multi_hop;
 
 pub use client::{AddressLookupResolver, ShredStreamClient};
 pub use config::ShredStreamConfig;
