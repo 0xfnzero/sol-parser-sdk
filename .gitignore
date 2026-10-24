@@ -37,3 +37,8 @@ deploy.sh
 # Optional research collectors; SDK tests are written in Rust.
 __pycache__/
 *.py[cod]
+
+# Share portable Cargo build settings; keep other local Cargo files private.
+!/.cargo/
+/.cargo/*
+!/.cargo/config.toml
