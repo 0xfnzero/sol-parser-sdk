@@ -301,13 +301,8 @@ fn dispatch_shred_outer(
         if filter.is_some_and(|f| !f.includes_pumpfun()) || !pumpfun_outer_data_may_parse(data) {
             return;
         }
-        if !best_effort
-            && !instruction_keys_resolved(program_id_index, ix_accounts, static_keys.len())
-        {
-            return;
-        }
         let accounts = build_shred_ix_accounts(static_keys, ix_accounts);
-        if let Some(ev) = parse_pumpfun_instruction(
+        if let Some(mut ev) = parse_pumpfun_instruction(
             data,
             &accounts,
             signature,
@@ -317,6 +312,9 @@ fn dispatch_shred_outer(
             created_mints,
             mayhem_mints,
         ) {
+            if !best_effort {
+                preserve_unresolved_pumpfun_accounts(&mut ev, data, ix_accounts, static_keys.len());
+            }
             push_filtered_shred_event(events, ev, filter);
         }
         return;
@@ -348,6 +346,53 @@ fn dispatch_shred_outer(
         filter,
     ) {
         push_filtered_shred_event(events, ev, filter);
+    }
+}
+
+/// Missing ALT keys must stay unknown, even where legacy decoders supply a
+/// SOL quote sentinel or assume Token-2022. Instruction arguments remain usable.
+#[inline]
+fn preserve_unresolved_pumpfun_accounts(
+    event: &mut DexEvent,
+    data: &[u8],
+    indices: &[u8],
+    keys_len: usize,
+) {
+    let trade = match event {
+        DexEvent::PumpFunTrade(t)
+        | DexEvent::PumpFunBuy(t)
+        | DexEvent::PumpFunSell(t)
+        | DexEvent::PumpFunBuyExactSolIn(t) => t,
+        _ => return,
+    };
+    let missing =
+        |position: usize| indices.get(position).is_some_and(|&index| index as usize >= keys_len);
+    match disc8(data) {
+        Some(
+            discriminators::BUY_V2
+            | discriminators::BUY_EXACT_QUOTE_IN_V2
+            | discriminators::SELL_V2
+            | discriminators::BUY_V3
+            | discriminators::BUY_EXACT_QUOTE_IN_V3
+            | discriminators::SELL_V3,
+        ) => {
+            if missing(2) {
+                trade.quote_mint = Pubkey::default();
+            }
+            if missing(3) {
+                trade.token_program = Pubkey::default();
+            }
+            if missing(4) {
+                trade.quote_token_program = Pubkey::default();
+            }
+        }
+        Some(discriminators::BUY | discriminators::BUY_EXACT_SOL_IN) if missing(8) => {
+            trade.token_program = Pubkey::default();
+        }
+        Some(discriminators::SELL) if missing(9) => {
+            trade.token_program = Pubkey::default();
+        }
+        _ => {}
     }
 }
 
@@ -504,6 +549,9 @@ pub fn parse_transaction_dex_events(
     );
 }
 
+/// Decode known Pump.fun outer instructions even when ALT accounts are not loaded.
+/// Missing addresses are left at their defaults; this does not infer unknown programs
+/// or executed amounts. Use the loaded-addresses entry point for complete accounts.
 #[inline]
 pub fn parse_transaction_dex_events_with_filter(
     transaction: &VersionedTransaction,
@@ -665,6 +713,14 @@ fn parse_transaction_pump_events_with_filter(
     } else {
         (PumpMintSet::new(), PumpMintSet::new())
     };
+    let message_key_count = transaction.message.static_account_keys().len()
+        + transaction
+            .message
+            .address_table_lookups()
+            .unwrap_or_default()
+            .iter()
+            .map(|lookup| lookup.writable_indexes.len() + lookup.readonly_indexes.len())
+            .sum::<usize>();
     for (instruction_index, ix) in transaction.message.instructions().iter().enumerate() {
         if let Some(program) = static_keys.get(ix.program_id_index as usize) {
             if *program == PUMPSWAP_PROGRAM_ID
@@ -732,6 +788,11 @@ fn parse_transaction_pump_events_with_filter(
             && static_keys.get(ix.program_id_index as usize) == Some(&PROGRAM_ID_PUBKEY)
             && ix.data.len() >= 8
         {
+            // An unavailable ALT key is valid input; an index outside the
+            // message's declared static + lookup keys is malformed.
+            if !instruction_keys_resolved(ix.program_id_index, &ix.accounts, message_key_count) {
+                continue;
+            }
             let disc = &ix.data[..8];
             let minimum = if disc == discriminators::BUY_V2
                 || disc == discriminators::BUY_EXACT_QUOTE_IN_V2

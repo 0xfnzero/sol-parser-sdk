@@ -310,10 +310,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 ```
 
 **ShredStream Limitations:**
-- The default parser requires resolved instruction keys. Supply cached ALT addresses with `parse_transaction_dex_events_with_loaded_addresses` or `with_address_lookup_resolver`; unresolved instructions are skipped. An explicit `best_effort` API retains provisional legacy behavior.
+- Known Pump.fun outer instructions still emit create/trade callbacks when ALT accounts are unavailable. Missing addresses (including V2/V3 quote mints and token programs) remain `Pubkey::default()`; instruction arguments are not confirmed fills. Other DEX instructions require resolved accounts. Supply cached ALT addresses with `parse_transaction_dex_events_with_loaded_addresses` or `with_address_lookup_resolver` for complete accounts. The default parser does not guess unknown programs; only the explicit `best_effort` API permits discriminator guesses.
 - No execution metadata: third-party instructions referencing Pump.fun produce unresolved trade candidates with original input in `third_program`; actual CPI trades and confirmed fills require gRPC/RPC execution metadata.
 - No block_time - always 0
 - tx_index is entry-level, not slot-level
+
+For direct replay/debugging, `shredstream::pump_ix` is public. Run
+`cargo run --example pump_execution_replay` to compare static-only Shred,
+resolved-ALT Shred and gRPC on the bundled signed transactions, including
+`create_v2` followed by `buy_exact_sol_in`, `buy_v2` or `buy_v3`.
+Build options are caller-controlled: this repository does not ship `.cargo/config.toml`.
 
 <a id="what-this-sdk-is-for"></a>
 

@@ -6,6 +6,181 @@ use sol_parser_sdk::{
 use yellowstone_grpc_proto::prelude::{SubscribeUpdateTransaction, SubscribeUpdateTransactionInfo};
 
 #[test]
+fn reported_create_v2_with_alt_accounts_keeps_create_and_trade_callbacks() {
+    use solana_sdk::pubkey::Pubkey;
+    let fixture: Value =
+        serde_json::from_str(include_str!("fixtures/pump_create_alt_20261026.json")).unwrap();
+    let filter =
+        EventTypeFilter::include_only(vec![EventType::PumpFunCreate, EventType::PumpFunTrade]);
+    for (case, method) in
+        fixture["cases"].as_array().unwrap().iter().zip(["buy_exact_sol_in", "buy_v2", "buy_v3"])
+    {
+        let rpc = serde_json::from_value(case["wire_rpc"].clone()).unwrap();
+        let (meta, tx) = sol_parser_sdk::convert_rpc_to_grpc(&rpc).unwrap();
+        let signed = rpc.transaction.transaction.decode().unwrap();
+        signed.verify_and_hash_message().unwrap();
+        assert_eq!(signed.signatures[0].to_string(), case["signature"].as_str().unwrap());
+        let mut events = Vec::new();
+        sol_parser_sdk::shredstream::pump_ix::parse_transaction_dex_events_with_filter(
+            &signed,
+            signed.signatures[0],
+            rpc.slot,
+            888,
+            123456,
+            Some(&filter),
+            &mut events,
+        );
+        assert_eq!(events.len(), 2, "{}: {method}", case["signature"]);
+        let DexEvent::PumpFunCreate(create) = &events[0] else { panic!("create must come first") };
+        let DexEvent::PumpFunTrade(trade) = &events[1] else { panic!("missing trade") };
+        assert_eq!(create.ix_name, "create_v2");
+        assert_eq!(trade.ix_name, method);
+        assert_eq!(trade.mint, create.mint);
+        assert_eq!(trade.user, create.user);
+        assert_ne!(create.mint, Pubkey::default());
+        assert_ne!(create.bonding_curve, Pubkey::default());
+        assert!(trade.is_buy && trade.is_created_buy);
+        assert!(trade.third_program.is_none());
+        assert_eq!(create.token_program, Pubkey::default());
+        assert_eq!(trade.token_program, Pubkey::default());
+        if method != "buy_exact_sol_in" {
+            // Neither the quote mint nor its token program is in static keys.
+            assert_eq!(trade.quote_mint, Pubkey::default());
+            assert_eq!(trade.quote_token_program, Pubkey::default());
+        }
+        for event in &events {
+            let metadata = event.metadata();
+            assert_eq!(
+                (metadata.slot, metadata.tx_index, metadata.grpc_recv_us),
+                (rpc.slot, 888, 123456)
+            );
+            assert_eq!(metadata.signature, signed.signatures[0]);
+        }
+
+        let addresses = |keys: &[Vec<u8>]| -> Vec<Pubkey> {
+            keys.iter().map(|bytes| Pubkey::try_from(bytes.as_slice()).unwrap()).collect()
+        };
+        let mut resolved = Vec::new();
+        sol_parser_sdk::shredstream::parse_transaction_dex_events_with_loaded_addresses(
+            &signed,
+            &addresses(&meta.loaded_writable_addresses),
+            &addresses(&meta.loaded_readonly_addresses),
+            signed.signatures[0],
+            rpc.slot,
+            888,
+            123456,
+            Some(&filter),
+            &mut resolved,
+        )
+        .unwrap();
+        assert_eq!(resolved.len(), 2);
+        let DexEvent::PumpFunCreate(resolved_create) = &resolved[0] else {
+            panic!("resolved create")
+        };
+        let DexEvent::PumpFunTrade(resolved_trade) = &resolved[1] else { panic!("resolved trade") };
+        assert_eq!(create.creator, resolved_create.creator);
+        assert_ne!(resolved_create.token_program, Pubkey::default());
+        assert_ne!(resolved_trade.token_program, Pubkey::default());
+        assert_ne!(resolved_trade.quote_mint, Pubkey::default());
+        let update = SubscribeUpdateTransaction {
+            slot: rpc.slot,
+            transaction: Some(SubscribeUpdateTransactionInfo {
+                signature: tx.signatures[0].clone(),
+                transaction: Some(tx),
+                meta: Some(meta),
+                index: 888,
+                ..Default::default()
+            }),
+        };
+        let grpc = sol_parser_sdk::grpc::parse_subscribe_update_transaction_low_latency(
+            &update,
+            123456,
+            None,
+            Some(&filter),
+        );
+        assert_eq!(grpc.len(), 2);
+        let DexEvent::PumpFunCreate(confirmed_create) = &grpc[0] else { panic!("gRPC create") };
+        let DexEvent::PumpFunTrade(confirmed_trade) = &grpc[1] else { panic!("gRPC trade") };
+        // Creator input can differ from the creator recorded by the program.
+        assert_eq!(
+            (&create.name, &create.symbol, &create.uri, create.mint, create.user),
+            (
+                &confirmed_create.name,
+                &confirmed_create.symbol,
+                &confirmed_create.uri,
+                confirmed_create.mint,
+                confirmed_create.user
+            )
+        );
+        assert_eq!(trade.ix_name, confirmed_trade.ix_name);
+        assert_eq!(
+            (trade.amount, trade.max_sol_cost, trade.spendable_sol_in, trade.min_tokens_out),
+            (
+                confirmed_trade.amount,
+                confirmed_trade.max_sol_cost,
+                confirmed_trade.spendable_sol_in,
+                confirmed_trade.min_tokens_out
+            )
+        );
+        assert!(confirmed_trade.token_amount > 0);
+
+        for (types, expected) in [
+            (vec![EventType::PumpFunCreate], 1),
+            (vec![EventType::PumpFunTrade], 1),
+            (vec![EventType::PumpSwapTrade], 0),
+        ] {
+            events.clear();
+            sol_parser_sdk::shredstream::pump_ix::parse_transaction_dex_events_with_filter(
+                &signed,
+                signed.signatures[0],
+                rpc.slot,
+                888,
+                123456,
+                Some(&EventTypeFilter::include_only(types)),
+                &mut events,
+            );
+            assert_eq!(events.len(), expected, "{method}: filter");
+        }
+    }
+}
+
+#[test]
+fn partial_pump_accounts_do_not_allow_unknown_programs_or_invalid_indices() {
+    use solana_sdk::{message::VersionedMessage, pubkey::Pubkey};
+    let fixture: Value =
+        serde_json::from_str(include_str!("fixtures/pump_create_alt_20261026.json")).unwrap();
+    let rpc: solana_transaction_status::EncodedConfirmedTransactionWithStatusMeta =
+        serde_json::from_value(fixture["cases"][0]["wire_rpc"].clone()).unwrap();
+    let signed = rpc.transaction.transaction.decode().unwrap();
+    for invalid_indices in [false, true] {
+        let mut transaction = signed.clone();
+        let VersionedMessage::V0(message) = &mut transaction.message else { panic!("v0") };
+        let program_index = message.instructions[2].program_id_index;
+        if invalid_indices {
+            for instruction in &mut message.instructions {
+                if instruction.program_id_index == program_index {
+                    instruction.accounts[0] = u8::MAX;
+                }
+            }
+        } else {
+            // Copying the same instruction bytes to a different program proves nothing.
+            message.account_keys[program_index as usize] = Pubkey::new_unique();
+        }
+        let mut events = Vec::new();
+        sol_parser_sdk::shredstream::pump_ix::parse_transaction_dex_events_with_filter(
+            &transaction,
+            signed.signatures[0],
+            rpc.slot,
+            0,
+            0,
+            None,
+            &mut events,
+        );
+        assert!(events.is_empty());
+    }
+}
+
+#[test]
 fn wrapped_creation_precedes_its_trades_with_partial_logs() {
     use base64::{engine::general_purpose::STANDARD, Engine};
     let fixture: Value =

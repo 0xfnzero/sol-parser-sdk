@@ -295,10 +295,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 ```
 
 **ShredStream 限制：**
-- 仅 `static_account_keys()` - ALT-loaded 指令账户会使用默认账户占位，外层指令会基于 data/discriminator 尽量解析
+- 已确认程序 ID 的 Pump.fun 外层指令在 ALT 未展开时仍回调创建/交易事件，缺失账户（含 V2/V3 报价 mint、Token Program）保留 `Pubkey::default()`；指令参数不代表实际成交。其它 DEX 仍要求账户完整。可用 `parse_transaction_dex_events_with_loaded_addresses` 或 `with_address_lookup_resolver` 从调用方缓存补齐；默认入口不猜测未知程序，只有显式 `best_effort` 入口允许按 discriminator 猜测。
 - 无 Inner Instructions - 无法从 ShredStream entry 恢复 CPI/inner-only 事件
 - 无 block_time - 恒为 0
 - tx_index 是 entry 内索引而非 slot 内索引
+
+`shredstream::pump_ix` 已公开，可直接调用以回放和调试。
+运行 `cargo run --example pump_execution_replay`，即可用随包的真实签名交易对比
+纯 Shred、补齐 ALT 的 Shred 和 gRPC，覆盖 `create_v2` 后接
+`buy_exact_sol_in`、`buy_v2`、`buy_v3` 的情况。
+编译选项由调用方自行配置，仓库不再提供 `.cargo/config.toml`。
 
 <a id="这个-sdk-适合什么场景"></a>
 

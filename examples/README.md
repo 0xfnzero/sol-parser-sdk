@@ -9,13 +9,14 @@ Start with an offline replay; configure endpoints only when using online tools.
 - `stock_price_replay`: stock execution-price notifications from saved transactions.
 - `stock_token_catalog`: bundled stock identities and historical fee snapshots.
 - `wrapped_trade_replay`: router provenance across DEX event families.
-- `pump_execution_replay`: Shred input replay and gRPC execution replay with full, missing, truncated or missing-create logs; includes the reported official `multi_hop_swap` transaction and accepts a transaction signature via `SOLANA_RPC_URL`. Token-quoted curves use `quote_amount`; Shred callbacks contain input context, not executed amounts.
+- `pump_execution_replay`: static-only Shred replay, resolved-ALT Shred replay and gRPC execution replay with full, missing, truncated or missing-create logs. Includes the reported official `multi_hop_swap` transaction and three `create_v2` + buy transactions captured on 2026-10-26. Accepts a transaction signature via `SOLANA_RPC_URL`. Token-quoted curves use `quote_amount`; Shred callbacks contain input context, not executed amounts.
 - `cpmm_creator_fee_replay`: CPMM execution and creator-fee regression.
 
 ```sh
 cargo run --example stock_route_replay
 cargo run --example stock_price_replay
 cargo run --example wrapped_trade_replay
+cargo run --example pump_execution_replay
 ```
 
 The first, second and fourth entries share `--fixture FILE` and `--help`.

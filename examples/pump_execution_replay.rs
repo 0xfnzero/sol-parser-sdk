@@ -1,6 +1,9 @@
 //! Offline by default; pass a current signature to fetch via SOLANA_RPC_URL.
 use base64::{engine::general_purpose::STANDARD, Engine};
-use sol_parser_sdk::{convert_rpc_to_grpc, grpc::parse_subscribe_update_transaction_low_latency};
+use sol_parser_sdk::{
+    convert_rpc_to_grpc,
+    grpc::{parse_subscribe_update_transaction_low_latency, EventType, EventTypeFilter},
+};
 use solana_client::{rpc_client::RpcClient, rpc_config::RpcTransactionConfig};
 use solana_sdk::{pubkey::Pubkey, signature::Signature};
 use solana_transaction_status::{EncodedConfirmedTransactionWithStatusMeta, UiTransactionEncoding};
@@ -35,6 +38,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             .as_array_mut()
             .unwrap()
             .extend(multi_hop["cases"].as_array().unwrap().iter().cloned());
+        let create_alt: serde_json::Value =
+            serde_json::from_str(include_str!("../tests/fixtures/pump_create_alt_20261026.json"))?;
+        fixture["cases"]
+            .as_array_mut()
+            .unwrap()
+            .extend(create_alt["cases"].as_array().unwrap().iter().cloned());
         fixture["cases"]
             .as_array()
             .unwrap()
@@ -46,13 +55,31 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let (meta, tx) = convert_rpc_to_grpc(&rpc)?;
         let signature = tx.signatures[0].clone();
         let signature_text = Signature::try_from(signature.as_slice())?.to_string();
-        // Offline Shred replay: transaction bytes + supplied ALT snapshot only.
-        // Fetching the snapshot above is tooling, never part of the parser hot path.
         let signed = rpc.transaction.transaction.decode().ok_or("invalid transaction")?;
+        // Exactly the static-only entry point used on the Shred hot path. No ALT,
+        // logs, inner instructions or RPC calls are available to this parser.
+        let filter =
+            EventTypeFilter::include_only(vec![EventType::PumpFunCreate, EventType::PumpFunTrade]);
+        let mut shred_events = Vec::new();
+        sol_parser_sdk::shredstream::pump_ix::parse_transaction_dex_events_with_filter(
+            &signed,
+            signed.signatures[0],
+            rpc.slot,
+            888,
+            123456,
+            Some(&filter),
+            &mut shred_events,
+        );
+        println!(
+            "{}",
+            serde_json::json!({"mode":"shred_static_pump", "signature":signature_text, "slot":rpc.slot, "events":shred_events})
+        );
+        // Compare with caller-supplied ALT addresses; fetching them above is
+        // tooling, never part of the parser hot path.
         let addresses = |values: &[Vec<u8>]| -> Result<Vec<Pubkey>, _> {
             values.iter().map(|bytes| Pubkey::try_from(bytes.as_slice())).collect()
         };
-        let mut shred_events = Vec::new();
+        shred_events.clear();
         sol_parser_sdk::shredstream::parse_transaction_dex_events_with_loaded_addresses(
             &signed,
             &addresses(&meta.loaded_writable_addresses)?,
@@ -66,7 +93,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         )?;
         println!(
             "{}",
-            serde_json::json!({"mode":"shred", "signature":signature_text, "slot":rpc.slot, "events":shred_events})
+            serde_json::json!({"mode":"shred_resolved", "signature":signature_text, "slot":rpc.slot, "events":shred_events})
         );
         for mode in ["full", "no_logs", "truncated_logs", "missing_create_logs"] {
             let mut meta = meta.clone();
