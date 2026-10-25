@@ -876,7 +876,7 @@ fn parse_pumpfun_instruction(
         )?;
         match &mut ev {
             DexEvent::PumpFunBuy(t) | DexEvent::PumpFunSell(t) => {
-                t.is_created_buy = created_mints.contains(&t.mint);
+                t.is_created_buy = t.is_buy && created_mints.contains(&t.mint);
                 t.mayhem_mode = mayhem_mints.contains(&t.mint);
             }
             _ => {}

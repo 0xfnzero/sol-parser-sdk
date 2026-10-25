@@ -232,6 +232,8 @@ pub fn fill_create_accounts(e: &mut PumpFunCreateTokenEvent, get: &AccountGetter
 /// 12 mayhem_state, 13 mayhem_token_vault, 14 event_authority, 15 program.
 /// The public IDL has no quote accounts in create_v2; do not infer remaining accounts.
 pub fn fill_create_accounts_from_v2(e: &mut PumpFunCreateTokenEvent, get: &AccountGetter<'_>) {
+    // CreateEvent is shared by create/create_v2; the actual invocation names it.
+    e.ix_name = "create_v2".into();
     if e.mint == Pubkey::default() {
         e.mint = get(0);
     }

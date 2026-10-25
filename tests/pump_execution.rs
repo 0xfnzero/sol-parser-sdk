@@ -100,6 +100,7 @@ fn reported_create_v2_with_alt_accounts_keeps_create_and_trade_callbacks() {
         );
         assert_eq!(grpc.len(), 2);
         let DexEvent::PumpFunCreate(confirmed_create) = &grpc[0] else { panic!("gRPC create") };
+        assert_eq!(confirmed_create.ix_name, "create_v2");
         let DexEvent::PumpFunTrade(confirmed_trade) = &grpc[1] else { panic!("gRPC trade") };
         // Creator input can differ from the creator recorded by the program.
         assert_eq!(
