@@ -6,17 +6,21 @@
 //! 相比 gRPC 订阅具有约 50-100ms 的延迟优势。
 //!
 //! ## 限制说明
-//! - 仅 `static_account_keys()`，使用 ALT 的交易会有错误账户
-//! - 无 Inner Instructions，无法解析 CPI 调用
+//! - 默认只读静态账户；--alt-table 在启动时预热指定 ALT，接收路径只读内存。
+//! - 第三方指令引用 Pump.fun 时回调 Unresolved，不能确定内部 CPI 方法和成交金额。
 //! - 无 block_time，恒为 0
 //! - tx_index 是 entry 内索引而非 slot 内索引
 
 use sol_parser_sdk::core::now_micros;
 use sol_parser_sdk::grpc::{EventType, EventTypeFilter};
 use sol_parser_sdk::shredstream::{ShredStreamClient, ShredStreamConfig};
+use solana_sdk::pubkey::Pubkey;
 use std::env;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
+
+#[path = "support/alt_cache.rs"]
+mod alt_cache;
 
 // 辅助函数：更新最小值和最大值
 fn update_min_max(min: &Arc<AtomicU64>, max: &Arc<AtomicU64>, value: u64) {
@@ -47,6 +51,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let args: Vec<String> = env::args().collect();
     let mut endpoint = "http://127.0.0.1:10800".to_string();
     let mut filter_name = "trade".to_string();
+    let mut alt_tables: Vec<Pubkey> = Vec::new();
+    let mut preload_only = false;
 
     let mut i = 1;
     while i < args.len() {
@@ -72,18 +78,29 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
                 print_usage();
                 std::process::exit(0);
             }
+            "--alt-table" => {
+                let value = args.get(i + 1).ok_or("--alt-table requires a public key")?;
+                alt_tables.push(value.parse()?);
+                i += 2;
+            }
+            "--preload-only" => {
+                preload_only = true;
+                i += 1;
+            }
             _ => {
                 i += 1;
             }
         }
     }
 
-    run_example(&endpoint, &filter_name).await
+    run_example(&endpoint, &filter_name, alt_tables, preload_only).await
 }
 
 async fn run_example(
     endpoint: &str,
     filter_name: &str,
+    alt_tables: Vec<Pubkey>,
+    preload_only: bool,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     // 配置
     let config = ShredStreamConfig {
@@ -95,6 +112,26 @@ async fn run_example(
     };
 
     let (filter_label, event_filter) = build_event_filter(filter_name)?;
+    let alt_resolution_failures = Arc::new(AtomicU64::new(0));
+    let cache = if alt_tables.is_empty() {
+        if preload_only {
+            return Err("--preload-only requires --alt-table".into());
+        }
+        None
+    } else {
+        let url = env::var("SOLANA_RPC_URL")
+            .unwrap_or_else(|_| "https://api.mainnet-beta.solana.com".into());
+        let count = alt_tables.len();
+        // All RPC finishes before connecting/subscribing to ShredStream.
+        let cache =
+            tokio::task::spawn_blocking(move || alt_cache::AltCache::preload(url, &alt_tables))
+                .await??;
+        println!("Preloaded {count} finalized ALT snapshot(s); receive path uses memory only.");
+        Some(cache)
+    };
+    if preload_only {
+        return Ok(());
+    }
 
     println!("📋 Configuration:");
     println!("   Endpoint: {}", endpoint);
@@ -103,7 +140,17 @@ async fn run_example(
     println!();
 
     // 创建客户端
-    let client = ShredStreamClient::new_with_config(endpoint, config).await?;
+    let mut client = ShredStreamClient::new_with_config(endpoint, config).await?;
+    if let Some(cache) = cache {
+        let failures = Arc::clone(&alt_resolution_failures);
+        client = client.with_address_lookup_resolver(move |transaction, slot| {
+            let result = cache.resolve(transaction, slot);
+            if result.is_err() {
+                failures.fetch_add(1, Ordering::Relaxed);
+            }
+            result.map_err(Into::into)
+        });
+    }
 
     println!("✅ ShredStream client connected");
     println!("🎧 Starting subscription...\n");
@@ -136,15 +183,17 @@ async fn run_example(
             let min = stats_min.load(Ordering::Relaxed);
             let max = stats_max.load(Ordering::Relaxed);
             let queue_len = queue_for_stats.len();
+            let alt_failures = alt_resolution_failures.load(Ordering::Relaxed);
 
-            if count > 0 {
-                let avg = total / count;
+            if count > 0 || alt_failures > 0 {
+                let avg = total.checked_div(count).unwrap_or(0);
                 let events_per_sec = (count - last_count) as f64 / 10.0;
 
                 println!("\n╔════════════════════════════════════════════════════╗");
                 println!("║          性能统计 (10秒间隔)                       ║");
                 println!("╠════════════════════════════════════════════════════╣");
                 println!("║  事件总数: {:>10}                              ║", count);
+                println!("║  ALT 解析失败: {:>10}                          ║", alt_failures);
                 println!("║  事件速率: {:>10.1} events/sec                  ║", events_per_sec);
                 println!("║  队列长度: {:>10}                              ║", queue_len);
                 println!("║  平均延迟: {:>10} μs                           ║", avg);
@@ -294,6 +343,10 @@ fn print_usage() {
     println!("Options:");
     println!("  -e, --endpoint <URL>  ShredStream endpoint URL (default: http://127.0.0.1:10800)");
     println!("  -f, --filter <NAME>   Event filter preset (default: trade)");
+    println!(
+        "      --alt-table <KEY> Preload an ALT before subscribing (repeatable; SOLANA_RPC_URL)"
+    );
+    println!("      --preload-only    Validate ALT startup preload without a Shred connection");
     println!("  -h, --help            Print this help message");
     println!();
     println!("Filter presets:");
@@ -311,4 +364,7 @@ fn print_usage() {
     println!("  cargo run --example shredstream_example -- --filter trade");
     println!("  cargo run --example shredstream_example -- --filter create-trade");
     println!("  cargo run --example shredstream_example -- --filter buy");
+    println!("  cargo run --example shredstream_example -- --filter trade --alt-table 58tUNfyBtwkMeU8gpyZYKEo4Hyb4E25ui12w5vKYQx3P");
+    println!("ALT cache failures count all unresolved ALT transactions, not confirmed missed Pump trades.");
+    println!("This example keeps a startup snapshot. Refresh extended/new tables outside the receive task.");
 }

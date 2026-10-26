@@ -552,6 +552,9 @@ pub fn parse_transaction_dex_events(
 /// Decode known Pump.fun outer instructions even when ALT accounts are not loaded.
 /// Missing addresses are left at their defaults; this does not infer unknown programs
 /// or executed amounts. Use the loaded-addresses entry point for complete accounts.
+/// A third-party wrapper is observable only when this instruction's Pump.fun program
+/// reference is resolved. If that key lives in ALT, supply cached loaded addresses;
+/// neither an opaque wrapper nor its discriminator establishes the invoked DEX.
 #[inline]
 pub fn parse_transaction_dex_events_with_filter(
     transaction: &VersionedTransaction,

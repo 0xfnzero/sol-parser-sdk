@@ -36,6 +36,82 @@ Transaction metadata stays on the enclosing event, including `tx_index`,
 slot-wide execution order. Cached loaded addresses may be supplied for ALT
 resolution; the parsing hot path never calls RPC.
 
+## Pump.fun program ID stored in ALT
+
+`pump_ix::parse_transaction_dex_events_with_filter` reads static account keys only.
+If a wrapper's Pump.fun program reference lives in an address lookup table, this
+entry point cannot identify the referenced DEX and may return no events. The
+wrapper's name or discriminator is insufficient evidence. `third_program` retains
+an identified wrapper's input; it does not resolve missing addresses.
+
+For a manually supplied transaction, resolve its lookups from a prewarmed local
+cache, then call the existing loaded-addresses entry point:
+
+```rust,ignore
+// `loaded` is a slot-valid local-cache result for this transaction's lookups.
+// Both vectors follow message lookup order; never perform RPC in this call path.
+sol_parser_sdk::shredstream::pump_ix::parse_transaction_dex_events_with_loaded_addresses(
+    &created_tx,
+    &loaded.writable,
+    &loaded.readonly,
+    sign,
+    observer_info.create_slot,
+    888,
+    observer_info.grpc_recv_us,
+    event_filter,
+    &mut events,
+)?;
+```
+
+For SDK-managed subscriptions, configure `ShredStreamClient::with_address_lookup_resolver`
+with the same local cache. Preload/update tables outside the receive task. Supplying
+another transaction's loaded addresses or guessing missing keys is unsafe; a cache
+miss needs to be tracked separately from a successfully parsed empty result.
+
+The signed reports `2EUPDVEH…` and `38NiGzWa…` use GMGN's
+`GMgnVFR8Jb39LoXsEVzb3DvBy3ywCmdmJquHUy1Lrkqb` program and lookup table
+`58tUNfyBtwkMeU8gpyZYKEo4Hyb4E25ui12w5vKYQx3P`. Each contains **three**
+successful Pump.fun `buy` CPIs, from outer instructions 3, 6 and 9 (zero-based).
+With static keys alone, both yield zero Pump callbacks; with the saved ALT snapshot,
+each yields three `Unresolved` Shred candidates with the original `third_program`.
+gRPC yields three `ExecutionConfirmed` buys with actual nonzero amounts.
+The Shred candidates still carry unknown/default trade fields, not inferred buys.
+
+Reproduce only these two signed captures without a network:
+
+```sh
+cargo run --offline --example pump_execution_replay -- --reported-alt
+```
+
+Each row prints `event_count`: `shred_static_pump` is 0, `shred_resolved` is 3,
+and each gRPC mode is 3. The full signatures are
+`2EUPDVEHJjJjE2GUMFonmeas1oGN7dpvx5Ni8W5tpxC4iekAVWE9UvmZvEMMNh8S4bEcFv8r1NyGFRsZEaWW5ySo`
+and `38NiGzWamkJGr3HME3FgVQQw9dSG9sBkKgVYPb3EESBqYbbJbiQ9P7Jv4Zdci9SrbnjZGJoGecAti9CmSkUusLvi`.
+This replays signed inputs and saved ALT addresses; it is not live Shred reception.
+
+For future live transactions, the existing subscription example now preloads
+real ALT accounts at startup and supplies its in-memory resolver to the client:
+
+```sh
+SOLANA_RPC_URL=https://YOUR_RPC cargo run --example shredstream_example -- \
+  --endpoint http://127.0.0.1:10800 --filter trade \
+  --alt-table 58tUNfyBtwkMeU8gpyZYKEo4Hyb4E25ui12w5vKYQx3P
+```
+
+Add `--preload-only` to verify startup fetching without a Shred endpoint.
+Repeat `--alt-table` for additional tables. `examples/support/alt_cache.rs` shows
+the concrete `preload` and `resolve` implementation for both SDK-managed and
+manual parsing. It is example code, not a new SDK API. It rejects deactivating
+tables rather than guessing their cooldown and rejects newer-than-transaction
+snapshots. Startup snapshots do not auto-refresh; production cache updates belong
+outside the receive task. Resolver failures are counted independently of events.
+Use `--filter trade`; an opaque wrapper cannot establish a buy-only match.
+
+中文：这两笔不是过滤器漏掉买单，而是 Pump.fun 的 program ID 在 ALT 中，静态账户入口
+无法确认它们引用了哪个 DEX。把本地预热缓存解析出的地址传入上述入口，或在订阅客户端
+配置缓存 resolver，即可收到 `third_program != None` 的回调。每笔实际有 3 次买入；
+Shred 仍不推断第三方合约的内部买卖方法和金额。热路径不请求 RPC。
+
 ## Removed interfaces
 
 `DexEvent::PumpRouteIntent`, `DexEvent::RawInstruction`, their subscription
@@ -58,7 +134,7 @@ cargo test --offline --lib wrapped_pumpfun_rpc_analyzer
 ```
 
 `src/wrapped_pumpfun_rpc_analyzer.rs` is now a test-only module, not an RPC
-analyzer API. It replays seven saved signed transactions, including the reported
+analyzer API. It replays nine saved signed transactions, including the reported
 `5hKon…`, `3nMX…` and `2r4u…` signatures. It verifies original programs,
 indices, account order, bytes, metadata and subscription boundaries.
 

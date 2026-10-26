@@ -9,7 +9,7 @@ Start with an offline replay; configure endpoints only when using online tools.
 - `stock_price_replay`: stock execution-price notifications from saved transactions.
 - `stock_token_catalog`: bundled stock identities and historical fee snapshots.
 - `wrapped_trade_replay`: router provenance across DEX event families.
-- `pump_execution_replay`: static-only Shred replay, resolved-ALT Shred replay and gRPC execution replay with full, missing, truncated or missing-create logs. Includes the reported official `multi_hop_swap` transaction and three `create_v2` + buy transactions captured on 2026-10-26. Accepts a transaction signature via `SOLANA_RPC_URL`. Token-quoted curves use `quote_amount`; Shred callbacks contain input context, not executed amounts.
+- `pump_execution_replay`: static-only Shred replay, resolved-ALT Shred replay and gRPC execution replay with full, missing, truncated or missing-create logs. `--reported-alt` selects only the two reported GMGN transactions (`2EUPDVEH…`, `38NiGzWa…`) without networking. Also includes the official `multi_hop_swap` and `create_v2` + buy captures. Accepts a transaction signature via `SOLANA_RPC_URL`. Token-quoted curves use `quote_amount`; Shred callbacks contain input context, not executed amounts.
 - `cpmm_creator_fee_replay`: CPMM execution and creator-fee regression.
 
 ```sh
@@ -17,7 +17,14 @@ cargo run --example stock_route_replay
 cargo run --example stock_price_replay
 cargo run --example wrapped_trade_replay
 cargo run --example pump_execution_replay
+cargo run --offline --example pump_execution_replay -- --reported-alt
 ```
+
+For the two GMGN reports, each output row includes `mode`, `signature` and
+`event_count`: static-only Shred gives 0; resolved-ALT Shred gives 3 unified
+`PumpFunTrade` candidates with `third_program`; each gRPC replay gives 3 executed
+buys. Saved execution metadata supplies the replay's ALT addresses, not the
+Shred instruction data or amounts. See [live ALT setup](../docs/wrapped-pumpfun.md#pumpfun-program-id-stored-in-alt).
 
 The first, second and fourth entries share `--fixture FILE` and `--help`.
 FILE may be a saved RPC transaction or a `{"cases":[{"rpc":...}]}` capture;
@@ -98,6 +105,25 @@ fallback. `GRPC_ENDPOINT` / `GRPC_AUTH_TOKEN` take precedence over their aliases
   [account subscription configuration](../docs/ACCOUNT_SUBSCRIPTIONS.md).
 - Shred: `shredstream_example`, `shredstream_pump_snipe`.
   Shred does not expose executed CPI routes or confirmed prices.
+
+Preload the GMGN lookup table **before** subscribing, then resolve future Shred
+transactions from memory:
+
+```sh
+SOLANA_RPC_URL=https://YOUR_RPC cargo run --example shredstream_example -- \
+  --endpoint http://127.0.0.1:10800 --filter trade \
+  --alt-table 58tUNfyBtwkMeU8gpyZYKEo4Hyb4E25ui12w5vKYQx3P
+```
+
+`--alt-table` is repeatable. `--preload-only` checks the startup RPC snapshot
+without connecting to Shred. The example-only cache is in `support/alt_cache.rs`;
+it rejects missing tables, future snapshots and unavailable indices. The receive
+resolver performs no RPC. This example keeps immutable startup snapshots; a
+production cache must refresh new/extended tables outside the receive task.
+Its ALT failure counter includes all unresolved ALT transactions, not only Pump
+trades. Use the broad `trade` filter: opaque wrapper candidates cannot satisfy a
+buy-only filter. Historical transactions are tested with `--reported-alt`, not by
+waiting for a live stream to resend them.
 
 ## Specialist tools
 

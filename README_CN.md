@@ -296,6 +296,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 **ShredStream 限制：**
 - 已确认程序 ID 的 Pump.fun 外层指令在 ALT 未展开时仍回调创建/交易事件，缺失账户（含 V2/V3 报价 mint、Token Program）保留 `Pubkey::default()`；指令参数不代表实际成交。其它 DEX 仍要求账户完整。可用 `parse_transaction_dex_events_with_loaded_addresses` 或 `with_address_lookup_resolver` 从调用方缓存补齐；默认入口不猜测未知程序，只有显式 `best_effort` 入口允许按 discriminator 猜测。
+- 第三方包装指令若把 Pump.fun program ID 放在 ALT 中，同样需要上述本地缓存解析；仅静态账户的入口无法识别它引用的 DEX。参见 [GMGN 真实交易回放及替换调用方式](docs/wrapped-pumpfun.md#pumpfun-program-id-stored-in-alt)。
 - 无 Inner Instructions - 无法从 ShredStream entry 恢复 CPI/inner-only 事件
 - 无 block_time - 恒为 0
 - tx_index 是 entry 内索引而非 slot 内索引

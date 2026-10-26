@@ -4262,6 +4262,7 @@ dependencies = [
  "serde_json",
  "smallvec",
  "solana-account 4.3.2",
+ "solana-address-lookup-table-interface",
  "solana-client",
  "solana-clock",
  "solana-entry",

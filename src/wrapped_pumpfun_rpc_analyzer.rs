@@ -57,6 +57,12 @@ fn reported_wrappers_preserve_third_program_in_grpc_and_shred() {
             Some(&pump_filter),
         );
         assert!(!grpc.is_empty(), "{}", case["signature"]);
+        if let Some(count) = case["resolved_pump_trade_count"].as_u64() {
+            assert_eq!(grpc.len(), count as usize, "{}", case["signature"]);
+            assert!(grpc.iter().all(|event| matches!(event,
+                DexEvent::PumpFunTrade(trade) if trade.ix_name == "buy"
+                    && trade.is_buy && trade.sol_amount > 0 && trade.token_amount > 0)));
+        }
         for event in &grpc {
             let DexEvent::PumpFunTrade(trade) = event else {
                 panic!("unexpected event in PumpFunTrade subscription");
@@ -74,6 +80,26 @@ fn reported_wrappers_preserve_third_program_in_grpc_and_shred() {
         let signed: VersionedTransaction = wincode::deserialize_exact(&wire).unwrap();
         signed.verify_and_hash_message().unwrap();
         assert_eq!(signed.signatures[0].to_string(), case["signature"].as_str().unwrap());
+        if let Some(count) = case["static_pump_trade_count"].as_u64() {
+            // These signed inputs put Pump's program ID in ALT, not static keys.
+            // A wrapper discriminator alone cannot prove which DEX it invokes.
+            assert!(!signed
+                .message
+                .static_account_keys()
+                .contains(&crate::instr::program_ids::PUMPFUN_PROGRAM_ID));
+            assert!(readonly.contains(&crate::instr::program_ids::PUMPFUN_PROGRAM_ID));
+            let mut static_events = Vec::new();
+            crate::shredstream::pump_ix::parse_transaction_dex_events_with_filter(
+                &signed,
+                signed.signatures[0],
+                rpc.slot,
+                77,
+                123456,
+                Some(&pump_filter),
+                &mut static_events,
+            );
+            assert_eq!(static_events.len(), count as usize, "{}", case["signature"]);
+        }
         let parse_shred = |filter: Option<&EventTypeFilter>| {
             let mut events = Vec::new();
             crate::shredstream::parse_transaction_dex_events_with_loaded_addresses(
@@ -92,6 +118,21 @@ fn reported_wrappers_preserve_third_program_in_grpc_and_shred() {
         };
         let shred = parse_shred(Some(&pump_filter));
         assert!(!shred.is_empty(), "{}", case["signature"]);
+        if let Some(count) = case["resolved_pump_trade_count"].as_u64() {
+            assert_eq!(shred.len(), count as usize, "{}", case["signature"]);
+            assert_eq!(
+                shred
+                    .iter()
+                    .map(|event| event.third_program().unwrap().instruction_index)
+                    .collect::<Vec<_>>(),
+                case["outer_instruction_indices"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .map(|i| i.as_u64().unwrap() as usize)
+                    .collect::<Vec<_>>()
+            );
+        }
         for event in &shred {
             let DexEvent::PumpFunTrade(trade) = event else { panic!("unexpected Shred event") };
             assert_source(trade.third_program.as_ref().unwrap(), message, &keys);

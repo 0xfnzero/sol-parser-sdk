@@ -1,4 +1,5 @@
-//! Offline by default; pass a current signature to fetch via SOLANA_RPC_URL.
+//! Offline by default. --reported-alt replays only the two reported GMGN trades.
+//! Pass a current signature to fetch via SOLANA_RPC_URL, outside the parser.
 use base64::{engine::general_purpose::STANDARD, Engine};
 use sol_parser_sdk::{
     convert_rpc_to_grpc,
@@ -10,9 +11,28 @@ use solana_transaction_status::{EncodedConfirmedTransactionWithStatusMeta, UiTra
 use yellowstone_grpc_proto::prelude::{SubscribeUpdateTransaction, SubscribeUpdateTransactionInfo};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let transactions: Vec<EncodedConfirmedTransactionWithStatusMeta> = if let Some(sig) =
-        std::env::args().nth(1)
+    let args: Vec<_> = std::env::args().skip(1).collect();
+    if args.as_slice() == ["--help"] || args.as_slice() == ["-h"] {
+        println!("Usage: cargo run --example pump_execution_replay -- [--reported-alt | SIGNATURE]\nNo arguments: all bundled captures, offline.\n--reported-alt: only 2EUPDVEH… and 38NiGzWa…, offline.\nSIGNATURE: fetch via SOLANA_RPC_URL before parsing.\nShred replay uses saved transaction inputs and ALT addresses; gRPC additionally uses saved execution metadata.");
+        return Ok(());
+    }
+    if args.len() > 1 {
+        return Err("expected --reported-alt or one signature; see --help".into());
+    }
+    let transactions: Vec<EncodedConfirmedTransactionWithStatusMeta> = if args
+        .first()
+        .is_some_and(|s| s == "--reported-alt")
     {
+        let fixture: serde_json::Value =
+            serde_json::from_str(include_str!("../tests/fixtures/wrapped_pumpfun_reported.json"))?;
+        fixture["cases"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter(|case| case["resolved_pump_trade_count"].is_number())
+            .map(|case| serde_json::from_value(case["wire_rpc"].clone()))
+            .collect::<Result<_, _>>()?
+    } else if let Some(sig) = args.first() {
         let url = std::env::var("SOLANA_RPC_URL")
             .unwrap_or_else(|_| "https://api.mainnet-beta.solana.com".into());
         vec![RpcClient::new(url).get_transaction_with_config(
@@ -72,7 +92,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         );
         println!(
             "{}",
-            serde_json::json!({"mode":"shred_static_pump", "signature":signature_text, "slot":rpc.slot, "events":shred_events})
+            serde_json::json!({"mode":"shred_static_pump", "signature":signature_text, "slot":rpc.slot, "event_count":shred_events.len(), "events":shred_events})
         );
         // Compare with caller-supplied ALT addresses; fetching them above is
         // tooling, never part of the parser hot path.
@@ -86,14 +106,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             &addresses(&meta.loaded_readonly_addresses)?,
             signed.signatures[0],
             rpc.slot,
-            0,
-            0,
-            None,
+            888,
+            123456,
+            Some(&filter),
             &mut shred_events,
         )?;
         println!(
             "{}",
-            serde_json::json!({"mode":"shred_resolved", "signature":signature_text, "slot":rpc.slot, "events":shred_events})
+            serde_json::json!({"mode":"shred_resolved", "signature":signature_text, "slot":rpc.slot, "event_count":shred_events.len(), "events":shred_events})
         );
         for mode in ["full", "no_logs", "truncated_logs", "missing_create_logs"] {
             let mut meta = meta.clone();
@@ -118,18 +138,19 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     signature: signature.clone(),
                     transaction: Some(tx.clone()),
                     meta: Some(meta),
+                    index: 888,
                     ..Default::default()
                 }),
             };
             let events = parse_subscribe_update_transaction_low_latency(
                 &update,
-                0,
+                123456,
                 rpc.block_time.map(|s| s * 1_000_000),
-                None,
+                Some(&filter),
             );
             println!(
                 "{}",
-                serde_json::json!({"mode":mode,"signature":signature_text,"slot":rpc.slot,"events":events})
+                serde_json::json!({"mode":mode,"signature":signature_text,"slot":rpc.slot,"event_count":events.len(),"events":events})
             );
         }
     }

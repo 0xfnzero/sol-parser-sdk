@@ -311,6 +311,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 **ShredStream Limitations:**
 - Known Pump.fun outer instructions still emit create/trade callbacks when ALT accounts are unavailable. Missing addresses (including V2/V3 quote mints and token programs) remain `Pubkey::default()`; instruction arguments are not confirmed fills. Other DEX instructions require resolved accounts. Supply cached ALT addresses with `parse_transaction_dex_events_with_loaded_addresses` or `with_address_lookup_resolver` for complete accounts. The default parser does not guess unknown programs; only the explicit `best_effort` API permits discriminator guesses.
+- Third-party wrappers whose Pump.fun program reference is in ALT require that local-cache resolution too; the static-only entry point cannot identify their DEX. See the [GMGN replay and replacement call](docs/wrapped-pumpfun.md#pumpfun-program-id-stored-in-alt).
 - No execution metadata: third-party instructions referencing Pump.fun produce unresolved trade candidates with original input in `third_program`; actual CPI trades and confirmed fills require gRPC/RPC execution metadata.
 - No block_time - always 0
 - tx_index is entry-level, not slot-level
