@@ -18,11 +18,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     for mut case in cases {
         let slot = case["rpc"]["slot"].clone();
         let events = grpc_replay::parse(case["rpc"].take(), 0)?;
-        let rows: Vec<_> = events.iter().filter_map(|e| {
-                let status = e.trade_parse_status()?;
-                let kind = sol_parser_sdk::grpc::types::event_type_from_dex_event(e).map(|kind| format!("{kind:?}"));
-                Some(serde_json::json!({"event":kind,"parse_status":status,"third_program":e.third_program()}))
-            }).collect();
+        let rows: Vec<_> = events
+            .iter()
+            .filter_map(|e| {
+                let source = e.third_program()?;
+                let kind = sol_parser_sdk::grpc::types::event_type_from_dex_event(e)
+                    .map(|kind| format!("{kind:?}"));
+                Some(serde_json::json!({"event":kind,"third_program":source}))
+            })
+            .collect();
         println!("{}", serde_json::json!({"name":case["name"],"slot":slot,"trades":rows}));
     }
     Ok(())

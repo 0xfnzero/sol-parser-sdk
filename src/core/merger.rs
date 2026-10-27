@@ -390,9 +390,6 @@ fn merge_pumpfun_trade(base: &mut PumpFunTradeEvent, inner: PumpFunTradeEvent) {
     if base.third_program.is_none() {
         base.third_program = inner.third_program.clone();
     }
-    if inner.parse_status == PumpFunParseStatus::ExecutionConfirmed {
-        base.parse_status = inner.parse_status;
-    }
     let leg = inner.sol_amount != 0 || inner.token_amount != 0;
 
     put_pk_if_set(&mut base.mint, inner.mint);
@@ -699,9 +696,6 @@ fn fill_str_if_empty(to: &mut String, from: &str) {
 fn merge_pumpfun_trade_log_preferred(log: &mut PumpFunTradeEvent, ix: PumpFunTradeEvent) {
     if log.third_program.is_none() {
         log.third_program = ix.third_program.clone();
-    }
-    if ix.parse_status == PumpFunParseStatus::ExecutionConfirmed {
-        log.parse_status = ix.parse_status;
     }
     fill_pk(&mut log.global, ix.global);
     fill_pk(&mut log.bonding_curve, ix.bonding_curve);
@@ -1319,8 +1313,8 @@ fn wrapper_sources_conflict(a: &DexEvent, b: &DexEvent) -> bool {
 }
 
 fn reconcile_trade_source(a: &mut DexEvent, b: &mut DexEvent) {
-    let Some((a_source, a_status, a_program)) = a.trade_source_mut() else { return };
-    let Some((b_source, b_status, b_program)) = b.trade_source_mut() else { return };
+    let Some((a_source, a_program)) = a.trade_source_mut() else { return };
+    let Some((b_source, b_program)) = b.trade_source_mut() else { return };
     if a_program != b_program {
         return;
     }
@@ -1329,12 +1323,6 @@ fn reconcile_trade_source(a: &mut DexEvent, b: &mut DexEvent) {
     }
     if b_source.is_none() {
         *b_source = a_source.clone();
-    }
-    if *a_status == TradeParseStatus::ExecutionConfirmed
-        || *b_status == TradeParseStatus::ExecutionConfirmed
-    {
-        *a_status = TradeParseStatus::ExecutionConfirmed;
-        *b_status = TradeParseStatus::ExecutionConfirmed;
     }
 }
 

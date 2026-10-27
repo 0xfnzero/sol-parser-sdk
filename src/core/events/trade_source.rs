@@ -1,5 +1,5 @@
 //! Uniform provenance access for supported trade/swap event families.
-use super::{DexEvent, RawInstructionPayload, TradeParseStatus};
+use super::{DexEvent, RawInstructionPayload};
 use solana_sdk::pubkey::Pubkey;
 
 #[cfg(test)]
@@ -59,7 +59,6 @@ mod tests {
             let mut direct = event.clone();
             fill_trade_execution_source(&mut direct, 1, &meta, &transaction);
             assert!(direct.third_program().is_none());
-            assert_eq!(direct.trade_parse_status(), Some(TradeParseStatus::ExecutionConfirmed));
             fill_trade_execution_source(&mut event, 0, &meta, &transaction);
             let raw = event.third_program().unwrap();
             assert_eq!(raw.program_id, wrapper);
@@ -70,7 +69,6 @@ mod tests {
             let json = serde_json::to_value(&event).unwrap();
             let restored: DexEvent = serde_json::from_value(json).unwrap();
             assert_eq!(restored.third_program(), Some(raw));
-            assert_eq!(restored.trade_parse_status(), Some(TradeParseStatus::ExecutionConfirmed));
         }
     }
 }
@@ -99,76 +97,29 @@ impl DexEvent {
         }
     }
 
-    /// Evidence level for a trade; non-trade events return None.
-    pub fn trade_parse_status(&self) -> Option<TradeParseStatus> {
-        match self {
-            Self::PumpFunTrade(t)
-            | Self::PumpFunBuy(t)
-            | Self::PumpFunSell(t)
-            | Self::PumpFunBuyExactSolIn(t) => Some(t.parse_status),
-            Self::PumpSwapTrade(t) => Some(t.parse_status),
-            Self::PumpSwapBuy(t) => Some(t.parse_status),
-            Self::PumpSwapSell(t) => Some(t.parse_status),
-            Self::RaydiumLaunchlabTrade(t) => Some(t.parse_status),
-            Self::RaydiumCpmmSwap(t) => Some(t.parse_status),
-            Self::RaydiumClmmSwap(t) => Some(t.parse_status),
-            Self::RaydiumAmmV4Swap(t) => Some(t.parse_status),
-            Self::OrcaWhirlpoolSwap(t) => Some(t.parse_status),
-            Self::MeteoraPoolsSwap(t) => Some(t.parse_status),
-            Self::MeteoraDammV2Swap(t) => Some(t.parse_status),
-            Self::MeteoraDlmmSwap(t) => Some(t.parse_status),
-            Self::MeteoraDbcSwap(t) => Some(t.parse_status),
-            _ => None,
-        }
-    }
-
     pub(crate) fn trade_source_mut(
         &mut self,
-    ) -> Option<(&mut Option<RawInstructionPayload>, &mut TradeParseStatus, Pubkey)> {
+    ) -> Option<(&mut Option<RawInstructionPayload>, Pubkey)> {
         use crate::instr::program_ids::*;
         match self {
             Self::PumpFunTrade(t)
             | Self::PumpFunBuy(t)
             | Self::PumpFunSell(t)
-            | Self::PumpFunBuyExactSolIn(t) => {
-                Some((&mut t.third_program, &mut t.parse_status, PUMPFUN_PROGRAM_ID))
-            }
-            Self::PumpSwapTrade(t) => {
-                Some((&mut t.third_program, &mut t.parse_status, PUMPSWAP_PROGRAM_ID))
-            }
-            Self::PumpSwapBuy(t) => {
-                Some((&mut t.third_program, &mut t.parse_status, PUMPSWAP_PROGRAM_ID))
-            }
-            Self::PumpSwapSell(t) => {
-                Some((&mut t.third_program, &mut t.parse_status, PUMPSWAP_PROGRAM_ID))
-            }
+            | Self::PumpFunBuyExactSolIn(t) => Some((&mut t.third_program, PUMPFUN_PROGRAM_ID)),
+            Self::PumpSwapTrade(t) => Some((&mut t.third_program, PUMPSWAP_PROGRAM_ID)),
+            Self::PumpSwapBuy(t) => Some((&mut t.third_program, PUMPSWAP_PROGRAM_ID)),
+            Self::PumpSwapSell(t) => Some((&mut t.third_program, PUMPSWAP_PROGRAM_ID)),
             Self::RaydiumLaunchlabTrade(t) => {
-                Some((&mut t.third_program, &mut t.parse_status, RAYDIUM_LAUNCHLAB_PROGRAM_ID))
+                Some((&mut t.third_program, RAYDIUM_LAUNCHLAB_PROGRAM_ID))
             }
-            Self::RaydiumCpmmSwap(t) => {
-                Some((&mut t.third_program, &mut t.parse_status, RAYDIUM_CPMM_PROGRAM_ID))
-            }
-            Self::RaydiumClmmSwap(t) => {
-                Some((&mut t.third_program, &mut t.parse_status, RAYDIUM_CLMM_PROGRAM_ID))
-            }
-            Self::RaydiumAmmV4Swap(t) => {
-                Some((&mut t.third_program, &mut t.parse_status, RAYDIUM_AMM_V4_PROGRAM_ID))
-            }
-            Self::OrcaWhirlpoolSwap(t) => {
-                Some((&mut t.third_program, &mut t.parse_status, ORCA_WHIRLPOOL_PROGRAM_ID))
-            }
-            Self::MeteoraPoolsSwap(t) => {
-                Some((&mut t.third_program, &mut t.parse_status, METEORA_POOLS_PROGRAM_ID))
-            }
-            Self::MeteoraDammV2Swap(t) => {
-                Some((&mut t.third_program, &mut t.parse_status, METEORA_DAMM_V2_PROGRAM_ID))
-            }
-            Self::MeteoraDlmmSwap(t) => {
-                Some((&mut t.third_program, &mut t.parse_status, METEORA_DLMM_PROGRAM_ID))
-            }
-            Self::MeteoraDbcSwap(t) => {
-                Some((&mut t.third_program, &mut t.parse_status, METEORA_DBC_PROGRAM_ID))
-            }
+            Self::RaydiumCpmmSwap(t) => Some((&mut t.third_program, RAYDIUM_CPMM_PROGRAM_ID)),
+            Self::RaydiumClmmSwap(t) => Some((&mut t.third_program, RAYDIUM_CLMM_PROGRAM_ID)),
+            Self::RaydiumAmmV4Swap(t) => Some((&mut t.third_program, RAYDIUM_AMM_V4_PROGRAM_ID)),
+            Self::OrcaWhirlpoolSwap(t) => Some((&mut t.third_program, ORCA_WHIRLPOOL_PROGRAM_ID)),
+            Self::MeteoraPoolsSwap(t) => Some((&mut t.third_program, METEORA_POOLS_PROGRAM_ID)),
+            Self::MeteoraDammV2Swap(t) => Some((&mut t.third_program, METEORA_DAMM_V2_PROGRAM_ID)),
+            Self::MeteoraDlmmSwap(t) => Some((&mut t.third_program, METEORA_DLMM_PROGRAM_ID)),
+            Self::MeteoraDbcSwap(t) => Some((&mut t.third_program, METEORA_DBC_PROGRAM_ID)),
             _ => None,
         }
     }

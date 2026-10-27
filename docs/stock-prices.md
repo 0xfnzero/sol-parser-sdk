@@ -147,7 +147,7 @@ price provenance, and optional liquidity/depth snapshot.
   or a fee-adjusted user receipt. Transfer-fee and protocol-fee conventions differ.
 - Supports Raydium CLMM/CPMM, Orca Whirlpool and Meteora DLMM, including confirmed
   CPI trades inside routers. These cover all current default stock pools.
-- Only `ExecutionConfirmed` events with nonzero amounts and matching configured
+- Only decoded execution events with nonzero amounts and matching configured
   pool/mint/DEX identities qualify. Shred instruction-only/unresolved callbacks
   cannot establish an executed price and are ignored.
   Canonical execution fields must also be present: CPMM reserve-before amounts,
@@ -172,7 +172,7 @@ price provenance, and optional liquidity/depth snapshot.
 The processor performs no network access. All RPC/HTTP collection belongs in
 offline discovery or a separate background collector. It resets conversion and
 liquidity caches after reconnects/queue loss. Raw `StockPriceTracker` users must
-call `reset()` after discontinuities or detected fork rollbacks. ExecutionConfirmed
+call `reset()` after discontinuities or detected fork rollbacks. Successful execution
 does not mean finalized; stream commitment remains the client's policy.
 
 ## Examples and verification

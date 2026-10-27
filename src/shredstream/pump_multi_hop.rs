@@ -1,8 +1,6 @@
 //! Official PumpSwap route inputs, without execution metadata or RPC.
 //! Layout: pump-public-docs/docs/instructions/MULTI_HOP_SWAP.md.
-use crate::core::events::{
-    EventMetadata, PumpFunTradeEvent, RawInstructionPayload, TradeParseStatus,
-};
+use crate::core::events::{EventMetadata, PumpFunTradeEvent, RawInstructionPayload};
 use crate::instr::program_ids::{PUMPFUN_PROGRAM_ID, PUMPSWAP_PROGRAM_ID};
 use solana_sdk::pubkey::Pubkey;
 
@@ -81,11 +79,6 @@ pub(crate) fn parse_curve_hops(
             program: PUMPFUN_PROGRAM_ID,
             system_program: get(9).unwrap_or_default(),
             is_buy: direction.unwrap_or(false),
-            parse_status: if direction.is_some() {
-                TradeParseStatus::InstructionDecoded
-            } else {
-                TradeParseStatus::Unresolved
-            },
             third_program: Some(RawInstructionPayload {
                 program_id: PUMPSWAP_PROGRAM_ID,
                 instruction_index,
@@ -136,9 +129,7 @@ mod tests {
         reverse.extend_from_slice(&indices[16..21]);
         let sell = parse(&keys, &reverse, &data);
         assert_eq!(sell.iter().map(|e| e.mint).collect::<Vec<_>>(), vec![b, a]);
-        assert!(sell
-            .iter()
-            .all(|e| !e.is_buy && e.parse_status == TradeParseStatus::InstructionDecoded));
+        assert!(sell.iter().all(|e| !e.is_buy));
         assert!(parse(&keys, &indices[..25], &data).is_empty());
         assert!(parse(&keys, &indices, &data[..23]).is_empty());
         let mut bad_data = data.clone();

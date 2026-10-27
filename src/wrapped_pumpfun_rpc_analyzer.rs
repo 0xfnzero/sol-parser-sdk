@@ -2,7 +2,7 @@
 //! Signed transaction bytes are the only Shred input; saved execution metadata
 //! is used for gRPC and to supply a preloaded ALT snapshot. No RPC or ABI inference.
 use crate::{
-    core::events::{DexEvent, RawInstructionPayload, TradeParseStatus},
+    core::events::{DexEvent, RawInstructionPayload},
     grpc::{EventType, EventTypeFilter},
 };
 use base64::{engine::general_purpose::STANDARD, Engine};
@@ -72,7 +72,6 @@ fn reported_wrappers_preserve_third_program_in_grpc_and_shred() {
                 message,
                 &keys,
             );
-            assert_eq!(trade.parse_status, TradeParseStatus::ExecutionConfirmed);
             assert_eq!((trade.metadata.tx_index, trade.metadata.grpc_recv_us), (77, 123456));
         }
 
@@ -136,7 +135,6 @@ fn reported_wrappers_preserve_third_program_in_grpc_and_shred() {
         for event in &shred {
             let DexEvent::PumpFunTrade(trade) = event else { panic!("unexpected Shred event") };
             assert_source(trade.third_program.as_ref().unwrap(), message, &keys);
-            assert_eq!(trade.parse_status, TradeParseStatus::Unresolved);
             assert_eq!((trade.sol_amount, trade.token_amount, trade.quote_amount), (0, 0, 0));
             assert!(trade.ix_name.is_empty());
             assert_eq!((trade.metadata.tx_index, trade.metadata.grpc_recv_us), (77, 123456));

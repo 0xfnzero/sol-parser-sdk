@@ -779,7 +779,6 @@ fn parse_transaction_pump_events_with_filter(
                             account_indices: ix.accounts.clone(),
                             instruction_data: ix.data.clone(),
                         }),
-                        parse_status: crate::core::events::PumpFunParseStatus::Unresolved,
                         ..Default::default()
                     }));
                 }

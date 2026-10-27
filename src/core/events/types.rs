@@ -159,9 +159,6 @@ pub struct RaydiumLaunchlabTradeEvent {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub third_program: Option<super::RawInstructionPayload>,
     #[cfg_attr(feature = "parse-borsh", borsh(skip))]
-    #[serde(default)]
-    pub parse_status: super::TradeParseStatus,
-    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
     pub metadata: EventMetadata,
 
     // === Borsh 序列化字段（从 inner instruction data 读取）===
@@ -321,13 +318,10 @@ impl RaydiumLaunchlabMigrateAmmEvent {
 #[derive(Debug, Clone, Serialize, Deserialize, Default, BorshDeserialize)]
 pub struct PumpFunTradeEvent {
     /// Original outer wrapper instruction; present for unresolved Shred
-    /// candidates as well as confirmed gRPC CPI trades. See parse_status.
+    /// candidates as well as confirmed gRPC CPI trades. Missing fields retain defaults.
     #[borsh(skip)]
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub third_program: Option<super::RawInstructionPayload>,
-    #[borsh(skip)]
-    #[serde(default)]
-    pub parse_status: super::PumpFunParseStatus,
     #[borsh(skip)]
     #[serde(default)]
     pub creator_fee_unclaimed: u64,
@@ -795,8 +789,6 @@ pub struct PumpSwapTradeEvent {
     /// Original outer router instruction, absent for direct protocol calls.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub third_program: Option<super::RawInstructionPayload>,
-    #[serde(default)]
-    pub parse_status: super::TradeParseStatus,
     pub metadata: EventMetadata,
     // === IDL TradeEvent fields ===
     pub mint: Pubkey,
@@ -830,9 +822,6 @@ pub struct PumpSwapBuyEvent {
     #[borsh(skip)]
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub third_program: Option<super::RawInstructionPayload>,
-    #[borsh(skip)]
-    #[serde(default)]
-    pub parse_status: super::TradeParseStatus,
     #[borsh(skip)]
     #[serde(default)]
     pub creator_fee_unclaimed: u64,
@@ -926,9 +915,6 @@ pub struct PumpSwapSellEvent {
     #[borsh(skip)]
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub third_program: Option<super::RawInstructionPayload>,
-    #[borsh(skip)]
-    #[serde(default)]
-    pub parse_status: super::TradeParseStatus,
     #[borsh(skip)]
     #[serde(default)]
     pub creator_fee_unclaimed: u64,
@@ -1173,9 +1159,6 @@ pub struct RaydiumCpmmSwapEvent {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub third_program: Option<super::RawInstructionPayload>,
     #[cfg_attr(feature = "parse-borsh", borsh(skip))]
-    #[serde(default)]
-    pub parse_status: super::TradeParseStatus,
-    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
     pub metadata: EventMetadata,
 
     // === Borsh 序列化字段（从 inner instruction 事件）===
@@ -1320,9 +1303,6 @@ pub struct RaydiumClmmSwapEvent {
     #[cfg_attr(feature = "parse-borsh", borsh(skip))]
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub third_program: Option<super::RawInstructionPayload>,
-    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
-    #[serde(default)]
-    pub parse_status: super::TradeParseStatus,
     #[cfg_attr(feature = "parse-borsh", borsh(skip))]
     pub metadata: EventMetadata,
 
@@ -1702,9 +1682,6 @@ pub struct RaydiumAmmV4SwapEvent {
     #[cfg_attr(feature = "parse-borsh", borsh(skip))]
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub third_program: Option<super::RawInstructionPayload>,
-    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
-    #[serde(default)]
-    pub parse_status: super::TradeParseStatus,
     #[cfg_attr(feature = "parse-borsh", borsh(skip))]
     pub metadata: EventMetadata,
 
@@ -2692,9 +2669,6 @@ pub struct OrcaWhirlpoolSwapEvent {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub third_program: Option<super::RawInstructionPayload>,
     #[cfg_attr(feature = "parse-borsh", borsh(skip))]
-    #[serde(default)]
-    pub parse_status: super::TradeParseStatus,
-    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
     pub metadata: EventMetadata,
 
     // === Borsh 序列化字段（从 inner instruction data 读取）===
@@ -2835,8 +2809,6 @@ pub struct MeteoraPoolsSwapEvent {
     /// Original outer router instruction, absent for direct protocol calls.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub third_program: Option<super::RawInstructionPayload>,
-    #[serde(default)]
-    pub parse_status: super::TradeParseStatus,
     pub metadata: EventMetadata,
     pub in_amount: u64,
     pub out_amount: u64,
@@ -3183,9 +3155,6 @@ pub struct MeteoraDammV2SwapEvent {
     #[cfg_attr(feature = "parse-borsh", borsh(skip))]
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub third_program: Option<super::RawInstructionPayload>,
-    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
-    #[serde(default)]
-    pub parse_status: super::TradeParseStatus,
     #[cfg_attr(feature = "parse-borsh", borsh(skip))]
     pub metadata: EventMetadata,
 
@@ -3536,8 +3505,6 @@ pub struct MeteoraDbcSwapEvent {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub third_program: Option<super::RawInstructionPayload>,
     #[serde(default)]
-    pub parse_status: super::TradeParseStatus,
-    #[serde(default)]
     pub event_version: u8,
     #[serde(default)]
     pub swap_mode: u8,
@@ -3605,9 +3572,6 @@ pub struct MeteoraDlmmSwapEvent {
     #[cfg_attr(feature = "parse-borsh", borsh(skip))]
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub third_program: Option<super::RawInstructionPayload>,
-    #[cfg_attr(feature = "parse-borsh", borsh(skip))]
-    #[serde(default)]
-    pub parse_status: super::TradeParseStatus,
     #[cfg_attr(feature = "parse-borsh", borsh(skip))]
     pub metadata: EventMetadata,
 

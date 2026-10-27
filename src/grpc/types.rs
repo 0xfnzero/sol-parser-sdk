@@ -492,7 +492,13 @@ impl EventTypeFilter {
 
     pub fn should_include_dex_event(&self, event: &crate::core::events::DexEvent) -> bool {
         if let crate::core::events::DexEvent::PumpFunTrade(t) = event {
-            if t.parse_status == crate::core::events::PumpFunParseStatus::Unresolved {
+            if t.third_program.is_some()
+                && (t.ix_name.is_empty()
+                    || (t.ix_name == "multi_hop_swap"
+                        && t.sol_amount == 0
+                        && t.token_amount == 0
+                        && t.quote_amount == 0))
+            {
                 // Unknown direction must not turn the default is_buy=false into
                 // a sell classification. Explicit family exclusion wins.
                 return self.includes_unresolved_pumpfun();
@@ -948,6 +954,18 @@ mod event_type_filter_tests {
         use crate::core::events::{DexEvent, PumpFunTradeEvent};
 
         let filter = EventTypeFilter::include_only(vec![EventType::PumpFunTrade]);
+        for ix_name in ["", "multi_hop_swap"] {
+            let candidate = DexEvent::PumpFunTrade(PumpFunTradeEvent {
+                third_program: Some(Default::default()),
+                ix_name: ix_name.into(),
+                ..Default::default()
+            });
+            assert!(filter.should_include_dex_event(&candidate));
+            for kind in [EventType::PumpFunBuy, EventType::PumpFunSell] {
+                assert!(!EventTypeFilter::include_only(vec![kind])
+                    .should_include_dex_event(&candidate));
+            }
+        }
         let event = DexEvent::PumpFunBuy(PumpFunTradeEvent { is_buy: true, ..Default::default() });
         assert!(matches!(filter.normalize_dex_event(event), DexEvent::PumpFunTrade(_)));
 

@@ -45,11 +45,10 @@ fn set_trade_execution_source(
     transaction: &Option<Transaction>,
     materialize: bool,
 ) {
-    let Some((source, status, native_program)) = event.trade_source_mut() else { return };
+    let Some((source, native_program)) = event.trade_source_mut() else { return };
     if meta.err.is_some() {
         return;
     }
-    *status = TradeParseStatus::ExecutionConfirmed;
     let Some(message) = transaction.as_ref().and_then(|tx| tx.message.as_ref()) else { return };
     let get = |index: usize| {
         let static_len = message.account_keys.len();

@@ -1,6 +1,6 @@
 //! Opt-in stock/ETF execution-price notifications. No HTTP or RPC in this module.
 //! Prices describe reported swap amounts, not executable quotes or stock NAV.
-use crate::core::events::{EventMetadata, RawInstructionDexType, TradeParseStatus};
+use crate::core::events::{EventMetadata, RawInstructionDexType};
 use crate::grpc::{EventType, EventTypeFilter, TransactionFilter, YellowstoneGrpc};
 use crate::DexEvent;
 use crossbeam_queue::ArrayQueue;
@@ -334,9 +334,7 @@ impl StockPriceTracker {
     /// Instruction-only Shred candidates never produce a price. `now_us` must
     /// use the same wall-clock domain as EventMetadata.grpc_recv_us.
     pub fn process(&mut self, event: &DexEvent, now_us: i64) -> Option<StockTokenPriceEvent> {
-        if self.pools.is_empty()
-            || event.trade_parse_status() != Some(TradeParseStatus::ExecutionConfirmed)
-        {
+        if self.pools.is_empty() {
             return None;
         }
         let swap = executed_swap(event)?;

@@ -7,7 +7,7 @@
 //!
 //! ## 限制说明
 //! - 默认只读静态账户；--alt-table 在启动时预热指定 ALT，接收路径只读内存。
-//! - 第三方指令引用 Pump.fun 时回调 Unresolved，不能确定内部 CPI 方法和成交金额。
+//! - 第三方指令引用 Pump.fun 时回调候选事件，不能确定内部 CPI 方法和成交金额。
 //! - 无 block_time，恒为 0
 //! - tx_index 是 entry 内索引而非 slot 内索引
 

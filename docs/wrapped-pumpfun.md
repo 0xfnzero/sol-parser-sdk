@@ -7,7 +7,7 @@ accounts or reconstruct a Pump buy/sell instruction. Consumers interpret the
 original input in the trade event's `third_program`.
 
 On Shred, an unknown outer program referencing Pump.fun in **that instruction's**
-accounts produces a `PumpFunTrade` candidate with `parse_status=Unresolved`.
+accounts produces a `PumpFunTrade` candidate with its original input in `third_program`.
 This does not establish a trade, direction, mint, pool or amount: the program may
 only prepare accounts. Missing trade fields retain defaults, not proven zero fills.
 Broad PumpFunTrade subscriptions receive candidates; buy/sell-only subscriptions
@@ -15,8 +15,7 @@ do not. Other unknown instructions are skipped, without scanning all DEX familie
 
 On gRPC/RPC, supplied execution metadata and actual Pump CPI instructions determine
 the trade. Its exact originating outer instruction fills `third_program`.
-Direct calls have no third-party payload. A successful invocation can be
-`ExecutionConfirmed` even when some execution amounts are unavailable.
+Direct calls have no third-party payload. A successful invocation may still lack some execution amounts when logs are missing.
 
 One outer instruction can invoke zero, one or several trades. Compare signature
 and outer instruction index rather than expecting equal Shred/gRPC event counts.
@@ -73,8 +72,8 @@ The signed reports `2EUPDVEH…` and `38NiGzWa…` use GMGN's
 `58tUNfyBtwkMeU8gpyZYKEo4Hyb4E25ui12w5vKYQx3P`. Each contains **three**
 successful Pump.fun `buy` CPIs, from outer instructions 3, 6 and 9 (zero-based).
 With static keys alone, both yield zero Pump callbacks; with the saved ALT snapshot,
-each yields three `Unresolved` Shred candidates with the original `third_program`.
-gRPC yields three `ExecutionConfirmed` buys with actual nonzero amounts.
+each yields three Shred candidates with the original `third_program`.
+gRPC yields three executed buys with actual nonzero amounts.
 The Shred candidates still carry unknown/default trade fields, not inferred buys.
 
 Reproduce only these two signed captures without a network:
@@ -116,8 +115,7 @@ Shred 仍不推断第三方合约的内部买卖方法和金额。热路径不�
 
 `DexEvent::PumpRouteIntent`, `DexEvent::RawInstruction`, their subscription
 variants and their route/raw parsers have been removed. Remove those subscriptions
-and match arms. Subscribe to PumpFunTrade and inspect `third_program` and
-`parse_status` instead. There is no separate raw callback or built-in wrapper-rule
+and match arms. Subscribe to PumpFunTrade and inspect `third_program` instead. There is no separate raw callback or built-in wrapper-rule
 engine. Official multi-hop instructions no longer emit route-intent callbacks;
 their executed trade legs remain available through gRPC/RPC.
 
@@ -174,9 +172,8 @@ Shred parsing emits a `PumpFunTrade` for each curve whose canonical PDA can be
 identified from the documented five-account hop layout. All-AMM routes do not
 produce PumpFun callbacks merely because the fixed accounts contain the Pump program.
 The callback retains `third_program`, mint, quote mint, curve accounts and
-`ix_name = "multi_hop_swap"`. A continuous mint path establishes direction and
-`InstructionDecoded`; unresolved direction remains `Unresolved`. Neither status
-establishes execution. Per-hop executed amounts remain zero on Shred; the raw
+`ix_name = "multi_hop_swap"`. A continuous mint path can establish direction. A disconnected or ambiguous path
+leaves direction unknown. Neither case establishes execution. Per-hop executed amounts remain zero on Shred; the raw
 outer data contains the route's input amount and final minimum, not per-hop fills.
 
 gRPC preserves each on-chain TradeEvent's `sol_amount`, `quote_amount` and

@@ -268,7 +268,6 @@ fn trades(events: &[DexEvent]) -> Vec<Value> {
                 "mayhem_mode",
                 "ix_name",
                 "third_program",
-                "parse_status",
                 "base_amount_out",
                 "base_amount_in",
                 "quote_amount_in",
@@ -503,7 +502,6 @@ fn execution_survives_missing_or_truncated_logs() {
 
 #[test]
 fn official_multi_hop_reports_curve_input_and_preserves_executed_quote_amounts() {
-    use sol_parser_sdk::core::events::TradeParseStatus;
     let fixture: Value =
         serde_json::from_str(include_str!("fixtures/pump_multi_hop_20261025.json")).unwrap();
     let rpc = serde_json::from_value(fixture["cases"][0]["wire_rpc"].clone()).unwrap();
@@ -530,7 +528,6 @@ fn official_multi_hop_reports_curve_input_and_preserves_executed_quote_amounts()
     assert_eq!(input.ix_name, "multi_hop_swap");
     assert_eq!(input.mint.to_string(), "Aijxkeq5L9iaDYZxfaXUhnHQj4cYeo8um6a3t5vzpump");
     assert_eq!(input.quote_mint.to_string(), "6Vk3fAQWYEot6JbQb8Nx8j5wZeDnMhzk8FajjHhZpump");
-    assert_eq!(input.parse_status, TradeParseStatus::InstructionDecoded);
     assert!(input.is_buy && input.is_created_buy);
     assert_eq!((input.sol_amount, input.token_amount, input.quote_amount), (0, 0, 0));
     assert_eq!((input.metadata.tx_index, input.metadata.grpc_recv_us), (77, 123456));
@@ -571,7 +568,6 @@ fn official_multi_hop_reports_curve_input_and_preserves_executed_quote_amounts()
         assert_eq!(fill.quote_mint, input.quote_mint);
         assert_eq!(fill.user, input.user);
         assert_eq!(fill.third_program, input.third_program);
-        assert_eq!(fill.parse_status, TradeParseStatus::ExecutionConfirmed);
         // Independently checked TradeEvent bytes and recipient token balance.
         // This curve is quoted in the intermediate token, not SOL.
         assert_eq!(

@@ -116,13 +116,6 @@ fn real_rpc_and_yellowstone_parallel_sequential_paths_agree() {
             .map(|k| solana_sdk::pubkey::Pubkey::try_from(k.as_slice()).unwrap())
             .collect();
         for event in rpc.iter().chain(&direct) {
-            if let Some(status) = event.trade_parse_status() {
-                assert_eq!(
-                    status == sol_parser_sdk::core::events::TradeParseStatus::ExecutionConfirmed,
-                    meta.err.is_none(),
-                    "{name}: failed instructions must not be marked executed"
-                );
-            }
             if let Some(source) = event.third_program() {
                 let ix = &message.instructions[source.instruction_index];
                 assert_eq!(source.program_id, keys[ix.program_id_index as usize], "{name}");

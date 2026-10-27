@@ -80,7 +80,6 @@ pub fn parse_swap_from_data(data: &[u8], metadata: EventMetadata) -> Option<DexE
 
     Some(DexEvent::MeteoraDbcSwap(MeteoraDbcSwapEvent {
         third_program: None,
-        parse_status: Default::default(),
         metadata,
         pool,
         config,
@@ -236,7 +235,6 @@ pub fn parse_swap2_from_data(
     let included_fee_input_amount = read_u64_le(data, 83)?;
     Some(DexEvent::MeteoraDbcSwap(MeteoraDbcSwapEvent {
         third_program: None,
-        parse_status: Default::default(),
         metadata,
         pool: read_pubkey(data, 0)?,
         config: read_pubkey(data, 32)?,

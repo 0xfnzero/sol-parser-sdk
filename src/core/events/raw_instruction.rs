@@ -13,22 +13,6 @@ pub struct RawInstructionPayload {
     pub instruction_data: Vec<u8>,
 }
 
-/// Evidence available to the parser, not a guarantee that every amount is known.
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
-pub enum TradeParseStatus {
-    /// Outer instruction references a DEX; no trade or direction is proven.
-    Unresolved,
-    /// Instruction inputs were decoded; execution amounts are not established.
-    #[default]
-    InstructionDecoded,
-    /// Successful execution metadata/logs establish the DEX invocation.
-    /// Executed amounts may still be unavailable when event logs are missing.
-    ExecutionConfirmed,
-}
-
-/// Compatibility alias for the original Pump.fun-specific name.
-pub type PumpFunParseStatus = TradeParseStatus;
-
 /// Stable DEX identifiers retained for stock-price configuration compatibility.
 /// These identifiers do not trigger raw-instruction parsing.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
