@@ -645,7 +645,7 @@ pub struct PumpFunMigrateBondingCurveCreatorEvent {
 /// PumpFun Create Token Event - Based on IDL CreateEvent definition
 #[derive(Debug, Clone, Serialize, Deserialize, Default, BorshDeserialize)]
 pub struct PumpFunCreateTokenEvent {
-    /// Transaction message version from gRPC/RPC context, independent of the
+    /// Transaction message version from Shred/gRPC/RPC context, independent of the
     /// Pump instruction version. None when that context is unavailable.
     #[borsh(skip)]
     #[serde(default)]
@@ -726,7 +726,7 @@ pub struct PumpFunCreateTokenEvent {
 /// 与 solana-streamer 对齐；指令解析时从 accounts 0..15 填充。
 #[derive(Debug, Clone, Serialize, Deserialize, Default, BorshDeserialize)]
 pub struct PumpFunCreateV2TokenEvent {
-    /// Transaction message version from gRPC/RPC context, independent of the
+    /// Transaction message version from Shred/gRPC/RPC context, independent of the
     /// Pump instruction version. None when that context is unavailable.
     #[borsh(skip)]
     #[serde(default)]

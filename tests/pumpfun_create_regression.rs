@@ -12,6 +12,7 @@ fn mainnet_create_account_regressions() {
             PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/pumpfun_create")
         });
     let mut successful = 0;
+    let mut shred_versions = std::collections::HashSet::new();
     for file in fs::read_dir(directory).unwrap() {
         let path = file.unwrap().path();
         if path.extension().is_none_or(|ext| ext != "json") {
@@ -30,6 +31,28 @@ fn mainnet_create_account_regressions() {
             continue;
         }
         successful += 1;
+        let version = if raw["version"] == 0 {
+            sol_parser_sdk::YellowstoneMessageVersion::V0
+        } else {
+            sol_parser_sdk::YellowstoneMessageVersion::Legacy
+        };
+        let signed = tx.transaction.transaction.decode().unwrap();
+        signed.verify_and_hash_message().unwrap();
+        let mut shred = Vec::new();
+        sol_parser_sdk::shredstream::parse_transaction_dex_events(
+            &signed,
+            signed.signatures[0],
+            tx.slot,
+            0,
+            0,
+            &mut shred,
+        );
+        for event in &shred {
+            if let DexEvent::PumpFunCreate(create) = event {
+                assert_eq!(create.transaction_version, Some(version), "{}", path.display());
+                shred_versions.insert(version);
+            }
+        }
         let creates: Vec<_> = events
             .iter()
             .filter_map(|e| match e {
@@ -94,6 +117,8 @@ fn mainnet_create_account_regressions() {
         }
     }
     assert!(successful >= 2);
+    assert!(shred_versions.contains(&sol_parser_sdk::YellowstoneMessageVersion::Legacy));
+    assert!(shred_versions.contains(&sol_parser_sdk::YellowstoneMessageVersion::V0));
 }
 
 #[test]

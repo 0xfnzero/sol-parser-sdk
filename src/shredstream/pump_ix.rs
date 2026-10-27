@@ -687,7 +687,19 @@ fn parse_transaction_with_account_keys(
     );
     let appended = &mut events[start..];
     crate::core::pumpfun_fee_enrich::enrich_pumpfun_same_tx_post_merge(appended);
-    let mut metadata = appended.iter_mut().filter_map(DexEvent::metadata_mut);
+    let version = match &transaction.message {
+        VersionedMessage::Legacy(_) => crate::grpc::YellowstoneMessageVersion::Legacy,
+        VersionedMessage::V0(_) => crate::grpc::YellowstoneMessageVersion::V0,
+        VersionedMessage::V1(_) => crate::grpc::YellowstoneMessageVersion::V1,
+    };
+    let mut metadata = appended.iter_mut().filter_map(|event| {
+        match event {
+            DexEvent::PumpFunCreate(create) => create.transaction_version = Some(version),
+            DexEvent::PumpFunCreateV2(create) => create.transaction_version = Some(version),
+            _ => {}
+        }
+        event.metadata_mut()
+    });
     if let Some(first) = metadata.next() {
         let blockhash = transaction.message.recent_blockhash().to_string();
         for item in metadata {
