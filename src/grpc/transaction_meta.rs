@@ -6,6 +6,7 @@ use std::collections::HashSet;
 use std::sync::Arc;
 
 use crate::{instr::read_pubkey_fast, DexEvent};
+use serde::{Deserialize, Serialize};
 use solana_sdk::pubkey::Pubkey;
 use solana_sdk::signature::Signature;
 use yellowstone_grpc_proto::prelude::{TokenBalance, Transaction, TransactionStatusMeta};
@@ -14,7 +15,8 @@ use yellowstone_grpc_proto::prelude::{TokenBalance, Transaction, TransactionStat
 ///
 /// Yellowstone uses `Message.config` to identify V1. The older `versioned` flag
 /// alone cannot distinguish V0 from V1.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
 pub enum YellowstoneMessageVersion {
     Legacy,
     V0,
@@ -37,21 +39,28 @@ pub fn yellowstone_message_version(
     }
 }
 
-/// Fill the public recent blockhash field once final events are known.
+/// Fill creation transaction versions and the recent blockhash once final events are known.
 ///
 /// Encoding after log/instruction deduplication avoids doing the same base58
 /// allocation independently on both parser branches.
 #[inline]
-pub(crate) fn fill_recent_blockhash(events: &mut [DexEvent], transaction: &Option<Transaction>) {
-    let Some(blockhash) = transaction
-        .as_ref()
-        .and_then(|tx| tx.message.as_ref())
-        .map(|message| message.recent_blockhash.as_slice())
-        .filter(|blockhash| !blockhash.is_empty())
-    else {
+pub(crate) fn fill_transaction_context(events: &mut [DexEvent], transaction: &Option<Transaction>) {
+    let Some(message) = transaction.as_ref().and_then(|tx| tx.message.as_ref()) else {
         return;
     };
 
+    let version = yellowstone_message_version(message);
+    for event in events.iter_mut() {
+        match event {
+            DexEvent::PumpFunCreate(create) => create.transaction_version = Some(version),
+            DexEvent::PumpFunCreateV2(create) => create.transaction_version = Some(version),
+            _ => {}
+        }
+    }
+    let blockhash = &message.recent_blockhash;
+    if blockhash.is_empty() {
+        return;
+    }
     let mut metadata = events.iter_mut().filter_map(DexEvent::metadata_mut);
     let Some(first) = metadata.next() else { return };
     let encoded = bs58::encode(blockhash).into_string();
@@ -290,5 +299,42 @@ mod tests {
             yellowstone_message_version(&v1_with_inconsistent_legacy_flag),
             YellowstoneMessageVersion::V1
         );
+
+        // Creation metadata also works when the provider omits recent_blockhash.
+        for (message, version, json_version) in [
+            (legacy, YellowstoneMessageVersion::Legacy, "legacy"),
+            (v0, YellowstoneMessageVersion::V0, "v0"),
+            (v1, YellowstoneMessageVersion::V1, "v1"),
+            (v1_with_inconsistent_legacy_flag, YellowstoneMessageVersion::V1, "v1"),
+        ] {
+            let mut events = [
+                DexEvent::PumpFunCreate(Default::default()),
+                DexEvent::PumpFunCreateV2(Default::default()),
+            ];
+            fill_transaction_context(&mut events, &None);
+            fill_transaction_context(&mut events, &Some(Transaction::default()));
+            for event in &events {
+                let json = serde_json::to_value(event).unwrap();
+                assert!(json.as_object().unwrap().values().next().unwrap()["transaction_version"]
+                    .is_null());
+            }
+            fill_transaction_context(
+                &mut events,
+                &Some(Transaction { message: Some(message), ..Default::default() }),
+            );
+            for event in &events {
+                let json = serde_json::to_value(event).unwrap();
+                assert_eq!(
+                    json.as_object().unwrap().values().next().unwrap()["transaction_version"],
+                    json_version
+                );
+                assert!(event.metadata().recent_blockhash.is_none());
+            }
+            assert_eq!(
+                serde_json::from_str::<YellowstoneMessageVersion>(&format!("\"{json_version}\""))
+                    .unwrap(),
+                version
+            );
+        }
     }
 }

@@ -342,7 +342,7 @@ fn fill_rpc_event_metadata(
             fill_rpc_token_balances(event, rpc_meta, meta, transaction);
         }
     }
-    crate::grpc::transaction_meta::fill_recent_blockhash(events, transaction);
+    crate::grpc::transaction_meta::fill_transaction_context(events, transaction);
 }
 
 #[inline]

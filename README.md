@@ -420,6 +420,8 @@ let config = ClientConfig {
 let grpc = YellowstoneGrpc::new_with_config(endpoint, token, config)?;
 ```
 
+`PumpFunCreateTokenEvent.transaction_version` reports the transaction message version as `Some(YellowstoneMessageVersion::Legacy)`, `V0` or `V1` on gRPC/RPC. JSON uses `"legacy"`, `"v0"` and `"v1"`. It remains `None` without transaction context (including standalone Shred parsing). This is independent of the Pump instruction name in `ix_name`.
+
 <a id="trade-provenance-and-parsing-boundaries"></a>
 
 ## Trade provenance and parsing boundaries

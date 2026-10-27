@@ -80,7 +80,7 @@ pub fn parse_instructions_enhanced(
     for event in &mut events {
         crate::core::common_filler::fill_token_balances(event, meta, transaction);
     }
-    crate::grpc::transaction_meta::fill_recent_blockhash(&mut events, transaction);
+    crate::grpc::transaction_meta::fill_transaction_context(&mut events, transaction);
     events
 }
 
@@ -909,6 +909,7 @@ mod tests {
             DexEvent::PumpFunCreateV2(e) => {
                 assert_eq!(e.ix_name, "create_v2");
                 crate::core::events::PumpFunCreateTokenEvent {
+                    transaction_version: e.transaction_version,
                     depth: 0,
                     metadata: e.metadata.clone(),
                     name: e.name.clone(),

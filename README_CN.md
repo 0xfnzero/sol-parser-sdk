@@ -320,6 +320,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 | 解析后端 | 默认 Borsh 解析器便于维护，也可为低延迟热路径启用 zero-copy 解析器 |
 | 相关 SDK | 如果需要更高层的事件流封装，请使用 [solana-streamer](https://github.com/0xfnzero/solana-streamer) |
 
+`PumpFunCreateTokenEvent.transaction_version` 在 gRPC/RPC 路径下表示交易消息版本：`Some(YellowstoneMessageVersion::Legacy)`、`V0` 或 `V1`，JSON 分别为 `"legacy"`、`"v0"`、`"v1"`。缺少交易上下文时（包括独立 Shred 解析）为 `None`。该字段与 `ix_name` 表示的 Pump 指令版本相互独立。
+
 <a id="交易来源与解析边界"></a>
 
 ## 交易来源与解析边界

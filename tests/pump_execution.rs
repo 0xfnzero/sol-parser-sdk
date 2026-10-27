@@ -101,6 +101,11 @@ fn reported_create_v2_with_alt_accounts_keeps_create_and_trade_callbacks() {
         assert_eq!(grpc.len(), 2);
         let DexEvent::PumpFunCreate(confirmed_create) = &grpc[0] else { panic!("gRPC create") };
         assert_eq!(confirmed_create.ix_name, "create_v2");
+        assert_eq!(
+            confirmed_create.transaction_version,
+            Some(sol_parser_sdk::YellowstoneMessageVersion::V0)
+        );
+        assert!(create.transaction_version.is_none(), "Shred has no gRPC transaction context");
         let DexEvent::PumpFunTrade(confirmed_trade) = &grpc[1] else { panic!("gRPC trade") };
         // Creator input can differ from the creator recorded by the program.
         assert_eq!(
@@ -124,6 +129,24 @@ fn reported_create_v2_with_alt_accounts_keeps_create_and_trade_callbacks() {
             )
         );
         assert!(confirmed_trade.token_amount > 0);
+        let rpc_events = sol_parser_sdk::parse_rpc_transaction(&rpc, Some(&filter)).unwrap();
+        let DexEvent::PumpFunCreate(rpc_create) = &rpc_events[0] else { panic!("RPC create") };
+        assert_eq!(rpc_create.transaction_version, confirmed_create.transaction_version);
+        let info = update.transaction.as_ref().unwrap();
+        let instructions = sol_parser_sdk::grpc::instruction_parser::parse_instructions_enhanced(
+            info.meta.as_ref().unwrap(),
+            &info.transaction,
+            signed.signatures[0],
+            rpc.slot,
+            888,
+            None,
+            123456,
+            Some(&filter),
+        );
+        let DexEvent::PumpFunCreate(ix_create) = &instructions[0] else {
+            panic!("instruction create")
+        };
+        assert_eq!(ix_create.transaction_version, confirmed_create.transaction_version);
 
         for (types, expected) in [
             (vec![EventType::PumpFunCreate], 1),
@@ -359,6 +382,7 @@ fn versioned_cpi_names_keep_filtered_execution_amounts() {
 
 #[test]
 fn execution_survives_missing_or_truncated_logs() {
+    let mut create_versions = std::collections::HashSet::new();
     for fixture in [
         include_str!("fixtures/pump_execution_20261019.json"),
         include_str!("fixtures/pump_routes_20261009.json"),
@@ -366,6 +390,7 @@ fn execution_survives_missing_or_truncated_logs() {
         include_str!("fixtures/wrapped_pumpfun_reported.json"),
         include_str!("fixtures/pump_holder_20261009.json"),
         include_str!("fixtures/pump_multi_hop_20261025.json"),
+        include_str!("fixtures/pump_create_alt_20261026.json"),
     ] {
         let fixture: Value = serde_json::from_str(fixture).unwrap();
         for c in fixture["cases"].as_array().unwrap() {
@@ -381,6 +406,7 @@ fn execution_survives_missing_or_truncated_logs() {
                 }),
             };
             let filter = EventTypeFilter::include_only(vec![
+                EventType::PumpFunCreate,
                 EventType::PumpFunTrade,
                 EventType::PumpSwapTrade,
             ]);
@@ -439,6 +465,18 @@ fn execution_survives_missing_or_truncated_logs() {
                         Some(&filter),
                     ),
                 ] {
+                    for event in &events {
+                        if let DexEvent::PumpFunCreate(create) = event {
+                            let version = create.transaction_version.expect("gRPC message version");
+                            let expected = match c["wire_rpc"]["version"].as_u64() {
+                                Some(0) => sol_parser_sdk::YellowstoneMessageVersion::V0,
+                                Some(1) => sol_parser_sdk::YellowstoneMessageVersion::V1,
+                                _ => sol_parser_sdk::YellowstoneMessageVersion::Legacy,
+                            };
+                            assert_eq!(version, expected, "{} mode={mode}", c["name"]);
+                            create_versions.insert(version);
+                        }
+                    }
                     assert_eq!(trades(&events), baseline, "{} mode={mode}", c["name"]);
                 }
             }
@@ -498,6 +536,8 @@ fn execution_survives_missing_or_truncated_logs() {
             .is_empty());
         }
     }
+    assert!(create_versions.contains(&sol_parser_sdk::YellowstoneMessageVersion::V0));
+    assert!(create_versions.contains(&sol_parser_sdk::YellowstoneMessageVersion::V1));
 }
 
 #[test]

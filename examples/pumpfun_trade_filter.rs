@@ -219,6 +219,7 @@ async fn run_example() -> Result<(), Box<dyn std::error::Error>> {
 
                     DexEvent::PumpFunCreate(e) => {
                         create_count += 1;
+                        println!("Transaction version: {:?}", e.transaction_version);
                         let latency_us = now_us - e.metadata.grpc_recv_us;
                         println!("┌─────────────────────────────────────────────────────────────");
                         println!("│ 🆕 PumpFun CREATE #{}", event_count);
