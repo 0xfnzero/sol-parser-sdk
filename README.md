@@ -273,6 +273,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Or with custom config
     let config = ShredStreamConfig {
+        auth_token: std::env::var("SHREDSTREAM_X_TOKEN").ok(), // Optional provider x-token
         connection_timeout_ms: 5000,
         request_timeout_ms: 30000,
         max_decoding_message_size: 1024 * 1024 * 1024,
@@ -308,6 +309,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 }
 ```
+
+`ShredStreamConfig::auth_token` sends optional `x-token` gRPC metadata on every
+subscription, including reconnects, for both queue and callback subscriptions.
+The default is `None`; empty or whitespace-only tokens are omitted, and surrounding
+whitespace is trimmed. Invalid metadata is logged as a subscription error without
+sending a subscribe request. The `shredstream_example` and `shredstream_pump_snipe` examples
+read this value from `SHREDSTREAM_X_TOKEN`.
 
 **ShredStream Limitations:**
 - Known Pump.fun outer instructions still emit create/trade callbacks when ALT accounts are unavailable. Missing addresses (including V2/V3 quote mints and token programs) remain `Pubkey::default()`; instruction arguments are not confirmed fills. Other DEX instructions require resolved accounts. Supply cached ALT addresses with `parse_transaction_dex_events_with_loaded_addresses` or `with_address_lookup_resolver` for complete accounts. The default parser does not guess unknown programs; only the explicit `best_effort` API permits discriminator guesses.

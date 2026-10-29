@@ -258,6 +258,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // 或使用自定义配置
     let config = ShredStreamConfig {
+        auth_token: std::env::var("SHREDSTREAM_X_TOKEN").ok(), // 可选的服务商 x-token
         connection_timeout_ms: 5000,
         request_timeout_ms: 30000,
         max_decoding_message_size: 1024 * 1024 * 1024,
@@ -293,6 +294,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 }
 ```
+
+`ShredStreamConfig::auth_token` 用于在每次订阅（包括自动重连）时发送可选的
+`x-token` gRPC metadata，队列和回调订阅均支持。默认值为 `None`；空字符串或纯空白
+不会发送，首尾空白会被移除；非法 metadata 会记录订阅错误日志，不会发送订阅请求。
+`shredstream_example` 和 `shredstream_pump_snipe` 示例从环境变量
+`SHREDSTREAM_X_TOKEN` 读取该配置。
 
 **ShredStream 限制：**
 - 已确认程序 ID 的 Pump.fun 外层指令在 ALT 未展开时仍回调创建/交易事件，缺失账户（含 V2/V3 报价 mint、Token Program）保留 `Pubkey::default()`；指令参数不代表实际成交。其它 DEX 仍要求账户完整。可用 `parse_transaction_dex_events_with_loaded_addresses` 或 `with_address_lookup_resolver` 从调用方缓存补齐；默认入口不猜测未知程序，只有显式 `best_effort` 入口允许按 discriminator 猜测。

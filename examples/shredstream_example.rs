@@ -104,6 +104,7 @@ async fn run_example(
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     // 配置
     let config = ShredStreamConfig {
+        auth_token: env::var("SHREDSTREAM_X_TOKEN").ok(),
         connection_timeout_ms: 5000,
         request_timeout_ms: 30000,
         max_decoding_message_size: 1024 * 1024 * 1024, // 1GB
@@ -348,6 +349,8 @@ fn print_usage() {
     );
     println!("      --preload-only    Validate ALT startup preload without a Shred connection");
     println!("  -h, --help            Print this help message");
+    println!();
+    println!("Environment: SHREDSTREAM_X_TOKEN sets optional x-token authentication.");
     println!();
     println!("Filter presets:");
     println!("  trade                 PumpFunTrade only, outputs DexEvent::PumpFunTrade");

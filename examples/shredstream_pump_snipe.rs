@@ -43,6 +43,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
                 println!("  -e, --endpoint <URL>  ShredStream endpoint URL (default: http://127.0.0.1:10800)");
                 println!("  -h, --help            Print this help message");
                 println!();
+                println!("Environment: SHREDSTREAM_X_TOKEN sets optional x-token authentication.");
+                println!();
                 println!("Examples:");
                 println!("  cargo run --example shredstream_pump_snipe");
                 println!("  cargo run --example shredstream_pump_snipe -- --endpoint http://192.168.1.100:10800");
@@ -65,6 +67,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 async fn run_snipe_monitor(endpoint: &str) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     // 配置
     let config = ShredStreamConfig {
+        auth_token: env::var("SHREDSTREAM_X_TOKEN").ok(),
         connection_timeout_ms: 5000,
         request_timeout_ms: 30000,
         max_decoding_message_size: 1024 * 1024 * 1024,

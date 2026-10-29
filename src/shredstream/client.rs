@@ -15,6 +15,7 @@ use solana_sdk::message::v0::LoadedAddresses;
 use solana_sdk::transaction::VersionedTransaction;
 use tokio::sync::Mutex;
 use tokio::task::JoinHandle;
+use tonic::metadata::MetadataValue;
 use tonic::transport::{Channel, Endpoint};
 
 use crate::core::now_micros;
@@ -257,6 +258,19 @@ impl ShredStreamClient {
             .max_decoding_message_size(config.max_decoding_message_size))
     }
 
+    fn build_subscribe_request(
+        config: &ShredStreamConfig,
+    ) -> Result<tonic::Request<SubscribeEntriesRequest>, String> {
+        let mut request = tonic::Request::new(SubscribeEntriesRequest {});
+        if let Some(token) = config.auth_token.as_deref().map(str::trim).filter(|s| !s.is_empty()) {
+            let mut value = MetadataValue::try_from(token)
+                .map_err(|e| format!("Invalid ShredStream x-token metadata: {e}"))?;
+            value.set_sensitive(true);
+            request.metadata_mut().insert("x-token", value);
+        }
+        Ok(request)
+    }
+
     /// 核心事件流处理
     async fn stream_events(
         endpoint: &str,
@@ -265,8 +279,8 @@ impl ShredStreamClient {
         sink: EventSink<'_>,
         resolver: Option<&AddressLookupResolver>,
     ) -> Result<(), String> {
+        let request = Self::build_subscribe_request(config)?;
         let mut client = Self::connect_client(endpoint, config).await.map_err(|e| e.to_string())?;
-        let request = tonic::Request::new(SubscribeEntriesRequest {});
         let response = if config.request_timeout_ms > 0 {
             tokio::time::timeout(
                 Duration::from_millis(config.request_timeout_ms),
@@ -473,6 +487,43 @@ mod tests {
     use solana_sdk::signature::Signature;
     use solana_sdk::transaction::VersionedTransaction;
     use std::sync::atomic::{AtomicUsize, Ordering as AtomicOrdering};
+
+    #[test]
+    fn subscription_request_includes_only_nonempty_trimmed_auth_token() {
+        for config in [
+            ShredStreamConfig::default(),
+            ShredStreamConfig::low_latency(),
+            ShredStreamConfig::high_throughput(),
+        ] {
+            for (token, expected) in [
+                (None, None),
+                (Some(""), None),
+                (Some(" \t\n "), None),
+                (Some(" test-token "), Some("test-token")),
+            ] {
+                let config =
+                    ShredStreamConfig { auth_token: token.map(str::to_owned), ..config.clone() };
+                let request = ShredStreamClient::build_subscribe_request(&config).unwrap();
+                let header = request.metadata().get("x-token");
+                assert_eq!(header.map(|value| value.to_str().unwrap()), expected);
+                if let Some(header) = header {
+                    assert!(header.is_sensitive());
+                    assert!(!format!("{config:?}").contains("test-token"));
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn subscription_request_rejects_invalid_auth_without_exposing_token() {
+        for token in ["secret\nvalue", "secret\rvalue", "secret\0value", "secret\u{7f}value"] {
+            let config =
+                ShredStreamConfig { auth_token: Some(token.to_owned()), ..Default::default() };
+            let error = ShredStreamClient::build_subscribe_request(&config).unwrap_err();
+            assert!(error.contains("Invalid ShredStream x-token metadata"));
+            assert!(!error.contains("secret"));
+        }
+    }
 
     fn push_string(data: &mut Vec<u8>, value: &str) {
         data.extend_from_slice(&(value.len() as u32).to_le_bytes());
