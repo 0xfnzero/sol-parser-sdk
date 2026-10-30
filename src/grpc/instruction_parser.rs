@@ -909,6 +909,7 @@ mod tests {
             DexEvent::PumpFunCreateV2(e) => {
                 assert_eq!(e.ix_name, "create_v2");
                 crate::core::events::PumpFunCreateTokenEvent {
+                    alt_addresses: e.alt_addresses.clone(),
                     transaction_version: e.transaction_version,
                     depth: 0,
                     metadata: e.metadata.clone(),

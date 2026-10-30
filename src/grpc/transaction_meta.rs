@@ -39,7 +39,7 @@ pub fn yellowstone_message_version(
     }
 }
 
-/// Fill creation transaction versions and the recent blockhash once final events are known.
+/// Fill creation transaction context and the recent blockhash once final events are known.
 ///
 /// Encoding after log/instruction deduplication avoids doing the same base58
 /// allocation independently on both parser branches.
@@ -51,11 +51,18 @@ pub(crate) fn fill_transaction_context(events: &mut [DexEvent], transaction: &Op
 
     let version = yellowstone_message_version(message);
     for event in events.iter_mut() {
-        match event {
-            DexEvent::PumpFunCreate(create) => create.transaction_version = Some(version),
-            DexEvent::PumpFunCreateV2(create) => create.transaction_version = Some(version),
-            _ => {}
-        }
+        let alt_addresses = match event {
+            DexEvent::PumpFunCreate(create) => {
+                create.transaction_version = Some(version);
+                &mut create.alt_addresses
+            }
+            DexEvent::PumpFunCreateV2(create) => {
+                create.transaction_version = Some(version);
+                &mut create.alt_addresses
+            }
+            _ => continue,
+        };
+        *alt_addresses = creation_alt_addresses(message);
     }
     let blockhash = &message.recent_blockhash;
     if blockhash.is_empty() {
@@ -68,6 +75,21 @@ pub(crate) fn fill_transaction_context(events: &mut [DexEvent], transaction: &Op
         item.recent_blockhash = Some(encoded.clone());
     }
     first.recent_blockhash = Some(encoded);
+}
+
+fn creation_alt_addresses(
+    message: &yellowstone_grpc_proto::prelude::Message,
+) -> Option<Vec<Pubkey>> {
+    let lookups = &message.address_table_lookups;
+    if lookups.is_empty() {
+        return None;
+    }
+    let mut addresses = Vec::with_capacity(lookups.len());
+    for lookup in lookups {
+        // A malformed key invalidates the list instead of exposing a partial result.
+        addresses.push(Pubkey::try_from(lookup.account_key.as_slice()).ok()?);
+    }
+    Some(addresses)
 }
 
 /// 32 字节公钥 → base58 地址字符串。
@@ -274,6 +296,53 @@ pub fn try_yellowstone_signature(sig: &[u8]) -> Option<Signature> {
 mod tests {
     use super::*;
     use yellowstone_grpc_proto::prelude::{Message, TransactionConfig};
+
+    #[test]
+    fn creation_alt_addresses_keep_order_and_reject_partial_provider_lists() {
+        let first = Pubkey::new_unique();
+        let second = Pubkey::new_unique();
+        for (keys, expected) in [
+            (vec![], None),
+            (
+                vec![
+                    second.to_bytes().to_vec(),
+                    first.to_bytes().to_vec(),
+                    second.to_bytes().to_vec(),
+                ],
+                Some(vec![second, first, second]),
+            ),
+            (vec![first.to_bytes().to_vec(), vec![0; 31]], None),
+        ] {
+            let tx = Some(Transaction {
+                message: Some(Message {
+                    address_table_lookups: keys
+                        .into_iter()
+                        .map(|account_key| {
+                            yellowstone_grpc_proto::prelude::MessageAddressTableLookup {
+                                account_key,
+                                ..Default::default()
+                            }
+                        })
+                        .collect(),
+                    ..Default::default()
+                }),
+                ..Default::default()
+            });
+            let mut events = [
+                DexEvent::PumpFunCreate(Default::default()),
+                DexEvent::PumpFunCreateV2(Default::default()),
+            ];
+            fill_transaction_context(&mut events, &tx);
+            for event in events {
+                let actual = match event {
+                    DexEvent::PumpFunCreate(c) => c.alt_addresses,
+                    DexEvent::PumpFunCreateV2(c) => c.alt_addresses,
+                    _ => unreachable!(),
+                };
+                assert_eq!(actual, expected);
+            }
+        }
+    }
 
     #[test]
     fn message_version_uses_config_before_versioned_flag() {

@@ -19,6 +19,11 @@ fn reported_create_v2_with_alt_accounts_keeps_create_and_trade_callbacks() {
         let (meta, tx) = sol_parser_sdk::convert_rpc_to_grpc(&rpc).unwrap();
         let signed = rpc.transaction.transaction.decode().unwrap();
         signed.verify_and_hash_message().unwrap();
+        let expected_alt_addresses = signed
+            .message
+            .address_table_lookups()
+            .filter(|lookups| !lookups.is_empty())
+            .map(|lookups| lookups.iter().map(|lookup| lookup.account_key).collect::<Vec<_>>());
         assert_eq!(signed.signatures[0].to_string(), case["signature"].as_str().unwrap());
         let mut events = Vec::new();
         sol_parser_sdk::shredstream::pump_ix::parse_transaction_dex_events_with_filter(
@@ -34,6 +39,7 @@ fn reported_create_v2_with_alt_accounts_keeps_create_and_trade_callbacks() {
         let DexEvent::PumpFunCreate(create) = &events[0] else { panic!("create must come first") };
         let DexEvent::PumpFunTrade(trade) = &events[1] else { panic!("missing trade") };
         assert_eq!(create.ix_name, "create_v2");
+        assert_eq!(create.alt_addresses, expected_alt_addresses);
         assert_eq!(trade.ix_name, method);
         assert_eq!(trade.mint, create.mint);
         assert_eq!(trade.user, create.user);
@@ -78,6 +84,7 @@ fn reported_create_v2_with_alt_accounts_keeps_create_and_trade_callbacks() {
             panic!("resolved create")
         };
         let DexEvent::PumpFunTrade(resolved_trade) = &resolved[1] else { panic!("resolved trade") };
+        assert_eq!(resolved_create.alt_addresses, expected_alt_addresses);
         assert_eq!(create.creator, resolved_create.creator);
         assert_ne!(resolved_create.token_program, Pubkey::default());
         assert_ne!(resolved_trade.token_program, Pubkey::default());
@@ -101,6 +108,7 @@ fn reported_create_v2_with_alt_accounts_keeps_create_and_trade_callbacks() {
         assert_eq!(grpc.len(), 2);
         let DexEvent::PumpFunCreate(confirmed_create) = &grpc[0] else { panic!("gRPC create") };
         assert_eq!(confirmed_create.ix_name, "create_v2");
+        assert_eq!(confirmed_create.alt_addresses, expected_alt_addresses);
         assert_eq!(
             confirmed_create.transaction_version,
             Some(sol_parser_sdk::YellowstoneMessageVersion::V0)
@@ -133,6 +141,7 @@ fn reported_create_v2_with_alt_accounts_keeps_create_and_trade_callbacks() {
         let rpc_events = sol_parser_sdk::parse_rpc_transaction(&rpc, Some(&filter)).unwrap();
         let DexEvent::PumpFunCreate(rpc_create) = &rpc_events[0] else { panic!("RPC create") };
         assert_eq!(rpc_create.transaction_version, confirmed_create.transaction_version);
+        assert_eq!(rpc_create.alt_addresses, expected_alt_addresses);
         let info = update.transaction.as_ref().unwrap();
         let instructions = sol_parser_sdk::grpc::instruction_parser::parse_instructions_enhanced(
             info.meta.as_ref().unwrap(),
@@ -148,6 +157,7 @@ fn reported_create_v2_with_alt_accounts_keeps_create_and_trade_callbacks() {
             panic!("instruction create")
         };
         assert_eq!(ix_create.transaction_version, confirmed_create.transaction_version);
+        assert_eq!(ix_create.alt_addresses, expected_alt_addresses);
 
         for (types, expected) in [
             (vec![EventType::PumpFunCreate], 1),

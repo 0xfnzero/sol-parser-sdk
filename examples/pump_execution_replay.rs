@@ -1,5 +1,6 @@
 //! Offline by default. --reported-alt replays only the two reported GMGN trades.
 //! Pass a current signature to fetch via SOLANA_RPC_URL, outside the parser.
+//! Creation JSON includes alt_addresses: transaction ALT table keys, without resolving them.
 use base64::{engine::general_purpose::STANDARD, Engine};
 use sol_parser_sdk::{
     convert_rpc_to_grpc,

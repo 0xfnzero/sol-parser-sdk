@@ -693,10 +693,21 @@ fn parse_transaction_with_account_keys(
         VersionedMessage::V1(_) => crate::grpc::YellowstoneMessageVersion::V1,
     };
     let mut metadata = appended.iter_mut().filter_map(|event| {
-        match event {
-            DexEvent::PumpFunCreate(create) => create.transaction_version = Some(version),
-            DexEvent::PumpFunCreateV2(create) => create.transaction_version = Some(version),
-            _ => {}
+        let alt_addresses = match event {
+            DexEvent::PumpFunCreate(create) => {
+                create.transaction_version = Some(version);
+                Some(&mut create.alt_addresses)
+            }
+            DexEvent::PumpFunCreateV2(create) => {
+                create.transaction_version = Some(version);
+                Some(&mut create.alt_addresses)
+            }
+            _ => None,
+        };
+        if let Some(alt_addresses) = alt_addresses {
+            let lookups = transaction.message.address_table_lookups().unwrap_or_default();
+            *alt_addresses = (!lookups.is_empty())
+                .then(|| lookups.iter().map(|lookup| lookup.account_key).collect());
         }
         event.metadata_mut()
     });
@@ -2106,6 +2117,46 @@ mod tests {
                 assert_eq!(event.ix_name, "create");
             }
             other => panic!("expected PumpFunCreate, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn shred_creation_preserves_all_alt_keys_without_modifying_previous_events() {
+        let mut keys = unique_accounts(14);
+        keys.push(PROGRAM_ID_PUBKEY);
+        let base = v0_tx(14, keys, ix_accounts(14), create_data());
+        let first = Pubkey::new_unique();
+        let second = Pubkey::new_unique();
+        for alt_keys in [Vec::new(), vec![second, first, second]] {
+            let mut tx = base.clone();
+            let VersionedMessage::V0(message) = &mut tx.message else { unreachable!() };
+            message.address_table_lookups = alt_keys
+                .iter()
+                .map(|&account_key| v0::MessageAddressTableLookup {
+                    account_key,
+                    writable_indexes: vec![0],
+                    readonly_indexes: vec![],
+                })
+                .collect();
+            let mut events = vec![DexEvent::PumpFunCreate(PumpFunCreateTokenEvent {
+                alt_addresses: Some(vec![first]),
+                ..Default::default()
+            })];
+            parse_transaction_dex_events_with_filter(
+                &tx,
+                Signature::default(),
+                42,
+                0,
+                123,
+                None,
+                &mut events,
+            );
+            assert_eq!(events.len(), 2);
+            let DexEvent::PumpFunCreate(previous) = &events[0] else { panic!("previous create") };
+            assert_eq!(previous.alt_addresses, Some(vec![first]));
+            let DexEvent::PumpFunCreate(created) = &events[1] else { panic!("new create") };
+            let expected = (!alt_keys.is_empty()).then_some(alt_keys);
+            assert_eq!(created.alt_addresses, expected);
         }
     }
 

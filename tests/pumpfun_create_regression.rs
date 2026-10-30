@@ -38,6 +38,11 @@ fn mainnet_create_account_regressions() {
         };
         let signed = tx.transaction.transaction.decode().unwrap();
         signed.verify_and_hash_message().unwrap();
+        let expected_alt_addresses = signed
+            .message
+            .address_table_lookups()
+            .filter(|lookups| !lookups.is_empty())
+            .map(|lookups| lookups.iter().map(|lookup| lookup.account_key).collect::<Vec<_>>());
         let mut shred = Vec::new();
         sol_parser_sdk::shredstream::parse_transaction_dex_events(
             &signed,
@@ -50,6 +55,7 @@ fn mainnet_create_account_regressions() {
         for event in &shred {
             if let DexEvent::PumpFunCreate(create) = event {
                 assert_eq!(create.transaction_version, Some(version), "{}", path.display());
+                assert_eq!(create.alt_addresses, expected_alt_addresses, "{}", path.display());
                 shred_versions.insert(version);
             }
         }
@@ -77,6 +83,7 @@ fn mainnet_create_account_regressions() {
             );
         }
         for c in creates {
+            assert_eq!(c.alt_addresses, expected_alt_addresses, "{}", path.display());
             let ix = raw["transaction"]["message"]["instructions"]
                 .as_array()
                 .unwrap()
@@ -146,6 +153,7 @@ fn historical_create_log_exact_layout() {
     let event = parse(&data).expect("historical event");
     match event {
         DexEvent::PumpFunCreate(c) => {
+            assert!(c.alt_addresses.is_none());
             assert_eq!(c.mint, Pubkey::new_from_array([1; 32]));
             assert_eq!(c.creator, Pubkey::default());
             assert_eq!(c.timestamp, 0);
